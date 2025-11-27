@@ -1,0 +1,57 @@
+# Project Vision: Dum.fun (The Satirical Anti-Launchpad)
+
+I want you to build a functional Solana Meme Coin Launchpad that parodies the platform "Pump.fun".
+Your goal is to focus heavily on the **Front-End Design, Animations, and User Experience**.
+The backend (Rust/Solana) should be handled by you as needed to support the frontend.
+
+## 1. The Aesthetic: "Neo-Brutalist Panic"
+The site should look like a "dangerous" version of the internet from 1999 mixed with modern crypto degen culture.
+* **Color Palette:** Black Background (`#000000`), High-Contrast Warning Red (`#FF0000`), Safety Yellow (`#FFFF00`), and Neon Green terminal text.
+* **Typography:** Use a mix of Monospace fonts (like 'Courier New' or 'Space Mono') for data, and massive, blocky Sans-Serif fonts (like 'Impact' or 'Archivo Black') for headers.
+* **Vibe:** Chaotic, urgent, and "broken." Things should jitter, flash, or look like error messages.
+
+## 2. The Core User Journey (The "Race to Zero")
+Replicate the 'Pump.fun' layout but invert the psychology.
+
+### A. The Landing Page (The Dashboard)
+* **Layout:** A chaotic grid of currently active token launches.
+* **Card Design:** Instead of a clean card, each token looks like a "Wanted Poster" or a "System Error" window.
+* **The "King of the Hill" Feature:**
+    * On Pump.fun, the top coin is "King of the Hill."
+    * **On Dum.fun:** The coin dropping the fastest is the **"Village Idiot."**
+    * **Visual:** Place this coin at the top in a shaking, red-bordered box with a "CRASHING NOW" badge.
+* **Animations:**
+    * When a buy happens: Screen shakes slightly.
+    * When a sell happens: A "glass crack" overlay appears briefly over the token card.
+
+### B. The Token Detail Page (The Trading View)
+* **The Chart:**
+    * DO NOT show a standard TradingView candle chart.
+    * Show a **"Doom Line"**: A thick red line that trends downwards by default.
+    * When someone buys, the line "glitches" upward (a green spike) and then continues falling.
+* **The Big Button:**
+    * The "Buy" button should be massive and labeled **"CATCH THE KNIFE"**.
+    * Hover effect: The button shakes as if it's unstable.
+* **The Chat:**
+    * Label it **"The Scream Chamber"**.
+    * Style it like an old IRC chat or a hacked terminal.
+
+### C. The Launch Flow (Creating a Coin)
+* **The Button:** A floating button in the bottom right labeled **"START A DISASTER"**.
+* **The Form:**
+    * Keep it simple: Name, Ticker, Image.
+    * **The Twist:** Add a "Warning" checkbox that users must click: *"I admit this is a terrible idea."*
+    * **Success State:** When a coin launches, play a "siren" sound effect and flash the screen red.
+
+## 3. Specific UI "Dum" Features
+* **The Header:** Instead of a navigation bar, use a "Marquee" (scrolling text) that reads: *WARNING: YOU WILL LOSE MONEY • THIS IS FINANCIAL SUICIDE • HAVE FUN STAYING POOR*.
+* **Wallet Connect:** When the user connects their Phantom wallet, change the button text to **"VICTIM [Wallet_Address]"**.
+* **The "Refund" Button:** Place a small "Refund" link in the footer. If clicked, it should trigger a browser alert saying: *"LOL NO."*
+
+## 4. Technical Instructions for You (The AI)
+* **Frontend:** Use Next.js, Tailwind CSS, and Framer Motion for the animations.
+* **Backend:** Scaffold a basic Solana Anchor program that allows:
+    1.  Creating a token (minting).
+    2.  Buying tokens (bonding curve logic).
+    3.  Selling tokens.
+* **Mock Data:** For now, if you cannot connect to Devnet immediately, populate the dashboard with "Fake Live Data" so I can see the design and animations in action.
