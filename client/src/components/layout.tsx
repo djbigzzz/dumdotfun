@@ -1,0 +1,80 @@
+import React, { useEffect, useState } from "react";
+import { Link } from "wouter";
+import { cn } from "@/lib/utils";
+
+const Marquee = () => {
+  return (
+    <div className="bg-red-600 text-black font-sans font-black text-lg py-2 overflow-hidden whitespace-nowrap border-b-4 border-black">
+      <div className="animate-marquee inline-block">
+        WARNING: YOU WILL LOSE MONEY • THIS IS FINANCIAL SUICIDE • HAVE FUN STAYING POOR • RUG PULLS ARE A FEATURE NOT A BUG • DO NOT CONNECT YOUR WALLET • 
+        WARNING: YOU WILL LOSE MONEY • THIS IS FINANCIAL SUICIDE • HAVE FUN STAYING POOR • RUG PULLS ARE A FEATURE NOT A BUG • DO NOT CONNECT YOUR WALLET •
+      </div>
+    </div>
+  );
+};
+
+export function Layout({ children }: { children: React.ReactNode }) {
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
+  const connectWallet = () => {
+    // Mock connection
+    const addr = "8x" + Math.random().toString(16).slice(2, 8) + "...";
+    setWalletAddress(addr);
+  };
+
+  const handleRefund = () => {
+    alert("LOL NO.");
+  };
+
+  return (
+    <div className="min-h-screen flex flex-col bg-black text-green-500 selection:bg-red-600 selection:text-white">
+      <Marquee />
+      
+      <header className="p-4 border-b-4 border-red-600 flex justify-between items-center bg-neutral-900">
+        <Link href="/">
+          <h1 className="text-4xl md:text-6xl font-black text-red-600 tracking-tighter cursor-pointer hover:scale-105 transition-transform uppercase" style={{ textShadow: "4px 4px 0px yellow" }}>
+            DUM.FUN
+          </h1>
+        </Link>
+        
+        <button 
+          onClick={connectWallet}
+          className={cn(
+            "font-mono font-bold border-2 border-red-600 px-4 py-2 uppercase transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0",
+            walletAddress ? "bg-red-600 text-black" : "bg-black text-red-600 hover:bg-red-900"
+          )}
+        >
+          {walletAddress ? `VICTIM [${walletAddress}]` : "CONNECT WALLET (DONT)"}
+        </button>
+      </header>
+
+      <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
+        {/* Background noise overlay */}
+        <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-0" style={{ backgroundImage: `url('/attached_assets/generated_images/gritty_digital_noise_texture.png')` }}></div>
+        
+        <div className="relative z-10">
+          {children}
+        </div>
+      </main>
+
+      <footer className="p-8 border-t-4 border-red-600 bg-neutral-900 text-center font-mono text-sm text-neutral-500">
+        <p className="mb-4">
+          COPYRIGHT © 1999-2025 DUM.FUN INC. ALL RIGHTS RESERVED (BUT NOT REALLY).
+        </p>
+        <button onClick={handleRefund} className="underline hover:text-red-600 cursor-pointer text-xs">
+          Request Refund
+        </button>
+      </footer>
+      
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+        .animate-marquee {
+          animation: marquee 20s linear infinite;
+        }
+      `}</style>
+    </div>
+  );
+}
