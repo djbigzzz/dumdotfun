@@ -15,9 +15,17 @@ const Marquee = () => {
 
 export function Layout({ children }: { children: React.ReactNode }) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [panicMode, setPanicMode] = useState(false);
+
+  useEffect(() => {
+    if (panicMode) {
+      document.body.classList.add("panic-mode");
+    } else {
+      document.body.classList.remove("panic-mode");
+    }
+  }, [panicMode]);
 
   const connectWallet = () => {
-    // Mock connection
     const addr = "8x" + Math.random().toString(16).slice(2, 8) + "...";
     setWalletAddress(addr);
   };
@@ -27,37 +35,51 @@ export function Layout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-black text-green-500 selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-gray-100 selection:bg-red-600 selection:text-white">
       <Marquee />
       
-      <header className="p-4 border-b-4 border-red-600 flex justify-between items-center bg-neutral-900">
+      <header className="p-4 border-b border-red-900 flex justify-between items-center bg-zinc-900">
         <Link href="/">
-          <h1 className="text-4xl md:text-6xl font-black text-red-600 tracking-tighter cursor-pointer hover:scale-105 transition-transform uppercase" style={{ textShadow: "4px 4px 0px yellow" }}>
+          <h1 className="text-4xl md:text-6xl font-black text-red-500 tracking-tighter cursor-pointer hover:scale-105 transition-transform uppercase" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
             DUM.FUN
           </h1>
         </Link>
         
-        <button 
-          onClick={connectWallet}
-          className={cn(
-            "font-mono font-bold border-2 border-red-600 px-4 py-2 uppercase transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0",
-            walletAddress ? "bg-red-600 text-black" : "bg-black text-red-600 hover:bg-red-900"
-          )}
-        >
-          {walletAddress ? `VICTIM [${walletAddress}]` : "CONNECT WALLET (DONT)"}
-        </button>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setPanicMode(!panicMode)}
+            className={cn(
+              "border-2 px-3 py-2 font-mono font-bold uppercase text-sm rounded-none transition-all",
+              panicMode 
+                ? "bg-red-600 text-white border-red-600" 
+                : "bg-zinc-900 text-red-500 border-red-500 hover:bg-red-900/20"
+            )}
+          >
+            {panicMode ? "EYES FINE" : "EYES HURT?"}
+          </button>
+          
+          <button 
+            onClick={connectWallet}
+            className={cn(
+              "font-mono font-bold border-2 border-red-600 px-4 py-2 uppercase transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0",
+              walletAddress ? "bg-red-600 text-white" : "bg-zinc-900 text-red-500 hover:bg-red-900/20"
+            )}
+          >
+            {walletAddress ? `VICTIM [${walletAddress}]` : "CONNECT WALLET (DONT)"}
+          </button>
+        </div>
       </header>
 
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
         {/* Background noise overlay */}
-        <div className="fixed inset-0 pointer-events-none opacity-[0.05] z-0" style={{ backgroundImage: `url('/attached_assets/generated_images/gritty_digital_noise_texture.png')` }}></div>
+        <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style={{ backgroundImage: `url('/attached_assets/generated_images/gritty_digital_noise_texture.png')` }}></div>
         
         <div className="relative z-10">
           {children}
         </div>
       </main>
 
-      <footer className="p-8 border-t-4 border-red-600 bg-neutral-900 text-center font-mono text-sm text-neutral-500">
+      <footer className="p-8 border-t border-red-900 bg-zinc-900 text-center font-mono text-sm text-neutral-500">
         <p className="mb-4">
           COPYRIGHT © 1999-2025 DUM.FUN INC. ALL RIGHTS RESERVED (BUT NOT REALLY).
         </p>

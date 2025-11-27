@@ -2,37 +2,37 @@
 @import "tw-animate-css";
 
 @theme inline {
-  --color-background: hsl(0 0% 0%);
-  --color-foreground: hsl(120 100% 50%); /* Neon Green */
+  --color-background: hsl(0 0% 6.3%);
+  --color-foreground: hsl(0 0% 90%);
   
-  --color-card: hsl(0 0% 5%);
-  --color-card-foreground: hsl(120 100% 50%);
+  --color-card: hsl(240 10% 11%);
+  --color-card-foreground: hsl(0 0% 90%);
   
-  --color-popover: hsl(0 0% 5%);
-  --color-popover-foreground: hsl(120 100% 50%);
+  --color-popover: hsl(240 10% 11%);
+  --color-popover-foreground: hsl(0 0% 90%);
   
-  --color-primary: hsl(0 100% 50%); /* Warning Red */
-  --color-primary-foreground: hsl(0 0% 0%);
+  --color-primary: hsl(0 100% 53%); /* #FF4444 */
+  --color-primary-foreground: hsl(0 0% 100%);
   
-  --color-secondary: hsl(60 100% 50%); /* Safety Yellow */
+  --color-secondary: hsl(60 100% 50%);
   --color-secondary-foreground: hsl(0 0% 0%);
   
   --color-muted: hsl(0 0% 20%);
   --color-muted-foreground: hsl(0 0% 60%);
   
-  --color-accent: hsl(0 100% 50%);
-  --color-accent-foreground: hsl(0 0% 0%);
+  --color-accent: hsl(0 100% 53%);
+  --color-accent-foreground: hsl(0 0% 100%);
   
-  --color-destructive: hsl(0 100% 50%);
+  --color-destructive: hsl(0 100% 53%);
   --color-destructive-foreground: hsl(0 0% 100%);
   
-  --color-border: hsl(0 100% 50%); /* Red Borders everywhere */
-  --color-input: hsl(0 0% 10%);
-  --color-ring: hsl(0 100% 50%);
+  --color-border: hsl(0 80% 20%); /* Dark Red #450a0a */
+  --color-input: hsl(240 10% 9%);
+  --color-ring: hsl(0 100% 53%);
   
-  --color-chart-1: hsl(0 100% 50%);
+  --color-chart-1: hsl(0 100% 53%);
   --color-chart-2: hsl(60 100% 50%);
-  --color-chart-3: hsl(120 100% 50%);
+  --color-chart-3: hsl(120 100% 40%);
   --color-chart-4: hsl(0 0% 100%);
   --color-chart-5: hsl(0 0% 50%);
 
@@ -40,7 +40,7 @@
   --font-mono: 'Space Mono', monospace;
   --font-terminal: 'VT323', monospace;
 
-  --radius: 0px; /* Brutalist - no rounding */
+  --radius: 0px;
 }
 
 @layer base {
@@ -51,6 +51,12 @@
     @apply font-mono antialiased bg-background text-foreground overflow-x-hidden;
     background-image: radial-gradient(#222 1px, transparent 1px);
     background-size: 20px 20px;
+    transition: filter 0.3s ease;
+  }
+  
+  body.panic-mode {
+    filter: sepia(100%) saturate(300%) hue-rotate(-50deg);
+    background-color: #000000;
   }
   
   h1, h2, h3, h4, h5, h6 {
@@ -68,15 +74,15 @@
   }
   
   .text-shadow-error {
-    text-shadow: 0 0 5px theme('colors.red.500'), 0 0 10px theme('colors.red.500');
+    text-shadow: 0 0 5px #FF4444, 0 0 10px #FF4444;
   }
 
   .box-shadow-brutal {
-    box-shadow: 4px 4px 0px 0px theme('colors.red.600');
+    box-shadow: 4px 4px 0px 0px hsl(0 80% 15%);
   }
   
   .box-shadow-reverse {
-    box-shadow: -4px -4px 0px 0px theme('colors.yellow.400');
+    box-shadow: -4px -4px 0px 0px hsl(60 100% 50%);
   }
 
   .glitch-effect {
@@ -95,14 +101,14 @@
   
   .glitch-effect::before {
     left: 2px;
-    text-shadow: -1px 0 red;
+    text-shadow: -1px 0 #FF4444;
     clip: rect(24px, 550px, 90px, 0);
     animation: glitch-anim-1 2.5s infinite linear alternate-reverse;
   }
   
   .glitch-effect::after {
     left: -2px;
-    text-shadow: -1px 0 blue;
+    text-shadow: -1px 0 #4488FF;
     clip: rect(85px, 550px, 140px, 0);
     animation: glitch-anim-2 3s infinite linear alternate-reverse;
   }

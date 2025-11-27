@@ -4,24 +4,20 @@ import { TokenCard } from "@/components/token-card";
 import { MOCK_TOKENS } from "@/lib/mockData";
 import { motion } from "framer-motion";
 import { AlertOctagon } from "lucide-react";
-import { useLocation } from "wouter";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Home() {
-  const [, setLocation] = useLocation();
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchForm, setLaunchForm] = useState({ name: "", ticker: "", admitted: false });
 
   const handleLaunch = () => {
     setIsLaunching(true);
-    // Simulate launch delay
     setTimeout(() => {
       setIsLaunching(false);
       alert("LAUNCHED! (AND PROBABLY ALREADY RUGGED)");
-      // In a real app, we'd redirect to the new token page
     }, 2000);
   };
 
@@ -30,8 +26,8 @@ export default function Home() {
       {/* Village Idiot Section */}
       <section className="mb-12">
         <div className="flex items-center gap-4 mb-4">
-          <AlertOctagon className="text-red-600 w-8 h-8 animate-spin-slow" />
-          <h2 className="text-2xl md:text-4xl text-red-600 border-2 border-red-600 px-4 py-1 inline-block bg-black">
+          <AlertOctagon className="text-red-500 w-8 h-8 animate-spin-slow" />
+          <h2 className="text-2xl md:text-4xl text-red-500 border border-red-500 px-4 py-1 inline-block bg-zinc-900">
             THE VILLAGE IDIOT
           </h2>
         </div>
@@ -42,8 +38,8 @@ export default function Home() {
 
       {/* Token Grid */}
       <section>
-        <div className="flex justify-between items-end mb-6 border-b-2 border-neutral-800 pb-2">
-          <h2 className="text-xl text-neutral-400 font-mono">
+        <div className="flex justify-between items-end mb-6 border-b border-red-900 pb-2">
+          <h2 className="text-xl text-gray-400 font-mono">
             ACTIVE DISASTERS ({MOCK_TOKENS.length})
           </h2>
         </div>
@@ -66,7 +62,7 @@ export default function Home() {
             START A DISASTER
           </motion.button>
         </DialogTrigger>
-        <DialogContent className="bg-black border-4 border-red-600 text-red-600 max-w-md">
+        <DialogContent className="bg-zinc-900 border-2 border-red-500 text-gray-100 max-w-md">
           <DialogHeader>
             <DialogTitle className="text-3xl font-black uppercase text-center underline decoration-wavy decoration-yellow-400">
               CREATE NEW MISTAKE
@@ -75,22 +71,22 @@ export default function Home() {
           
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="name" className="text-green-500 font-mono">TOKEN NAME</Label>
+              <Label htmlFor="name" className="text-gray-300 font-mono">TOKEN NAME</Label>
               <Input 
                 id="name" 
                 placeholder="e.g. SafePonzi" 
-                className="bg-neutral-900 border-2 border-red-900 text-white font-mono rounded-none focus:ring-0 focus:border-yellow-400"
+                className="bg-zinc-800 border border-red-900 text-white font-mono rounded-none focus:ring-0 focus:border-red-500"
                 value={launchForm.name}
                 onChange={(e) => setLaunchForm({...launchForm, name: e.target.value})}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="ticker" className="text-green-500 font-mono">TICKER</Label>
+              <Label htmlFor="ticker" className="text-gray-300 font-mono">TICKER</Label>
               <Input 
                 id="ticker" 
                 placeholder="$SCAM" 
-                className="bg-neutral-900 border-2 border-red-900 text-white font-mono rounded-none focus:ring-0 focus:border-yellow-400"
+                className="bg-zinc-800 border border-red-900 text-white font-mono rounded-none focus:ring-0 focus:border-red-500"
                 value={launchForm.ticker}
                 onChange={(e) => setLaunchForm({...launchForm, ticker: e.target.value})}
               />
@@ -99,11 +95,11 @@ export default function Home() {
             <div className="flex items-center space-x-2 pt-4">
               <Checkbox 
                 id="warning" 
-                className="border-red-600 data-[state=checked]:bg-red-600 data-[state=checked]:text-black rounded-none"
+                className="border-red-500 data-[state=checked]:bg-red-500 data-[state=checked]:text-white rounded-none"
                 checked={launchForm.admitted}
                 onCheckedChange={(c) => setLaunchForm({...launchForm, admitted: c === true})}
               />
-              <Label htmlFor="warning" className="text-xs font-mono text-neutral-400 leading-tight">
+              <Label htmlFor="warning" className="text-xs font-mono text-gray-400 leading-tight">
                 I ADMIT THIS IS A TERRIBLE IDEA AND I ACCEPT FULL RESPONSIBILITY FOR RUINING THE ECONOMY
               </Label>
             </div>
@@ -111,7 +107,7 @@ export default function Home() {
             <button 
               onClick={handleLaunch}
               disabled={!launchForm.admitted || isLaunching}
-              className="w-full mt-4 bg-red-600 text-black font-black text-xl py-4 border-2 border-white hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed uppercase"
+              className="w-full mt-4 bg-red-500 text-white font-black text-xl py-4 border border-white hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed uppercase"
             >
               {isLaunching ? "INITIALIZING RUIN..." : "LAUNCH TOKEN"}
             </button>
