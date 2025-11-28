@@ -41,7 +41,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className="p-4 border-b border-red-900 flex justify-between items-center bg-zinc-900">
         <Link href="/">
           <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
-            <img src="attached_assets/Gemini_Generated_Image_oc7q6zoc7q6zoc7q_1764323530587.png" alt="DUM.FUN" className="h-14 md:h-16 w-auto" />
+            <img src="attached_assets/Gemini_Generated_Image_shfsmzshfsmzshfs_1764324928223.png" alt="DUM.FUN" className="h-14 md:h-16 w-auto" />
             <h1 className="text-3xl md:text-5xl font-black text-red-500 tracking-tighter uppercase hidden sm:block" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
               DUM.FUN
             </h1>
