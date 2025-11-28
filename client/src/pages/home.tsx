@@ -290,6 +290,7 @@ export default function Home() {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
+            onClick={() => setLocation("/analyzer")}
             className="bg-red-500 hover:bg-red-600 text-white font-black text-lg px-6 py-3 border-2 border-white transition-all uppercase"
           >
             Analyze a Wallet

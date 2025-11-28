@@ -7,12 +7,14 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import TokenDetail from "@/pages/token-detail";
 import Demo from "@/pages/demo";
+import Analyzer from "@/pages/analyzer";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
       <Route path="/demo" component={Demo} />
+      <Route path="/analyzer" component={Analyzer} />
       <Route path="/token/:id" component={TokenDetail} />
       <Route component={NotFound} />
     </Switch>
