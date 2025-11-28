@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
 
+import Gemini_Generated_Image_shfsmzshfsmzshfs from "@assets/Gemini_Generated_Image_shfsmzshfsmzshfs.png";
+
 const Marquee = () => {
   return (
     <div className="bg-red-600 text-black font-sans font-black text-lg py-2 overflow-hidden whitespace-nowrap border-b-4 border-black">
@@ -37,11 +39,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-gray-100 selection:bg-red-600 selection:text-white">
       <Marquee />
-      
       <header className="p-4 border-b border-red-900 flex justify-between items-center bg-zinc-900">
         <Link href="/">
           <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
-            <img src="/attached_assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png" alt="DUM.FUN" className="h-14 md:h-16 w-auto" />
+            <img src={Gemini_Generated_Image_shfsmzshfsmzshfs} alt="DUM.FUN" className="h-14 md:h-16 w-auto" />
             <h1 className="text-3xl md:text-5xl font-black text-red-500 tracking-tighter uppercase hidden sm:block" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
               DUM.FUN
             </h1>
@@ -72,7 +73,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </button>
         </div>
       </header>
-
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
         {/* Background noise overlay */}
         <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style={{ backgroundImage: `url('/attached_assets/generated_images/gritty_digital_noise_texture.png')` }}></div>
@@ -81,7 +81,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
-
       <footer className="p-8 border-t border-red-900 bg-zinc-900 text-center font-mono text-sm text-neutral-500">
         <p className="mb-4">
           COPYRIGHT © 1999-2025 DUM.FUN INC. ALL RIGHTS RESERVED (BUT NOT REALLY).
@@ -90,7 +89,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           Request Refund
         </button>
       </footer>
-      
       <style>{`
         @keyframes marquee {
           0% { transform: translateX(0); }
