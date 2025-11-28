@@ -102,9 +102,9 @@ export default function Home() {
           className="space-y-6 flex flex-col items-center"
         >
           <motion.img
-            src="/attached_assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png"
+            src="/attached_assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png"
             alt="DUM.FUN"
-            className="h-48 md:h-64 w-auto"
+            className="h-64 md:h-80 w-auto"
             animate={{
               rotate: [0, -2, 2, -2, 0],
               scale: [1, 1.05, 1],
