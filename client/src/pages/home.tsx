@@ -1,15 +1,17 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { TokenCard } from "@/components/token-card";
 import { MOCK_TOKENS } from "@/lib/mockData";
 import { motion } from "framer-motion";
-import { AlertOctagon } from "lucide-react";
+import { AlertOctagon, Play } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const [isLaunching, setIsLaunching] = useState(false);
   const [launchForm, setLaunchForm] = useState({ name: "", ticker: "", admitted: false });
 
@@ -21,17 +23,27 @@ export default function Home() {
     }, 2000);
   };
 
+  const enterDemoMode = () => {
+    setLocation("/demo");
+  };
+
   return (
     <Layout>
-      {/* Under Construction Banner */}
-      <div className="mb-8 p-6 bg-yellow-400 text-black border-4 border-black animate-pulse">
-        <div className="flex items-center gap-4">
-          <AlertOctagon className="w-8 h-8 flex-shrink-0" />
-          <div>
-            <h2 className="text-2xl font-black uppercase mb-1">⚠️ UNDER CONSTRUCTION ⚠️</h2>
-            <p className="font-mono text-sm">This is a design mockup. Features are NOT functional yet. UI/UX design only.</p>
-          </div>
+      {/* Demo Mode Banner */}
+      <div className="mb-8 p-6 bg-black border-4 border-red-500 flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <h2 className="text-2xl font-black uppercase mb-2 text-red-500">DESIGN PREVIEW</h2>
+          <p className="font-mono text-sm text-gray-300">Click below to see the platform in action with live animations and interactive demo.</p>
         </div>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={enterDemoMode}
+          className="flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white font-black px-6 py-3 border-2 border-white transition-all whitespace-nowrap"
+        >
+          <Play className="w-5 h-5" />
+          ENTER DEMO MODE
+        </motion.button>
       </div>
 
       {/* Village Idiot Section */}
