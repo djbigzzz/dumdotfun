@@ -101,7 +101,7 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="space-y-6 flex flex-col items-center"
         >
-          <img src="attached_assets/Gemini_Generated_Image_shfsmzshfsmzshfs_1764324928223.png" alt="DUM.FUN" className="h-48 md:h-64 w-auto" />
+          <img src="/attached_assets/Gemini_Generated_Image_shfsmzshfsmzshfs_1764324928223.png" alt="DUM.FUN" className="h-48 md:h-64 w-auto" />
           <div className="space-y-2">
             <p className="text-lg text-gray-400 font-mono max-w-2xl mx-auto">
               Where tokens launch EXPENSIVE and crash IMMEDIATELY
