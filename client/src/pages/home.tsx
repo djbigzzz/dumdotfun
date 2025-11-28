@@ -99,17 +99,14 @@ export default function Home() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="space-y-4"
+          className="space-y-6 flex flex-col items-center"
         >
-          <h1 className="text-6xl md:text-8xl font-black text-red-500 uppercase leading-tight" style={{ textShadow: "3px 3px 0px hsl(60 100% 50%)" }}>
-            DUM.FUN
-          </h1>
-          <p className="text-2xl md:text-3xl text-gray-300 font-mono">
-            The Opposite of Pump.fun
-          </p>
-          <p className="text-lg text-gray-400 font-mono max-w-2xl mx-auto">
-            Where tokens launch EXPENSIVE and crash IMMEDIATELY
-          </p>
+          <img src="attached_assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764323530588.png" alt="DUM.FUN" className="h-48 md:h-64 w-auto" />
+          <div className="space-y-2">
+            <p className="text-lg text-gray-400 font-mono max-w-2xl mx-auto">
+              Where tokens launch EXPENSIVE and crash IMMEDIATELY
+            </p>
+          </div>
         </motion.div>
 
         {/* CTA Button */}
