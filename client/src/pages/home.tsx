@@ -1,7 +1,7 @@
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
-import { TrendingUp, AlertTriangle, Zap, DollarSign } from "lucide-react";
+import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar } from "lucide-react";
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -106,6 +106,110 @@ export default function Home() {
           <p className="text-gray-400 font-mono leading-relaxed">
             Buy on the way down. The button is massive and shakes menacingly. Take the risk. Lose the money. That's the Dum.fun experience.
           </p>
+        </motion.div>
+      </section>
+
+      {/* The Dum Wall */}
+      <section className="mb-16 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+          className="border-2 border-red-500 bg-zinc-900 p-8 md:p-12 space-y-6 order-2 md:order-1"
+        >
+          <div className="flex items-center gap-4">
+            <Flame className="w-12 h-12 text-red-500 flex-shrink-0 animate-bounce" />
+            <h3 className="text-3xl font-black uppercase text-gray-100">The Dum Wall</h3>
+          </div>
+          <p className="text-gray-400 font-mono leading-relaxed text-lg">
+            Burn SOL to post messages on our viral masonry grid. Compete for attention by burning more than others. Watch your message climb as your SOL burns. The hotter your take, the hotter your flame.
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-red-500 hover:bg-red-600 text-white font-black text-lg px-6 py-3 border-2 border-white transition-all uppercase"
+          >
+            Start Burning
+          </motion.button>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.6 }}
+          className="border-2 border-red-500 bg-black p-8 md:p-12 order-1 md:order-2"
+        >
+          <div className="bg-gradient-to-br from-red-950 to-zinc-900 border border-red-900 p-6 space-y-3">
+            <div className="text-xs font-mono text-red-500 uppercase">Live Wall Feed</div>
+            <div className="space-y-3 font-terminal text-sm">
+              <div className="border-l-4 border-red-500 pl-3">
+                <div className="text-yellow-500 font-bold">hodler_99 burned 5 SOL</div>
+                <div className="text-gray-400">"this is gentlemen"</div>
+              </div>
+              <div className="border-l-4 border-red-600 pl-3">
+                <div className="text-yellow-600 font-bold">degen_420 burned 12 SOL</div>
+                <div className="text-gray-400">"the only way is down"</div>
+              </div>
+              <div className="border-l-4 border-red-700 pl-3">
+                <div className="text-yellow-700 font-bold">paper_hands burned 3 SOL</div>
+                <div className="text-gray-400">"why did i buy this"</div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* The Dum Analyzer */}
+      <section className="mb-16 grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7 }}
+          className="border-2 border-red-500 bg-black p-8 md:p-12"
+        >
+          <div className="bg-gradient-to-br from-red-950 to-zinc-900 border border-red-900 p-6 space-y-4 font-terminal">
+            <div className="text-xs font-mono text-red-500 uppercase">Wallet Analysis</div>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-gray-400">Dum Score:</span>
+                <span className="text-red-500 font-black">9999</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">SOL Lost:</span>
+                <span className="text-red-500 font-black">47.3 SOL</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">Rugs Hit:</span>
+                <span className="text-red-500 font-black">12</span>
+              </div>
+              <div className="flex justify-between text-sm mt-4 pt-4 border-t border-red-900">
+                <span className="text-gray-500">Status:</span>
+                <span className="text-yellow-500 animate-pulse">PERMA-REKT</span>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.7 }}
+          className="border-2 border-red-500 bg-zinc-900 p-8 md:p-12 space-y-6"
+        >
+          <div className="flex items-center gap-4">
+            <Radar className="w-12 h-12 text-red-500 flex-shrink-0 animate-spin" style={{ animationDuration: "3s" }} />
+            <h3 className="text-3xl font-black uppercase text-gray-100">The Dum Analyzer</h3>
+          </div>
+          <p className="text-gray-400 font-mono leading-relaxed text-lg">
+            Analyze any wallet's Dum Score. See how much SOL they've lost, rugs they've hit, and share their pain. Compare portfolios. Celebrate failures. The lower the score, the higher the achievement.
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            className="bg-red-500 hover:bg-red-600 text-white font-black text-lg px-6 py-3 border-2 border-white transition-all uppercase"
+          >
+            Analyze a Wallet
+          </motion.button>
         </motion.div>
       </section>
 
