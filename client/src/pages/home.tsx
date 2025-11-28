@@ -4,6 +4,8 @@ import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
 import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar, AlertOctagon } from "lucide-react";
 
+import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
+
 interface Post {
   id: number;
   user: string;
@@ -102,7 +104,7 @@ export default function Home() {
           className="space-y-6 flex flex-col items-center"
         >
           <img
-            src="/attached_assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png"
+            src={heroLogo}
             alt="DUM.FUN"
             className="h-64 md:h-80 w-auto"
           />
