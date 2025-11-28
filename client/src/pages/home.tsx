@@ -101,7 +101,21 @@ export default function Home() {
           transition={{ duration: 0.8 }}
           className="space-y-6 flex flex-col items-center"
         >
-          <img src="/attached_assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png" alt="DUM.FUN" className="h-48 md:h-64 w-auto" />
+          <motion.img
+            src="/attached_assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png"
+            alt="DUM.FUN"
+            className="h-48 md:h-64 w-auto"
+            animate={{
+              rotate: [0, -2, 2, -2, 0],
+              scale: [1, 1.05, 1],
+              filter: ["drop-shadow(0 0 10px rgba(239, 68, 68, 0.3))", "drop-shadow(0 0 20px rgba(239, 68, 68, 0.6))", "drop-shadow(0 0 10px rgba(239, 68, 68, 0.3))"]
+            }}
+            transition={{
+              duration: 3,
+              repeat: Infinity,
+              ease: "easeInOut"
+            }}
+          />
           <div className="space-y-2">
             <p className="text-lg text-gray-400 font-mono max-w-2xl mx-auto">
               Where tokens launch EXPENSIVE and crash IMMEDIATELY
