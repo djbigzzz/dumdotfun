@@ -23,6 +23,17 @@ export default function Home() {
 
   return (
     <Layout>
+      {/* Under Construction Banner */}
+      <div className="mb-8 p-6 bg-yellow-400 text-black border-4 border-black animate-pulse">
+        <div className="flex items-center gap-4">
+          <AlertOctagon className="w-8 h-8 flex-shrink-0" />
+          <div>
+            <h2 className="text-2xl font-black uppercase mb-1">⚠️ UNDER CONSTRUCTION ⚠️</h2>
+            <p className="font-mono text-sm">This is a design mockup. Features are NOT functional yet. UI/UX design only.</p>
+          </div>
+        </div>
+      </div>
+
       {/* Village Idiot Section */}
       <section className="mb-12">
         <div className="flex items-center gap-4 mb-4">
