@@ -1,33 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertWalletAnalysisSchema } from "@shared/schema";
-import { z } from "zod";
-
-// Utility function to generate deterministic mock stats based on wallet address
-function generateMockStats(address: string) {
-  const seed = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const random = (min: number, max: number) => {
-    const x = Math.sin(seed) * 10000;
-    return min + ((x - Math.floor(x)) * (max - min));
-  };
-
-  const solLost = Math.floor(random(1, 500) * 10);
-  const rugsHit = Math.floor(random(1, 50));
-  const dumScore = Math.floor(solLost * 100 + rugsHit * 500);
-  const rugNames = ["SafeMoon", "ElonSperm", "DogeMeme", "CatShit", "MoonLambo", "SafeShib"];
-  const topRug = rugNames[Math.floor(random(0, rugNames.length))];
-
-  return {
-    dumScore,
-    solLost,
-    rugsHit,
-    topRug,
-    totalTransactions: Math.floor(random(10, 500)),
-    averageLossPerTrade: Math.floor((solLost / rugsHit) * 100),
-    status: dumScore > 50000 ? "PERMA-REKT" : dumScore > 25000 ? "SEVERELY REKT" : dumScore > 10000 ? "REKT" : "SLIGHTLY REKT",
-  };
-}
+import { analyzeWallet, isValidSolanaAddress } from "./solana";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -37,30 +11,47 @@ export async function registerRoutes(
     try {
       const { walletAddress } = req.body;
 
-      // Validate wallet address format (Solana addresses are 44 characters base58)
-      if (!walletAddress || typeof walletAddress !== "string" || walletAddress.length < 32) {
-        return res.status(400).json({ error: "Invalid wallet address" });
+      if (!walletAddress || typeof walletAddress !== "string") {
+        return res.status(400).json({ error: "Wallet address is required" });
       }
 
-      // Check if we already have cached analysis for this wallet
-      const existingAnalysis = await storage.getWalletAnalysis(walletAddress);
-      if (existingAnalysis) {
-        return res.json(existingAnalysis);
+      const isValid = await isValidSolanaAddress(walletAddress);
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid Solana wallet address" });
       }
 
-      // Generate mock stats
-      const stats = generateMockStats(walletAddress);
+      const cachedAnalysis = await storage.getWalletAnalysis(walletAddress);
+      const cacheAge = cachedAnalysis 
+        ? Date.now() - new Date(cachedAnalysis.createdAt).getTime()
+        : Infinity;
+      
+      if (cachedAnalysis && cacheAge < 5 * 60 * 1000) {
+        return res.json(cachedAnalysis);
+      }
 
-      // Create and store the analysis
+      console.log(`Analyzing wallet: ${walletAddress}`);
+      const stats = await analyzeWallet(walletAddress);
+
       const analysis = await storage.createWalletAnalysis({
         walletAddress,
-        ...stats,
+        dumScore: stats.dumScore,
+        solLost: stats.solLost,
+        rugsHit: stats.rugsHit,
+        topRug: stats.topRug,
+        totalTransactions: stats.totalTransactions,
+        averageLossPerTrade: stats.averageLossPerTrade,
+        status: stats.status,
       });
 
-      return res.json(analysis);
-    } catch (error) {
+      return res.json({
+        ...analysis,
+        isRealData: stats.isRealData,
+      });
+    } catch (error: any) {
       console.error("Error analyzing wallet:", error);
-      return res.status(500).json({ error: "Failed to analyze wallet" });
+      return res.status(500).json({ 
+        error: error.message || "Failed to analyze wallet" 
+      });
     }
   });
 

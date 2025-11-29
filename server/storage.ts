@@ -39,9 +39,7 @@ export class MemStorage implements IStorage {
   }
 
   async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {
-    return Array.from(this.walletAnalyses.values()).find(
-      (analysis) => analysis.walletAddress === walletAddress
-    );
+    return this.walletAnalyses.get(walletAddress);
   }
 
   async createWalletAnalysis(insertAnalysis: InsertWalletAnalysis): Promise<WalletAnalysis> {
@@ -52,7 +50,7 @@ export class MemStorage implements IStorage {
       id,
       createdAt: now,
     };
-    this.walletAnalyses.set(id, analysis);
+    this.walletAnalyses.set(insertAnalysis.walletAddress, analysis);
     return analysis;
   }
 }

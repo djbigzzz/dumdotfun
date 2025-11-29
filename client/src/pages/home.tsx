@@ -1,10 +1,22 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
-import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar, AlertOctagon } from "lucide-react";
+import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar, AlertOctagon, Wallet } from "lucide-react";
 
 import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
+
+declare global {
+  interface Window {
+    solana?: {
+      isPhantom?: boolean;
+      connect: () => Promise<{ publicKey: { toString: () => string } }>;
+      disconnect: () => Promise<void>;
+      on: (event: string, callback: () => void) => void;
+      publicKey?: { toString: () => string };
+    };
+  }
+}
 
 interface Post {
   id: number;
@@ -25,6 +37,7 @@ interface WalletStats {
   averageLossPerTrade: number;
   status: string;
   createdAt: string;
+  isRealData?: boolean;
 }
 
 
@@ -41,6 +54,26 @@ export default function Home() {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
+  const [hasPhantom, setHasPhantom] = useState(false);
+
+  useEffect(() => {
+    const checkPhantom = () => {
+      if (window.solana?.isPhantom) {
+        setHasPhantom(true);
+        if (window.solana.publicKey) {
+          setConnectedWallet(window.solana.publicKey.toString());
+        }
+      }
+    };
+    
+    if (document.readyState === "complete") {
+      checkPhantom();
+    } else {
+      window.addEventListener("load", checkPhantom);
+      return () => window.removeEventListener("load", checkPhantom);
+    }
+  }, []);
 
   const enterDemoMode = () => {
     setLocation("/demo");
@@ -62,16 +95,34 @@ export default function Home() {
     setCurrentSolPrice(prev => parseFloat((prev * 2).toFixed(4)));
   };
 
-  const handleConnectWallet = () => {
-    // Generate a mock wallet address for demo
-    const mockWallet = "8x" + Math.random().toString(16).slice(2, 40).padEnd(40, "0");
-    setConnectedWallet(mockWallet);
-    setWalletStats(null);
+  const handleConnectWallet = async () => {
+    setWalletError(null);
+    
+    if (window.solana?.isPhantom) {
+      try {
+        const response = await window.solana.connect();
+        setConnectedWallet(response.publicKey.toString());
+        setWalletStats(null);
+      } catch (err: any) {
+        setWalletError(err.message || "Failed to connect wallet");
+      }
+    } else {
+      window.open("https://phantom.app/", "_blank");
+      setWalletError("Please install Phantom wallet to continue");
+    }
   };
 
-  const handleDisconnectWallet = () => {
+  const handleDisconnectWallet = async () => {
+    if (window.solana?.isPhantom) {
+      try {
+        await window.solana.disconnect();
+      } catch (err) {
+        console.error("Error disconnecting:", err);
+      }
+    }
     setConnectedWallet(null);
     setWalletStats(null);
+    setWalletError(null);
   };
 
   const handleAnalyzeWallet = async () => {
@@ -242,11 +293,17 @@ export default function Home() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={handleConnectWallet}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black uppercase text-sm py-3 border-b-2 border-r-2 border-gray-300 cursor-pointer transition-all"
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-black uppercase text-sm py-3 border-b-2 border-r-2 border-gray-300 cursor-pointer transition-all flex items-center justify-center gap-2"
               >
-                🔗 CONNECT WALLET
+                <Wallet className="w-4 h-4" />
+                CONNECT PHANTOM
               </motion.button>
-              <p className="text-xs text-gray-600 font-mono text-center">Connect your Solana wallet to begin analysis</p>
+              {walletError && (
+                <p className="text-xs text-red-500 font-mono text-center">{walletError}</p>
+              )}
+              <p className="text-xs text-gray-600 font-mono text-center">
+                {hasPhantom ? "Click to connect your Phantom wallet" : "Install Phantom wallet to analyze"}
+              </p>
             </div>
           ) : (
             <div className="space-y-3 mb-6">
@@ -290,6 +347,15 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               className="space-y-3 flex-1"
             >
+              {/* Data Source Indicator */}
+              <div className={`text-center py-1 px-2 text-xs font-mono ${
+                walletStats.isRealData 
+                  ? "bg-green-950/50 border border-green-700 text-green-400" 
+                  : "bg-yellow-950/50 border border-yellow-700 text-yellow-400"
+              }`}>
+                {walletStats.isRealData ? "📡 LIVE ON-CHAIN DATA" : "⚠️ SIMULATED DATA (RPC UNAVAILABLE)"}
+              </div>
+
               {/* Main Stats */}
               <div className="grid grid-cols-3 gap-2">
                 <motion.div

@@ -117,7 +117,7 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     let topRugMint = "";
     let topRugLoss = 0;
 
-    for (const [mint, { out, in: inAmount }] of tokenInteractions) {
+    Array.from(tokenInteractions.entries()).forEach(([mint, { out, in: inAmount }]) => {
       if (out > inAmount * 1.5) {
         rugCount++;
         const loss = out - inAmount;
@@ -126,7 +126,7 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
           topRugMint = mint;
         }
       }
-    }
+    });
 
     const netSolLost = Math.max(0, totalSolOut - totalSolIn);
     const estimatedSolLost = Math.round(netSolLost * 10) / 10;
