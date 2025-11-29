@@ -1,20 +1,24 @@
-import { type User, type InsertUser } from "@shared/schema";
+import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-// modify the interface with any CRUD methods
-// you might need
-
 export interface IStorage {
+  // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Wallet analysis methods
+  getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
+  createWalletAnalysis(analysis: InsertWalletAnalysis): Promise<WalletAnalysis>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private walletAnalyses: Map<string, WalletAnalysis>;
 
   constructor() {
     this.users = new Map();
+    this.walletAnalyses = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -32,6 +36,24 @@ export class MemStorage implements IStorage {
     const user: User = { ...insertUser, id };
     this.users.set(id, user);
     return user;
+  }
+
+  async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {
+    return Array.from(this.walletAnalyses.values()).find(
+      (analysis) => analysis.walletAddress === walletAddress
+    );
+  }
+
+  async createWalletAnalysis(insertAnalysis: InsertWalletAnalysis): Promise<WalletAnalysis> {
+    const id = randomUUID();
+    const now = new Date();
+    const analysis: WalletAnalysis = {
+      ...insertAnalysis,
+      id,
+      createdAt: now,
+    };
+    this.walletAnalyses.set(id, analysis);
+    return analysis;
   }
 }
 

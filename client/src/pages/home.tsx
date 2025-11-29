@@ -15,7 +15,8 @@ interface Post {
 }
 
 interface WalletStats {
-  address: string;
+  id: string;
+  walletAddress: string;
   dumScore: number;
   solLost: number;
   rugsHit: number;
@@ -23,30 +24,9 @@ interface WalletStats {
   totalTransactions: number;
   averageLossPerTrade: number;
   status: string;
+  createdAt: string;
 }
 
-const generateMockStats = (address: string): WalletStats => {
-  const seed = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const random = (min: number, max: number) => {
-    const x = Math.sin(seed) * 10000;
-    return min + ((x - Math.floor(x)) * (max - min));
-  };
-
-  const solLost = Math.floor(random(1, 500) * 10) / 10;
-  const rugsHit = Math.floor(random(1, 50));
-  const dumScore = Math.floor(solLost * 100 + rugsHit * 500);
-
-  return {
-    address,
-    dumScore,
-    solLost,
-    rugsHit,
-    topRug: ["SafeMoon", "ElonSperm", "DogeMeme", "CatShit", "MoonLambo", "SafeShib"][Math.floor(random(0, 6))],
-    totalTransactions: Math.floor(random(10, 500)),
-    averageLossPerTrade: Math.floor((solLost / rugsHit) * 100) / 100,
-    status: dumScore > 50000 ? "PERMA-REKT" : dumScore > 25000 ? "SEVERELY REKT" : dumScore > 10000 ? "REKT" : "SLIGHTLY REKT",
-  };
-};
 
 export default function Home() {
   const [, setLocation] = useLocation();
@@ -82,15 +62,29 @@ export default function Home() {
     setCurrentSolPrice(prev => parseFloat((prev * 2).toFixed(4)));
   };
 
-  const handleAnalyzeWallet = () => {
+  const handleAnalyzeWallet = async () => {
     if (!walletAddress.trim()) return;
     setLoadingWallet(true);
     
-    setTimeout(() => {
-      const mockStats = generateMockStats(walletAddress);
-      setWalletStats(mockStats);
+    try {
+      const response = await fetch("/api/analyze-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to analyze wallet");
+      }
+
+      const data = await response.json();
+      setWalletStats(data);
+    } catch (error) {
+      console.error("Error analyzing wallet:", error);
+      alert("Failed to analyze wallet. Please try again.");
+    } finally {
       setLoadingWallet(false);
-    }, 800);
+    }
   };
 
   return (
