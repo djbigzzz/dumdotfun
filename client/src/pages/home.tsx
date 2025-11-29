@@ -38,7 +38,7 @@ export default function Home() {
   
   const [messageText, setMessageText] = useState("");
   const [currentSolPrice, setCurrentSolPrice] = useState(0.01);
-  const [walletAddress, setWalletAddress] = useState("");
+  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
 
@@ -62,15 +62,27 @@ export default function Home() {
     setCurrentSolPrice(prev => parseFloat((prev * 2).toFixed(4)));
   };
 
+  const handleConnectWallet = () => {
+    // Generate a mock wallet address for demo
+    const mockWallet = "8x" + Math.random().toString(16).slice(2, 40).padEnd(40, "0");
+    setConnectedWallet(mockWallet);
+    setWalletStats(null);
+  };
+
+  const handleDisconnectWallet = () => {
+    setConnectedWallet(null);
+    setWalletStats(null);
+  };
+
   const handleAnalyzeWallet = async () => {
-    if (!walletAddress.trim()) return;
+    if (!connectedWallet) return;
     setLoadingWallet(true);
     
     try {
       const response = await fetch("/api/analyze-wallet", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress }),
+        body: JSON.stringify({ walletAddress: connectedWallet }),
       });
 
       if (!response.ok) {
@@ -223,30 +235,53 @@ export default function Home() {
             <p className="text-xs text-gray-500 font-mono">Scan any wallet</p>
           </div>
 
-          {/* Search */}
-          <div className="space-y-3 mb-6">
-            <input
-              type="text"
-              value={walletAddress}
-              onChange={(e) => setWalletAddress(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleAnalyzeWallet()}
-              placeholder="Paste wallet address..."
-              className="w-full bg-zinc-950 border border-red-900 px-3 py-2 font-mono text-xs text-gray-300 focus:border-red-500 focus:outline-none"
-            />
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={handleAnalyzeWallet}
-              disabled={!walletAddress.trim() || loadingWallet}
-              className={`w-full py-2 font-black uppercase text-sm border-b-2 border-r-2 transition-all ${
-                walletAddress.trim() && !loadingWallet
-                  ? "bg-red-500 hover:bg-red-600 text-white border-gray-300 cursor-pointer"
-                  : "bg-zinc-800 text-gray-600 border-gray-700 cursor-not-allowed opacity-50"
-              }`}
-            >
-              {loadingWallet ? "SCANNING..." : "ANALYZE"}
-            </motion.button>
-          </div>
+          {/* Wallet Connection */}
+          {!connectedWallet ? (
+            <div className="space-y-3 mb-6">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleConnectWallet}
+                className="w-full bg-red-500 hover:bg-red-600 text-white font-black uppercase text-sm py-3 border-b-2 border-r-2 border-gray-300 cursor-pointer transition-all"
+              >
+                🔗 CONNECT WALLET
+              </motion.button>
+              <p className="text-xs text-gray-600 font-mono text-center">Connect your Solana wallet to begin analysis</p>
+            </div>
+          ) : (
+            <div className="space-y-3 mb-6">
+              <div className="bg-zinc-950 border border-red-500 p-3 rounded space-y-2">
+                <p className="text-xs text-gray-500 font-mono">CONNECTED WALLET</p>
+                <p className="text-xs font-mono text-gray-300 break-all">{connectedWallet}</p>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleAnalyzeWallet}
+                  disabled={loadingWallet}
+                  className={`py-2 font-black uppercase text-sm border-b-2 border-r-2 transition-all flex items-center justify-center gap-2 ${
+                    !loadingWallet
+                      ? "bg-red-500 hover:bg-red-600 text-white border-gray-300 cursor-pointer"
+                      : "bg-zinc-800 text-gray-600 border-gray-700 cursor-not-allowed opacity-50"
+                  }`}
+                >
+                  <Radar className="w-4 h-4" />
+                  {loadingWallet ? "SCANNING..." : "ANALYZE"}
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleDisconnectWallet}
+                  className="py-2 font-black uppercase text-sm border-b-2 border-r-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 border-gray-600 cursor-pointer transition-all"
+                >
+                  DISCONNECT
+                </motion.button>
+              </div>
+            </div>
+          )}
 
           {/* Results */}
           {walletStats ? (
@@ -319,7 +354,7 @@ export default function Home() {
             <div className="flex-1 flex items-center justify-center text-center">
               <div className="space-y-3">
                 <AlertOctagon className="w-12 h-12 text-red-900 mx-auto opacity-50" />
-                <p className="text-xs text-gray-600 font-mono">Enter a wallet to scan</p>
+                <p className="text-xs text-gray-600 font-mono">{connectedWallet ? "Click ANALYZE to scan your wallet" : "Connect your wallet to begin"}</p>
               </div>
             </div>
           )}
