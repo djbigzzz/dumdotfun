@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { useWallet } from "@/lib/wallet-context";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
 
@@ -16,7 +17,7 @@ const Marquee = () => {
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const { connectedWallet, connectWallet, disconnectWallet } = useWallet();
   const [panicMode, setPanicMode] = useState(false);
 
   useEffect(() => {
@@ -27,9 +28,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
     }
   }, [panicMode]);
 
-  const connectWallet = () => {
-    const addr = "8x" + Math.random().toString(16).slice(2, 8) + "...";
-    setWalletAddress(addr);
+  const handleWalletClick = async () => {
+    if (connectedWallet) {
+      await disconnectWallet();
+    } else {
+      await connectWallet();
+    }
   };
 
   const handleRefund = () => {
@@ -63,13 +67,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </button>
           
           <button 
-            onClick={connectWallet}
+            onClick={handleWalletClick}
             className={cn(
               "font-mono font-bold border-2 border-red-600 px-4 py-2 uppercase transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0",
-              walletAddress ? "bg-red-600 text-white" : "bg-zinc-900 text-red-500 hover:bg-red-900/20"
+              connectedWallet ? "bg-red-600 text-white" : "bg-zinc-900 text-red-500 hover:bg-red-900/20"
             )}
           >
-            {walletAddress ? `VICTIM [${walletAddress}]` : "CONNECT WALLET (DONT)"}
+            {connectedWallet ? `VICTIM [${connectedWallet.slice(0, 4)}...${connectedWallet.slice(-4)}]` : "CONNECT WALLET (DONT)"}
           </button>
         </div>
       </header>

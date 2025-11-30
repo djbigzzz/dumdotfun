@@ -1,22 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
 import { Layout } from "@/components/layout";
+import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar, AlertOctagon, Wallet } from "lucide-react";
 
 import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
-
-declare global {
-  interface Window {
-    solana?: {
-      isPhantom?: boolean;
-      connect: () => Promise<{ publicKey: { toString: () => string } }>;
-      disconnect: () => Promise<void>;
-      on: (event: string, callback: () => void) => void;
-      publicKey?: { toString: () => string };
-    };
-  }
-}
 
 interface Post {
   id: number;
@@ -43,6 +32,8 @@ interface WalletStats {
 
 export default function Home() {
   const [, setLocation] = useLocation();
+  const { connectedWallet, hasPhantom, connectWallet: contextConnectWallet, disconnectWallet: contextDisconnectWallet } = useWallet();
+  
   const [posts, setPosts] = useState<Post[]>([
     { id: 1, user: "degen_420", message: "the only way is down", solBurned: 0.01, timestamp: new Date(Date.now() - 60000) },
     { id: 2, user: "hodler_99", message: "this is gentlemen", solBurned: 0.02, timestamp: new Date(Date.now() - 30000) },
@@ -51,29 +42,9 @@ export default function Home() {
   
   const [messageText, setMessageText] = useState("");
   const [currentSolPrice, setCurrentSolPrice] = useState(0.01);
-  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
-  const [hasPhantom, setHasPhantom] = useState(false);
-
-  useEffect(() => {
-    const checkPhantom = () => {
-      if (window.solana?.isPhantom) {
-        setHasPhantom(true);
-        if (window.solana.publicKey) {
-          setConnectedWallet(window.solana.publicKey.toString());
-        }
-      }
-    };
-    
-    if (document.readyState === "complete") {
-      checkPhantom();
-    } else {
-      window.addEventListener("load", checkPhantom);
-      return () => window.removeEventListener("load", checkPhantom);
-    }
-  }, []);
 
   const enterDemoMode = () => {
     setLocation("/demo");
@@ -97,30 +68,16 @@ export default function Home() {
 
   const handleConnectWallet = async () => {
     setWalletError(null);
-    
-    if (window.solana?.isPhantom) {
-      try {
-        const response = await window.solana.connect();
-        setConnectedWallet(response.publicKey.toString());
-        setWalletStats(null);
-      } catch (err: any) {
-        setWalletError(err.message || "Failed to connect wallet");
-      }
-    } else {
-      window.open("https://phantom.app/", "_blank");
-      setWalletError("Please install Phantom wallet to continue");
+    try {
+      await contextConnectWallet();
+      setWalletStats(null);
+    } catch (err: any) {
+      setWalletError(err.message || "Failed to connect wallet");
     }
   };
 
   const handleDisconnectWallet = async () => {
-    if (window.solana?.isPhantom) {
-      try {
-        await window.solana.disconnect();
-      } catch (err) {
-        console.error("Error disconnecting:", err);
-      }
-    }
-    setConnectedWallet(null);
+    await contextDisconnectWallet();
     setWalletStats(null);
     setWalletError(null);
   };
