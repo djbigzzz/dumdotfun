@@ -57,7 +57,7 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
       };
     }
 
-    const recentSignatures = signatures.slice(0, 20);
+    const recentSignatures = signatures.slice(0, 100);
     const transactions = await Promise.all(
       recentSignatures.map(sig => 
         connection.getParsedTransaction(sig.signature, {
