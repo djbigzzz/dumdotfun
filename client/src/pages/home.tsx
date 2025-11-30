@@ -46,10 +46,6 @@ export default function Home() {
   const [loadingWallet, setLoadingWallet] = useState(false);
   const [walletError, setWalletError] = useState<string | null>(null);
 
-  const enterDemoMode = () => {
-    setLocation("/demo");
-  };
-
   const handleBurnPost = () => {
     if (!messageText.trim()) return;
 
@@ -129,15 +125,6 @@ export default function Home() {
           </div>
         </motion.div>
 
-        {/* CTA Button */}
-        <motion.button
-          whileHover={{ scale: 1.05, rotate: 2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={enterDemoMode}
-          className="bg-red-500 hover:bg-red-600 text-white font-black text-2xl px-12 py-6 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] transition-all uppercase"
-        >
-          SEE THE PLATFORM
-        </motion.button>
       </section>
 
       {/* Main Two-Column Section */}
