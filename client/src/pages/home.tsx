@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
+import { useWallet } from "@/lib/wallet-context";
+import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { ChevronDown, Send } from "lucide-react";
 import { toast } from "sonner";
@@ -14,8 +16,10 @@ interface CountdownTime {
 }
 
 export default function Home() {
+  const { connectedWallet } = useWallet();
   const [email, setEmail] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<CountdownTime>({
     days: 0,
     hours: 0,
@@ -23,6 +27,15 @@ export default function Home() {
     seconds: 0,
   });
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
+
+  // Get referral code from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+    }
+  }, []);
 
   // Calculate countdown
   useEffect(() => {
@@ -209,6 +222,31 @@ export default function Home() {
               </motion.button>
             </div>
           </motion.form>
+
+          {/* Referral Code Display */}
+          {referralCode && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-yellow-900/20 border-2 border-yellow-500 p-4 rounded text-center"
+              data-testid="referral-banner"
+            >
+              <p className="text-yellow-500 font-mono text-sm">
+                REFERRED BY: <span className="font-black">{referralCode}</span>
+              </p>
+              {connectedWallet ? (
+                <p className="text-gray-400 text-xs mt-2">
+                  Head to your profile to finalize!
+                </p>
+              ) : (
+                <Link href="/profile">
+                  <button className="text-yellow-500 hover:underline text-xs mt-2 cursor-pointer font-mono">
+                    Connect wallet to join →
+                  </button>
+                </Link>
+              )}
+            </motion.div>
+          )}
 
           {/* Scroll Indicator */}
           <motion.div

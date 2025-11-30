@@ -20,6 +20,16 @@ export default function Profile() {
   const { connectedWallet } = useWallet();
   const [, setLocation] = useLocation();
   const [copied, setCopied] = useState(false);
+  const [referralCode, setReferralCode] = useState<string | null>(null);
+
+  // Get referral code from URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const ref = params.get("ref");
+    if (ref) {
+      setReferralCode(ref);
+    }
+  }, []);
 
   // Redirect if not connected
   useEffect(() => {
@@ -41,7 +51,7 @@ export default function Profile() {
   });
 
   const createUserMutation = useMutation({
-    mutationFn: async (referralCode?: string) => {
+    mutationFn: async () => {
       const res = await fetch("/api/users/connect", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -118,7 +128,7 @@ export default function Profile() {
             </p>
             <p className="text-gray-300">Create your account to start climbing the leaderboard</p>
             <button
-              onClick={() => createUserMutation.mutate(undefined)}
+              onClick={() => createUserMutation.mutate()}
               disabled={createUserMutation.isPending}
               className="bg-red-500 hover:bg-red-600 text-white font-black px-8 py-4 border-2 border-white disabled:opacity-50"
               data-testid="button-create-account"
