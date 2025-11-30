@@ -53,7 +53,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
         </Link>
         
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 md:gap-4">
+          <Link href="/leaderboard">
+            <button className="font-mono font-bold border-2 border-yellow-500 px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-zinc-900 text-yellow-500 hover:bg-yellow-900/20">
+              LEADERBOARD
+            </button>
+          </Link>
+
           <button
             onClick={() => setPanicMode(!panicMode)}
             className={cn(
@@ -62,19 +68,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
                 ? "bg-red-600 text-white border-red-600" 
                 : "bg-zinc-900 text-red-500 border-red-500 hover:bg-red-900/20"
             )}
+            data-testid="button-panic-mode"
           >
             {panicMode ? "EYES FINE" : "EYES HURT?"}
           </button>
           
-          <button 
-            onClick={handleWalletClick}
-            className={cn(
-              "font-mono font-bold border-2 border-red-600 px-4 py-2 uppercase transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0",
-              connectedWallet ? "bg-red-600 text-white" : "bg-zinc-900 text-red-500 hover:bg-red-900/20"
-            )}
-          >
-            {connectedWallet ? `VICTIM [${connectedWallet.slice(0, 4)}...${connectedWallet.slice(-4)}]` : "CONNECT WALLET (DONT)"}
-          </button>
+          {connectedWallet ? (
+            <Link href="/profile">
+              <button 
+                className="font-mono font-bold border-2 border-red-600 px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-600 text-white"
+                data-testid="button-profile"
+              >
+                VICTIM [{connectedWallet.slice(0, 4)}...{connectedWallet.slice(-4)}]
+              </button>
+            </Link>
+          ) : (
+            <button 
+              onClick={handleWalletClick}
+              className="font-mono font-bold border-2 border-red-600 px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-zinc-900 text-red-500 hover:bg-red-900/20"
+              data-testid="button-connect-wallet"
+            >
+              CONNECT WALLET
+            </button>
+          )}
         </div>
       </header>
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">

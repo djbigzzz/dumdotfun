@@ -9,6 +9,8 @@ import Home from "@/pages/home";
 import TokenDetail from "@/pages/token-detail";
 import Demo from "@/pages/demo";
 import Analyzer from "@/pages/analyzer";
+import Leaderboard from "@/pages/leaderboard";
+import Profile from "@/pages/profile";
 
 function Router() {
   return (
@@ -16,6 +18,8 @@ function Router() {
       <Route path="/" component={Home} />
       <Route path="/demo" component={Demo} />
       <Route path="/analyzer" component={Analyzer} />
+      <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/profile" component={Profile} />
       <Route path="/token/:id" component={TokenDetail} />
       <Route component={NotFound} />
     </Switch>
