@@ -152,6 +152,8 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     let topRugMint = "";
     let topRugLoss = 0;
     let quickBuyAndSellTokens = 0;
+    let massiveLosses = 0;
+    let tokenConcentration = 0;
 
     // Track any token that was sold (more aggressive rug detection)
     Array.from(tokenInteractions.entries()).forEach(([mint, { out, in: inAmount }]) => {
@@ -163,11 +165,21 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
           topRugLoss = loss;
           topRugMint = mint;
         }
+        
+        // Detect massive losses (lost 50%+ on a single token)
+        if (inAmount > 0 && (loss / inAmount) > 0.5) {
+          massiveLosses++;
+        }
       }
       
       // Detect quick buy-and-sell pattern (both in and out on same token)
       if (inAmount > 0 && out > 0 && inAmount > 10 && out > 10) {
         quickBuyAndSellTokens++;
+      }
+      
+      // Detect token concentration (holding way more of one than bought)
+      if (out === 0 && inAmount > 1000) {
+        tokenConcentration++;
       }
     });
 
@@ -175,23 +187,30 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     const estimatedSolLost = Math.round(netSolLost * 10) / 10;
     
     // Calculate comprehensive dum score with multiple factors
-    const tokenActivityScore = Math.max(tokenInteractions.size, 1) * 250; // 250 points per unique token
-    const failedTxPenalty = failedTransactions * 150; // Failed txs are sus
-    const unknownTokenPenalty = unknownTokenCount * 100; // Unknown tokens = degen
-    const quickSwapPenalty = quickBuyAndSellTokens * 300; // Quick swaps = timing the market badly
-    const suspiciousPenalty = suspiciousSwaps * 200; // Sudden token appearances
-    const memeTokenBonus = tokensMintedToWallet * 400; // Got minted tokens = got airdropped trash
+    const tokenActivityScore = Math.max(tokenInteractions.size, 1) * 300; // 300 points per unique token
+    const failedTxPenalty = failedTransactions * 200; // Failed txs are BIG sus
+    const unknownTokenPenalty = unknownTokenCount * 150; // Unknown tokens = degen
+    const quickSwapPenalty = quickBuyAndSellTokens * 400; // Quick swaps = bad timing
+    const suspiciousPenalty = suspiciousSwaps * 300; // Sudden token appearances
+    const memeTokenBonus = tokensMintedToWallet * 500; // Got minted tokens = got trash
+    const topRugScore = Math.max(topRugLoss * 1000, 0); // BIG penalty for worst loss
+    const massiveLossPenalty = massiveLosses * 1000; // 50%+ losses on tokens = disaster
+    const concentrationPenalty = tokenConcentration * 600; // Holding tons of shitcoins
+    const rugMultiplier = Math.max(rugCount * 800, 0); // MUCH higher rug multiplier
     
     const dumScore = Math.floor(
-      (estimatedSolLost * 100) + 
-      (rugCount * 500) + 
-      (totalTransactions * 10) +
+      (estimatedSolLost * 150) +  // Increased from 100
+      rugMultiplier +  // Increased from 500 per rug
+      (totalTransactions * 15) +  // Increased from 10
       tokenActivityScore +
       failedTxPenalty +
       unknownTokenPenalty +
       quickSwapPenalty +
       suspiciousPenalty +
-      memeTokenBonus
+      memeTokenBonus +
+      topRugScore +
+      massiveLossPenalty +
+      concentrationPenalty
     );
 
     const avgLoss = rugCount > 0 ? Math.round((estimatedSolLost / rugCount) * 100) / 100 : 0;
