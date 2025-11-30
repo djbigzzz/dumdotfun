@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema } from "@shared/schema";
+import { sendWaitlistConfirmation } from "./email";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -27,6 +28,12 @@ export async function registerRoutes(
       }
 
       const result = await storage.addToWaitlist(email);
+      
+      // Send confirmation email asynchronously (don't wait for it)
+      sendWaitlistConfirmation(email).catch((err) =>
+        console.error("Failed to send confirmation email:", err)
+      );
+      
       return res.json({ success: true, message: "Added to waitlist", result });
     } catch (error: any) {
       console.error("Error adding to waitlist:", error);
