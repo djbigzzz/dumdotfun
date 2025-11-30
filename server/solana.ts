@@ -70,9 +70,18 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     let totalSolIn = 0;
     const tokenInteractions = new Map<string, { out: number; in: number }>();
     let rugCount = 0;
+    let failedTransactions = 0;
+    let unknownTokenCount = 0;
+    let suspiciousSwaps = 0;
+    let tokensMintedToWallet = 0;
 
     for (const tx of transactions) {
       if (!tx || !tx.meta) continue;
+
+      // Count failed transactions
+      if (tx.meta.err !== null) {
+        failedTransactions++;
+      }
 
       const preBalances = tx.meta.preBalances;
       const postBalances = tx.meta.postBalances;
@@ -101,6 +110,11 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
           const preBal = preToken.uiTokenAmount?.uiAmount || 0;
           const postBal = postToken?.uiTokenAmount?.uiAmount || 0;
           
+          // Check if token is unknown (not in known list)
+          if (!RUG_TOKEN_NAMES[preToken.mint]) {
+            unknownTokenCount++;
+          }
+          
           if (preBal > postBal) {
             const existing = tokenInteractions.get(preToken.mint) || { out: 0, in: 0 };
             existing.out += (preBal - postBal);
@@ -109,6 +123,27 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
             const existing = tokenInteractions.get(preToken.mint) || { out: 0, in: 0 };
             existing.in += (postBal - preBal);
             tokenInteractions.set(preToken.mint, existing);
+            
+            // If receiving token from 0, could be airdrop or mint
+            if (preBal === 0 && postBal > 0) {
+              tokensMintedToWallet++;
+            }
+          }
+        }
+      }
+
+      // Detect post-transaction token balance changes (suspicious if sudden)
+      if (tx.meta.postTokenBalances) {
+        for (const postToken of tx.meta.postTokenBalances) {
+          if (postToken.owner !== walletAddress) continue;
+          
+          const preToken = tx.meta.preTokenBalances?.find(
+            p => p.mint === postToken.mint && p.owner === walletAddress
+          );
+          
+          if (!preToken && postToken.uiTokenAmount?.uiAmount && postToken.uiTokenAmount.uiAmount > 0) {
+            // Receiving token that didn't exist before = suspicious
+            suspiciousSwaps++;
           }
         }
       }
@@ -116,6 +151,7 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
 
     let topRugMint = "";
     let topRugLoss = 0;
+    let quickBuyAndSellTokens = 0;
 
     // Track any token that was sold (more aggressive rug detection)
     Array.from(tokenInteractions.entries()).forEach(([mint, { out, in: inAmount }]) => {
@@ -128,18 +164,34 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
           topRugMint = mint;
         }
       }
+      
+      // Detect quick buy-and-sell pattern (both in and out on same token)
+      if (inAmount > 0 && out > 0 && inAmount > 10 && out > 10) {
+        quickBuyAndSellTokens++;
+      }
     });
 
     const netSolLost = Math.max(0, totalSolOut - totalSolIn);
     const estimatedSolLost = Math.round(netSolLost * 10) / 10;
     
-    // More aggressive scoring: count each token interaction as activity
-    const tokenActivityScore = tokenInteractions.size * 200; // 200 points per token touched
+    // Calculate comprehensive dum score with multiple factors
+    const tokenActivityScore = Math.max(tokenInteractions.size, 1) * 250; // 250 points per unique token
+    const failedTxPenalty = failedTransactions * 150; // Failed txs are sus
+    const unknownTokenPenalty = unknownTokenCount * 100; // Unknown tokens = degen
+    const quickSwapPenalty = quickBuyAndSellTokens * 300; // Quick swaps = timing the market badly
+    const suspiciousPenalty = suspiciousSwaps * 200; // Sudden token appearances
+    const memeTokenBonus = tokensMintedToWallet * 400; // Got minted tokens = got airdropped trash
+    
     const dumScore = Math.floor(
       (estimatedSolLost * 100) + 
       (rugCount * 500) + 
       (totalTransactions * 10) +
-      tokenActivityScore
+      tokenActivityScore +
+      failedTxPenalty +
+      unknownTokenPenalty +
+      quickSwapPenalty +
+      suspiciousPenalty +
+      memeTokenBonus
     );
 
     const avgLoss = rugCount > 0 ? Math.round((estimatedSolLost / rugCount) * 100) / 100 : 0;
