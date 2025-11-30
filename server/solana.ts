@@ -85,26 +85,48 @@ async function getTokenPrices(mints: string[]): Promise<Map<string, TokenPrice>>
   
   if (mints.length === 0) return prices;
   
+  const uniqueMints = Array.from(new Set(mints));
+  const BATCH_SIZE = 50;
+  let solPriceUSD = 150;
+  
   try {
-    const uniqueMints = Array.from(new Set(mints)).slice(0, 50);
-    const mintList = uniqueMints.join(",");
-    
-    const response = await fetch(`${JUPITER_PRICE_API}?ids=${mintList}`);
-    if (response.ok) {
-      const data = await response.json();
-      if (data.data) {
-        for (const [mint, info] of Object.entries(data.data) as [string, any][]) {
-          if (info?.price) {
-            prices.set(mint, {
-              price: info.price,
-              priceInSOL: info.price / (data.data["So11111111111111111111111111111111111111112"]?.price || 150),
-            });
-          }
-        }
+    const solResponse = await fetch(`${JUPITER_PRICE_API}?ids=So11111111111111111111111111111111111111112`);
+    if (solResponse.ok) {
+      const solData = await solResponse.json();
+      if (solData.data?.["So11111111111111111111111111111111111111112"]?.price) {
+        solPriceUSD = solData.data["So11111111111111111111111111111111111111112"].price;
       }
     }
   } catch (error) {
-    console.error("Jupiter price fetch failed:", error);
+    console.error("Failed to fetch SOL price:", error);
+  }
+  
+  for (let i = 0; i < uniqueMints.length; i += BATCH_SIZE) {
+    const batch = uniqueMints.slice(i, i + BATCH_SIZE);
+    const mintList = batch.join(",");
+    
+    try {
+      const response = await fetch(`${JUPITER_PRICE_API}?ids=${mintList}`);
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data) {
+          for (const [mint, info] of Object.entries(data.data) as [string, any][]) {
+            if (info?.price) {
+              prices.set(mint, {
+                price: info.price,
+                priceInSOL: info.price / solPriceUSD,
+              });
+            }
+          }
+        }
+      }
+      
+      if (i + BATCH_SIZE < uniqueMints.length) {
+        await delay(200);
+      }
+    } catch (error) {
+      console.error(`Jupiter price fetch failed for batch ${i}:`, error);
+    }
   }
   
   return prices;
@@ -355,37 +377,46 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
       }
     }
 
-    const tokenPrices = await getTokenPrices(Array.from(allMints));
+    const allMintsWithHoldings = new Set([...Array.from(allMints), ...Array.from(currentHoldings.keys())]);
+    const tokenPrices = await getTokenPrices(Array.from(allMintsWithHoldings));
 
     let unrealizedLossesSOL = 0;
     let worthlessTokenCount = 0;
     
     Array.from(currentHoldings.entries()).forEach(([mint, amount]) => {
       const price = tokenPrices.get(mint);
-      if (!price || price.priceInSOL < 0.000001) {
+      if (price && price.priceInSOL >= 0.000001) {
+        return;
+      }
+      if (!price) {
         worthlessTokenCount++;
-        unrealizedLossesSOL += 0.1;
+        unrealizedLossesSOL += 0.05;
       }
     });
 
     let topRugMint = "";
-    let topRugLoss = 0;
+    let topRugLossSOL = 0;
     let quickBuyAndSellTokens = 0;
     let massiveLosses = 0;
     let tokenConcentration = 0;
-    let totalTokenLoss = 0;
+    let totalTokenLossSOL = 0;
 
     Array.from(tokenInteractions.entries()).forEach(([mint, { out, in: inAmount }]) => {
+      const tokenPrice = tokenPrices.get(mint);
+      const priceInSOL = tokenPrice?.priceInSOL || 0.0000001;
+      
       if (out > inAmount * 1.05 || (out > 0 && inAmount === 0)) {
         rugCount++;
-        const loss = out - inAmount;
-        totalTokenLoss += loss;
-        if (loss > topRugLoss) {
-          topRugLoss = loss;
+        const tokenLoss = out - inAmount;
+        const lossInSOL = tokenLoss * priceInSOL;
+        totalTokenLossSOL += lossInSOL;
+        
+        if (lossInSOL > topRugLossSOL) {
+          topRugLossSOL = lossInSOL;
           topRugMint = mint;
         }
         
-        if (inAmount > 0 && (loss / inAmount) > 0.3) {
+        if (inAmount > 0 && (tokenLoss / inAmount) > 0.3) {
           massiveLosses++;
         }
       }
@@ -394,41 +425,41 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
         quickBuyAndSellTokens++;
       }
       
-      if (out === 0 && inAmount > 100) {
+      if (out === 0 && inAmount > 0 && !tokenPrices.get(mint)) {
         tokenConcentration++;
       }
     });
 
     const netSolLost = Math.max(0, totalSolOut - totalSolIn);
-    const estimatedSolLost = Math.round(netSolLost * 10) / 10;
+    const estimatedSolLost = Math.round((netSolLost + totalTokenLossSOL) * 10) / 10;
     
-    const tokenActivityScore = Math.max(tokenInteractions.size, 1) * 400;
+    const tokenActivityScore = Math.min(tokenInteractions.size * 200, 5000);
     const failedTxPenalty = failedTransactions * 250;
-    const unknownTokenPenalty = unknownTokenCount * 200;
-    const quickSwapPenalty = quickBuyAndSellTokens * 500;
-    const suspiciousPenalty = suspiciousSwaps * 350;
-    const memeTokenBonus = tokensMintedToWallet * 600;
-    const topRugScore = Math.min(topRugLoss * 50, 10000);
-    const massiveLossPenalty = massiveLosses * 1200;
-    const concentrationPenalty = tokenConcentration * 700;
-    const rugMultiplier = rugCount * 1000;
-    const dexActivityScore = dexSwapCount * 100;
-    const pumpFunPenalty = pumpFunTrades * 800;
-    const rugPatternPenalty = rugPatternDetected * 2000;
-    const worthlessHoldingsPenalty = worthlessTokenCount * 500;
-    const unrealizedPenalty = Math.floor(unrealizedLossesSOL * 200);
+    const unknownTokenPenalty = Math.min(unknownTokenCount * 100, 3000);
+    const quickSwapPenalty = quickBuyAndSellTokens * 300;
+    const suspiciousPenalty = suspiciousSwaps * 200;
+    const memeTokenBonus = tokensMintedToWallet * 400;
+    const topRugScoreSOL = Math.min(topRugLossSOL * 500, 10000);
+    const massiveLossPenalty = massiveLosses * 800;
+    const concentrationPenalty = Math.min(tokenConcentration * 300, 3000);
+    const rugMultiplier = rugCount * 600;
+    const dexActivityScore = Math.min(dexSwapCount * 50, 2000);
+    const pumpFunPenalty = pumpFunTrades * 500;
+    const rugPatternPenalty = rugPatternDetected * 1500;
+    const worthlessHoldingsPenalty = Math.min(worthlessTokenCount * 200, 3000);
+    const unrealizedPenalty = Math.floor(unrealizedLossesSOL * 300);
     
     const dumScore = Math.floor(
       (estimatedSolLost * 200) +
       rugMultiplier +
-      (totalTransactions * 20) +
+      (totalTransactions * 15) +
       tokenActivityScore +
       failedTxPenalty +
       unknownTokenPenalty +
       quickSwapPenalty +
       suspiciousPenalty +
       memeTokenBonus +
-      topRugScore +
+      topRugScoreSOL +
       massiveLossPenalty +
       concentrationPenalty +
       dexActivityScore +
