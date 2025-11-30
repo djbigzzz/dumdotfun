@@ -117,8 +117,10 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     let topRugMint = "";
     let topRugLoss = 0;
 
+    // Track any token that was sold (more aggressive rug detection)
     Array.from(tokenInteractions.entries()).forEach(([mint, { out, in: inAmount }]) => {
-      if (out > inAmount * 1.5) {
+      // Count as a rug if: sold more than bought (1.1x ratio), or any significant sell
+      if (out > inAmount * 1.1 || (out > 0 && inAmount === 0)) {
         rugCount++;
         const loss = out - inAmount;
         if (loss > topRugLoss) {
@@ -131,10 +133,13 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     const netSolLost = Math.max(0, totalSolOut - totalSolIn);
     const estimatedSolLost = Math.round(netSolLost * 10) / 10;
     
+    // More aggressive scoring: count each token interaction as activity
+    const tokenActivityScore = tokenInteractions.size * 200; // 200 points per token touched
     const dumScore = Math.floor(
       (estimatedSolLost * 100) + 
       (rugCount * 500) + 
-      (totalTransactions * 10)
+      (totalTransactions * 10) +
+      tokenActivityScore
     );
 
     const avgLoss = rugCount > 0 ? Math.round((estimatedSolLost / rugCount) * 100) / 100 : 0;
