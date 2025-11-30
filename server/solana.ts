@@ -132,23 +132,6 @@ async function getTokenPrices(mints: string[]): Promise<Map<string, TokenPrice>>
   return prices;
 }
 
-async function getCurrentTokenHoldings(walletAddress: string): Promise<Map<string, number>> {
-  const holdings = new Map<string, number>();
-  
-  const pubkey = new PublicKey(walletAddress);
-  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(pubkey, {
-    programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-  });
-  
-  for (const account of tokenAccounts.value) {
-    const parsed = account.account.data.parsed;
-    if (parsed?.info?.mint && parsed?.info?.tokenAmount?.uiAmount) {
-      holdings.set(parsed.info.mint, parsed.info.tokenAmount.uiAmount);
-    }
-  }
-  
-  return holdings;
-}
 
 async function getAllSignatures(walletAddress: string, limit: number = 1000): Promise<ConfirmedSignatureInfo[]> {
   const pubkey = new PublicKey(walletAddress);
@@ -226,10 +209,9 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
     
     console.log(`Starting comprehensive analysis for ${walletAddress}`);
     
-    const [balance, allSignatures, currentHoldings] = await Promise.all([
+    const [balance, allSignatures] = await Promise.all([
       connection.getBalance(pubkey),
-      getAllSignatures(walletAddress, 500),
-      getCurrentTokenHoldings(walletAddress),
+      getAllSignatures(walletAddress, 100),
     ]);
 
     const currentBalanceSOL = balance / LAMPORTS_PER_SOL;
@@ -252,10 +234,10 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
 
     console.log(`Found ${totalTransactions} transactions, analyzing...`);
 
-    const batchSize = 10;
+    const batchSize = 5;
     const transactions: (ParsedTransactionWithMeta | null)[] = [];
     
-    for (let i = 0; i < Math.min(allSignatures.length, 200); i += batchSize) {
+    for (let i = 0; i < Math.min(allSignatures.length, 50); i += batchSize) {
       const batch = allSignatures.slice(i, i + batchSize);
       const batchResults = await Promise.all(
         batch.map(sig => 
@@ -268,8 +250,8 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
       );
       transactions.push(...batchResults);
       
-      if (i + batchSize < Math.min(allSignatures.length, 200)) {
-        await delay(300);
+      if (i + batchSize < Math.min(allSignatures.length, 50)) {
+        await delay(500);
       }
     }
 
@@ -371,22 +353,10 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
       }
     }
 
-    const allMintsWithHoldings = new Set([...Array.from(allMints), ...Array.from(currentHoldings.keys())]);
-    const tokenPrices = await getTokenPrices(Array.from(allMintsWithHoldings));
+    const tokenPrices = await getTokenPrices(Array.from(allMints));
 
     let unrealizedLossesSOL = 0;
     let worthlessTokenCount = 0;
-    
-    Array.from(currentHoldings.entries()).forEach(([mint, amount]) => {
-      const price = tokenPrices.get(mint);
-      if (price && price.priceInSOL >= 0.000001) {
-        return;
-      }
-      if (!price) {
-        worthlessTokenCount++;
-        unrealizedLossesSOL += 0.05;
-      }
-    });
 
     let topRugMint = "";
     let topRugLossSOL = 0;
