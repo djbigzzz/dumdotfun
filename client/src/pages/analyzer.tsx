@@ -5,7 +5,8 @@ import { motion } from "framer-motion";
 import { X, Radar, Flame, AlertOctagon } from "lucide-react";
 
 interface WalletStats {
-  address: string;
+  walletAddress?: string;
+  id?: string;
   dumScore: number;
   solLost: number;
   rugsHit: number;
@@ -13,54 +14,41 @@ interface WalletStats {
   totalTransactions: number;
   averageLossPerTrade: number;
   status: string;
+  isRealData?: boolean;
 }
-
-const generateMockStats = (address: string): WalletStats => {
-  const seed = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const random = (min: number, max: number) => {
-    const x = Math.sin(seed) * 10000;
-    return min + ((x - Math.floor(x)) * (max - min));
-  };
-
-  const solLost = Math.floor(random(1, 500) * 10) / 10;
-  const rugsHit = Math.floor(random(1, 50));
-  const dumScore = Math.floor(solLost * 100 + rugsHit * 500);
-
-  return {
-    address,
-    dumScore,
-    solLost,
-    rugsHit,
-    topRug: ["SafeMoon", "ElonSperm", "DogeMeme", "CatShit", "MoonLambo", "SafeShib"][Math.floor(random(0, 6))],
-    totalTransactions: Math.floor(random(10, 500)),
-    averageLossPerTrade: Math.floor((solLost / rugsHit) * 100) / 100,
-    status: dumScore > 50000 ? "PERMA-REKT" : dumScore > 25000 ? "SEVERELY REKT" : dumScore > 10000 ? "REKT" : "SLIGHTLY REKT",
-  };
-};
 
 export default function Analyzer() {
   const [walletAddress, setWalletAddress] = useState("");
   const [stats, setStats] = useState<WalletStats | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     if (!walletAddress.trim()) return;
     setLoading(true);
+    setError(null);
     
-    setTimeout(() => {
-      const mockStats = generateMockStats(walletAddress);
-      setStats(mockStats);
-      setLoading(false);
-    }, 1000);
-  };
+    try {
+      const response = await fetch("/api/analyze-wallet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: walletAddress.trim() }),
+      });
 
-  const topDumsters: WalletStats[] = [
-    generateMockStats("8xK2n9a3m..."),
-    generateMockStats("9jL4p7q2x..."),
-    generateMockStats("7mZ1v5c8d..."),
-    generateMockStats("4hY3b6f2g..."),
-    generateMockStats("2eX9n1k5z..."),
-  ];
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to analyze wallet");
+      }
+
+      const data = await response.json();
+      setStats({ ...data, walletAddress: walletAddress.trim() });
+    } catch (err: any) {
+      setError(err.message || "Failed to analyze wallet");
+      setStats(null);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -141,7 +129,7 @@ export default function Analyzer() {
                 {/* Address */}
                 <div className="bg-zinc-900 border border-red-900 p-4">
                   <p className="text-xs text-gray-500 font-mono mb-1">WALLET ADDRESS</p>
-                  <p className="text-gray-200 font-mono text-lg font-black">{stats.address}</p>
+                  <p className="text-gray-200 font-mono text-lg font-black">{stats.walletAddress}</p>
                 </div>
 
                 {/* Big Stats */}
@@ -225,6 +213,18 @@ export default function Analyzer() {
                   Share This Pain
                 </motion.button>
               </motion.div>
+            ) : error ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="border-2 border-red-500 bg-red-950/20 p-12 text-center min-h-[400px] flex items-center justify-center"
+              >
+                <div className="space-y-4">
+                  <AlertOctagon className="w-16 h-16 text-red-500 mx-auto" />
+                  <p className="text-red-400 font-mono font-bold">{error}</p>
+                  <p className="text-gray-500 font-mono text-sm">Check the address and try again</p>
+                </div>
+              </motion.div>
             ) : (
               <motion.div
                 initial={{ opacity: 0 }}
@@ -239,7 +239,7 @@ export default function Analyzer() {
             )}
           </div>
 
-          {/* Leaderboard - Top Dumsters */}
+          {/* Info Panel */}
           <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -249,34 +249,28 @@ export default function Analyzer() {
             <div className="border-b-2 border-red-500 pb-4">
               <h3 className="text-xl font-black uppercase text-red-500 flex items-center gap-2">
                 <Flame className="w-5 h-5" />
-                Top Dumsters
+                Real Data
               </h3>
-              <p className="text-xs text-gray-500 font-mono mt-2">Highest Dum Scores</p>
+              <p className="text-xs text-gray-500 font-mono mt-2">Powered by Solana Mainnet</p>
             </div>
 
-            <div className="space-y-3">
-              {topDumsters.map((wallet, idx) => (
-                <motion.div
-                  key={idx}
-                  whileHover={{ x: 4 }}
-                  className="bg-zinc-900 border border-red-900 p-3 space-y-1 cursor-pointer hover:border-red-500 transition-colors"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-black text-red-500">#{idx + 1}</span>
-                    <span className="text-xs font-mono text-yellow-500">{wallet.dumScore} PTS</span>
-                  </div>
-                  <p className="text-xs font-mono text-gray-400">{wallet.address}</p>
-                  <div className="flex gap-2 text-xs">
-                    <span className="text-red-600">L: {wallet.solLost}</span>
-                    <span className="text-red-600">R: {wallet.rugsHit}</span>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <div className="space-y-3 text-sm text-gray-400 font-mono">
+              <div className="bg-zinc-900 border border-red-900 p-3">
+                <p className="text-yellow-500 font-bold text-xs mb-1">✓ LIVE DATA</p>
+                <p className="text-xs">This analyzer scans the real Solana blockchain for actual transaction data, not mock information.</p>
+              </div>
+              
+              <div className="bg-zinc-900 border border-red-900 p-3">
+                <p className="text-yellow-500 font-bold text-xs mb-1">⚡ CACHED</p>
+                <p className="text-xs">Results are cached for 5 minutes to reduce RPC calls. Same wallet = instant results.</p>
+              </div>
 
-            <button className="w-full text-xs font-mono text-gray-400 hover:text-red-500 py-2 border-t border-red-900 transition-colors">
-              View Full Leaderboard →
-            </button>
+              {stats?.isRealData && (
+                <div className="bg-green-950/30 border border-green-900 p-3">
+                  <p className="text-green-400 font-bold text-xs">✓ Real Solana Data</p>
+                </div>
+              )}
+            </div>
           </motion.div>
         </div>
 
