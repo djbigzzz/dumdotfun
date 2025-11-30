@@ -29,9 +29,10 @@ export async function registerRoutes(
 
       const result = await storage.addToWaitlist(email);
       
-      // Email sending is configured but requires verified sender in SendGrid dashboard
-      // For now, just confirm the signup - you can send bulk emails from SendGrid later
-      console.log(`Waitlist signup: ${email}`);
+      // Send confirmation email asynchronously (don't wait for it)
+      sendWaitlistConfirmation(email).catch((err) =>
+        console.error("Failed to send confirmation email:", err)
+      );
       
       return res.json({ success: true, message: "Added to waitlist!", result });
     } catch (error: any) {
