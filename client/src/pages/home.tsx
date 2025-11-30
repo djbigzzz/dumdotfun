@@ -1,467 +1,359 @@
-import { useState } from "react";
-import { useLocation } from "wouter";
+import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
-import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
-import { TrendingUp, AlertTriangle, Zap, DollarSign, Flame, Radar, AlertOctagon, Wallet } from "lucide-react";
+import { Mail, ChevronDown, Twitter, Github, Send } from "lucide-react";
+import { toast } from "sonner";
 
 import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
 
-interface Post {
-  id: number;
-  user: string;
-  message: string;
-  solBurned: number;
-  timestamp: Date;
+interface CountdownTime {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
 }
-
-interface WalletStats {
-  id: string;
-  walletAddress: string;
-  dumScore: number;
-  solLost: number;
-  rugsHit: number;
-  topRug: string;
-  totalTransactions: number;
-  averageLossPerTrade: number;
-  status: string;
-  createdAt: string;
-  isRealData?: boolean;
-}
-
 
 export default function Home() {
-  const [, setLocation] = useLocation();
-  const { connectedWallet, hasPhantom, connectWallet: contextConnectWallet, disconnectWallet: contextDisconnectWallet } = useWallet();
-  
-  const [posts, setPosts] = useState<Post[]>([
-    { id: 1, user: "degen_420", message: "the only way is down", solBurned: 0.01, timestamp: new Date(Date.now() - 60000) },
-    { id: 2, user: "hodler_99", message: "this is gentlemen", solBurned: 0.02, timestamp: new Date(Date.now() - 30000) },
-    { id: 3, user: "paper_hands", message: "why did i buy this", solBurned: 0.01, timestamp: new Date(Date.now() - 10000) },
-  ]);
-  
-  const [messageText, setMessageText] = useState("");
-  const [currentSolPrice, setCurrentSolPrice] = useState(0.01);
-  const [walletStats, setWalletStats] = useState<WalletStats | null>(null);
-  const [loadingWallet, setLoadingWallet] = useState(false);
-  const [walletError, setWalletError] = useState<string | null>(null);
+  const [email, setEmail] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [countdown, setCountdown] = useState<CountdownTime>({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
-  const handleBurnPost = () => {
-    if (!messageText.trim()) return;
+  // Calculate countdown
+  useEffect(() => {
+    const launchDate = new Date("2025-12-15T00:00:00").getTime();
+    
+    const calculateCountdown = () => {
+      const now = new Date().getTime();
+      const difference = launchDate - now;
 
-    const newPost: Post = {
-      id: posts.length + 1,
-      user: `user_${Math.floor(Math.random() * 10000)}`,
-      message: messageText,
-      solBurned: currentSolPrice,
-      timestamp: new Date(),
+      if (difference > 0) {
+        setCountdown({
+          days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+          hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+          minutes: Math.floor((difference / 1000 / 60) % 60),
+          seconds: Math.floor((difference / 1000) % 60),
+        });
+      }
     };
 
-    setPosts([newPost, ...posts]);
-    setMessageText("");
-    setCurrentSolPrice(prev => parseFloat((prev * 2).toFixed(4)));
-  };
+    calculateCountdown();
+    const interval = setInterval(calculateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const handleConnectWallet = async () => {
-    setWalletError(null);
+  const handleEmailSignup = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setIsSubmitting(true);
     try {
-      await contextConnectWallet();
-      setWalletStats(null);
-    } catch (err: any) {
-      setWalletError(err.message || "Failed to connect wallet");
-    }
-  };
-
-  const handleDisconnectWallet = async () => {
-    await contextDisconnectWallet();
-    setWalletStats(null);
-    setWalletError(null);
-  };
-
-  const handleAnalyzeWallet = async () => {
-    if (!connectedWallet) return;
-    setLoadingWallet(true);
-    
-    try {
-      const response = await fetch("/api/analyze-wallet", {
+      const response = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
+        body: JSON.stringify({ email }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to analyze wallet");
-      }
-
       const data = await response.json();
-      setWalletStats(data);
+
+      if (response.ok) {
+        toast.success("You're on the list! 🔥");
+        setEmail("");
+      } else if (response.status === 400 && data.error.includes("already")) {
+        toast.error("Already signed up, degen!");
+      } else {
+        toast.error(data.error || "Something went wrong");
+      }
     } catch (error) {
-      console.error("Error analyzing wallet:", error);
-      alert("Failed to analyze wallet. Please try again.");
+      toast.error("Failed to sign up");
+      console.error(error);
     } finally {
-      setLoadingWallet(false);
+      setIsSubmitting(false);
     }
   };
+
+  const faqs = [
+    {
+      q: "What is Dum.fun?",
+      a: "Dum.fun is a satirical anti-launchpad that parodies crypto meme coin platforms. On Dum.fun, tokens launch EXPENSIVE and crash IMMEDIATELY. It's a brutally honest mirror of crypto degen culture.",
+    },
+    {
+      q: "How is this different from Pump.fun?",
+      a: "Pump.fun lets tokens launch cheap and pump up. Dum.fun flips the script completely. Tokens start expensive, prices only go down. We're not pretending it's anything other than what it is.",
+    },
+    {
+      q: "Is this a real product?",
+      a: "Dum.fun is a design concept and interactive mockup. It's a satirical commentary on the absurdity of the crypto ecosystem. All data is simulated for demonstration purposes.",
+    },
+    {
+      q: "Can I really buy tokens on Dum.fun?",
+      a: "Not yet. This is the coming soon page. The platform launches soon. Join the waitlist to be notified when we go live.",
+    },
+    {
+      q: "Will there be a Village Idiot Leaderboard?",
+      a: "Yes! We celebrate the fastest crashers. The coin losing money the quickest gets the spotlight. It's a leaderboard of failure where you can flex your losses.",
+    },
+  ];
 
   return (
     <Layout>
-      {/* Hero Section */}
-      <section className="min-h-[50vh] flex flex-col justify-center items-center text-center mb-8 space-y-8">
+      {/* Hero Section with Glitch Effect */}
+      <section className="min-h-screen flex flex-col justify-center items-center text-center mb-16 space-y-8 relative">
+        {/* Glitch Background Elements */}
         <motion.div
-          initial={{ opacity: 0, y: -20 }}
+          animate={{ x: [0, 2, -2, 0], y: [0, -2, 2, 0] }}
+          transition={{ repeat: Infinity, duration: 4 }}
+          className="absolute top-10 left-10 w-32 h-32 border-2 border-red-500 opacity-20"
+        />
+        <motion.div
+          animate={{ x: [0, -3, 3, 0], y: [0, 3, -3, 0] }}
+          transition={{ repeat: Infinity, duration: 5 }}
+          className="absolute bottom-20 right-10 w-40 h-40 border-2 border-yellow-500 opacity-20"
+        />
+
+        <motion.div
+          initial={{ opacity: 0, y: -30 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8 }}
-          className="space-y-6 flex flex-col items-center"
+          transition={{ duration: 1 }}
+          className="space-y-8 flex flex-col items-center relative z-10"
         >
-          <img
+          {/* Hero Logo */}
+          <motion.img
             src={heroLogo}
             alt="DUM.FUN"
-            className="h-64 md:h-80 w-auto"
+            className="h-64 md:h-80 w-auto drop-shadow-lg"
+            animate={{ scale: [1, 1.02, 1] }}
+            transition={{ repeat: Infinity, duration: 3 }}
           />
-          <div className="space-y-2">
-            <p className="text-lg text-gray-400 font-mono max-w-2xl mx-auto">
-              Where tokens launch EXPENSIVE and crash IMMEDIATELY
+
+          {/* Main Headline */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="space-y-4 max-w-3xl mx-auto"
+          >
+            <h1 className="text-5xl md:text-7xl font-black uppercase text-red-500">
+              The Anti-Launchpad
+            </h1>
+            <p className="text-xl md:text-2xl text-yellow-500 font-black">
+              Where Tokens Launch EXPENSIVE & Crash IMMEDIATELY
             </p>
-          </div>
-        </motion.div>
+            <p className="text-lg text-gray-300 font-mono">
+              The satirical mirror crypto deserves
+            </p>
+          </motion.div>
 
-        {/* Coming Soon Badge */}
-        <motion.div
-          animate={{ rotate: [-2, 2, -2] }}
-          transition={{ repeat: Infinity, duration: 3 }}
-          className="bg-red-500 text-white font-black text-4xl px-12 py-6 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] uppercase"
-        >
-          COMING SOON
-        </motion.div>
-      </section>
-
-      {/* Main Two-Column Section */}
-      <section className="mb-16 grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* LEFT: The Dum Wall */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.2 }}
-          className="border-2 border-red-500 bg-zinc-900 min-h-[700px] flex flex-col"
-        >
-          {/* Header */}
-          <div className="bg-red-900/40 border-b-2 border-red-500 p-4">
-            <div className="flex items-center gap-3">
-              <Flame className="w-6 h-6 text-red-500 animate-bounce" />
-              <h2 className="text-2xl font-black uppercase text-gray-100">THE DUM WALL</h2>
-              <span className="text-xs font-mono text-gray-500 ml-auto">{posts.length} POSTS</span>
-            </div>
-            <p className="text-gray-400 font-mono text-sm mt-2">Burn SOL to post. Higher burn = higher visibility.</p>
-          </div>
-
-          {/* Posts Feed */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {posts.map((post) => (
-              <motion.div
-                key={post.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className={`border-l-4 pl-4 py-2 ${
-                  post.solBurned >= 0.08 ? "border-red-500 bg-red-950/20" : "border-red-900 bg-zinc-800/30"
-                }`}
-              >
-                <div className="flex justify-between items-start gap-2 mb-1">
-                  <div>
-                    <span className="text-yellow-500 font-bold text-sm">{post.user}</span>
-                    <span className="text-gray-600 text-xs ml-2 font-mono">
-                      {Math.floor((Date.now() - post.timestamp.getTime()) / 1000)}s ago
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-1 bg-red-950 px-2 py-1 rounded text-xs">
-                    <Flame className="w-3 h-3 text-red-500" />
-                    <span className="font-mono font-bold text-red-400">{post.solBurned} SOL</span>
-                  </div>
-                </div>
-                <p className="text-gray-300 font-mono text-sm">{post.message}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Burn Box */}
-          <div className="border-t-2 border-red-900 bg-black p-4 space-y-4">
-            <label className="text-xs font-mono text-gray-400 uppercase block">Your Message</label>
-            <textarea
-              value={messageText}
-              onChange={(e) => setMessageText(e.target.value)}
-              placeholder="Share your pain..."
-              className="w-full bg-zinc-950 border border-red-900 p-3 font-terminal text-sm text-gray-300 focus:border-red-500 focus:outline-none resize-none h-20"
-            />
-            
-            <div className="grid grid-cols-2 gap-2">
-              <div className="bg-zinc-950 border border-red-900 p-3 text-center">
-                <p className="text-xs text-gray-500 font-mono mb-1">BURN</p>
-                <motion.p
+          {/* Countdown Timer */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.5 }}
+            className="bg-black border-4 border-red-500 p-8 w-full max-w-2xl shadow-[0_0_30px_rgba(239,68,68,0.3)]"
+          >
+            <p className="text-gray-400 font-mono text-sm mb-4">LAUNCHES IN</p>
+            <div className="grid grid-cols-4 gap-4">
+              {[
+                { label: "DAYS", value: countdown.days },
+                { label: "HRS", value: countdown.hours },
+                { label: "MIN", value: countdown.minutes },
+                { label: "SEC", value: countdown.seconds },
+              ].map((item) => (
+                <motion.div
+                  key={item.label}
                   animate={{ scale: [1, 1.05, 1] }}
                   transition={{ repeat: Infinity, duration: 2 }}
-                  className="text-lg font-black text-red-500 font-mono"
+                  className="text-center bg-red-950/20 border-2 border-red-900 p-4"
                 >
-                  {currentSolPrice.toFixed(4)} ◎
-                </motion.p>
-              </div>
-              
+                  <p className="text-3xl md:text-4xl font-black text-red-500">
+                    {String(item.value).padStart(2, "0")}
+                  </p>
+                  <p className="text-xs font-mono text-gray-500 mt-2">{item.label}</p>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+
+          {/* Email Signup */}
+          <motion.form
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.7 }}
+            onSubmit={handleEmailSignup}
+            className="w-full max-w-lg space-y-3"
+          >
+            <p className="text-gray-400 font-mono text-sm">JOIN THE WAITLIST</p>
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                className="flex-1 bg-zinc-950 border-2 border-red-500 px-4 py-3 text-white font-mono focus:outline-none focus:border-yellow-500 focus:shadow-[0_0_20px_rgba(234,179,8,0.3)]"
+                disabled={isSubmitting}
+              />
               <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleBurnPost}
-                disabled={!messageText.trim()}
-                className={`font-black uppercase border-b-2 border-r-2 transition-all flex items-center justify-center gap-2 ${
-                  messageText.trim()
-                    ? "bg-red-500 hover:bg-red-600 text-white border-gray-300 cursor-pointer"
-                    : "bg-zinc-800 text-gray-600 border-gray-700 cursor-not-allowed opacity-50"
-                }`}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                type="submit"
+                disabled={isSubmitting}
+                className="bg-red-500 hover:bg-red-600 text-white font-black px-6 py-3 border-2 border-white flex items-center gap-2 disabled:opacity-50"
               >
-                <Flame className="w-4 h-4" />
-                BURN
+                <Send className="w-4 h-4" />
+                {isSubmitting ? "..." : "NOTIFY"}
               </motion.button>
             </div>
-          </div>
-        </motion.div>
+          </motion.form>
 
-        {/* RIGHT: The Dum Analyzer */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.3 }}
-          className="border-2 border-red-500 bg-black p-6 flex flex-col min-h-[700px]"
-        >
-          {/* Header */}
-          <div className="border-b-2 border-red-500 pb-4 mb-4">
-            <h3 className="text-2xl font-black uppercase text-red-500 flex items-center gap-2 mb-2">
-              <Radar className="w-6 h-6 animate-spin" style={{ animationDuration: "3s" }} />
-              DUM ANALYZER
-            </h3>
-            <p className="text-xs text-gray-500 font-mono">Scan any wallet</p>
-          </div>
-
-          {/* Wallet Connection */}
-          {!connectedWallet ? (
-            <div className="space-y-3 mb-6">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleConnectWallet}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black uppercase text-sm py-3 border-b-2 border-r-2 border-gray-300 cursor-pointer transition-all flex items-center justify-center gap-2"
-              >
-                <Wallet className="w-4 h-4" />
-                CONNECT PHANTOM
-              </motion.button>
-              {walletError && (
-                <p className="text-xs text-red-500 font-mono text-center">{walletError}</p>
-              )}
-              <p className="text-xs text-gray-600 font-mono text-center">
-                {hasPhantom ? "Click to connect your Phantom wallet" : "Install Phantom wallet to analyze"}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3 mb-6">
-              <div className="bg-zinc-950 border border-red-500 p-3 rounded space-y-2">
-                <p className="text-xs text-gray-500 font-mono">CONNECTED WALLET</p>
-                <p className="text-xs font-mono text-gray-300 break-all">{connectedWallet}</p>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-2">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleAnalyzeWallet}
-                  disabled={loadingWallet}
-                  className={`py-2 font-black uppercase text-sm border-b-2 border-r-2 transition-all flex items-center justify-center gap-2 ${
-                    !loadingWallet
-                      ? "bg-red-500 hover:bg-red-600 text-white border-gray-300 cursor-pointer"
-                      : "bg-zinc-800 text-gray-600 border-gray-700 cursor-not-allowed opacity-50"
-                  }`}
-                >
-                  <Radar className="w-4 h-4" />
-                  {loadingWallet ? "SCANNING..." : "ANALYZE"}
-                </motion.button>
-                
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleDisconnectWallet}
-                  className="py-2 font-black uppercase text-sm border-b-2 border-r-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 border-gray-600 cursor-pointer transition-all"
-                >
-                  DISCONNECT
-                </motion.button>
-              </div>
-            </div>
-          )}
-
-          {/* Results */}
-          {walletStats ? (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="space-y-3 flex-1"
-            >
-              {/* Data Source Indicator */}
-              <div className={`text-center py-1 px-2 text-xs font-mono ${
-                walletStats.isRealData 
-                  ? "bg-green-950/50 border border-green-700 text-green-400" 
-                  : "bg-yellow-950/50 border border-yellow-700 text-yellow-400"
-              }`}>
-                {walletStats.isRealData ? "📡 LIVE ON-CHAIN DATA" : "⚠️ SIMULATED DATA (RPC UNAVAILABLE)"}
-              </div>
-
-              {/* Main Stats */}
-              <div className="grid grid-cols-3 gap-2">
-                <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="bg-red-950/40 border border-red-900 p-3 text-center space-y-1"
-                >
-                  <p className="text-xs text-gray-400 font-mono">SCORE</p>
-                  <p className="text-2xl font-black text-red-500">{walletStats.dumScore}</p>
-                </motion.div>
-
-                <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, delay: 0.2 }}
-                  className="bg-red-950/40 border border-red-900 p-3 text-center space-y-1"
-                >
-                  <p className="text-xs text-gray-400 font-mono">SOL LOST</p>
-                  <p className="text-2xl font-black text-red-500">{walletStats.solLost}</p>
-                </motion.div>
-
-                <motion.div
-                  animate={{ scale: [1, 1.05, 1] }}
-                  transition={{ repeat: Infinity, duration: 2, delay: 0.4 }}
-                  className="bg-red-950/40 border border-red-900 p-3 text-center space-y-1"
-                >
-                  <p className="text-xs text-gray-400 font-mono">RUGS HIT</p>
-                  <p className="text-2xl font-black text-red-500">{walletStats.rugsHit}</p>
-                </motion.div>
-              </div>
-
-              {/* Extended Stats */}
-              <div className="grid grid-cols-2 gap-2">
-                <div className="bg-zinc-900 border border-red-900 p-3 space-y-1">
-                  <p className="text-xs text-gray-500 font-mono">Top Rug</p>
-                  <p className="text-sm font-black text-red-500">{walletStats.topRug}</p>
-                </div>
-                <div className="bg-zinc-900 border border-red-900 p-3 space-y-1">
-                  <p className="text-xs text-gray-500 font-mono">Avg Loss</p>
-                  <p className="text-sm font-black text-red-500">{walletStats.averageLossPerTrade} SOL</p>
-                </div>
-              </div>
-
-              {/* Status */}
-              <motion.div
-                animate={{ rotate: [-1, 1, -1] }}
-                transition={{ repeat: Infinity, duration: 2 }}
-                className="bg-gradient-to-r from-red-950 to-zinc-900 border-2 border-red-500 p-4 text-center space-y-2"
-              >
-                <p className="text-xs text-gray-400 font-mono">STATUS</p>
-                <p className="text-3xl font-black text-red-500 uppercase">{walletStats.status}</p>
-              </motion.div>
-
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black text-sm py-2 border-b-2 border-r-2 border-gray-300 uppercase"
-              >
-                Share This
-              </motion.button>
-            </motion.div>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-center">
-              <div className="space-y-3">
-                <AlertOctagon className="w-12 h-12 text-red-900 mx-auto opacity-50" />
-                <p className="text-xs text-gray-600 font-mono">{connectedWallet ? "Click ANALYZE to scan your wallet" : "Connect your wallet to begin"}</p>
-              </div>
-            </div>
-          )}
+          {/* Scroll Indicator */}
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className="mt-8"
+          >
+            <ChevronDown className="w-8 h-8 text-red-500 mx-auto" />
+          </motion.div>
         </motion.div>
       </section>
 
       {/* Features Section */}
       <section className="mb-16 space-y-8">
-        {/* Feature Grid */}
+        <h2 className="text-5xl font-black uppercase text-red-500 text-center mb-12">
+          What's Coming
+        </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="border border-red-500 bg-zinc-900 p-8 space-y-4"
-          >
-            <div className="flex items-center gap-4">
-              <TrendingUp className="w-10 h-10 text-red-500 flex-shrink-0" />
-              <h3 className="text-2xl font-black uppercase text-gray-100">Tokens Launch Expensive</h3>
-            </div>
-            <p className="text-gray-400 font-mono leading-relaxed">
-              Forget the bonding curve. On Dum.fun, tokens start at an inflated price. The price only goes down from there.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="border border-red-500 bg-zinc-900 p-8 space-y-4"
-          >
-            <div className="flex items-center gap-4">
-              <AlertTriangle className="w-10 h-10 text-red-500 flex-shrink-0" />
-              <h3 className="text-2xl font-black uppercase text-gray-100">Village Idiot Leaderboard</h3>
-            </div>
-            <p className="text-gray-400 font-mono leading-relaxed">
-              We celebrate the fastest crashers. The coin losing money the quickest gets the spotlight. It's a leaderboard of failure.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-            className="border border-red-500 bg-zinc-900 p-8 space-y-4"
-          >
-            <div className="flex items-center gap-4">
-              <Zap className="w-10 h-10 text-red-500 flex-shrink-0" />
-              <h3 className="text-2xl font-black uppercase text-gray-100">Live Chaos</h3>
-            </div>
-            <p className="text-gray-400 font-mono leading-relaxed">
-              Watch prices plummet in real-time. Chat erupts. Animations go haywire. Every crash is a spectacle.
-            </p>
-          </motion.div>
-
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 }}
-            className="border border-red-500 bg-zinc-900 p-8 space-y-4"
-          >
-            <div className="flex items-center gap-4">
-              <DollarSign className="w-10 h-10 text-red-500 flex-shrink-0" />
-              <h3 className="text-2xl font-black uppercase text-gray-100">Catch the Knife</h3>
-            </div>
-            <p className="text-gray-400 font-mono leading-relaxed">
-              Buy on the way down. The button shakes menacingly. Take the risk. Lose the money.
-            </p>
-          </motion.div>
+          {[
+            {
+              title: "The Dum Wall",
+              desc: "Burn SOL to post. Higher burn = higher visibility. Watch the chaos unfold in real-time.",
+            },
+            {
+              title: "Dum Analyzer",
+              desc: "Connect your wallet. We'll scan your on-chain history and calculate your Dum Score. How rekt are you?",
+            },
+            {
+              title: "Village Idiot Leaderboard",
+              desc: "Celebrate the fastest crashers. The coin losing money the quickest gets the spotlight. Rank up your failure.",
+            },
+            {
+              title: "Live Token Charts",
+              desc: "Watch prices plummet in real-time. Chaotic animations. Charts that glitch. Every crash is a spectacle.",
+            },
+          ].map((feature, idx) => (
+            <motion.div
+              key={idx}
+              initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              transition={{ delay: idx * 0.1 }}
+              className="border-2 border-red-500 bg-zinc-900 p-8 space-y-4 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all"
+            >
+              <h3 className="text-2xl font-black uppercase text-gray-100">
+                {feature.title}
+              </h3>
+              <p className="text-gray-400 font-mono leading-relaxed">{feature.desc}</p>
+            </motion.div>
+          ))}
         </div>
       </section>
 
-      {/* The Concept */}
-      <section className="border-2 border-red-500 bg-black p-12 mb-16 space-y-6">
+      {/* The Concept Section */}
+      <section className="border-4 border-red-500 bg-black p-12 mb-16 space-y-6">
         <h2 className="text-4xl font-black uppercase text-red-500">The Concept</h2>
-        <div className="space-y-4 text-gray-300 font-mono leading-relaxed">
+        <div className="space-y-4 text-gray-300 font-mono leading-relaxed text-lg">
           <p>
             Pump.fun made creating tokens a game where anyone could get rich quick. Dum.fun is the same thing, but we're not pretending it's anything other than what it is: a satirical mirror of crypto degen culture.
           </p>
           <p>
             On Dum.fun, we flip the script. Tokens launch expensive. Prices can only drop. The UI is intentionally chaotic. It's brutally honest about the industry's absurdity.
           </p>
+          <p>
+            This is not financial advice. This is art. This is commentary. This is what happens when you take the chaos and make it beautiful.
+          </p>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="mb-16 space-y-8">
+        <h2 className="text-5xl font-black uppercase text-red-500 text-center mb-12">
+          FAQ
+        </h2>
+        <div className="space-y-3 max-w-3xl mx-auto">
+          {faqs.map((faq, idx) => (
+            <motion.div
+              key={idx}
+              className="border-2 border-red-900 overflow-hidden"
+            >
+              <button
+                onClick={() =>
+                  setOpenFaqIndex(openFaqIndex === idx ? null : idx)
+                }
+                className="w-full bg-red-950/30 hover:bg-red-950/50 p-4 text-left flex justify-between items-center font-black uppercase text-gray-100 transition-all"
+              >
+                <span>{faq.q}</span>
+                <motion.div
+                  animate={{ rotate: openFaqIndex === idx ? 180 : 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <ChevronDown className="w-5 h-5 text-red-500" />
+                </motion.div>
+              </button>
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{
+                  height: openFaqIndex === idx ? "auto" : 0,
+                }}
+                transition={{ duration: 0.3 }}
+                className="overflow-hidden bg-black"
+              >
+                <p className="p-4 text-gray-300 font-mono text-sm leading-relaxed">
+                  {faq.a}
+                </p>
+              </motion.div>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      {/* Social Links Section */}
+      <section className="border-2 border-red-500 bg-zinc-900 p-8 text-center space-y-6 mb-16">
+        <h3 className="text-2xl font-black uppercase text-red-500">
+          Stay Connected
+        </h3>
+        <div className="flex justify-center gap-6">
+          <motion.a
+            whileHover={{ scale: 1.1 }}
+            href="https://twitter.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-red-500 hover:bg-red-600 text-white font-black p-4 border-2 border-white transition-all flex items-center gap-2"
+          >
+            <Twitter className="w-5 h-5" />
+            TWITTER
+          </motion.a>
+          <motion.a
+            whileHover={{ scale: 1.1 }}
+            href="https://github.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="bg-red-500 hover:bg-red-600 text-white font-black p-4 border-2 border-white transition-all flex items-center gap-2"
+          >
+            <Github className="w-5 h-5" />
+            GITHUB
+          </motion.a>
         </div>
       </section>
 
       {/* Disclaimer */}
       <section className="border border-red-900 bg-zinc-900 p-8 text-center">
-        <p className="text-gray-400 font-mono text-sm">
-          This is a design concept and interactive mockup. Dum.fun is not a real product. All data is simulated for demonstration purposes only.
+        <p className="text-gray-500 font-mono text-xs">
+          ⚠️ This is a design concept and interactive mockup. Dum.fun is not a real product.
+          All data shown is simulated for demonstration purposes only. This is not financial
+          advice.
         </p>
       </section>
     </Layout>

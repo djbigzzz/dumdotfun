@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis } from "@shared/schema";
+import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -10,15 +10,21 @@ export interface IStorage {
   // Wallet analysis methods
   getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
   createWalletAnalysis(analysis: InsertWalletAnalysis): Promise<WalletAnalysis>;
+  
+  // Waitlist methods
+  addToWaitlist(email: string): Promise<Waitlist>;
+  isEmailInWaitlist(email: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private walletAnalyses: Map<string, WalletAnalysis>;
+  private waitlistEmails: Set<string>;
 
   constructor() {
     this.users = new Map();
     this.walletAnalyses = new Map();
+    this.waitlistEmails = new Set();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -52,6 +58,21 @@ export class MemStorage implements IStorage {
     };
     this.walletAnalyses.set(insertAnalysis.walletAddress, analysis);
     return analysis;
+  }
+
+  async addToWaitlist(email: string): Promise<Waitlist> {
+    const id = randomUUID();
+    const now = new Date();
+    this.waitlistEmails.add(email);
+    return {
+      id,
+      email,
+      createdAt: now,
+    };
+  }
+
+  async isEmailInWaitlist(email: string): Promise<boolean> {
+    return this.waitlistEmails.has(email);
   }
 }
 

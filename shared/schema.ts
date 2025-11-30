@@ -22,6 +22,12 @@ export const walletAnalysis = pgTable("wallet_analysis", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const waitlist = pgTable("waitlist", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  email: text("email").notNull().unique(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -32,7 +38,14 @@ export const insertWalletAnalysisSchema = createInsertSchema(walletAnalysis).omi
   createdAt: true,
 });
 
+export const insertWaitlistSchema = createInsertSchema(waitlist).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertWalletAnalysis = z.infer<typeof insertWalletAnalysisSchema>;
 export type WalletAnalysis = typeof walletAnalysis.$inferSelect;
+export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
+export type Waitlist = typeof waitlist.$inferSelect;

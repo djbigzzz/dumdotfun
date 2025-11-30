@@ -2,11 +2,38 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
+import { insertWaitlistSchema } from "@shared/schema";
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.post("/api/waitlist", async (req, res) => {
+    try {
+      const { email } = req.body;
+      
+      if (!email || typeof email !== "string") {
+        return res.status(400).json({ error: "Email is required" });
+      }
+
+      const validation = insertWaitlistSchema.safeParse({ email });
+      if (!validation.success) {
+        return res.status(400).json({ error: "Invalid email format" });
+      }
+
+      const isAlreadySignedUp = await storage.isEmailInWaitlist(email);
+      if (isAlreadySignedUp) {
+        return res.status(400).json({ error: "Email already on waitlist" });
+      }
+
+      const result = await storage.addToWaitlist(email);
+      return res.json({ success: true, message: "Added to waitlist", result });
+    } catch (error: any) {
+      console.error("Error adding to waitlist:", error);
+      return res.status(500).json({ error: "Failed to add to waitlist" });
+    }
+  });
+
   app.post("/api/analyze-wallet", async (req, res) => {
     try {
       const { walletAddress } = req.body;
