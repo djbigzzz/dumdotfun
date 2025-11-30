@@ -4,7 +4,7 @@ declare global {
   interface Window {
     solana?: {
       isPhantom?: boolean;
-      connect: () => Promise<{ publicKey: { toString: () => string } }>;
+      connect: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>;
       disconnect: () => Promise<void>;
       on: (event: string, callback: () => void) => void;
       publicKey?: { toString: () => string };
@@ -50,7 +50,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
 
     try {
-      const response = await window.solana.connect();
+      const response = await window.solana.connect({ onlyIfTrusted: false });
       setConnectedWallet(response.publicKey.toString());
     } catch (err) {
       console.error("Failed to connect wallet:", err);
