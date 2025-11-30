@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ChevronDown, Send } from "lucide-react";
 import { toast } from "sonner";
 
-import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
+import heroLogo from "@assets/image_1764514681522.png";
 
 interface CountdownTime {
   days: number;
