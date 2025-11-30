@@ -56,8 +56,19 @@ Preferred communication style: Simple, everyday language.
 
 **Solana Integration**
 - Connection to Solana mainnet-beta RPC (`https://api.mainnet-beta.solana.com`)
-- Wallet balance and transaction history analysis
-- "Dum Score" calculation based on SOL lost, rugs hit, and transaction patterns
+- Wallet balance and transaction history analysis (up to 500 transactions with batching)
+- Smart rate limit handling with exponential backoff retries
+- Jupiter Price API integration for free real-time token pricing
+- Current token holdings tracking for unrealized loss calculation
+- "Dum Score" calculation with SOL-based value conversion:
+  - SOL flow analysis (200 pts per SOL lost)
+  - Rug count multiplier (600 pts each)
+  - DEX activity scoring (Raydium, Jupiter, Orca, Pump.fun detection)
+  - Failed transaction penalty
+  - Quick swap pattern detection
+  - Worthless holdings penalty (tokens with no price data)
+  - LP burn, honeypot, and token freeze pattern recognition
+- All penalties capped to prevent score inflation on large wallets
 - Support for real blockchain data with fallback to mock data
 
 ### Data Storage Solutions
