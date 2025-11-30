@@ -221,46 +221,6 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="mb-16 space-y-8">
-        <h2 className="text-5xl font-black uppercase text-red-500 text-center mb-12">
-          What's Coming
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {[
-            {
-              title: "The Dum Wall",
-              desc: "Burn SOL to post. Higher burn = higher visibility. Watch the chaos unfold in real-time.",
-            },
-            {
-              title: "Dum Analyzer",
-              desc: "Connect your wallet. We'll scan your on-chain history and calculate your Dum Score. How rekt are you?",
-            },
-            {
-              title: "Village Idiot Leaderboard",
-              desc: "Celebrate the fastest crashers. The coin losing money the quickest gets the spotlight. Rank up your failure.",
-            },
-            {
-              title: "Live Token Charts",
-              desc: "Watch prices plummet in real-time. Chaotic animations. Charts that glitch. Every crash is a spectacle.",
-            },
-          ].map((feature, idx) => (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: idx % 2 === 0 ? -20 : 20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.1 }}
-              className="border-2 border-red-500 bg-zinc-900 p-8 space-y-4 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)] transition-all"
-            >
-              <h3 className="text-2xl font-black uppercase text-gray-100">
-                {feature.title}
-              </h3>
-              <p className="text-gray-400 font-mono leading-relaxed">{feature.desc}</p>
-            </motion.div>
-          ))}
-        </div>
-      </section>
-
       {/* The Concept Section */}
       <section className="border-4 border-red-500 bg-black p-12 mb-16 space-y-6">
         <h2 className="text-4xl font-black uppercase text-red-500">The Concept</h2>
