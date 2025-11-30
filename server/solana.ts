@@ -135,20 +135,16 @@ async function getTokenPrices(mints: string[]): Promise<Map<string, TokenPrice>>
 async function getCurrentTokenHoldings(walletAddress: string): Promise<Map<string, number>> {
   const holdings = new Map<string, number>();
   
-  try {
-    const pubkey = new PublicKey(walletAddress);
-    const tokenAccounts = await connection.getParsedTokenAccountsByOwner(pubkey, {
-      programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-    });
-    
-    for (const account of tokenAccounts.value) {
-      const parsed = account.account.data.parsed;
-      if (parsed?.info?.mint && parsed?.info?.tokenAmount?.uiAmount) {
-        holdings.set(parsed.info.mint, parsed.info.tokenAmount.uiAmount);
-      }
+  const pubkey = new PublicKey(walletAddress);
+  const tokenAccounts = await connection.getParsedTokenAccountsByOwner(pubkey, {
+    programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+  });
+  
+  for (const account of tokenAccounts.value) {
+    const parsed = account.account.data.parsed;
+    if (parsed?.info?.mint && parsed?.info?.tokenAmount?.uiAmount) {
+      holdings.set(parsed.info.mint, parsed.info.tokenAmount.uiAmount);
     }
-  } catch (error) {
-    console.error("Failed to get token holdings:", error);
   }
   
   return holdings;
@@ -166,9 +162,7 @@ async function getAllSignatures(walletAddress: string, limit: number = 1000): Pr
       options.before = lastSignature;
     }
     
-    const signatures = await fetchWithRetry(() => 
-      connection.getSignaturesForAddress(pubkey, options)
-    );
+    const signatures = await connection.getSignaturesForAddress(pubkey, options);
     
     if (!signatures || signatures.length === 0) break;
     
@@ -504,33 +498,12 @@ export async function analyzeWallet(walletAddress: string): Promise<WalletAnalys
       throw new Error("Invalid Solana wallet address");
     }
     
-    return generateFallbackStats(walletAddress);
+    if (error.message?.includes("429") || error.message?.includes("Too Many Requests")) {
+      throw new Error("Solana RPC rate limited. Please try again in a few moments.");
+    }
+    
+    throw new Error(`Failed to analyze wallet: ${error.message || "Unknown error"}`);
   }
-}
-
-function generateFallbackStats(address: string): WalletAnalysisResult {
-  const seed = address.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const random = (min: number, max: number) => {
-    const x = Math.sin(seed) * 10000;
-    return min + ((x - Math.floor(x)) * (max - min));
-  };
-
-  const solLost = Math.floor(random(1, 500) * 10) / 10;
-  const rugsHit = Math.floor(random(1, 50));
-  const dumScore = Math.floor(solLost * 200 + rugsHit * 1000);
-  const rugNames = ["SafeMoon", "ElonSperm", "DogeMeme", "CatShit", "MoonLambo", "SafeShib", "Pump Token", "Rug Token"];
-  const topRug = rugNames[Math.floor(random(0, rugNames.length))];
-
-  return {
-    dumScore,
-    solLost,
-    rugsHit,
-    topRug,
-    totalTransactions: Math.floor(random(10, 500)),
-    averageLossPerTrade: Math.floor((solLost / rugsHit) * 100) / 100,
-    status: dumScore > 50000 ? "PERMA-REKT" : dumScore > 25000 ? "SEVERELY REKT" : dumScore > 10000 ? "REKT" : "SLIGHTLY REKT",
-    isRealData: false,
-  };
 }
 
 export async function isValidSolanaAddress(address: string): Promise<boolean> {
