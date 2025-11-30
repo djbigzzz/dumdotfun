@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
-import { Mail, ChevronDown, Twitter, Github, Send } from "lucide-react";
+import { ChevronDown, Send } from "lucide-react";
 import { toast } from "sonner";
 
 import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
@@ -279,43 +279,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Social Links Section */}
-      <section className="border-2 border-red-500 bg-zinc-900 p-8 text-center space-y-6 mb-16">
-        <h3 className="text-2xl font-black uppercase text-red-500">
-          Stay Connected
-        </h3>
-        <div className="flex justify-center gap-6">
-          <motion.a
-            whileHover={{ scale: 1.1 }}
-            href="https://twitter.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-red-500 hover:bg-red-600 text-white font-black p-4 border-2 border-white transition-all flex items-center gap-2"
-          >
-            <Twitter className="w-5 h-5" />
-            TWITTER
-          </motion.a>
-          <motion.a
-            whileHover={{ scale: 1.1 }}
-            href="https://github.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="bg-red-500 hover:bg-red-600 text-white font-black p-4 border-2 border-white transition-all flex items-center gap-2"
-          >
-            <Github className="w-5 h-5" />
-            GITHUB
-          </motion.a>
-        </div>
-      </section>
-
-      {/* Disclaimer */}
-      <section className="border border-red-900 bg-zinc-900 p-8 text-center">
-        <p className="text-gray-500 font-mono text-xs">
-          ⚠️ This is a design concept and interactive mockup. Dum.fun is not a real product.
-          All data shown is simulated for demonstration purposes only. This is not financial
-          advice.
-        </p>
-      </section>
     </Layout>
   );
 }
