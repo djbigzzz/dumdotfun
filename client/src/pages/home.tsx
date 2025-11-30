@@ -125,6 +125,14 @@ export default function Home() {
           </div>
         </motion.div>
 
+        {/* Coming Soon Badge */}
+        <motion.div
+          animate={{ rotate: [-2, 2, -2] }}
+          transition={{ repeat: Infinity, duration: 3 }}
+          className="bg-red-500 text-white font-black text-4xl px-12 py-6 border-4 border-white shadow-[8px_8px_0px_0px_rgba(255,255,255,0.2)] uppercase"
+        >
+          COMING SOON
+        </motion.div>
       </section>
 
       {/* Main Two-Column Section */}
