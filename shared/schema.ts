@@ -5,8 +5,11 @@ import { z } from "zod";
 
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  walletAddress: text("wallet_address").notNull().unique(),
+  referralCode: text("referral_code").notNull().unique(),
+  referredBy: varchar("referred_by"),
+  referralCount: integer("referral_count").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export const walletAnalysis = pgTable("wallet_analysis", {
@@ -28,9 +31,10 @@ export const waitlist = pgTable("waitlist", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  referralCount: true,
 });
 
 export const insertWalletAnalysisSchema = createInsertSchema(walletAnalysis).omit({

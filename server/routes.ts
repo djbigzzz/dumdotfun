@@ -2,13 +2,84 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
-import { insertWaitlistSchema } from "@shared/schema";
+import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
+
+function generateReferralCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // Create user from wallet connection
+  app.post("/api/users/connect", async (req, res) => {
+    try {
+      const { walletAddress, referralCode } = req.body;
+
+      if (!walletAddress || typeof walletAddress !== "string") {
+        return res.status(400).json({ error: "Wallet address is required" });
+      }
+
+      const isValid = await isValidSolanaAddress(walletAddress);
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid Solana wallet address" });
+      }
+
+      // Check if user already exists
+      const existing = await storage.getUserByWallet(walletAddress);
+      if (existing) {
+        return res.json(existing);
+      }
+
+      // Create new user
+      const newUser = await storage.createUser({
+        walletAddress,
+        referralCode: generateReferralCode(),
+        referredBy: referralCode || null,
+      });
+
+      // If referred by someone, increment their referral count
+      if (referralCode) {
+        // Find user with this referral code
+        const leaderboard = await storage.getLeaderboard();
+        const referrer = leaderboard.find((u) => u.referralCode === referralCode);
+        if (referrer) {
+          await storage.updateReferralCount(referrer.id);
+        }
+      }
+
+      return res.json(newUser);
+    } catch (error: any) {
+      console.error("Error connecting wallet:", error);
+      return res.status(500).json({ error: "Failed to connect wallet" });
+    }
+  });
+
+  // Get user by wallet
+  app.get("/api/users/wallet/:walletAddress", async (req, res) => {
+    try {
+      const user = await storage.getUserByWallet(req.params.walletAddress);
+      if (!user) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      return res.json(user);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  // Get leaderboard
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const leaderboard = await storage.getLeaderboard();
+      return res.json(leaderboard);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to get leaderboard" });
+    }
+  });
+  
   app.post("/api/waitlist", async (req, res) => {
     try {
       const { email } = req.body;

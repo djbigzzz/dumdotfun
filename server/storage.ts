@@ -4,8 +4,10 @@ import { randomUUID } from "crypto";
 export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByWallet(walletAddress: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateReferralCount(userId: string): Promise<void>;
+  getLeaderboard(): Promise<User[]>;
   
   // Wallet analysis methods
   getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
@@ -18,11 +20,13 @@ export interface IStorage {
 
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
+  private walletAddressToUser: Map<string, string>;
   private walletAnalyses: Map<string, WalletAnalysis>;
   private waitlistEmails: Set<string>;
 
   constructor() {
     this.users = new Map();
+    this.walletAddressToUser = new Map();
     this.walletAnalyses = new Map();
     this.waitlistEmails = new Set();
   }
@@ -31,17 +35,35 @@ export class MemStorage implements IStorage {
     return this.users.get(id);
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getUserByWallet(walletAddress: string): Promise<User | undefined> {
+    const userId = this.walletAddressToUser.get(walletAddress);
+    return userId ? this.users.get(userId) : undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = randomUUID();
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      referralCount: 0,
+      createdAt: new Date(),
+    };
     this.users.set(id, user);
+    this.walletAddressToUser.set(insertUser.walletAddress, id);
     return user;
+  }
+
+  async updateReferralCount(userId: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (user) {
+      user.referralCount += 1;
+    }
+  }
+
+  async getLeaderboard(): Promise<User[]> {
+    return Array.from(this.users.values())
+      .sort((a, b) => b.referralCount - a.referralCount)
+      .slice(0, 100);
   }
 
   async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {
