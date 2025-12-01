@@ -494,56 +494,162 @@ export default function Home() {
             </div>
           </motion.div>
 
-          {/* Stats Grid */}
+          {/* Rank Progression Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.35, duration: 0.5 }}
+            className="rounded-2xl p-8 border border-red-600/50"
+            style={{
+              background: "linear-gradient(135deg, rgba(127,29,29,0.2) 0%, rgba(0,0,0,0.6) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(239,68,68,0.1)",
+            }}
+          >
+            <div className="space-y-6">
+              <h3 className="text-sm font-mono text-red-400 uppercase tracking-widest">
+                📈 Your Progress
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Current Rank */}
+                <div className="flex flex-col items-center justify-center space-y-3 p-6 rounded-lg border border-red-600/30 bg-red-900/10">
+                  <p className="text-xs font-mono text-gray-400">CURRENT RANK</p>
+                  <p className="text-5xl font-black text-red-500">#{userRank === "—" ? "?" : userRank}</p>
+                  <p className="text-sm font-mono text-gray-400">{user.referralCount} referrals</p>
+                </div>
+
+                {/* Progress Bar */}
+                <div className="flex flex-col justify-center space-y-3">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <p className="text-xs font-mono text-gray-400">NEXT RANK</p>
+                      <p className="text-xs font-mono text-yellow-500 font-black">
+                        {Math.max(0, (user.referralCount + 1 === 1 ? 2 : user.referralCount + 1) - user.referralCount)} more
+                      </p>
+                    </div>
+                    <div className="h-2 bg-black/50 rounded-full border border-red-600/30 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, (user.referralCount % 5) * 20)}%` }}
+                        transition={{ delay: 0.5, duration: 1 }}
+                        className="h-full bg-gradient-to-r from-red-500 to-red-600"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* Enhanced Stats Grid */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.4 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
             {[
               {
-                label: "RANK",
-                value: `#${userRank}`,
-                gradient:
-                  "linear-gradient(135deg, rgba(234,179,8,0.3) 0%, rgba(0,0,0,0.7) 100%)",
-                border: "border-yellow-600/50",
-              },
-              {
-                label: "VICTIMS",
+                label: "VICTIMS RUINED",
                 value: user.referralCount,
-                gradient:
-                  "linear-gradient(135deg, rgba(239,68,68,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                badge: "+0%",
+                badgeColor: "bg-red-600/50",
+                gradient: "linear-gradient(135deg, rgba(239,68,68,0.3) 0%, rgba(0,0,0,0.7) 100%)",
                 border: "border-red-600/50",
+                icon: "💀",
               },
               {
-                label: "JOINED",
-                value: new Date(user.createdAt).toLocaleDateString(),
-                gradient:
-                  "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                label: "ACCOUNT AGE",
+                value: `${Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days`,
+                badge: "ACTIVE",
+                badgeColor: "bg-green-600/50",
+                gradient: "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.7) 100%)",
                 border: "border-green-600/50",
+                icon: "⏱️",
+              },
+              {
+                label: "LEADERBOARD",
+                value: `#${userRank === "—" ? "?" : userRank}`,
+                badge: "TOP 100",
+                badgeColor: "bg-yellow-600/50",
+                gradient: "linear-gradient(135deg, rgba(234,179,8,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                border: "border-yellow-600/50",
+                icon: "🏆",
               },
             ].map((stat, idx) => (
               <motion.div
                 key={idx}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + idx * 0.1 }}
-                whileHover={{ scale: 1.05 }}
-                className={`rounded-xl p-6 border ${stat.border}`}
+                transition={{ delay: 0.45 + idx * 0.08 }}
+                whileHover={{ scale: 1.03 }}
+                className={`rounded-xl p-6 border ${stat.border} relative overflow-hidden group`}
                 style={{
                   background: stat.gradient,
                   boxShadow: "0 10px 30px -8px rgba(0,0,0,0.3)",
                 }}
               >
-                <p className="text-xs font-mono text-gray-400 uppercase mb-3">
-                  {stat.label}
-                </p>
-                <p className="text-4xl font-black text-white break-words">
-                  {stat.value}
-                </p>
+                {/* Hover effect */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                <div className="relative z-10 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <p className="text-2xl">{stat.icon}</p>
+                    <span className={`text-xs font-mono font-black px-2 py-1 rounded ${stat.badgeColor} text-white`}>
+                      {stat.badge}
+                    </span>
+                  </div>
+                  <p className="text-xs font-mono text-gray-400 uppercase">
+                    {stat.label}
+                  </p>
+                  <p className="text-3xl font-black text-white break-words">
+                    {stat.value}
+                  </p>
+                </div>
               </motion.div>
             ))}
+          </motion.div>
+
+          {/* Badges/Achievements Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.55, duration: 0.5 }}
+            className="rounded-2xl p-8 border border-purple-600/50"
+            style={{
+              background: "linear-gradient(135deg, rgba(88,28,135,0.2) 0%, rgba(0,0,0,0.6) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(147,51,234,0.1)",
+            }}
+          >
+            <div className="space-y-6">
+              <h3 className="text-sm font-mono text-purple-400 uppercase tracking-widest">
+                🏅 Achievements
+              </h3>
+              
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {[
+                  { name: "First Step", locked: false, icon: "🚀" },
+                  { name: "5 Referrals", locked: user.referralCount < 5, icon: "🎯" },
+                  { name: "Top 50", locked: userRank === "—" || parseInt(String(userRank)) > 50, icon: "⭐" },
+                  { name: "Legendary", locked: true, icon: "👑" },
+                ].map((badge, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.6 + idx * 0.05 }}
+                    className={`rounded-lg p-4 border text-center space-y-2 ${
+                      badge.locked
+                        ? "border-gray-700/50 opacity-50"
+                        : "border-purple-600/50 bg-purple-600/10 cursor-pointer hover:bg-purple-600/20 transition-all"
+                    }`}
+                  >
+                    <p className="text-3xl">{badge.icon}</p>
+                    <p className="text-xs font-mono text-gray-300 font-black">{badge.name}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
           </motion.div>
 
           {/* Referral Code Section */}
