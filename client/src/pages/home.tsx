@@ -1,8 +1,9 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
+import { useEffect } from "react";
 import heroLogo from "@assets/Gemini_Generated_Image_x5cev6x5cev6x5ce_1764330353637.png";
 
 interface User {
@@ -15,8 +16,10 @@ interface User {
 
 export default function Home() {
   const { connectedWallet } = useWallet();
+  const [, setLocation] = useLocation();
+  const queryClient = useQueryClient();
 
-  const { data: user } = useQuery<User | null>({
+  const { data: user, isLoading } = useQuery<User | null>({
     queryKey: ["user", connectedWallet],
     queryFn: async () => {
       if (!connectedWallet) return null;
@@ -28,21 +31,34 @@ export default function Home() {
     enabled: !!connectedWallet,
   });
 
-  // If logged in, go to profile
-  if (connectedWallet && user) {
-    return (
-      <Layout>
-        <div className="text-center py-12">
-          <p className="text-gray-400 font-mono mb-4">Welcome back! Redirecting to profile...</p>
-          <Link href="/profile">
-            <button className="font-mono text-red-500 hover:text-red-400 underline">
-              Or click here
-            </button>
-          </Link>
-        </div>
-      </Layout>
-    );
-  }
+  const createAccountMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/users/connect", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: connectedWallet, referralCode: null }),
+      });
+      if (!res.ok) throw new Error("Failed to create account");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["user", connectedWallet] });
+    },
+  });
+
+  // Auto-create account if wallet connected but no user exists
+  useEffect(() => {
+    if (connectedWallet && !isLoading && user === null && !createAccountMutation.isPending) {
+      createAccountMutation.mutate();
+    }
+  }, [connectedWallet, isLoading, user, createAccountMutation.isPending]);
+
+  // Redirect to profile when user exists
+  useEffect(() => {
+    if (user) {
+      setLocation("/profile");
+    }
+  }, [user, setLocation]);
 
   return (
     <Layout>
