@@ -452,11 +452,53 @@ export default function Home() {
             </div>
           </motion.div>
 
+          {/* Season Banner Section */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="rounded-2xl p-8 border border-yellow-600/50 overflow-hidden relative group"
+            style={{
+              background: "linear-gradient(135deg, rgba(234,179,8,0.2) 0%, rgba(0,0,0,0.7) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(234,179,8,0.15)",
+            }}
+          >
+            {/* Background decoration */}
+            <div className="absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity">
+              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-yellow-500 to-transparent rounded-full blur-3xl" />
+            </div>
+
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              <div className="space-y-4 flex-1">
+                <div>
+                  <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-2">
+                    🎯 Current Season
+                  </p>
+                  <h2 className="text-3xl md:text-4xl font-black text-yellow-500 uppercase">
+                    The Race to Zero
+                  </h2>
+                </div>
+                <p className="text-gray-300 font-mono text-sm leading-relaxed max-w-xl">
+                  Climb the leaderboard by referring friends. The more people you bring to Dum.fun, the higher you rank. Welcome to the village of idiots.
+                </p>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={shareOnX}
+                className="px-6 py-3 rounded-lg bg-yellow-600/30 border border-yellow-600/50 text-yellow-400 font-mono text-xs uppercase hover:bg-yellow-600/50 transition-all whitespace-nowrap flex items-center gap-2"
+              >
+                <Share2 className="w-4 h-4" />
+                Share Season
+              </motion.button>
+            </div>
+          </motion.div>
+
           {/* Stats Grid */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.3 }}
             className="grid grid-cols-1 md:grid-cols-3 gap-6"
           >
             {[
