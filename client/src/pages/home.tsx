@@ -3,7 +3,7 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Copy, Check, Share2, ArrowUpRight, Zap, TrendingDown } from "lucide-react";
+import { Copy, Check, Share2, Users, TrendingDown, Zap } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 
@@ -16,40 +16,6 @@ interface User {
   referralCount: number;
   createdAt: string;
 }
-
-// Animated background decoration
-const GlitchBackground = () => (
-  <motion.div className="absolute inset-0 overflow-hidden pointer-events-none">
-    {/* Animated border glitch */}
-    <motion.div
-      animate={{ x: [0, 4, -4, 0], y: [0, -3, 3, 0] }}
-      transition={{ repeat: Infinity, duration: 3 }}
-      className="absolute top-0 left-0 right-0 bottom-0 border-2 border-red-600 opacity-30"
-    />
-    {/* Diagonal stripes animation */}
-    <motion.div
-      animate={{ backgroundPosition: ["0% 0%", "100% 100%"] }}
-      transition={{ repeat: Infinity, duration: 8 }}
-      className="absolute inset-0 opacity-10"
-      style={{
-        backgroundImage: "repeating-linear-gradient(45deg, #FF4444 0px, #FF4444 2px, transparent 2px, transparent 20px)",
-        backgroundSize: "200% 200%",
-      }}
-    />
-  </motion.div>
-);
-
-// Animated scanlines effect
-const Scanlines = () => (
-  <motion.div
-    animate={{ opacity: [0.5, 0.3, 0.5] }}
-    transition={{ repeat: Infinity, duration: 2 }}
-    className="absolute inset-0 pointer-events-none"
-    style={{
-      backgroundImage: "repeating-linear-gradient(0deg, rgba(255,68,68,0.15) 0px, rgba(255,68,68,0.15) 1px, transparent 1px, transparent 2px)",
-    }}
-  />
-);
 
 export default function Home() {
   const { connectedWallet, connectWallet } = useWallet();
@@ -135,200 +101,221 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-5xl"
+            className="w-full max-w-6xl"
           >
-            {/* Main Hero Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-              {/* Left: Branding & Message */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+              {/* Left Column - Branding */}
               <motion.div
-                initial={{ opacity: 0, x: -50 }}
+                initial={{ opacity: 0, x: -40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="flex flex-col justify-center space-y-8"
+                className="lg:col-span-1 space-y-6"
               >
-                {/* Logo */}
                 <motion.img
                   src={heroLogo}
                   alt="DUM.FUN"
-                  className="h-32 w-auto"
-                  animate={{ scale: [1, 1.08, 1] }}
+                  className="h-24 w-auto"
+                  animate={{ scale: [1, 1.05, 1] }}
                   transition={{ repeat: Infinity, duration: 4 }}
                 />
 
-                {/* Headline */}
-                <div className="space-y-4">
-                  <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="text-6xl md:text-7xl font-black text-red-500 leading-tight tracking-tighter"
-                  >
-                    THE RACE TO ZERO
-                  </motion.h1>
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="text-2xl font-black text-yellow-500 uppercase tracking-wide"
-                  >
-                    Is Now Live
-                  </motion.p>
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="text-gray-300 font-mono text-lg leading-relaxed"
-                  >
-                    Join the referral battle. Climb the leaderboard. Become a
-                    village idiot.
-                  </motion.p>
+                <div className="space-y-3">
+                  <h1 className="text-5xl font-black text-red-500 leading-tight">
+                    THE RACE TO
+                    <br />
+                    ZERO
+                  </h1>
+                  <p className="text-lg font-black text-yellow-500">
+                    IS NOW LIVE
+                  </p>
                 </div>
 
-                {/* Stats Preview */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="grid grid-cols-2 gap-4"
-                >
-                  <div className="border-2 border-green-500 bg-green-900/20 p-4">
-                    <p className="text-xs font-mono text-green-400 mb-2">USERS ONLINE</p>
-                    <p className="text-3xl font-black text-green-500">
-                      {leaderboard.length}
-                    </p>
-                  </div>
-                  <div className="border-2 border-yellow-500 bg-yellow-900/20 p-4">
-                    <p className="text-xs font-mono text-yellow-400 mb-2">TOP VICTIM</p>
-                    <p className="text-3xl font-black text-yellow-500">
-                      {leaderboard[0]?.referralCount || 0}
-                    </p>
-                  </div>
-                </motion.div>
+                <p className="text-gray-300 font-mono text-sm leading-relaxed">
+                  Join the referral battle. Climb the leaderboard. Become a
+                  village idiot.
+                </p>
               </motion.div>
 
-              {/* Right: Login Card */}
+              {/* Middle Column - Main CTA Card */}
               <motion.div
-                initial={{ opacity: 0, x: 50 }}
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.6 }}
+                className="lg:col-span-1"
+              >
+                <div
+                  className="rounded-2xl p-10 space-y-8 border border-red-600/50 relative overflow-hidden"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(0,0,0,0.8) 100%)",
+                    boxShadow: "0 25px 50px -12px rgba(239,68,68,0.2), inset 0 1px 0 0 rgba(239,68,68,0.1)",
+                  }}
+                >
+                  {/* Gradient blur effect */}
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-600 rounded-full blur-3xl opacity-20 pointer-events-none" />
+
+                  <div className="relative z-10 space-y-6">
+                    <div className="space-y-2">
+                      <p className="text-xs font-mono text-red-400 uppercase tracking-widest">
+                        ⚡ INSTANT ACCESS
+                      </p>
+                      <h2 className="text-2xl font-black text-red-500">
+                        CONNECT & CLIMB
+                      </h2>
+                    </div>
+
+                    <motion.button
+                      onClick={connectWallet}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-6 rounded-lg text-lg uppercase transition-all active:scale-95 flex items-center justify-center gap-3 border border-red-400/50"
+                    >
+                      <Zap className="w-5 h-5" />
+                      CONNECT WALLET
+                    </motion.button>
+
+                    {referralCode && (
+                      <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="rounded-lg p-4 border border-yellow-600/50"
+                        style={{
+                          background: "linear-gradient(135deg, rgba(113,63,18,0.3) 0%, rgba(0,0,0,0.5) 100%)",
+                        }}
+                      >
+                        <p className="text-xs font-mono text-yellow-500 uppercase mb-2">
+                          🎁 Invited by
+                        </p>
+                        <p className="text-lg font-black text-yellow-400">
+                          {referralCode}
+                        </p>
+                      </motion.div>
+                    )}
+
+                    <div className="space-y-2 pt-2">
+                      {[
+                        "Get unique referral code",
+                        "Share with your network",
+                        "Climb the leaderboard",
+                      ].map((item, idx) => (
+                        <motion.div
+                          key={idx}
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.3 + idx * 0.1 }}
+                          className="flex items-center gap-2 text-gray-300 font-mono text-xs"
+                        >
+                          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                          {item}
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Right Column - Stats */}
+              <motion.div
+                initial={{ opacity: 0, x: 40 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="relative"
+                className="lg:col-span-1 space-y-4"
               >
-                {/* Card Background */}
-                <GlitchBackground />
-                <Scanlines />
-
-                <motion.div
-                  animate={{ y: [0, -5, 0] }}
-                  transition={{ repeat: Infinity, duration: 6 }}
-                  className="relative z-10 border-4 border-red-500 bg-black p-12 space-y-8 shadow-[0_0_50px_rgba(255,68,68,0.4)]"
-                >
-                  {/* Card Header */}
-                  <div className="space-y-2 border-b-2 border-red-900 pb-6">
-                    <p className="font-mono text-xs text-red-400 uppercase tracking-widest">
-                      ⚡ INSTANT ACCESS
-                    </p>
-                    <h2 className="text-3xl font-black text-red-500 uppercase">
-                      CONNECT & CLIMB
-                    </h2>
-                  </div>
-
-                  {/* Main CTA Button */}
-                  <motion.button
-                    onClick={connectWallet}
-                    whileHover={{ scale: 1.02, boxShadow: "0 0 40px rgba(255,68,68,0.6)" }}
-                    whileTap={{ scale: 0.98 }}
-                    className="w-full bg-red-500 hover:bg-red-600 text-black font-black py-5 px-8 border-2 border-white text-xl uppercase tracking-wider transition-all active:scale-95 flex items-center justify-center gap-3"
+                {[
+                  {
+                    label: "USERS ONLINE",
+                    value: leaderboard.length,
+                    gradient:
+                      "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                    border: "border-green-600/50",
+                    icon: Users,
+                  },
+                  {
+                    label: "TOP VICTIM",
+                    value: leaderboard[0]?.referralCount || 0,
+                    gradient:
+                      "linear-gradient(135deg, rgba(234,179,8,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                    border: "border-yellow-600/50",
+                    icon: TrendingDown,
+                  },
+                ].map((stat, idx) => (
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 + idx * 0.1 }}
+                    className={`rounded-lg p-5 border ${stat.border}`}
+                    style={{
+                      background: stat.gradient,
+                      boxShadow: "0 10px 30px -8px rgba(0,0,0,0.3)",
+                    }}
                   >
-                    <Zap className="w-6 h-6" />
-                    CONNECT WALLET
-                  </motion.button>
-
-                  {/* Referral Info Box */}
-                  {referralCode && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="border-2 border-yellow-500 bg-yellow-900/20 p-6 space-y-3"
-                    >
-                      <p className="font-mono text-sm text-yellow-500 uppercase font-black">
-                        🎁 INVITED BY
+                    <div className="flex items-center justify-between">
+                      <p className="text-xs font-mono text-gray-400 uppercase">
+                        {stat.label}
                       </p>
-                      <p className="text-2xl font-black text-yellow-400">
-                        {referralCode}
-                      </p>
-                      <p className="text-xs text-gray-400 font-mono">
-                        Connect wallet to get credit for them
-                      </p>
-                    </motion.div>
-                  )}
-
-                  {/* Features List */}
-                  <div className="space-y-3 border-t border-red-900 pt-6">
-                    {[
-                      { icon: "📋", text: "Get unique referral code" },
-                      { icon: "🔗", text: "Share with your network" },
-                      { icon: "📈", text: "Climb the leaderboard" },
-                    ].map((item, idx) => (
-                      <motion.div
-                        key={idx}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.6 + idx * 0.1 }}
-                        className="flex items-center gap-3 text-gray-300 font-mono"
-                      >
-                        <span className="text-xl">{item.icon}</span>
-                        <span className="text-sm">{item.text}</span>
-                      </motion.div>
-                    ))}
-                  </div>
-                </motion.div>
+                      <stat.icon className="w-4 h-4 text-gray-500" />
+                    </div>
+                    <p className="text-3xl font-black text-white mt-2">
+                      {stat.value}
+                    </p>
+                  </motion.div>
+                ))}
               </motion.div>
             </div>
 
-            {/* Leaderboard Preview Section */}
+            {/* Leaderboard Preview - Full Width */}
             <motion.div
-              initial={{ opacity: 0, y: 50 }}
+              initial={{ opacity: 0, y: 40 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
-              className="mt-16 border-4 border-yellow-500 bg-black p-12"
+              transition={{ delay: 0.6 }}
+              className="mt-12"
             >
-              <div className="space-y-8">
-                <div className="flex items-center gap-3 border-b-2 border-yellow-500 pb-4">
-                  <TrendingDown className="w-8 h-8 text-yellow-500" />
-                  <h2 className="text-3xl font-black text-yellow-500 uppercase">
-                    VILLAGE IDIOTS
-                  </h2>
+              <div
+                className="rounded-2xl p-10 border border-yellow-600/50"
+                style={{
+                  background: "linear-gradient(135deg, rgba(113,63,18,0.3) 0%, rgba(0,0,0,0.6) 100%)",
+                  boxShadow: "0 25px 50px -12px rgba(234,179,8,0.2)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-3">
+                    <TrendingDown className="w-6 h-6 text-yellow-500" />
+                    <h2 className="text-2xl font-black text-yellow-500 uppercase">
+                      Village Idiots
+                    </h2>
+                  </div>
+                  <Link href="/leaderboard">
+                    <button className="text-xs font-mono text-yellow-500 hover:text-yellow-400 cursor-pointer">
+                      View All →
+                    </button>
+                  </Link>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
                   {leaderboard.slice(0, 5).map((leader: User, idx: number) => (
                     <motion.div
                       key={leader.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 + idx * 0.1 }}
+                      transition={{ delay: 0.7 + idx * 0.1 }}
                       whileHover={{ scale: 1.05 }}
-                      className="border-2 border-yellow-900 bg-yellow-900/10 p-4 text-center space-y-3 cursor-pointer"
+                      className="rounded-lg p-4 text-center border border-yellow-900/50"
+                      style={{
+                        background: "rgba(0,0,0,0.4)",
+                      }}
                     >
-                      <div className="text-4xl font-black text-red-500">
+                      <div className="text-3xl font-black text-red-500 mb-2">
                         #{idx + 1}
                       </div>
-                      <p className="font-mono text-xs text-gray-300 truncate">
+                      <p className="font-mono text-xs text-gray-400 mb-3 truncate">
                         {leader.walletAddress.slice(0, 6)}...
-                        {leader.walletAddress.slice(-6)}
                       </p>
-                      <div className="bg-yellow-500 text-black font-black py-2 px-3">
+                      <div className="bg-gradient-to-r from-yellow-600 to-yellow-700 text-black font-black py-2 px-2 rounded text-sm">
                         {leader.referralCount} ruined
                       </div>
                     </motion.div>
                   ))}
                 </div>
-
-                <Link href="/leaderboard">
-                  <button className="w-full border-2 border-yellow-500 text-yellow-500 font-black py-4 hover:bg-yellow-900/20 transition-all uppercase tracking-wider">
-                    SEE FULL RANKINGS →
-                  </button>
-                </Link>
               </div>
             </motion.div>
           </motion.div>
@@ -345,52 +332,54 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="w-full max-w-2xl"
+            className="w-full max-w-md"
           >
-            <div className="relative">
-              <GlitchBackground />
-              <motion.div
-                animate={{ y: [0, -8, 0] }}
-                transition={{ repeat: Infinity, duration: 6 }}
-                className="relative z-10 border-4 border-yellow-500 bg-black p-16 space-y-8 text-center shadow-[0_0_60px_rgba(255,255,0,0.3)]"
+            <div
+              className="rounded-2xl p-12 space-y-8 border border-yellow-600/50"
+              style={{
+                background: "linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(0,0,0,0.8) 100%)",
+                boxShadow: "0 25px 50px -12px rgba(234,179,8,0.2)",
+              }}
+            >
+              <div className="space-y-3 text-center">
+                <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest">
+                  🚀 Welcome to dum.fun
+                </p>
+                <h1 className="text-3xl font-black text-yellow-500 uppercase">
+                  CREATE ACCOUNT
+                </h1>
+                <p className="text-sm text-gray-300 font-mono">
+                  Finalize setup to start your journey
+                </p>
+              </div>
+
+              <motion.button
+                onClick={() => createUserMutation.mutate()}
+                disabled={createUserMutation.isPending}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-black font-black py-4 px-6 rounded-lg text-lg uppercase disabled:opacity-50 transition-all border border-yellow-400/50"
               >
-                <div className="space-y-4">
-                  <p className="font-mono text-sm text-yellow-400 uppercase tracking-widest">
-                    🚀 WELCOME TO DUM.FUN
-                  </p>
-                  <h1 className="text-5xl font-black text-yellow-500 uppercase">
-                    CREATE YOUR ACCOUNT
-                  </h1>
-                  <p className="text-gray-300 font-mono text-lg">
-                    Finalize setup to start your journey
-                  </p>
-                </div>
+                {createUserMutation.isPending ? "CREATING..." : "CREATE ACCOUNT"}
+              </motion.button>
 
-                <motion.button
-                  onClick={() => createUserMutation.mutate()}
-                  disabled={createUserMutation.isPending}
-                  whileHover={{ scale: 1.02, boxShadow: "0 0 40px rgba(255,255,0,0.5)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-yellow-500 hover:bg-yellow-600 text-black font-black py-5 px-8 border-2 border-black text-xl uppercase disabled:opacity-50 transition-all"
+              {referralCode && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="rounded-lg p-4 border border-green-600/50 text-center"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(34,197,94,0.2) 0%, rgba(0,0,0,0.5) 100%)",
+                  }}
                 >
-                  {createUserMutation.isPending ? "CREATING..." : "CREATE ACCOUNT"}
-                </motion.button>
-
-                {referralCode && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="border-2 border-green-500 bg-green-900/20 p-6"
-                  >
-                    <p className="text-green-400 font-mono text-sm mb-2">
-                      BONUS: Referenced by {referralCode}
-                    </p>
-                    <p className="text-green-500 font-black text-lg">
-                      They'll get credit for your referral!
-                    </p>
-                  </motion.div>
-                )}
-              </motion.div>
+                  <p className="text-xs font-mono text-green-400 uppercase mb-1">
+                    Bonus
+                  </p>
+                  <p className="text-sm text-green-300">
+                    Referenced by <span className="font-black">{referralCode}</span>
+                  </p>
+                </motion.div>
+              )}
             </div>
           </motion.div>
         </div>
@@ -406,25 +395,25 @@ export default function Home() {
 
     return (
       <Layout>
-        <div className="space-y-12 py-8">
+        <div className="space-y-8 py-8">
           {/* Header */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center space-y-2"
           >
-            <p className="font-mono text-sm text-green-400 uppercase tracking-widest">
+            <p className="text-xs font-mono text-green-400 uppercase tracking-widest">
               ✓ ACCOUNT ACTIVE
             </p>
-            <h1 className="text-6xl md:text-7xl font-black text-red-500 uppercase">
+            <h1 className="text-5xl font-black text-red-500 uppercase">
               YOUR STATS
             </h1>
-            <p className="text-gray-400 font-mono text-sm">
+            <p className="text-sm text-gray-400 font-mono">
               {connectedWallet?.slice(0, 8)}...{connectedWallet?.slice(-8)}
             </p>
           </motion.div>
 
-          {/* Stats Grid - 3 Cards */}
+          {/* Stats Grid */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -435,20 +424,23 @@ export default function Home() {
               {
                 label: "RANK",
                 value: `#${userRank}`,
-                color: "yellow",
-                icon: "🏆",
+                gradient:
+                  "linear-gradient(135deg, rgba(234,179,8,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                border: "border-yellow-600/50",
               },
               {
                 label: "VICTIMS",
                 value: user.referralCount,
-                color: "red",
-                icon: "💀",
+                gradient:
+                  "linear-gradient(135deg, rgba(239,68,68,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                border: "border-red-600/50",
               },
               {
                 label: "JOINED",
                 value: new Date(user.createdAt).toLocaleDateString(),
-                color: "green",
-                icon: "📅",
+                gradient:
+                  "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+                border: "border-green-600/50",
               },
             ].map((stat, idx) => (
               <motion.div
@@ -457,13 +449,16 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + idx * 0.1 }}
                 whileHover={{ scale: 1.05 }}
-                className={`border-4 border-${stat.color}-500 bg-black p-8 text-center space-y-4 cursor-pointer shadow-lg`}
+                className={`rounded-xl p-6 border ${stat.border}`}
+                style={{
+                  background: stat.gradient,
+                  boxShadow: "0 10px 30px -8px rgba(0,0,0,0.3)",
+                }}
               >
-                <p className="text-4xl">{stat.icon}</p>
-                <p className={`font-mono text-xs text-${stat.color}-400 uppercase`}>
+                <p className="text-xs font-mono text-gray-400 uppercase mb-3">
                   {stat.label}
                 </p>
-                <p className={`text-4xl font-black text-${stat.color}-500`}>
+                <p className="text-4xl font-black text-white break-words">
                   {stat.value}
                 </p>
               </motion.div>
@@ -475,58 +470,68 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="relative border-4 border-green-500 bg-black p-12 shadow-[0_0_50px_rgba(34,197,94,0.3)]"
           >
-            <Scanlines />
-            <div className="relative z-10 space-y-8">
-              <div className="border-b-2 border-green-500 pb-4">
-                <p className="font-mono text-xs text-green-400 uppercase tracking-widest">
-                  🔗 YOUR POWER
+            <div
+              className="rounded-2xl p-10 space-y-6 border border-green-600/50"
+              style={{
+                background: "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.8) 100%)",
+                boxShadow: "0 25px 50px -12px rgba(34,197,94,0.2)",
+              }}
+            >
+              <div className="space-y-2">
+                <p className="text-xs font-mono text-green-400 uppercase tracking-widest">
+                  🔗 Your Power
                 </p>
-                <h2 className="text-4xl font-black text-green-500 uppercase">
-                  REFERRAL CODE
+                <h2 className="text-2xl font-black text-green-500 uppercase">
+                  Referral Code
                 </h2>
               </div>
 
               {/* Code Display */}
-              <div className="space-y-4">
-                <motion.div
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-green-900/30 border-2 border-green-500 p-8 text-center cursor-pointer"
-                  onClick={() => copyToClipboard(user.referralCode)}
-                >
-                  <p className="text-5xl font-black text-green-500 font-mono tracking-widest">
-                    {user.referralCode}
-                  </p>
-                </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                className="rounded-lg p-8 text-center cursor-pointer border border-green-600/50"
+                style={{
+                  background: "rgba(0,0,0,0.4)",
+                }}
+                onClick={() => copyToClipboard(user.referralCode)}
+              >
+                <p className="text-5xl font-black text-green-500 font-mono tracking-widest">
+                  {user.referralCode}
+                </p>
+              </motion.div>
 
-                <button
-                  onClick={() => copyToClipboard(user.referralCode)}
-                  className="w-full bg-green-500 hover:bg-green-600 text-black font-black py-4 px-8 border-2 border-black flex items-center justify-center gap-3 text-lg uppercase transition-all active:scale-95"
-                  data-testid="button-copy-referral-home"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="w-5 h-5" />
-                      COPIED!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="w-5 h-5" />
-                      COPY CODE
-                    </>
-                  )}
-                </button>
-              </div>
+              <motion.button
+                onClick={() => copyToClipboard(user.referralCode)}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-4 px-6 rounded-lg text-lg uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2"
+                data-testid="button-copy-referral-home"
+              >
+                {copied ? (
+                  <>
+                    <Check className="w-5 h-5" />
+                    COPIED!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-5 h-5" />
+                    COPY CODE
+                  </>
+                )}
+              </motion.button>
 
-              {/* Referral URL */}
-              <div className="space-y-3 border-t-2 border-green-500 pt-6">
-                <p className="font-mono text-xs text-green-400 uppercase">
-                  FULL LINK
+              {/* Referral URL Section */}
+              <div className="space-y-3 border-t border-green-900/50 pt-6">
+                <p className="text-xs font-mono text-green-400 uppercase">
+                  Full Referral Link
                 </p>
                 <motion.div
                   whileHover={{ scale: 1.01 }}
-                  className="bg-green-900/20 border-2 border-green-600 p-4 cursor-pointer"
+                  className="rounded-lg p-4 cursor-pointer border border-green-600/30"
+                  style={{
+                    background: "rgba(0,0,0,0.3)",
+                  }}
                   onClick={() => copyToClipboard(referralUrl)}
                 >
                   <p className="text-xs font-mono text-green-400 break-all">
@@ -535,7 +540,7 @@ export default function Home() {
                 </motion.div>
                 <button
                   onClick={() => copyToClipboard(referralUrl)}
-                  className="w-full bg-green-600 hover:bg-green-700 text-black font-black py-3 px-6 border-2 border-black flex items-center justify-center gap-2 uppercase"
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-black font-black py-3 px-6 rounded-lg uppercase transition-all border border-green-500/50 flex items-center justify-center gap-2"
                 >
                   <Copy className="w-4 h-4" />
                   COPY LINK
@@ -543,28 +548,33 @@ export default function Home() {
               </div>
 
               {/* Share Button */}
-              <button
+              <motion.button
                 onClick={shareOnX}
-                className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 px-8 border-2 border-white flex items-center justify-center gap-3 text-lg uppercase transition-all active:scale-95"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-6 rounded-lg text-lg uppercase transition-all border border-red-400/50 flex items-center justify-center gap-2"
                 data-testid="button-share-x-home"
               >
                 <Share2 className="w-5 h-5" />
                 SHARE ON X
-              </button>
+              </motion.button>
             </div>
           </motion.div>
 
-          {/* Leaderboard Link */}
+          {/* Leaderboard Button */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
           >
             <Link href="/leaderboard">
-              <button className="w-full border-4 border-yellow-500 text-yellow-500 font-black py-6 hover:bg-yellow-900/30 transition-all text-xl uppercase flex items-center justify-center gap-3 tracking-wider hover:scale-105 active:scale-95">
+              <button className="w-full rounded-lg border border-yellow-600/50 text-yellow-500 font-black py-6 hover:bg-yellow-900/20 transition-all text-lg uppercase flex items-center justify-center gap-3 tracking-wider hover:scale-105 active:scale-95"
+                style={{
+                  background: "linear-gradient(135deg, rgba(113,63,18,0.2) 0%, rgba(0,0,0,0.4) 100%)",
+                }}
+              >
                 <TrendingDown className="w-6 h-6" />
-                CHECK LEADERBOARD
-                <ArrowUpRight className="w-6 h-6" />
+                VIEW FULL RANKINGS
               </button>
             </Link>
           </motion.div>
