@@ -97,53 +97,53 @@ export default function Home() {
   if (!connectedWallet) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-6">
+        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-8">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-6xl space-y-5"
+            className="w-full max-w-5xl space-y-6"
           >
             {/* Hero Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
               {/* Left - Branding */}
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="space-y-5"
+                className="space-y-6"
               >
                 <motion.img
                   src={heroLogo}
                   alt="DUM.FUN"
-                  className="h-24 w-auto"
+                  className="h-20 w-auto"
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ repeat: Infinity, duration: 4 }}
                 />
 
                 <div className="space-y-2">
-                  <h1 className="text-5xl md:text-6xl font-black text-red-500 leading-tight">
+                  <h1 className="text-4xl md:text-5xl font-black text-red-500 leading-tight">
                     THE RACE
                     <br />
                     TO ZERO
                   </h1>
-                  <p className="text-xl font-black text-yellow-500 uppercase">
+                  <p className="text-lg font-black text-yellow-500 uppercase">
                     Is Now Live
                   </p>
                 </div>
 
-                <p className="text-gray-300 font-mono text-xs leading-relaxed max-w-lg">
+                <p className="text-gray-300 font-mono text-sm leading-relaxed max-w-lg">
                   Join the referral battle. Climb the leaderboard. Become a
                   village idiot and earn your place among the degens.
                 </p>
 
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <div className="text-center">
-                    <p className="text-xl font-black text-green-500">{leaderboard.length}</p>
+                    <p className="text-lg font-black text-green-500">{leaderboard.length}</p>
                     <p className="text-xs font-mono text-gray-400">USERS</p>
                   </div>
                   <div className="w-px bg-gray-700" />
                   <div className="text-center">
-                    <p className="text-xl font-black text-yellow-500">{leaderboard[0]?.referralCount || 0}</p>
+                    <p className="text-lg font-black text-yellow-500">{leaderboard[0]?.referralCount || 0}</p>
                     <p className="text-xs font-mono text-gray-400">TOP RANK</p>
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export default function Home() {
                 transition={{ duration: 0.6 }}
               >
                 <div
-                  className="rounded-2xl p-6 space-y-4 border border-red-600/50 relative overflow-hidden group"
+                  className="rounded-2xl p-8 space-y-5 border border-red-600/50 relative overflow-hidden group"
                   style={{
                     background: "linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(0,0,0,0.8) 100%)",
                     boxShadow: "0 25px 50px -12px rgba(239,68,68,0.25)",
@@ -165,16 +165,16 @@ export default function Home() {
                   {/* Animated background gradient */}
                   <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-600 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none" />
 
-                  <div className="relative z-10 space-y-3">
+                  <div className="relative z-10 space-y-4">
                     {/* Header */}
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       <p className="text-xs font-mono text-red-400 uppercase tracking-widest">
                         ⚡ START HERE
                       </p>
                       <h2 className="text-2xl font-black text-red-500 uppercase">
                         Connect Wallet
                       </h2>
-                      <p className="text-xs text-gray-300 font-mono">
+                      <p className="text-sm text-gray-300 font-mono">
                         Create account and join the leaderboard
                       </p>
                     </div>
@@ -195,7 +195,7 @@ export default function Home() {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-lg p-3 border border-yellow-600/50"
+                        className="rounded-lg p-4 border border-yellow-600/50"
                         style={{
                           background: "linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(0,0,0,0.6) 100%)",
                         }}
@@ -213,7 +213,7 @@ export default function Home() {
                     )}
 
                     {/* Features */}
-                    <div className="space-y-2 pt-2 border-t border-red-900/50">
+                    <div className="space-y-2 pt-3 border-t border-red-900/50">
                       {[
                         { icon: "📋", text: "Get referral code" },
                         { icon: "🔗", text: "Share to earn" },
@@ -224,9 +224,9 @@ export default function Home() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + idx * 0.1 }}
-                          className="flex items-center gap-2 text-gray-300 font-mono text-xs"
+                          className="flex items-center gap-2 text-gray-300 font-mono text-sm"
                         >
-                          <span className="text-base">{feature.icon}</span>
+                          <span className="text-lg">{feature.icon}</span>
                           <span>{feature.text}</span>
                         </motion.div>
                       ))}
@@ -243,16 +243,16 @@ export default function Home() {
               transition={{ delay: 0.5 }}
             >
               <div
-                className="rounded-2xl p-5 border border-yellow-600/50"
+                className="rounded-2xl p-6 border border-yellow-600/50"
                 style={{
                   background: "linear-gradient(135deg, rgba(113,63,18,0.3) 0%, rgba(0,0,0,0.6) 100%)",
                   boxShadow: "0 25px 50px -12px rgba(234,179,8,0.2)",
                 }}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
                     <TrendingDown className="w-5 h-5 text-yellow-500" />
-                    <h2 className="text-lg font-black text-yellow-500 uppercase">
+                    <h2 className="text-base font-black text-yellow-500 uppercase">
                       Village Idiots
                     </h2>
                   </div>
@@ -263,7 +263,7 @@ export default function Home() {
                   </Link>
                 </div>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
                   {leaderboard.slice(0, 5).map((leader: User, idx: number) => (
                     <motion.div
                       key={leader.id}
@@ -365,19 +365,19 @@ export default function Home() {
 
     return (
       <Layout>
-        <div className="space-y-4 py-4">
+        <div className="space-y-5 py-6">
           {/* Profile Header Section */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="rounded-2xl p-5 border border-red-600/50"
+            className="rounded-2xl p-6 border border-red-600/50"
             style={{
               background: "linear-gradient(135deg, rgba(127,29,29,0.3) 0%, rgba(0,0,0,0.7) 100%)",
               boxShadow: "0 25px 50px -12px rgba(239,68,68,0.15)",
             }}
           >
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               {/* Left - Profile Info */}
               <div className="flex items-center gap-3">
                 {/* Avatar Placeholder */}
@@ -427,7 +427,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="rounded-2xl p-4 border border-yellow-600/50 overflow-hidden relative group"
+            className="rounded-2xl p-6 border border-yellow-600/50 overflow-hidden relative group"
             style={{
               background: "linear-gradient(135deg, rgba(234,179,8,0.2) 0%, rgba(0,0,0,0.7) 100%)",
               boxShadow: "0 25px 50px -12px rgba(234,179,8,0.15)",
@@ -469,7 +469,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.5 }}
-            className="rounded-2xl p-4 border border-red-600/50"
+            className="rounded-2xl p-6 border border-red-600/50"
             style={{
               background: "linear-gradient(135deg, rgba(127,29,29,0.2) 0%, rgba(0,0,0,0.6) 100%)",
               boxShadow: "0 25px 50px -12px rgba(239,68,68,0.1)",
