@@ -3,22 +3,17 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { useEffect, useState } from "react";
-import { Copy, Check } from "lucide-react";
-import { toast } from "sonner";
+import { useEffect } from "react";
 
 interface User {
   id: string;
   walletAddress: string;
-  referralCode: string;
-  referralCount: number;
   createdAt: string;
 }
 
 export default function Profile() {
   const { connectedWallet, disconnectWallet } = useWallet();
   const [, setLocation] = useLocation();
-  const [copied, setCopied] = useState(false);
 
   // Redirect if not connected
   useEffect(() => {
@@ -38,13 +33,6 @@ export default function Profile() {
     },
     enabled: !!connectedWallet,
   });
-
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    toast.success("Copied!");
-    setTimeout(() => setCopied(false), 2000);
-  };
 
   const handleLogout = async () => {
     await disconnectWallet();
@@ -99,38 +87,11 @@ export default function Profile() {
               </motion.button>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 border border-red-600/30 rounded bg-red-900/10">
-                <p className="text-xs font-mono text-gray-400 mb-2">REFERRAL CODE</p>
-                <p className="text-2xl font-black text-red-500">{user.referralCode}</p>
-              </div>
-              <div className="p-4 border border-yellow-600/30 rounded bg-yellow-900/10">
-                <p className="text-xs font-mono text-gray-400 mb-2">REFERRALS</p>
-                <p className="text-2xl font-black text-yellow-500">{user.referralCount}</p>
-              </div>
+            {/* Joined Date */}
+            <div className="p-4 border border-yellow-600/30 rounded bg-yellow-900/10">
+              <p className="text-xs font-mono text-gray-400 mb-2">JOINED</p>
+              <p className="text-lg font-mono text-yellow-500">{new Date(user.createdAt).toLocaleDateString()}</p>
             </div>
-
-            {/* Copy Code Button */}
-            <motion.button
-              onClick={() => copyToClipboard(user.referralCode)}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-4 rounded uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2"
-              data-testid="button-copy-code"
-            >
-              {copied ? (
-                <>
-                  <Check className="w-4 h-4" />
-                  COPIED!
-                </>
-              ) : (
-                <>
-                  <Copy className="w-4 h-4" />
-                  COPY REFERRAL CODE
-                </>
-              )}
-            </motion.button>
           </div>
         </motion.div>
       </div>

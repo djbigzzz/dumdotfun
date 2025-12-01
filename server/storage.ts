@@ -6,8 +6,6 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByWallet(walletAddress: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateReferralCount(userId: string): Promise<void>;
-  getLeaderboard(): Promise<User[]>;
   
   // Wallet analysis methods
   getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
@@ -45,25 +43,11 @@ export class MemStorage implements IStorage {
     const user: User = { 
       ...insertUser, 
       id,
-      referralCount: 0,
       createdAt: new Date(),
     };
     this.users.set(id, user);
     this.walletAddressToUser.set(insertUser.walletAddress, id);
     return user;
-  }
-
-  async updateReferralCount(userId: string): Promise<void> {
-    const user = this.users.get(userId);
-    if (user) {
-      user.referralCount += 1;
-    }
-  }
-
-  async getLeaderboard(): Promise<User[]> {
-    return Array.from(this.users.values())
-      .sort((a, b) => b.referralCount - a.referralCount)
-      .slice(0, 100);
   }
 
   async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {

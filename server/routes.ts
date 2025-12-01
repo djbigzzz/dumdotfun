@@ -5,10 +5,6 @@ import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
 
-function generateReferralCode(): string {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -16,7 +12,7 @@ export async function registerRoutes(
   // Create user from wallet connection
   app.post("/api/users/connect", async (req, res) => {
     try {
-      const { walletAddress, referralCode } = req.body;
+      const { walletAddress } = req.body;
 
       if (!walletAddress || typeof walletAddress !== "string") {
         return res.status(400).json({ error: "Wallet address is required" });
@@ -36,19 +32,7 @@ export async function registerRoutes(
       // Create new user
       const newUser = await storage.createUser({
         walletAddress,
-        referralCode: generateReferralCode(),
-        referredBy: referralCode || null,
       });
-
-      // If referred by someone, increment their referral count
-      if (referralCode) {
-        // Find user with this referral code
-        const leaderboard = await storage.getLeaderboard();
-        const referrer = leaderboard.find((u) => u.referralCode === referralCode);
-        if (referrer) {
-          await storage.updateReferralCount(referrer.id);
-        }
-      }
 
       return res.json(newUser);
     } catch (error: any) {
@@ -67,16 +51,6 @@ export async function registerRoutes(
       return res.json(user);
     } catch (error: any) {
       return res.status(500).json({ error: "Failed to get user" });
-    }
-  });
-
-  // Get leaderboard
-  app.get("/api/leaderboard", async (req, res) => {
-    try {
-      const leaderboard = await storage.getLeaderboard();
-      return res.json(leaderboard);
-    } catch (error: any) {
-      return res.status(500).json({ error: "Failed to get leaderboard" });
     }
   });
   
