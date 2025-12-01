@@ -101,174 +101,146 @@ export default function Home() {
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-6xl"
+            className="w-full max-w-6xl space-y-8"
           >
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-              {/* Left Column - Branding */}
+            {/* Hero Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+              {/* Left - Branding */}
               <motion.div
-                initial={{ opacity: 0, x: -40 }}
+                initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="lg:col-span-1 space-y-6"
+                className="space-y-8"
               >
                 <motion.img
                   src={heroLogo}
                   alt="DUM.FUN"
-                  className="h-24 w-auto"
-                  animate={{ scale: [1, 1.05, 1] }}
+                  className="h-32 w-auto"
+                  animate={{ scale: [1, 1.08, 1] }}
                   transition={{ repeat: Infinity, duration: 4 }}
                 />
 
-                <div className="space-y-3">
-                  <h1 className="text-5xl font-black text-red-500 leading-tight">
-                    THE RACE TO
+                <div className="space-y-4">
+                  <h1 className="text-6xl md:text-7xl font-black text-red-500 leading-tight">
+                    THE RACE
                     <br />
-                    ZERO
+                    TO ZERO
                   </h1>
-                  <p className="text-lg font-black text-yellow-500">
-                    IS NOW LIVE
+                  <p className="text-2xl font-black text-yellow-500 uppercase">
+                    Is Now Live
                   </p>
                 </div>
 
-                <p className="text-gray-300 font-mono text-sm leading-relaxed">
+                <p className="text-gray-300 font-mono text-sm leading-relaxed max-w-lg">
                   Join the referral battle. Climb the leaderboard. Become a
-                  village idiot.
+                  village idiot and earn your place among the degens.
                 </p>
+
+                <div className="flex gap-3">
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-green-500">{leaderboard.length}</p>
+                    <p className="text-xs font-mono text-gray-400">USERS</p>
+                  </div>
+                  <div className="w-px bg-gray-700" />
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-yellow-500">{leaderboard[0]?.referralCount || 0}</p>
+                    <p className="text-xs font-mono text-gray-400">TOP RANK</p>
+                  </div>
+                </div>
               </motion.div>
 
-              {/* Middle Column - Main CTA Card */}
+              {/* Right - CTA Card */}
               <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, x: 50 }}
+                animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="lg:col-span-1"
               >
                 <div
-                  className="rounded-2xl p-10 space-y-8 border border-red-600/50 relative overflow-hidden"
+                  className="rounded-2xl p-12 space-y-8 border border-red-600/50 relative overflow-hidden group"
                   style={{
                     background: "linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(0,0,0,0.8) 100%)",
-                    boxShadow: "0 25px 50px -12px rgba(239,68,68,0.2), inset 0 1px 0 0 rgba(239,68,68,0.1)",
+                    boxShadow: "0 25px 50px -12px rgba(239,68,68,0.25)",
                   }}
                 >
-                  {/* Gradient blur effect */}
-                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-red-600 rounded-full blur-3xl opacity-20 pointer-events-none" />
+                  {/* Animated background gradient */}
+                  <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-600 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none" />
 
                   <div className="relative z-10 space-y-6">
+                    {/* Header */}
                     <div className="space-y-2">
                       <p className="text-xs font-mono text-red-400 uppercase tracking-widest">
-                        ⚡ INSTANT ACCESS
+                        ⚡ START HERE
                       </p>
-                      <h2 className="text-2xl font-black text-red-500">
-                        CONNECT & CLIMB
+                      <h2 className="text-3xl font-black text-red-500 uppercase">
+                        Connect Wallet
                       </h2>
+                      <p className="text-sm text-gray-300 font-mono">
+                        Create account and join the leaderboard
+                      </p>
                     </div>
 
+                    {/* Main Button */}
                     <motion.button
                       onClick={connectWallet}
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.02, boxShadow: "0 0 40px rgba(239,68,68,0.4)" }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-6 rounded-lg text-lg uppercase transition-all active:scale-95 flex items-center justify-center gap-3 border border-red-400/50"
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-8 rounded-lg text-lg uppercase transition-all active:scale-95 flex items-center justify-center gap-3 border border-red-400/50 shadow-lg"
                     >
                       <Zap className="w-5 h-5" />
                       CONNECT WALLET
                     </motion.button>
 
+                    {/* Referral Bonus */}
                     {referralCode && (
                       <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="rounded-lg p-4 border border-yellow-600/50"
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="rounded-lg p-5 border border-yellow-600/50"
                         style={{
-                          background: "linear-gradient(135deg, rgba(113,63,18,0.3) 0%, rgba(0,0,0,0.5) 100%)",
+                          background: "linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(0,0,0,0.6) 100%)",
                         }}
                       >
-                        <p className="text-xs font-mono text-yellow-500 uppercase mb-2">
-                          🎁 Invited by
+                        <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-2">
+                          🎁 INVITED BY
                         </p>
-                        <p className="text-lg font-black text-yellow-400">
+                        <p className="text-xl font-black text-yellow-400">
                           {referralCode}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-2">
+                          Connect to get credit
                         </p>
                       </motion.div>
                     )}
 
-                    <div className="space-y-2 pt-2">
+                    {/* Features */}
+                    <div className="space-y-3 pt-4 border-t border-red-900/50">
                       {[
-                        "Get unique referral code",
-                        "Share with your network",
-                        "Climb the leaderboard",
-                      ].map((item, idx) => (
+                        { icon: "📋", text: "Get referral code" },
+                        { icon: "🔗", text: "Share to earn" },
+                        { icon: "📈", text: "Climb ranks" },
+                      ].map((feature, idx) => (
                         <motion.div
                           key={idx}
-                          initial={{ opacity: 0, x: -10 }}
+                          initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + idx * 0.1 }}
-                          className="flex items-center gap-2 text-gray-300 font-mono text-xs"
+                          className="flex items-center gap-3 text-gray-300 font-mono text-sm"
                         >
-                          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                          {item}
+                          <span className="text-lg">{feature.icon}</span>
+                          <span>{feature.text}</span>
                         </motion.div>
                       ))}
                     </div>
                   </div>
                 </div>
               </motion.div>
-
-              {/* Right Column - Stats */}
-              <motion.div
-                initial={{ opacity: 0, x: 40 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className="lg:col-span-1 space-y-4"
-              >
-                {[
-                  {
-                    label: "USERS ONLINE",
-                    value: leaderboard.length,
-                    gradient:
-                      "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.7) 100%)",
-                    border: "border-green-600/50",
-                    icon: Users,
-                  },
-                  {
-                    label: "TOP VICTIM",
-                    value: leaderboard[0]?.referralCount || 0,
-                    gradient:
-                      "linear-gradient(135deg, rgba(234,179,8,0.3) 0%, rgba(0,0,0,0.7) 100%)",
-                    border: "border-yellow-600/50",
-                    icon: TrendingDown,
-                  },
-                ].map((stat, idx) => (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 + idx * 0.1 }}
-                    className={`rounded-lg p-5 border ${stat.border}`}
-                    style={{
-                      background: stat.gradient,
-                      boxShadow: "0 10px 30px -8px rgba(0,0,0,0.3)",
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <p className="text-xs font-mono text-gray-400 uppercase">
-                        {stat.label}
-                      </p>
-                      <stat.icon className="w-4 h-4 text-gray-500" />
-                    </div>
-                    <p className="text-3xl font-black text-white mt-2">
-                      {stat.value}
-                    </p>
-                  </motion.div>
-                ))}
-              </motion.div>
             </div>
 
-            {/* Leaderboard Preview - Full Width */}
+            {/* Leaderboard Preview */}
             <motion.div
-              initial={{ opacity: 0, y: 40 }}
+              initial={{ opacity: 0, y: 50 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 }}
-              className="mt-12"
+              transition={{ delay: 0.5 }}
             >
               <div
                 className="rounded-2xl p-10 border border-yellow-600/50"
@@ -285,8 +257,8 @@ export default function Home() {
                     </h2>
                   </div>
                   <Link href="/leaderboard">
-                    <button className="text-xs font-mono text-yellow-500 hover:text-yellow-400 cursor-pointer">
-                      View All →
+                    <button className="text-xs font-mono text-yellow-500 hover:text-yellow-400 cursor-pointer font-black">
+                      SEE ALL →
                     </button>
                   </Link>
                 </div>
@@ -297,16 +269,14 @@ export default function Home() {
                       key={leader.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.7 + idx * 0.1 }}
+                      transition={{ delay: 0.6 + idx * 0.08 }}
                       whileHover={{ scale: 1.05 }}
                       className="rounded-lg p-4 text-center border border-yellow-900/50"
                       style={{
                         background: "rgba(0,0,0,0.4)",
                       }}
                     >
-                      <div className="text-3xl font-black text-red-500 mb-2">
-                        #{idx + 1}
-                      </div>
+                      <p className="text-3xl font-black text-red-500 mb-2">#{idx + 1}</p>
                       <p className="font-mono text-xs text-gray-400 mb-3 truncate">
                         {leader.walletAddress.slice(0, 6)}...
                       </p>
