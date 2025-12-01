@@ -396,21 +396,60 @@ export default function Home() {
     return (
       <Layout>
         <div className="space-y-8 py-8">
-          {/* Header */}
+          {/* Profile Header Section */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center space-y-2"
+            transition={{ duration: 0.5 }}
+            className="rounded-2xl p-10 border border-red-600/50"
+            style={{
+              background: "linear-gradient(135deg, rgba(127,29,29,0.3) 0%, rgba(0,0,0,0.7) 100%)",
+              boxShadow: "0 25px 50px -12px rgba(239,68,68,0.15)",
+            }}
           >
-            <p className="text-xs font-mono text-green-400 uppercase tracking-widest">
-              ✓ ACCOUNT ACTIVE
-            </p>
-            <h1 className="text-5xl font-black text-red-500 uppercase">
-              YOUR STATS
-            </h1>
-            <p className="text-sm text-gray-400 font-mono">
-              {connectedWallet?.slice(0, 8)}...{connectedWallet?.slice(-8)}
-            </p>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+              {/* Left - Profile Info */}
+              <div className="flex items-center gap-6">
+                {/* Avatar Placeholder */}
+                <motion.div
+                  whileHover={{ scale: 1.05 }}
+                  className="w-24 h-24 rounded-full border-4 border-red-500 flex items-center justify-center text-4xl font-black text-red-500"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(0,0,0,0.5) 100%)",
+                  }}
+                >
+                  👤
+                </motion.div>
+
+                {/* Profile Details */}
+                <div className="space-y-3">
+                  <h2 className="text-3xl font-black text-red-500 uppercase">
+                    DEGEN #{userRank}
+                  </h2>
+                  <div className="space-y-2">
+                    <p className="text-xs font-mono text-gray-400">WALLET</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-mono text-green-400 bg-black/50 px-3 py-1 rounded">
+                        {connectedWallet?.slice(0, 12)}...
+                      </p>
+                      <button
+                        onClick={() => copyToClipboard(connectedWallet || "")}
+                        className="p-2 hover:bg-red-900/30 rounded transition-all"
+                      >
+                        <Copy className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right - Action Buttons */}
+              <div className="flex gap-3">
+                <button className="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/50 text-red-400 font-mono text-xs uppercase hover:bg-red-600/40 transition-all">
+                  ✏️ Edit Profile
+                </button>
+              </div>
+            </div>
           </motion.div>
 
           {/* Stats Grid */}
