@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Copy, Check, Share2, ArrowUpRight } from "lucide-react";
 import { Link } from "wouter";
@@ -19,6 +19,7 @@ interface User {
 
 export default function Home() {
   const { connectedWallet, connectWallet } = useWallet();
+  const queryClient = useQueryClient();
   const [copied, setCopied] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
 
@@ -70,6 +71,8 @@ export default function Home() {
     },
     onSuccess: () => {
       toast.success("Welcome to Dum.fun! 🔥");
+      queryClient.invalidateQueries({ queryKey: ["user", connectedWallet] });
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
     },
     onError: () => {
       toast.error("Failed to create account");
