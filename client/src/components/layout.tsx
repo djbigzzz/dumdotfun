@@ -1,9 +1,9 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
 
@@ -48,16 +48,41 @@ interface WalletModalProps {
 }
 
 const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
+  const { connectWallet, connectedWallet, signMessage } = useWallet();
   const [loading, setLoading] = useState(false);
+  const [step, setStep] = useState<"connect" | "sign">("connect");
 
   const handleConnect = async () => {
     setLoading(true);
     try {
+      await connectWallet();
+      setStep("sign");
+    } catch (err) {
+      toast.error("Failed to connect wallet");
+      setLoading(false);
+    }
+  };
+
+  const handleSign = async () => {
+    setLoading(true);
+    try {
+      const message = "Sign in to Dum.fun";
+      await signMessage(message);
       await onConnect();
+      onClose();
+      setStep("connect");
+    } catch (err) {
+      toast.error("Failed to sign message");
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (connectedWallet && step === "connect") {
+      setStep("sign");
+    }
+  }, [connectedWallet, step]);
 
   if (!isOpen) return null;
 
@@ -75,26 +100,44 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
           </button>
         </div>
 
-        <motion.button
-          onClick={handleConnect}
-          disabled={loading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50"
-        >
-          {loading ? "Connecting..." : "Phantom"}
-        </motion.button>
-
-        <p className="text-xs text-gray-400 font-mono text-center">
-          Only Phantom supported for now
-        </p>
+        {step === "connect" ? (
+          <>
+            <motion.button
+              onClick={handleConnect}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50"
+            >
+              {loading ? "Connecting..." : "Phantom"}
+            </motion.button>
+            <p className="text-xs text-gray-400 font-mono text-center">
+              Only Phantom supported for now
+            </p>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-gray-300 font-mono">
+              Sign a message to verify your wallet
+            </p>
+            <motion.button
+              onClick={handleSign}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-4 rounded-lg uppercase transition-all border border-green-400/50 disabled:opacity-50"
+            >
+              {loading ? "Signing..." : "Sign Message"}
+            </motion.button>
+          </>
+        )}
       </motion.div>
     </div>
   );
 };
 
 export function Layout({ children }: { children: React.ReactNode }) {
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet: contextConnect } = useWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   return (
@@ -135,7 +178,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <WalletModal 
         isOpen={showWalletModal} 
         onClose={() => setShowWalletModal(false)}
-        onConnect={connectWallet}
+        onConnect={contextConnect}
       />
 
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">

@@ -6,6 +6,7 @@ declare global {
       isPhantom?: boolean;
       connect: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>;
       disconnect: () => Promise<void>;
+      signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
       on: (event: string, callback: () => void) => void;
       publicKey?: { toString: () => string };
     };
@@ -16,6 +17,7 @@ interface WalletContextType {
   connectedWallet: string | null;
   hasPhantom: boolean;
   connectWallet: () => Promise<void>;
+  signMessage: (message: string) => Promise<string>;
   disconnectWallet: () => Promise<void>;
 }
 
@@ -57,6 +59,21 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signMessage = async (message: string): Promise<string> => {
+    if (!window.solana?.isPhantom || !connectedWallet) {
+      throw new Error("Phantom not available or wallet not connected");
+    }
+
+    try {
+      const messageBuffer = new TextEncoder().encode(message);
+      const response = await window.solana.signMessage(messageBuffer);
+      return Buffer.from(response.signature).toString("base64");
+    } catch (err) {
+      console.error("Failed to sign message:", err);
+      throw err;
+    }
+  };
+
   const disconnectWallet = async () => {
     if (window.solana?.isPhantom) {
       try {
@@ -69,7 +86,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <WalletContext.Provider value={{ connectedWallet, hasPhantom, connectWallet, disconnectWallet }}>
+    <WalletContext.Provider value={{ connectedWallet, hasPhantom, connectWallet, signMessage, disconnectWallet }}>
       {children}
     </WalletContext.Provider>
   );
