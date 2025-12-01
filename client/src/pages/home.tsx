@@ -97,53 +97,53 @@ export default function Home() {
   if (!connectedWallet) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-12">
+        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center py-6">
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="w-full max-w-6xl space-y-8"
+            className="w-full max-w-6xl space-y-5"
           >
             {/* Hero Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-center">
               {/* Left - Branding */}
               <motion.div
                 initial={{ opacity: 0, x: -50 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.6 }}
-                className="space-y-8"
+                className="space-y-5"
               >
                 <motion.img
                   src={heroLogo}
                   alt="DUM.FUN"
-                  className="h-32 w-auto"
+                  className="h-24 w-auto"
                   animate={{ scale: [1, 1.08, 1] }}
                   transition={{ repeat: Infinity, duration: 4 }}
                 />
 
-                <div className="space-y-4">
-                  <h1 className="text-6xl md:text-7xl font-black text-red-500 leading-tight">
+                <div className="space-y-2">
+                  <h1 className="text-5xl md:text-6xl font-black text-red-500 leading-tight">
                     THE RACE
                     <br />
                     TO ZERO
                   </h1>
-                  <p className="text-2xl font-black text-yellow-500 uppercase">
+                  <p className="text-xl font-black text-yellow-500 uppercase">
                     Is Now Live
                   </p>
                 </div>
 
-                <p className="text-gray-300 font-mono text-sm leading-relaxed max-w-lg">
+                <p className="text-gray-300 font-mono text-xs leading-relaxed max-w-lg">
                   Join the referral battle. Climb the leaderboard. Become a
                   village idiot and earn your place among the degens.
                 </p>
 
-                <div className="flex gap-3">
+                <div className="flex gap-2">
                   <div className="text-center">
-                    <p className="text-2xl font-black text-green-500">{leaderboard.length}</p>
+                    <p className="text-xl font-black text-green-500">{leaderboard.length}</p>
                     <p className="text-xs font-mono text-gray-400">USERS</p>
                   </div>
                   <div className="w-px bg-gray-700" />
                   <div className="text-center">
-                    <p className="text-2xl font-black text-yellow-500">{leaderboard[0]?.referralCount || 0}</p>
+                    <p className="text-xl font-black text-yellow-500">{leaderboard[0]?.referralCount || 0}</p>
                     <p className="text-xs font-mono text-gray-400">TOP RANK</p>
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export default function Home() {
                 transition={{ duration: 0.6 }}
               >
                 <div
-                  className="rounded-2xl p-12 space-y-8 border border-red-600/50 relative overflow-hidden group"
+                  className="rounded-2xl p-6 space-y-4 border border-red-600/50 relative overflow-hidden group"
                   style={{
                     background: "linear-gradient(135deg, rgba(127,29,29,0.4) 0%, rgba(0,0,0,0.8) 100%)",
                     boxShadow: "0 25px 50px -12px rgba(239,68,68,0.25)",
@@ -165,16 +165,16 @@ export default function Home() {
                   {/* Animated background gradient */}
                   <div className="absolute -top-40 -right-40 w-80 h-80 bg-red-600 rounded-full blur-3xl opacity-20 group-hover:opacity-30 transition-opacity pointer-events-none" />
 
-                  <div className="relative z-10 space-y-6">
+                  <div className="relative z-10 space-y-3">
                     {/* Header */}
-                    <div className="space-y-2">
+                    <div className="space-y-1">
                       <p className="text-xs font-mono text-red-400 uppercase tracking-widest">
                         ⚡ START HERE
                       </p>
-                      <h2 className="text-3xl font-black text-red-500 uppercase">
+                      <h2 className="text-2xl font-black text-red-500 uppercase">
                         Connect Wallet
                       </h2>
-                      <p className="text-sm text-gray-300 font-mono">
+                      <p className="text-xs text-gray-300 font-mono">
                         Create account and join the leaderboard
                       </p>
                     </div>
@@ -184,9 +184,9 @@ export default function Home() {
                       onClick={connectWallet}
                       whileHover={{ scale: 1.02, boxShadow: "0 0 40px rgba(239,68,68,0.4)" }}
                       whileTap={{ scale: 0.98 }}
-                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-8 rounded-lg text-lg uppercase transition-all active:scale-95 flex items-center justify-center gap-3 border border-red-400/50 shadow-lg"
+                      className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-6 rounded-lg text-sm uppercase transition-all active:scale-95 flex items-center justify-center gap-2 border border-red-400/50 shadow-lg"
                     >
-                      <Zap className="w-5 h-5" />
+                      <Zap className="w-4 h-4" />
                       CONNECT WALLET
                     </motion.button>
 
@@ -195,25 +195,25 @@ export default function Home() {
                       <motion.div
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="rounded-lg p-5 border border-yellow-600/50"
+                        className="rounded-lg p-3 border border-yellow-600/50"
                         style={{
                           background: "linear-gradient(135deg, rgba(113,63,18,0.4) 0%, rgba(0,0,0,0.6) 100%)",
                         }}
                       >
-                        <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-2">
+                        <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-1">
                           🎁 INVITED BY
                         </p>
-                        <p className="text-xl font-black text-yellow-400">
+                        <p className="text-lg font-black text-yellow-400">
                           {referralCode}
                         </p>
-                        <p className="text-xs text-gray-400 mt-2">
+                        <p className="text-xs text-gray-400 mt-1">
                           Connect to get credit
                         </p>
                       </motion.div>
                     )}
 
                     {/* Features */}
-                    <div className="space-y-3 pt-4 border-t border-red-900/50">
+                    <div className="space-y-2 pt-2 border-t border-red-900/50">
                       {[
                         { icon: "📋", text: "Get referral code" },
                         { icon: "🔗", text: "Share to earn" },
@@ -224,9 +224,9 @@ export default function Home() {
                           initial={{ opacity: 0, x: -20 }}
                           animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: 0.3 + idx * 0.1 }}
-                          className="flex items-center gap-3 text-gray-300 font-mono text-sm"
+                          className="flex items-center gap-2 text-gray-300 font-mono text-xs"
                         >
-                          <span className="text-lg">{feature.icon}</span>
+                          <span className="text-base">{feature.icon}</span>
                           <span>{feature.text}</span>
                         </motion.div>
                       ))}
@@ -243,16 +243,16 @@ export default function Home() {
               transition={{ delay: 0.5 }}
             >
               <div
-                className="rounded-2xl p-10 border border-yellow-600/50"
+                className="rounded-2xl p-5 border border-yellow-600/50"
                 style={{
                   background: "linear-gradient(135deg, rgba(113,63,18,0.3) 0%, rgba(0,0,0,0.6) 100%)",
                   boxShadow: "0 25px 50px -12px rgba(234,179,8,0.2)",
                 }}
               >
-                <div className="flex items-center justify-between mb-8">
-                  <div className="flex items-center gap-3">
-                    <TrendingDown className="w-6 h-6 text-yellow-500" />
-                    <h2 className="text-2xl font-black text-yellow-500 uppercase">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingDown className="w-5 h-5 text-yellow-500" />
+                    <h2 className="text-lg font-black text-yellow-500 uppercase">
                       Village Idiots
                     </h2>
                   </div>
@@ -365,25 +365,25 @@ export default function Home() {
 
     return (
       <Layout>
-        <div className="space-y-8 py-8">
+        <div className="space-y-4 py-4">
           {/* Profile Header Section */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
-            className="rounded-2xl p-10 border border-red-600/50"
+            className="rounded-2xl p-5 border border-red-600/50"
             style={{
               background: "linear-gradient(135deg, rgba(127,29,29,0.3) 0%, rgba(0,0,0,0.7) 100%)",
               boxShadow: "0 25px 50px -12px rgba(239,68,68,0.15)",
             }}
           >
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
               {/* Left - Profile Info */}
-              <div className="flex items-center gap-6">
+              <div className="flex items-center gap-3">
                 {/* Avatar Placeholder */}
                 <motion.div
                   whileHover={{ scale: 1.05 }}
-                  className="w-24 h-24 rounded-full border-4 border-red-500 flex items-center justify-center text-4xl font-black text-red-500"
+                  className="w-16 h-16 rounded-full border-2 border-red-500 flex items-center justify-center text-2xl font-black text-red-500"
                   style={{
                     background: "linear-gradient(135deg, rgba(239,68,68,0.2) 0%, rgba(0,0,0,0.5) 100%)",
                   }}
@@ -392,21 +392,21 @@ export default function Home() {
                 </motion.div>
 
                 {/* Profile Details */}
-                <div className="space-y-3">
-                  <h2 className="text-3xl font-black text-red-500 uppercase">
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-black text-red-500 uppercase">
                     DEGEN #{userRank}
                   </h2>
-                  <div className="space-y-2">
+                  <div className="space-y-1">
                     <p className="text-xs font-mono text-gray-400">WALLET</p>
-                    <div className="flex items-center gap-2">
-                      <p className="text-sm font-mono text-green-400 bg-black/50 px-3 py-1 rounded">
+                    <div className="flex items-center gap-1">
+                      <p className="text-xs font-mono text-green-400 bg-black/50 px-2 py-0.5 rounded">
                         {connectedWallet?.slice(0, 12)}...
                       </p>
                       <button
                         onClick={() => copyToClipboard(connectedWallet || "")}
-                        className="p-2 hover:bg-red-900/30 rounded transition-all"
+                        className="p-1 hover:bg-red-900/30 rounded transition-all"
                       >
-                        <Copy className="w-4 h-4 text-gray-400 hover:text-red-500" />
+                        <Copy className="w-3 h-3 text-gray-400 hover:text-red-500" />
                       </button>
                     </div>
                   </div>
@@ -414,9 +414,9 @@ export default function Home() {
               </div>
 
               {/* Right - Action Buttons */}
-              <div className="flex gap-3">
-                <button className="px-4 py-2 rounded-lg bg-red-600/20 border border-red-600/50 text-red-400 font-mono text-xs uppercase hover:bg-red-600/40 transition-all">
-                  ✏️ Edit Profile
+              <div className="flex gap-2">
+                <button className="px-3 py-1 rounded-lg bg-red-600/20 border border-red-600/50 text-red-400 font-mono text-xs uppercase hover:bg-red-600/40 transition-all">
+                  ✏️ Edit
                 </button>
               </div>
             </div>
@@ -427,7 +427,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2, duration: 0.5 }}
-            className="rounded-2xl p-8 border border-yellow-600/50 overflow-hidden relative group"
+            className="rounded-2xl p-4 border border-yellow-600/50 overflow-hidden relative group"
             style={{
               background: "linear-gradient(135deg, rgba(234,179,8,0.2) 0%, rgba(0,0,0,0.7) 100%)",
               boxShadow: "0 25px 50px -12px rgba(234,179,8,0.15)",
@@ -438,28 +438,28 @@ export default function Home() {
               <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-br from-yellow-500 to-transparent rounded-full blur-3xl" />
             </div>
 
-            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-              <div className="space-y-4 flex-1">
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3">
+              <div className="space-y-2 flex-1">
                 <div>
-                  <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-2">
-                    🎯 Current Season
+                  <p className="text-xs font-mono text-yellow-400 uppercase tracking-widest mb-1">
+                    🎯 Season
                   </p>
-                  <h2 className="text-3xl md:text-4xl font-black text-yellow-500 uppercase">
+                  <h2 className="text-2xl md:text-3xl font-black text-yellow-500 uppercase">
                     The Race to Zero
                   </h2>
                 </div>
-                <p className="text-gray-300 font-mono text-sm leading-relaxed max-w-xl">
-                  Climb the leaderboard by referring friends. The more people you bring to Dum.fun, the higher you rank. Welcome to the village of idiots.
+                <p className="text-gray-300 font-mono text-xs leading-relaxed max-w-xl">
+                  Climb the leaderboard by referring friends. Welcome to the village of idiots.
                 </p>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={shareOnX}
-                className="px-6 py-3 rounded-lg bg-yellow-600/30 border border-yellow-600/50 text-yellow-400 font-mono text-xs uppercase hover:bg-yellow-600/50 transition-all whitespace-nowrap flex items-center gap-2"
+                className="px-4 py-2 rounded-lg bg-yellow-600/30 border border-yellow-600/50 text-yellow-400 font-mono text-xs uppercase hover:bg-yellow-600/50 transition-all whitespace-nowrap flex items-center gap-1"
               >
-                <Share2 className="w-4 h-4" />
-                Share Season
+                <Share2 className="w-3 h-3" />
+                Share
               </motion.button>
             </div>
           </motion.div>
@@ -469,35 +469,35 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.35, duration: 0.5 }}
-            className="rounded-2xl p-8 border border-red-600/50"
+            className="rounded-2xl p-4 border border-red-600/50"
             style={{
               background: "linear-gradient(135deg, rgba(127,29,29,0.2) 0%, rgba(0,0,0,0.6) 100%)",
               boxShadow: "0 25px 50px -12px rgba(239,68,68,0.1)",
             }}
           >
-            <div className="space-y-6">
-              <h3 className="text-sm font-mono text-red-400 uppercase tracking-widest">
-                📈 Your Progress
+            <div className="space-y-3">
+              <h3 className="text-xs font-mono text-red-400 uppercase tracking-widest">
+                📈 Progress
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {/* Current Rank */}
-                <div className="flex flex-col items-center justify-center space-y-3 p-6 rounded-lg border border-red-600/30 bg-red-900/10">
-                  <p className="text-xs font-mono text-gray-400">CURRENT RANK</p>
-                  <p className="text-5xl font-black text-red-500">#{userRank === "—" ? "?" : userRank}</p>
-                  <p className="text-sm font-mono text-gray-400">{user.referralCount} referrals</p>
+                <div className="flex flex-col items-center justify-center space-y-2 p-3 rounded-lg border border-red-600/30 bg-red-900/10">
+                  <p className="text-xs font-mono text-gray-400">RANK</p>
+                  <p className="text-4xl font-black text-red-500">#{userRank === "—" ? "?" : userRank}</p>
+                  <p className="text-xs font-mono text-gray-400">{user.referralCount} referrals</p>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="flex flex-col justify-center space-y-3">
-                  <div className="space-y-2">
+                <div className="flex flex-col justify-center space-y-2">
+                  <div className="space-y-1">
                     <div className="flex justify-between">
-                      <p className="text-xs font-mono text-gray-400">NEXT RANK</p>
+                      <p className="text-xs font-mono text-gray-400">NEXT</p>
                       <p className="text-xs font-mono text-yellow-500 font-black">
                         {Math.max(0, (user.referralCount + 1 === 1 ? 2 : user.referralCount + 1) - user.referralCount)} more
                       </p>
                     </div>
-                    <div className="h-2 bg-black/50 rounded-full border border-red-600/30 overflow-hidden">
+                    <div className="h-1.5 bg-black/50 rounded-full border border-red-600/30 overflow-hidden">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${Math.min(100, (user.referralCount % 5) * 20)}%` }}
@@ -516,7 +516,7 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.4 }}
-            className="grid grid-cols-1 md:grid-cols-3 gap-6"
+            className="grid grid-cols-1 md:grid-cols-3 gap-3"
           >
             {[
               {
@@ -553,7 +553,7 @@ export default function Home() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.45 + idx * 0.08 }}
                 whileHover={{ scale: 1.03 }}
-                className={`rounded-xl p-6 border ${stat.border} relative overflow-hidden group`}
+                className={`rounded-xl p-4 border ${stat.border} relative overflow-hidden group`}
                 style={{
                   background: stat.gradient,
                   boxShadow: "0 10px 30px -8px rgba(0,0,0,0.3)",
@@ -562,17 +562,17 @@ export default function Home() {
                 {/* Hover effect */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                <div className="relative z-10 space-y-3">
+                <div className="relative z-10 space-y-2">
                   <div className="flex items-center justify-between">
-                    <p className="text-2xl">{stat.icon}</p>
-                    <span className={`text-xs font-mono font-black px-2 py-1 rounded ${stat.badgeColor} text-white`}>
+                    <p className="text-xl">{stat.icon}</p>
+                    <span className={`text-xs font-mono font-black px-1.5 py-0.5 rounded ${stat.badgeColor} text-white`}>
                       {stat.badge}
                     </span>
                   </div>
                   <p className="text-xs font-mono text-gray-400 uppercase">
                     {stat.label}
                   </p>
-                  <p className="text-3xl font-black text-white break-words">
+                  <p className="text-2xl font-black text-white break-words">
                     {stat.value}
                   </p>
                 </div>
@@ -585,18 +585,18 @@ export default function Home() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.55, duration: 0.5 }}
-            className="rounded-2xl p-8 border border-purple-600/50"
+            className="rounded-2xl p-4 border border-purple-600/50"
             style={{
               background: "linear-gradient(135deg, rgba(88,28,135,0.2) 0%, rgba(0,0,0,0.6) 100%)",
               boxShadow: "0 25px 50px -12px rgba(147,51,234,0.1)",
             }}
           >
-            <div className="space-y-6">
-              <h3 className="text-sm font-mono text-purple-400 uppercase tracking-widest">
+            <div className="space-y-3">
+              <h3 className="text-xs font-mono text-purple-400 uppercase tracking-widest">
                 🏅 Achievements
               </h3>
               
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 {[
                   { name: "First Step", locked: false, icon: "🚀" },
                   { name: "5 Referrals", locked: user.referralCount < 5, icon: "🎯" },
@@ -608,13 +608,13 @@ export default function Home() {
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ delay: 0.6 + idx * 0.05 }}
-                    className={`rounded-lg p-4 border text-center space-y-2 ${
+                    className={`rounded-lg p-2 border text-center space-y-1 ${
                       badge.locked
                         ? "border-gray-700/50 opacity-50"
                         : "border-purple-600/50 bg-purple-600/10 cursor-pointer hover:bg-purple-600/20 transition-all"
                     }`}
                   >
-                    <p className="text-3xl">{badge.icon}</p>
+                    <p className="text-2xl">{badge.icon}</p>
                     <p className="text-xs font-mono text-gray-300 font-black">{badge.name}</p>
                   </motion.div>
                 ))}
@@ -629,17 +629,17 @@ export default function Home() {
             transition={{ delay: 0.4 }}
           >
             <div
-              className="rounded-2xl p-10 space-y-6 border border-green-600/50"
+              className="rounded-2xl p-5 space-y-3 border border-green-600/50"
               style={{
                 background: "linear-gradient(135deg, rgba(34,197,94,0.3) 0%, rgba(0,0,0,0.8) 100%)",
                 boxShadow: "0 25px 50px -12px rgba(34,197,94,0.2)",
               }}
             >
-              <div className="space-y-2">
+              <div className="space-y-1">
                 <p className="text-xs font-mono text-green-400 uppercase tracking-widest">
                   🔗 Your Power
                 </p>
-                <h2 className="text-2xl font-black text-green-500 uppercase">
+                <h2 className="text-xl font-black text-green-500 uppercase">
                   Referral Code
                 </h2>
               </div>
@@ -647,13 +647,13 @@ export default function Home() {
               {/* Code Display */}
               <motion.div
                 whileHover={{ scale: 1.02 }}
-                className="rounded-lg p-8 text-center cursor-pointer border border-green-600/50"
+                className="rounded-lg p-4 text-center cursor-pointer border border-green-600/50"
                 style={{
                   background: "rgba(0,0,0,0.4)",
                 }}
                 onClick={() => copyToClipboard(user.referralCode)}
               >
-                <p className="text-5xl font-black text-green-500 font-mono tracking-widest">
+                <p className="text-4xl font-black text-green-500 font-mono tracking-widest">
                   {user.referralCode}
                 </p>
               </motion.div>
@@ -662,30 +662,30 @@ export default function Home() {
                 onClick={() => copyToClipboard(user.referralCode)}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-4 px-6 rounded-lg text-lg uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-4 rounded-lg text-sm uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2"
                 data-testid="button-copy-referral-home"
               >
                 {copied ? (
                   <>
-                    <Check className="w-5 h-5" />
+                    <Check className="w-4 h-4" />
                     COPIED!
                   </>
                 ) : (
                   <>
-                    <Copy className="w-5 h-5" />
+                    <Copy className="w-4 h-4" />
                     COPY CODE
                   </>
                 )}
               </motion.button>
 
               {/* Referral URL Section */}
-              <div className="space-y-3 border-t border-green-900/50 pt-6">
+              <div className="space-y-2 border-t border-green-900/50 pt-3">
                 <p className="text-xs font-mono text-green-400 uppercase">
-                  Full Referral Link
+                  Full Link
                 </p>
                 <motion.div
                   whileHover={{ scale: 1.01 }}
-                  className="rounded-lg p-4 cursor-pointer border border-green-600/30"
+                  className="rounded-lg p-3 cursor-pointer border border-green-600/30"
                   style={{
                     background: "rgba(0,0,0,0.3)",
                   }}
@@ -697,9 +697,9 @@ export default function Home() {
                 </motion.div>
                 <button
                   onClick={() => copyToClipboard(referralUrl)}
-                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-black font-black py-3 px-6 rounded-lg uppercase transition-all border border-green-500/50 flex items-center justify-center gap-2"
+                  className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-black font-black py-2 px-4 rounded-lg text-sm uppercase transition-all border border-green-500/50 flex items-center justify-center gap-2"
                 >
-                  <Copy className="w-4 h-4" />
+                  <Copy className="w-3 h-3" />
                   COPY LINK
                 </button>
               </div>
@@ -709,10 +709,10 @@ export default function Home() {
                 onClick={shareOnX}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-4 px-6 rounded-lg text-lg uppercase transition-all border border-red-400/50 flex items-center justify-center gap-2"
+                className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg text-sm uppercase transition-all border border-red-400/50 flex items-center justify-center gap-2"
                 data-testid="button-share-x-home"
               >
-                <Share2 className="w-5 h-5" />
+                <Share2 className="w-4 h-4" />
                 SHARE ON X
               </motion.button>
             </div>
@@ -725,12 +725,12 @@ export default function Home() {
             transition={{ delay: 0.5 }}
           >
             <Link href="/leaderboard">
-              <button className="w-full rounded-lg border border-yellow-600/50 text-yellow-500 font-black py-6 hover:bg-yellow-900/20 transition-all text-lg uppercase flex items-center justify-center gap-3 tracking-wider hover:scale-105 active:scale-95"
+              <button className="w-full rounded-lg border border-yellow-600/50 text-yellow-500 font-black py-3 hover:bg-yellow-900/20 transition-all text-sm uppercase flex items-center justify-center gap-2 tracking-wider hover:scale-105 active:scale-95"
                 style={{
                   background: "linear-gradient(135deg, rgba(113,63,18,0.2) 0%, rgba(0,0,0,0.4) 100%)",
                 }}
               >
-                <TrendingDown className="w-6 h-6" />
+                <TrendingDown className="w-5 h-5" />
                 VIEW FULL RANKINGS
               </button>
             </Link>
