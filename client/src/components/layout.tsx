@@ -7,11 +7,34 @@ import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352
 
 const Marquee = () => {
   return (
-    <div className="bg-red-600 text-black font-sans font-black text-lg py-2 overflow-hidden whitespace-nowrap border-b-4 border-black">
-      <div className="animate-marquee inline-block">
-        WARNING: YOU WILL LOSE MONEY • THIS IS FINANCIAL SUICIDE • HAVE FUN STAYING POOR • RUG PULLS ARE A FEATURE NOT A BUG • DO NOT CONNECT YOUR WALLET • 
-        WARNING: YOU WILL LOSE MONEY • THIS IS FINANCIAL SUICIDE • HAVE FUN STAYING POOR • RUG PULLS ARE A FEATURE NOT A BUG • DO NOT CONNECT YOUR WALLET •
+    <div 
+      className="py-3 overflow-hidden border-b border-red-600/50 relative"
+      style={{
+        background: "linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(127,29,29,0.2) 50%, rgba(239,68,68,0.15) 100%)",
+      }}
+    >
+      <div className="flex items-center justify-center gap-2 animate-marquee whitespace-nowrap font-mono text-sm">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <span className="text-red-500 font-black">⚡</span>
+            <span className="text-red-400 font-black">LIVE NOW</span>
+            <span className="text-red-600">•</span>
+            <span className="text-gray-400">JOIN THE RACE</span>
+            <span className="text-red-600">•</span>
+            <span className="text-yellow-500 font-black">CLIMB THE RANKS</span>
+            <span className="text-red-600 mx-2">•</span>
+          </div>
+        ))}
       </div>
+      <style>{`
+        @keyframes marquee {
+          0% { transform: translateX(100%); }
+          100% { transform: translateX(-100%); }
+        }
+        .animate-marquee {
+          animation: marquee 30s linear infinite;
+        }
+      `}</style>
     </div>
   );
 };
