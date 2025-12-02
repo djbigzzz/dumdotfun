@@ -77,22 +77,38 @@ export interface TradeResult {
 }
 
 /**
+ * Check if trading is enabled (contract deployed)
+ */
+export function isTradingEnabled(): boolean {
+  return TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID !== "11111111111111111111111111111111";
+}
+
+/**
  * Get quote for a trade without executing
+ * Returns error if bonding curve contract is not deployed
  */
 export async function getTradeQuote(params: TradeParams): Promise<TradeResult> {
+  // Trading not available until contract is deployed
+  if (!isTradingEnabled()) {
+    return {
+      success: false,
+      error: "Trading not yet available - bonding curve contract not deployed. Deploy your own contract and set BONDING_CURVE_PROGRAM_ID.",
+    };
+  }
+
   try {
     const connection = getConnection();
     const tokenMint = new PublicKey(params.tokenMint);
+    const programId = new PublicKey(TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID);
     const amount = new BN(params.amount);
     
-    // For now, use mock curve state until we fetch from on-chain
-    // In production, this would fetch the actual bonding curve account data
-    const curveState = await fetchBondingCurveState(connection, tokenMint);
+    // Fetch real on-chain curve state
+    const curveState = await fetchBondingCurveState(connection, tokenMint, programId);
     
     if (!curveState) {
       return {
         success: false,
-        error: "Token not found or bonding curve not initialized",
+        error: "Token not found or bonding curve not initialized on-chain",
       };
     }
     
@@ -112,22 +128,24 @@ export async function getTradeQuote(params: TradeParams): Promise<TradeResult> {
   } catch (error: any) {
     return {
       success: false,
-      error: error.message || "Failed to get quote",
+      error: error.message || "Failed to get quote from on-chain data",
     };
   }
 }
 
 /**
  * Build a buy transaction
+ * Requires bonding curve contract to be deployed
  */
 export async function buildBuyTransaction(params: TradeParams): Promise<TradeResult> {
+  if (!isTradingEnabled()) {
+    return {
+      success: false,
+      error: "Trading not yet available - bonding curve contract not deployed. Deploy your own contract and set BONDING_CURVE_PROGRAM_ID.",
+    };
+  }
+
   try {
-    if (TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID === "11111111111111111111111111111111") {
-      return {
-        success: false,
-        error: "Trading not yet available - bonding curve contract not deployed",
-      };
-    }
     
     const connection = getConnection();
     const userWallet = new PublicKey(params.userWallet);
@@ -144,12 +162,19 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
     
-    // Get curve state and calculate quote
-    const curveState = await fetchBondingCurveState(connection, tokenMint);
+    // Get curve state and calculate quote from real on-chain data
+    const curveState = await fetchBondingCurveState(connection, tokenMint, programId);
     if (!curveState) {
       return {
         success: false,
-        error: "Bonding curve not found",
+        error: "Bonding curve not found on-chain for this token",
+      };
+    }
+
+    if (curveState.complete) {
+      return {
+        success: false,
+        error: "This token has graduated - trade on Raydium DEX instead",
       };
     }
     
@@ -218,15 +243,17 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
 
 /**
  * Build a sell transaction
+ * Requires bonding curve contract to be deployed
  */
 export async function buildSellTransaction(params: TradeParams): Promise<TradeResult> {
+  if (!isTradingEnabled()) {
+    return {
+      success: false,
+      error: "Trading not yet available - bonding curve contract not deployed. Deploy your own contract and set BONDING_CURVE_PROGRAM_ID.",
+    };
+  }
+
   try {
-    if (TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID === "11111111111111111111111111111111") {
-      return {
-        success: false,
-        error: "Trading not yet available - bonding curve contract not deployed",
-      };
-    }
     
     const connection = getConnection();
     const userWallet = new PublicKey(params.userWallet);
@@ -243,12 +270,19 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
     
-    // Get curve state and calculate quote
-    const curveState = await fetchBondingCurveState(connection, tokenMint);
+    // Get curve state and calculate quote from real on-chain data
+    const curveState = await fetchBondingCurveState(connection, tokenMint, programId);
     if (!curveState) {
       return {
         success: false,
-        error: "Bonding curve not found",
+        error: "Bonding curve not found on-chain for this token",
+      };
+    }
+
+    if (curveState.complete) {
+      return {
+        success: false,
+        error: "This token has graduated - trade on Raydium DEX instead",
       };
     }
     
@@ -302,25 +336,76 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
 }
 
 /**
- * Fetch bonding curve state from on-chain (placeholder implementation)
+ * Bonding curve account data layout
+ * This must match the deployed contract's account structure
+ */
+interface BondingCurveAccountData {
+  discriminator: number[];
+  virtualTokenReserves: BN;
+  virtualSolReserves: BN;
+  realTokenReserves: BN;
+  realSolReserves: BN;
+  tokenTotalSupply: BN;
+  complete: boolean;
+}
+
+/**
+ * Fetch bonding curve state from on-chain
+ * Returns null if account doesn't exist or can't be parsed
  */
 async function fetchBondingCurveState(
   connection: Connection,
-  tokenMint: PublicKey
+  tokenMint: PublicKey,
+  programId: PublicKey
 ): Promise<BondingCurveState | null> {
-  // In production, this would fetch the actual bonding curve account
-  // and deserialize the data using the contract's IDL
-  
-  // For now, return a mock state for development
-  // This simulates a token that's 30% through its bonding curve
-  return {
-    virtualTokenReserves: new BN("751100000000000"), // ~70% remaining
-    virtualSolReserves: new BN("55000000000"), // ~55 SOL accumulated
-    realTokenReserves: new BN("555170000000000"), // Real tokens available
-    realSolReserves: new BN("25000000000"), // ~25 SOL in curve
-    tokenTotalSupply: new BN("1000000000000000"), // 1B tokens
-    complete: false,
-  };
+  try {
+    // Derive the bonding curve PDA for this token
+    const [bondingCurvePda] = deriveBondingCurvePDA(tokenMint, programId);
+    
+    // Fetch the account data
+    const accountInfo = await connection.getAccountInfo(bondingCurvePda);
+    
+    if (!accountInfo || !accountInfo.data) {
+      console.log(`No bonding curve found for mint ${tokenMint.toString()}`);
+      return null;
+    }
+
+    // Parse the account data
+    // Account layout (assuming standard Anchor layout):
+    // - 8 bytes: discriminator
+    // - 8 bytes: virtualTokenReserves (u64)
+    // - 8 bytes: virtualSolReserves (u64)
+    // - 8 bytes: realTokenReserves (u64)
+    // - 8 bytes: realSolReserves (u64)
+    // - 8 bytes: tokenTotalSupply (u64)
+    // - 1 byte: complete (bool)
+    const data = accountInfo.data;
+    
+    if (data.length < 49) {
+      console.error("Bonding curve account data too short");
+      return null;
+    }
+
+    // Skip 8-byte discriminator
+    const virtualTokenReserves = new BN(data.slice(8, 16), "le");
+    const virtualSolReserves = new BN(data.slice(16, 24), "le");
+    const realTokenReserves = new BN(data.slice(24, 32), "le");
+    const realSolReserves = new BN(data.slice(32, 40), "le");
+    const tokenTotalSupply = new BN(data.slice(40, 48), "le");
+    const complete = data[48] === 1;
+
+    return {
+      virtualTokenReserves,
+      virtualSolReserves,
+      realTokenReserves,
+      realSolReserves,
+      tokenTotalSupply,
+      complete,
+    };
+  } catch (error) {
+    console.error("Error fetching bonding curve state:", error);
+    return null;
+  }
 }
 
 /**

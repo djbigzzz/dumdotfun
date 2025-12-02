@@ -51,11 +51,21 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - `POST /api/users/connect` - Create user from wallet connection
 - `GET /api/users/wallet/:address` - Get user by wallet
 - `POST /api/waitlist` - Add email to waitlist
+- `GET /api/trading/status` - Check if trading is enabled
+- `POST /api/trading/quote` - Get quote for buy/sell (requires deployed contract)
+- `POST /api/trading/buy` - Build buy transaction (requires deployed contract)
+- `POST /api/trading/sell` - Build sell transaction (requires deployed contract)
 
 **Pump.fun Integration**
 - Fetches from `frontend-api.pump.fun/coins`
 - Calculates bonding curve progress from virtual reserves
 - Returns proper 503 errors when API is unavailable (no mock fallback)
+
+**Trading Infrastructure**
+- `server/bonding-curve.ts` - Bonding curve math (constant product x*y=k formula)
+- `server/trading.ts` - Transaction builders for buy/sell operations
+- All trading endpoints return errors until bonding curve contract is deployed
+- No mock/fake data - only real on-chain data when contract is live
 
 ### Database Schema
 
@@ -83,8 +93,30 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - When ~85 SOL raised (~$69k market cap), token "graduates" to Raydium DEX
 - Platform takes 1% on trades + 6 SOL migration fee
 
+### Trading Infrastructure (Option B - Own Contract)
+
+The platform is designed for deploying your own bonding curve smart contract, not just wrapping Pump.fun. This enables:
+- Custom fee structure (1% trading fee configured)
+- Full control over graduation mechanism
+- Independent token creation
+
+**To Enable Trading:**
+1. Clone one of the open-source bonding curve contracts:
+   - `m8s-lab/pump-fun-smart-contract` (recommended)
+   - `asseph/pumpfun-smart-contract-solana`
+   - `Rabnail-SOL/Solana-Pump-Fun-Smart-Contract`
+2. Build with Anchor: `anchor build && anchor keys sync`
+3. Deploy to devnet: `anchor deploy --provider.cluster devnet`
+4. Set env var: `BONDING_CURVE_PROGRAM_ID=<your-program-id>`
+5. Update instruction encoding in `server/trading.ts` to match your contract's IDL
+
+**Trading Architecture:**
+- `server/bonding-curve.ts` - Constant product formula, quote calculations, fee math
+- `server/trading.ts` - Solana transaction builders, PDA derivation, on-chain state fetching
+- Slippage protection: 5% default, configurable per trade
+- Proper error handling when contract not deployed (no fake data)
+
 ### Future Development
-- Implement direct trading on Dum.fun (requires deploying own bonding curve smart contract)
 - WebSocket integration for real-time token updates
-- Token creation directly on platform
-- Own fee collection (1% trades, migration fees)
+- Token creation directly on platform via deployed contract
+- Jupiter integration for SOL price quotes
