@@ -39,7 +39,7 @@ interface PumpFunToken {
 function calculateBondingProgress(token: PumpFunToken): number {
   if (token.complete) return 100;
   if (!token.virtual_sol_reserves || !token.virtual_token_reserves) {
-    return Math.random() * 60 + 10;
+    return 0;
   }
   const initialVirtualTokenReserves = 1073000191;
   const tokensRemaining = token.virtual_token_reserves;
@@ -56,7 +56,7 @@ function calculateMarketCapSol(token: PumpFunToken): number {
     const totalSupply = token.total_supply || 1000000000;
     return (pricePerToken * totalSupply) / 1e9;
   }
-  return Math.random() * 50 + 5;
+  return 0;
 }
 
 export async function registerRoutes(
