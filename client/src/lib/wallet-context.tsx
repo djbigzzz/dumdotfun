@@ -53,7 +53,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
     try {
       const response = await window.solana.connect({ onlyIfTrusted: false });
-      setConnectedWallet(response.publicKey.toString());
+      const walletAddress = response.publicKey.toString();
+      setConnectedWallet(walletAddress);
+
+      // Create user in database
+      try {
+        await fetch("/api/users/connect", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress }),
+        });
+      } catch (err) {
+        console.error("Failed to create user:", err);
+      }
     } catch (err) {
       console.error("Failed to connect wallet:", err);
     }
