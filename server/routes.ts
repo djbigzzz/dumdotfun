@@ -9,6 +9,7 @@ import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
 import { getTokensFromDexscreener } from "./dexscreener";
+import { getTokensFromOnChain, getTokensFromHeliusDAS } from "./solana-rpc";
 
 interface PumpFunToken {
   mint: string;
@@ -127,9 +128,27 @@ export async function registerRoutes(
         console.log(`Found ${dexscreenerTokens.length} tokens from Dexscreener`);
         return res.json(dexscreenerTokens);
       }
+
+      // Fallback 2: Try Helius DAS API for on-chain token metadata
+      console.log("Dexscreener unavailable, trying Helius DAS API...");
+      const heliusTokens = await getTokensFromHeliusDAS();
       
-      // Fallback 2: Return user-created tokens from database
-      console.log("Dexscreener unavailable, falling back to user-created tokens");
+      if (heliusTokens.length > 0) {
+        console.log(`Found ${heliusTokens.length} tokens from Helius`);
+        return res.json(heliusTokens);
+      }
+
+      // Fallback 3: Try direct Solana RPC for on-chain tokens
+      console.log("Helius unavailable, querying Solana RPC directly...");
+      const rpcTokens = await getTokensFromOnChain();
+      
+      if (rpcTokens.length > 0) {
+        console.log(`Found ${rpcTokens.length} tokens from Solana RPC`);
+        return res.json(rpcTokens);
+      }
+      
+      // Fallback 4: Return user-created tokens from database
+      console.log("All external sources unavailable, falling back to user-created tokens");
       const dbTokens = await db.select().from(tokensTable).limit(24);
       
       if (dbTokens.length > 0) {

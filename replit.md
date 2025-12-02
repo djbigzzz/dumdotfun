@@ -171,6 +171,15 @@ The platform includes WebSocket integration for real-time token updates:
 - Success state shows token ID and pending deployment status
 - GET /api/tokens/creator/:address endpoint for fetching user's created tokens
 
+**Turn 5: Multi-Source Token Fetching with Fallback Chain**
+- Built smart fallback system for live token data with NO fake/mock data
+- Created Dexscreener API integration (free, no auth)
+- Implemented Helius DAS API integration for on-chain tokens (free tier available)
+- Added direct Solana RPC querying support (requires Helius API key)
+- Graceful degradation: External APIs → User-created tokens from database
+- App never crashes - honest errors or real data only
+- Token endpoint now: `GET /api/tokens` with 4-tier fallback
+
 ### Future Development
 - On-chain token deployment via deployed bonding curve contract (steps 7-10 of creation)
 - SPL token creation transaction building
