@@ -2,7 +2,7 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Upload, Zap, AlertTriangle, ExternalLink } from "lucide-react";
+import { Upload, Zap, AlertTriangle, ExternalLink, Info } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CreateToken() {
@@ -16,10 +16,17 @@ export default function CreateToken() {
     website: "",
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [fileName, setFileName] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File must be smaller than 10MB");
+        return;
+      }
+      
+      setFileName(file.name);
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result as string);
@@ -46,11 +53,11 @@ export default function CreateToken() {
 
   return (
     <Layout>
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-black text-red-500">CREATE TOKEN</h1>
-          <p className="text-gray-400 font-mono text-sm">
-            Launch your token on the bonding curve
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div>
+          <h1 className="text-3xl font-black text-red-500">CREATE NEW COIN</h1>
+          <p className="text-gray-400 text-sm mt-1">
+            Fields marked with * cannot be changed once the coin is created
           </p>
         </div>
 
@@ -76,59 +83,43 @@ export default function CreateToken() {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6 space-y-6">
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <div className="w-24 h-24 rounded-lg bg-zinc-800 border-2 border-dashed border-red-600/50 flex items-center justify-center overflow-hidden">
-                  {imagePreview ? (
-                    <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
-                  ) : (
-                    <Upload className="w-8 h-8 text-red-500/50" />
-                  )}
-                </div>
+          {/* Coin Details Section */}
+          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <h2 className="text-sm font-black text-red-500 mb-4 uppercase">COIN DETAILS</h2>
+            
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs text-gray-400 block mb-2 font-bold">COIN NAME *</label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
-                  data-testid="input-token-image"
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Name your coin"
+                  maxLength={32}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
+                  data-testid="input-token-name"
                 />
               </div>
-              
-              <div className="flex-1 space-y-4">
-                <div>
-                  <label className="text-xs text-gray-400 block mb-1">TOKEN NAME *</label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="DumCoin"
-                    maxLength={32}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
-                    data-testid="input-token-name"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-gray-400 block mb-1">SYMBOL *</label>
-                  <input
-                    type="text"
-                    value={formData.symbol}
-                    onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
-                    placeholder="DUM"
-                    maxLength={10}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
-                    data-testid="input-token-symbol"
-                  />
-                </div>
+              <div>
+                <label className="text-xs text-gray-400 block mb-2 font-bold">TICKER *</label>
+                <input
+                  type="text"
+                  value={formData.symbol}
+                  onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
+                  placeholder="Add a coin ticker (e.g., DUNI)"
+                  maxLength={10}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
+                  data-testid="input-token-symbol"
+                />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-gray-400 block mb-1">DESCRIPTION</label>
+              <label className="text-xs text-gray-400 block mb-2 font-bold">DESCRIPTION (OPTIONAL)</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Tell the world about your token..."
+                placeholder="Write a short description"
                 rows={3}
                 maxLength={500}
                 className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none resize-none"
@@ -137,12 +128,18 @@ export default function CreateToken() {
             </div>
           </div>
 
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6 space-y-4">
-            <h3 className="font-bold text-gray-300">SOCIAL LINKS (Optional)</h3>
+          {/* Social Links Section */}
+          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <button
+              type="button"
+              className="flex items-center gap-2 text-sm font-bold text-gray-300 hover:text-white transition-colors mb-4"
+            >
+              <span>+ ADD SOCIAL LINKS (OPTIONAL)</span>
+            </button>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               <div>
-                <label className="text-xs text-gray-400 block mb-1">TWITTER</label>
+                <label className="text-xs text-gray-400 block mb-2 font-bold">TWITTER</label>
                 <input
                   type="url"
                   value={formData.twitter}
@@ -152,7 +149,7 @@ export default function CreateToken() {
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-1">TELEGRAM</label>
+                <label className="text-xs text-gray-400 block mb-2 font-bold">TELEGRAM</label>
                 <input
                   type="url"
                   value={formData.telegram}
@@ -161,8 +158,8 @@ export default function CreateToken() {
                   className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white text-sm focus:border-red-500 focus:outline-none"
                 />
               </div>
-              <div className="md:col-span-2">
-                <label className="text-xs text-gray-400 block mb-1">WEBSITE</label>
+              <div>
+                <label className="text-xs text-gray-400 block mb-2 font-bold">WEBSITE</label>
                 <input
                   type="url"
                   value={formData.website}
@@ -174,13 +171,75 @@ export default function CreateToken() {
             </div>
           </div>
 
-          <div className="bg-zinc-900 border border-yellow-600/30 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-sm text-gray-300 font-bold">LAUNCH COST</p>
-                <p className="text-xs text-gray-500">Paid to deploy on Solana</p>
+          {/* Image Upload Section */}
+          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <h2 className="text-sm font-black text-red-500 mb-4 uppercase">COIN IMAGE</h2>
+            
+            <div className="border-2 border-dashed border-red-600/50 rounded-lg p-8 text-center hover:border-red-600/80 transition-colors">
+              {imagePreview ? (
+                <div className="space-y-4">
+                  <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border border-red-600/30">
+                    <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-gray-400 text-sm font-mono">{fileName}</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setImagePreview(null);
+                        setFileName(null);
+                      }}
+                      className="text-red-400 hover:text-red-300 text-xs mt-2 underline"
+                    >
+                      Change image
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="cursor-pointer block">
+                  <div className="space-y-2">
+                    <Upload className="w-8 h-8 mx-auto text-red-500/50" />
+                    <p className="text-gray-400 text-sm">Select video or image to upload</p>
+                    <p className="text-gray-500 text-xs">or drag and drop here</p>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*,video/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    data-testid="input-token-image"
+                  />
+                </label>
+              )}
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="bg-zinc-800 border border-zinc-700 rounded p-3">
+                <p className="text-xs text-gray-400 font-bold mb-1">File size and type</p>
+                <ul className="text-xs text-gray-500 space-y-0.5">
+                  <li>• Image: <span className="text-gray-400">2mb</span></li>
+                  <li>• Video: <span className="text-gray-400">2mb</span></li>
+                  <li>• Format: <span className="text-gray-400">JPG, PNG or MP4</span></li>
+                </ul>
               </div>
-              <p className="text-xl font-mono text-yellow-500">~0.02 SOL</p>
+              <div className="bg-zinc-800 border border-zinc-700 rounded p-3">
+                <p className="text-xs text-gray-400 font-bold mb-1">Resolution and aspect ratio</p>
+                <ul className="text-xs text-gray-500 space-y-0.5">
+                  <li>• Image: <span className="text-gray-400">1000x1000px</span></li>
+                  <li>• Video: <span className="text-gray-400">16:9, 1080x600px</span></li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Launch Cost Section */}
+          <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-yellow-500 font-bold text-sm">LAUNCH COST: ~0.02 SOL</p>
+                <p className="text-gray-400 text-xs mt-1">Paid to deploy on Solana blockchain</p>
+              </div>
             </div>
           </div>
 
@@ -193,7 +252,7 @@ export default function CreateToken() {
               data-testid="button-create-token"
             >
               <Zap className="w-5 h-5" />
-              CREATE TOKEN
+              CREATE COIN
             </motion.button>
           ) : (
             <div className="text-center py-4">
