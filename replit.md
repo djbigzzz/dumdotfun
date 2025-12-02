@@ -12,9 +12,12 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 
 ## Current Features
 
-- **Token Listings**: Real-time token feed from Pump.fun API showing name, symbol, image, bonding curve progress, and market cap
+- **Token Listings**: Real-time token feed from Pump.fun API with search, filtering by trending/new/graduating/graduated
+- **Token Search & Filters**: Search by name/symbol/mint, filter by market cap, creation date, or bonding curve progress
 - **Token Details**: Individual token pages with full info, price, creator, social links, and trading interface
 - **Wallet Connection**: Phantom wallet integration with message signing for verification
+- **User Profile**: Wallet address display with copy button, Solscan link, join date tracking, quick navigation
+- **Live Activity Feed**: Real-time updates showing new tokens, trades, and graduations from WebSocket
 - **Create Token**: Form UI ready (actual creation links to Pump.fun for now)
 
 ## System Architecture
@@ -140,6 +143,24 @@ The platform includes WebSocket integration for real-time token updates:
 - Shows graduation events (GRADUATED)
 - Updates token data in React Query cache
 
+### Session Completed Features (Latest)
+
+**Turn 1-2: WebSocket & Search/Filter**
+- Integrated PumpPortal WebSocket for real-time new token creation events
+- Implemented live activity feed showing NEW, GRADUATED, and trade events
+- Added comprehensive search and filtering system with 4 filter modes
+- Fixed all data integrity issues - no mock data fallbacks
+
+**Turn 3: Profile Page Enhancement**
+- Redesigned profile page with modern card-based layout
+- Added wallet address copy functionality with visual feedback
+- Integrated Solscan link for on-chain verification
+- Added stat cards showing join date (active, in days)
+- Placeholder stat cards for future tokens created and trades tracking
+- Quick action buttons for navigation to browse or create tokens
+
 ### Future Development
-- Token creation directly on platform via deployed contract
-- Profile page with wallet stats and trading history
+- Complete token creation on platform via deployed bonding curve contract
+- Implement tokens created and trading history stats (requires contract integration)
+- Portfolio tracking and trading analytics
+- Advanced trading features (slippage settings, batch trades)
