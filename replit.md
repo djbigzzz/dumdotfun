@@ -51,6 +51,8 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - `POST /api/users/connect` - Create user from wallet connection
 - `GET /api/users/wallet/:address` - Get user by wallet
 - `POST /api/waitlist` - Add email to waitlist
+- `GET /api/price/sol` - Get SOL price in USD (Jupiter API)
+- `GET /api/price/token/:mint` - Get token price in SOL and USD
 - `GET /api/trading/status` - Check if trading is enabled
 - `POST /api/trading/quote` - Get quote for buy/sell (requires deployed contract)
 - `POST /api/trading/buy` - Build buy transaction (requires deployed contract)
