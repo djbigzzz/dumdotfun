@@ -376,9 +376,27 @@ export default function Home() {
             ))}
           </div>
         ) : error ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 space-y-4">
             <p className="text-red-500 font-mono">Failed to load tokens</p>
-            <p className="text-gray-500 text-sm mt-2">Please try again later</p>
+            <p className="text-gray-500 text-sm">Pump.fun API is temporarily unavailable</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="text-blue-400 hover:text-blue-300 text-sm underline"
+            >
+              Try again
+            </button>
+            <p className="text-gray-600 text-xs mt-4">
+              Or create your own token while you wait
+            </p>
+            <Link href="/create">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-2 px-4 rounded text-sm border border-green-400/50"
+              >
+                Create Token
+              </motion.button>
+            </Link>
           </div>
         ) : tokens && filteredTokens.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

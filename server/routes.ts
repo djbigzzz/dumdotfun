@@ -2,11 +2,12 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
-import { insertWaitlistSchema, insertUserSchema, insertTokenSchema } from "@shared/schema";
+import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, tokens as tokensTable } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
 import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
+import { db } from "./db";
 
 interface PumpFunToken {
   mint: string;
@@ -68,34 +69,86 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/tokens", async (req, res) => {
     try {
-      const response = await fetch("https://frontend-api.pump.fun/coins?offset=0&limit=24&sort=last_trade_timestamp&order=DESC&includeNsfw=false");
+      // Try to fetch from Pump.fun with retry logic
+      let response = null;
+      let retries = 0;
+      const maxRetries = 2;
       
-      if (!response.ok) {
-        console.error("Pump.fun API returned:", response.status);
-        return res.status(503).json({ error: "Unable to fetch tokens from Pump.fun API. Please try again later." });
+      while (retries < maxRetries && !response?.ok) {
+        try {
+          response = await fetch("https://frontend-api.pump.fun/coins?offset=0&limit=24&sort=last_trade_timestamp&order=DESC&includeNsfw=false");
+          
+          if (response.ok) break;
+          
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise(r => setTimeout(r, 1000 * retries)); // exponential backoff
+          }
+        } catch (err) {
+          retries++;
+          if (retries < maxRetries) {
+            await new Promise(r => setTimeout(r, 1000 * retries));
+          }
+        }
       }
-
-      const data: PumpFunToken[] = await response.json();
       
-      const tokens = data.map(token => ({
-        mint: token.mint,
-        name: token.name || "Unknown",
-        symbol: token.symbol || "???",
-        imageUri: token.image_uri || null,
-        bondingCurveProgress: calculateBondingProgress(token),
-        marketCapSol: calculateMarketCapSol(token),
-        priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
-          ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
-          : 0,
-        creatorAddress: token.creator,
-        createdAt: new Date(token.created_timestamp).toISOString(),
-        isGraduated: token.complete,
-      }));
+      // If Pump.fun is available, use it
+      if (response?.ok) {
+        try {
+          const data: PumpFunToken[] = await response.json();
+          
+          const tokens = data.map(token => ({
+            mint: token.mint,
+            name: token.name || "Unknown",
+            symbol: token.symbol || "???",
+            imageUri: token.image_uri || null,
+            bondingCurveProgress: calculateBondingProgress(token),
+            marketCapSol: calculateMarketCapSol(token),
+            priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
+              ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
+              : 0,
+            creatorAddress: token.creator,
+            createdAt: new Date(token.created_timestamp).toISOString(),
+            isGraduated: token.complete,
+          }));
 
-      return res.json(tokens);
+          return res.json(tokens);
+        } catch (parseErr) {
+          console.error("Error parsing Pump.fun response:", parseErr);
+        }
+      }
+      
+      // Fallback: Return user-created tokens from database
+      console.log("Pump.fun API unavailable, falling back to user-created tokens");
+      const dbTokens = await db.select().from(tokensTable).limit(24);
+      
+      if (dbTokens.length > 0) {
+        const formattedTokens = dbTokens.map((token: typeof tokensTable.$inferSelect) => ({
+          mint: token.mint,
+          name: token.name,
+          symbol: token.symbol,
+          imageUri: token.imageUri,
+          bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
+          marketCapSol: Number(token.marketCapSol) || 0,
+          priceInSol: Number(token.priceInSol) || 0,
+          creatorAddress: token.creatorAddress,
+          createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
+          isGraduated: token.isGraduated,
+          source: "local"
+        }));
+        
+        return res.json(formattedTokens);
+      }
+      
+      // If all else fails
+      console.error("Pump.fun API unavailable and no local tokens found");
+      return res.status(503).json({ 
+        error: "Pump.fun API is temporarily unavailable. No local tokens to display.",
+        suggestion: "Try creating your own token or check back in a few moments."
+      });
     } catch (error: any) {
       console.error("Error fetching tokens:", error);
-      return res.status(503).json({ error: "Unable to connect to Pump.fun API. Please try again later." });
+      return res.status(500).json({ error: "Server error while fetching tokens" });
     }
   });
 
