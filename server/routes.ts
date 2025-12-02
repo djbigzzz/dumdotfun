@@ -141,13 +141,8 @@ export async function registerRoutes(
     try {
       const { walletAddress } = req.body;
 
-      if (!walletAddress || typeof walletAddress !== "string") {
+      if (!walletAddress || typeof walletAddress !== "string" || walletAddress.length < 32) {
         return res.status(400).json({ error: "Wallet address is required" });
-      }
-
-      const isValid = await isValidSolanaAddress(walletAddress);
-      if (!isValid) {
-        return res.status(400).json({ error: "Invalid Solana wallet address" });
       }
 
       const existing = await storage.getUserByWallet(walletAddress);
