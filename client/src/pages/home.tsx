@@ -2,9 +2,9 @@ import { Layout } from "@/components/layout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { Flame, TrendingUp, Zap, Crown, Radio, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { Flame, TrendingUp, Zap, Crown, Radio, ArrowUpRight, ArrowDownRight, Search, X } from "lucide-react";
 import { useWebSocket } from "@/lib/use-websocket";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 
 interface Token {
   mint: string;
@@ -114,6 +114,8 @@ export default function Home() {
   const queryClient = useQueryClient();
   const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
   const [wsConnected, setWsConnected] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [activeFilter, setActiveFilter] = useState<"trending" | "new" | "graduating" | "graduated">("trending");
 
   const handleWebSocketUpdate = useCallback((update: any) => {
     if (update.type === "connected") {
@@ -169,6 +171,37 @@ export default function Home() {
     refetchInterval: 30000,
   });
 
+  // Filter and search tokens
+  const filteredTokens = useMemo(() => {
+    if (!tokens) return [];
+    
+    let filtered = [...tokens];
+    
+    // Apply search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(
+        (token) =>
+          token.name.toLowerCase().includes(query) ||
+          token.symbol.toLowerCase().includes(query) ||
+          token.mint.toLowerCase().includes(query)
+      );
+    }
+    
+    // Apply category filter
+    if (activeFilter === "trending") {
+      filtered.sort((a, b) => b.marketCapSol - a.marketCapSol);
+    } else if (activeFilter === "new") {
+      filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    } else if (activeFilter === "graduating") {
+      filtered = filtered.filter((token) => token.bondingCurveProgress >= 80 && token.bondingCurveProgress < 100);
+    } else if (activeFilter === "graduated") {
+      filtered = filtered.filter((token) => token.bondingCurveProgress >= 100);
+    }
+    
+    return filtered;
+  }, [tokens, searchQuery, activeFilter]);
+
   return (
     <Layout>
       <div className="space-y-8">
@@ -203,20 +236,78 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="flex gap-4 overflow-x-auto pb-2">
-          <button data-testid="button-filter-trending" className="bg-red-600 text-white font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap">
-            <TrendingUp className="w-4 h-4 inline mr-1" />
-            Trending
-          </button>
-          <button data-testid="button-filter-new" className="bg-zinc-800 text-gray-300 font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap hover:bg-zinc-700">
-            New
-          </button>
-          <button data-testid="button-filter-graduating" className="bg-zinc-800 text-gray-300 font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap hover:bg-zinc-700">
-            Graduating
-          </button>
-          <button data-testid="button-filter-graduated" className="bg-zinc-800 text-gray-300 font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap hover:bg-zinc-700">
-            Graduated
-          </button>
+        <div className="space-y-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+            <input
+              type="text"
+              placeholder="Search tokens by name, symbol, or mint..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-zinc-900 border border-red-600/30 rounded-lg pl-10 pr-3 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
+              data-testid="input-search-tokens"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-400"
+                data-testid="button-clear-search"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto pb-2">
+            <button
+              onClick={() => setActiveFilter("trending")}
+              data-testid="button-filter-trending"
+              className={`font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
+                activeFilter === "trending"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 inline mr-1" />
+              Trending
+            </button>
+            <button
+              onClick={() => setActiveFilter("new")}
+              data-testid="button-filter-new"
+              className={`font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
+                activeFilter === "new"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+              }`}
+            >
+              <Zap className="w-4 h-4 inline mr-1" />
+              New
+            </button>
+            <button
+              onClick={() => setActiveFilter("graduating")}
+              data-testid="button-filter-graduating"
+              className={`font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
+                activeFilter === "graduating"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+              }`}
+            >
+              <TrendingUp className="w-4 h-4 inline mr-1" />
+              Graduating
+            </button>
+            <button
+              onClick={() => setActiveFilter("graduated")}
+              data-testid="button-filter-graduated"
+              className={`font-bold px-4 py-2 rounded-lg text-sm whitespace-nowrap transition-all ${
+                activeFilter === "graduated"
+                  ? "bg-red-600 text-white"
+                  : "bg-zinc-800 text-gray-300 hover:bg-zinc-700"
+              }`}
+            >
+              <Crown className="w-4 h-4 inline mr-1" />
+              Graduated
+            </button>
+          </div>
         </div>
 
         {liveActivities.length > 0 && (
@@ -289,11 +380,22 @@ export default function Home() {
             <p className="text-red-500 font-mono">Failed to load tokens</p>
             <p className="text-gray-500 text-sm mt-2">Please try again later</p>
           </div>
-        ) : tokens && tokens.length > 0 ? (
+        ) : tokens && filteredTokens.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {tokens.map((token, index) => (
+            {filteredTokens.map((token, index) => (
               <TokenCard key={token.mint} token={token} index={index} />
             ))}
+          </div>
+        ) : tokens && tokens.length > 0 ? (
+          <div className="text-center py-12 space-y-4">
+            <p className="text-gray-400 font-mono">No tokens match your search</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className="text-gray-500 text-sm hover:text-gray-400 underline"
+              data-testid="button-clear-filters"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
           <div className="text-center py-12 space-y-4">
