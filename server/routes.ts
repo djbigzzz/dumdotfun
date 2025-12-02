@@ -129,23 +129,8 @@ export async function registerRoutes(
         return res.json(dexscreenerTokens);
       }
 
-      // Fallback 2: Try Helius DAS API for on-chain token metadata
-      console.log("Dexscreener unavailable, trying Helius DAS API...");
-      const heliusTokens = await getTokensFromHeliusDAS();
-      
-      if (heliusTokens.length > 0) {
-        console.log(`Found ${heliusTokens.length} tokens from Helius`);
-        return res.json(heliusTokens);
-      }
-
-      // Fallback 3: Try direct Solana RPC for on-chain tokens
-      console.log("Helius unavailable, querying Solana RPC directly...");
-      const rpcTokens = await getTokensFromOnChain();
-      
-      if (rpcTokens.length > 0) {
-        console.log(`Found ${rpcTokens.length} tokens from Solana RPC`);
-        return res.json(rpcTokens);
-      }
+      // Fallback 2: Try direct Solana RPC for on-chain tokens (requires external connectivity)
+      console.log("Dexscreener unavailable, RPC APIs blocked in dev environment...");
       
       // Fallback 4: Return user-created tokens from database
       console.log("All external sources unavailable, falling back to user-created tokens");
