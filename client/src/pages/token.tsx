@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Users, Clock, Twitter, MessageCircle, Globe } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 
 interface TokenDetail {
   mint: string;

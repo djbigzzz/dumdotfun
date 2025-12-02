@@ -4,6 +4,7 @@ import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
+import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG } from "./trading";
 
 interface PumpFunToken {
   mint: string;
@@ -251,6 +252,98 @@ export async function registerRoutes(
       return res.status(500).json({ 
         error: error.message || "Failed to analyze wallet" 
       });
+    }
+  });
+
+  // Trading endpoints
+  app.get("/api/trading/status", async (req, res) => {
+    const isReady = TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID !== "11111111111111111111111111111111";
+    return res.json({
+      tradingEnabled: isReady,
+      message: isReady 
+        ? "Trading is available" 
+        : "Trading coming soon - bonding curve contract not yet deployed",
+      programId: isReady ? TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID : null,
+    });
+  });
+
+  app.post("/api/trading/quote", async (req, res) => {
+    try {
+      const { userWallet, tokenMint, amount, isBuy } = req.body;
+
+      if (!userWallet || !tokenMint || !amount) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      const result = await getTradeQuote({
+        userWallet,
+        tokenMint,
+        amount: amount.toString(),
+        isBuy: isBuy === true,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error getting quote:", error);
+      return res.status(500).json({ error: "Failed to get quote" });
+    }
+  });
+
+  app.post("/api/trading/buy", async (req, res) => {
+    try {
+      const { userWallet, tokenMint, amount, slippageBps } = req.body;
+
+      if (!userWallet || !tokenMint || !amount) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      const result = await buildBuyTransaction({
+        userWallet,
+        tokenMint,
+        amount: amount.toString(),
+        slippageBps,
+        isBuy: true,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error building buy transaction:", error);
+      return res.status(500).json({ error: "Failed to build transaction" });
+    }
+  });
+
+  app.post("/api/trading/sell", async (req, res) => {
+    try {
+      const { userWallet, tokenMint, amount, slippageBps } = req.body;
+
+      if (!userWallet || !tokenMint || !amount) {
+        return res.status(400).json({ error: "Missing required parameters" });
+      }
+
+      const result = await buildSellTransaction({
+        userWallet,
+        tokenMint,
+        amount: amount.toString(),
+        slippageBps,
+        isBuy: false,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error building sell transaction:", error);
+      return res.status(500).json({ error: "Failed to build transaction" });
     }
   });
 
