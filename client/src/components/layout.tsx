@@ -52,12 +52,24 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState<"connect" | "sign">("connect");
 
+  useEffect(() => {
+    if (isOpen) {
+      setStep("connect");
+      setLoading(false);
+    }
+  }, [isOpen]);
+
   const handleConnect = async () => {
     setLoading(true);
     try {
       await connectWallet();
-      setStep("sign");
+      // Give Phantom a moment to update, then check if wallet is connected
+      setTimeout(() => {
+        setStep("sign");
+        setLoading(false);
+      }, 500);
     } catch (err) {
+      console.error("Connect error:", err);
       toast.error("Failed to connect wallet");
       setLoading(false);
     }
@@ -67,22 +79,19 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
     setLoading(true);
     try {
       const message = "Sign in to Dum.fun";
-      await signMessage(message);
+      const signature = await signMessage(message);
+      if (!signature) throw new Error("No signature received");
+      
       await onConnect();
+      toast.success("Wallet connected!");
       onClose();
       setStep("connect");
-    } catch (err) {
-      toast.error("Failed to sign message");
-    } finally {
+    } catch (err: any) {
+      console.error("Sign error:", err);
+      toast.error(err?.message || "Failed to sign message");
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (connectedWallet && step === "connect") {
-      setStep("sign");
-    }
-  }, [connectedWallet, step]);
 
   if (!isOpen) return null;
 
