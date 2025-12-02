@@ -8,6 +8,7 @@ import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFI
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
+import { getTokensFromDexscreener } from "./dexscreener";
 
 interface PumpFunToken {
   mint: string;
@@ -118,8 +119,17 @@ export async function registerRoutes(
         }
       }
       
-      // Fallback: Return user-created tokens from database
-      console.log("Pump.fun API unavailable, falling back to user-created tokens");
+      // Fallback 1: Try Dexscreener for live trending tokens
+      console.log("Pump.fun API unavailable, trying Dexscreener...");
+      const dexscreenerTokens = await getTokensFromDexscreener();
+      
+      if (dexscreenerTokens.length > 0) {
+        console.log(`Found ${dexscreenerTokens.length} tokens from Dexscreener`);
+        return res.json(dexscreenerTokens);
+      }
+      
+      // Fallback 2: Return user-created tokens from database
+      console.log("Dexscreener unavailable, falling back to user-created tokens");
       const dbTokens = await db.select().from(tokensTable).limit(24);
       
       if (dbTokens.length > 0) {
@@ -141,9 +151,9 @@ export async function registerRoutes(
       }
       
       // If all else fails
-      console.error("Pump.fun API unavailable and no local tokens found");
+      console.error("All token sources unavailable");
       return res.status(503).json({ 
-        error: "Pump.fun API is temporarily unavailable. No local tokens to display.",
+        error: "Unable to fetch tokens from available sources.",
         suggestion: "Try creating your own token or check back in a few moments."
       });
     } catch (error: any) {
