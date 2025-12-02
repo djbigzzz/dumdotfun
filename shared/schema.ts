@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, real, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, real, boolean, decimal } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -48,6 +48,46 @@ export const waitlist = pgTable("waitlist", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const predictionMarkets = pgTable("prediction_markets", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  question: text("question").notNull(),
+  description: text("description"),
+  imageUri: text("image_uri"),
+  creatorAddress: text("creator_address").notNull(),
+  marketType: text("market_type").notNull().default("general"),
+  tokenMint: text("token_mint"),
+  resolutionDate: timestamp("resolution_date").notNull(),
+  status: text("status").notNull().default("open"),
+  outcome: text("outcome"),
+  yesPool: decimal("yes_pool", { precision: 20, scale: 9 }).notNull().default("0"),
+  noPool: decimal("no_pool", { precision: 20, scale: 9 }).notNull().default("0"),
+  totalVolume: decimal("total_volume", { precision: 20, scale: 9 }).notNull().default("0"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at"),
+});
+
+export const positions = pgTable("positions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  marketId: varchar("market_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  side: text("side").notNull(),
+  amount: decimal("amount", { precision: 20, scale: 9 }).notNull(),
+  shares: decimal("shares", { precision: 20, scale: 9 }).notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const activityFeed = pgTable("activity_feed", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  activityType: text("activity_type").notNull(),
+  walletAddress: text("wallet_address"),
+  tokenMint: text("token_mint"),
+  marketId: varchar("market_id"),
+  amount: decimal("amount", { precision: 20, scale: 9 }),
+  side: text("side"),
+  metadata: text("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
@@ -80,6 +120,38 @@ export const insertWaitlistSchema = createInsertSchema(waitlist).omit({
   createdAt: true,
 });
 
+export const insertMarketSchema = createInsertSchema(predictionMarkets).omit({
+  id: true,
+  createdAt: true,
+  resolvedAt: true,
+  yesPool: true,
+  noPool: true,
+  totalVolume: true,
+  status: true,
+  outcome: true,
+}).partial({
+  description: true,
+  imageUri: true,
+  tokenMint: true,
+});
+
+export const insertPositionSchema = createInsertSchema(positions).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activityFeed).omit({
+  id: true,
+  createdAt: true,
+}).partial({
+  walletAddress: true,
+  tokenMint: true,
+  marketId: true,
+  amount: true,
+  side: true,
+  metadata: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertToken = z.infer<typeof insertTokenSchema>;
@@ -88,3 +160,9 @@ export type InsertWalletAnalysis = z.infer<typeof insertWalletAnalysisSchema>;
 export type WalletAnalysis = typeof walletAnalysis.$inferSelect;
 export type InsertWaitlist = z.infer<typeof insertWaitlistSchema>;
 export type Waitlist = typeof waitlist.$inferSelect;
+export type InsertMarket = z.infer<typeof insertMarketSchema>;
+export type Market = typeof predictionMarkets.$inferSelect;
+export type InsertPosition = z.infer<typeof insertPositionSchema>;
+export type Position = typeof positions.$inferSelect;
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type Activity = typeof activityFeed.$inferSelect;

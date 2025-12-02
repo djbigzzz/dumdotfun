@@ -10,6 +10,8 @@ import Home from "@/pages/home";
 import Profile from "@/pages/profile";
 import TokenPage from "@/pages/token";
 import CreateToken from "@/pages/create";
+import CreateMarket from "@/pages/create-market";
+import MarketDetail from "@/pages/market";
 
 function Router() {
   return (
@@ -18,6 +20,8 @@ function Router() {
       <Route path="/profile" component={Profile} />
       <Route path="/token/:mint" component={TokenPage} />
       <Route path="/create" component={CreateToken} />
+      <Route path="/create-market" component={CreateMarket} />
+      <Route path="/market/:id" component={MarketDetail} />
       <Route component={NotFound} />
     </Switch>
   );

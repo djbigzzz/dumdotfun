@@ -1,8 +1,13 @@
-# Dum.fun - Solana Meme Coin Launchpad
+# Dum.fun - Solana Token Launchpad + Prediction Markets
 
 ## Overview
 
-Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalist aesthetic with high-contrast colors and bold design. The platform allows users to browse live meme tokens, view bonding curve progress, and eventually create/trade tokens. Built as a full-stack TypeScript application with React frontend and Express backend, integrating with Pump.fun's API for real token data.
+Dum.fun is a combined token launchpad AND prediction market platform for Solana. It features a neo-brutalist aesthetic with high-contrast colors and bold design. Users can:
+- Launch meme tokens with bonding curves
+- Create and bet on prediction markets (yes/no outcomes)
+- Bet on token-specific predictions (graduation, market cap targets)
+
+Built as a full-stack TypeScript application with React frontend, Express backend, and PostgreSQL database.
 
 ## User Preferences
 
@@ -12,13 +17,25 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 
 ## Current Features
 
+### Token Launchpad
 - **Token Listings**: Token feed from dum.fun database (tokens created on the platform)
 - **Token Creation**: Full-featured token creation form saving metadata to database with image upload
 - **Token Details**: Individual token pages with full info, price, creator, social links
-- **Wallet Connection**: Phantom wallet integration with message signing for verification
-- **User Profile**: Wallet address display with copy button, Solscan link, join date tracking, quick navigation
-- **Live Activity Feed**: Real-time updates showing new tokens, trades, and graduations from WebSocket
-- **Platform-Native Tokens**: All tokens are user-created on dum.fun (no external Pump.fun feed)
+- **Bonding Curves**: Automatic price discovery mechanism (pending contract deployment)
+
+### Prediction Markets
+- **Market Creation**: Create yes/no prediction markets with resolution dates
+- **Betting Interface**: Place bets on YES or NO outcomes using SOL
+- **CPMM Odds**: Constant Product Market Maker for dynamic odds calculation
+- **Market Types**: General predictions or token-specific predictions
+- **Atomic Transactions**: All bets execute as single database transactions
+
+### Platform Features
+- **Dual-Tab Home**: Switch between Tokens and Predictions views
+- **Wallet Connection**: Phantom wallet integration with message signing
+- **User Profile**: Wallet address display with copy button, Solscan link, join date tracking
+- **Live Activity Feed**: Real-time updates showing tokens, trades, and bets
+- **Search & Filter**: Find tokens and markets by name/question
 
 ## System Architecture
 
@@ -31,9 +48,11 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - TanStack Query for server state and caching
 
 **Pages**
-- `/` - Home page with live token grid
+- `/` - Home page with dual tabs (Tokens / Predictions)
 - `/token/:mint` - Token detail page with trading interface
 - `/create` - Token creation form
+- `/create-market` - Prediction market creation form
+- `/market/:id` - Market detail page with betting interface
 - `/profile` - User profile (wallet address, join date)
 
 **UI Component System**
@@ -63,6 +82,14 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - `POST /api/trading/buy` - Build buy transaction (requires deployed contract)
 - `POST /api/trading/sell` - Build sell transaction (requires deployed contract)
 
+**Prediction Market Endpoints**
+- `GET /api/markets` - Fetch all prediction markets with odds
+- `GET /api/markets/:id` - Get single market with positions count
+- `POST /api/markets/create` - Create new prediction market
+- `POST /api/markets/:id/bet` - Place bet on market (atomic transaction)
+- `GET /api/positions/wallet/:address` - Get user's positions
+- `GET /api/activity` - Get recent activity feed
+
 **Platform Architecture**
 - Dum.fun is a dedicated launchpad for user-created tokens only (no external feeds)
 - All tokens saved to PostgreSQL database
@@ -87,6 +114,23 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - isGraduated, deploymentStatus (pending/deployed/graduated)
 - twitter, telegram, website (social links)
 - createdAt, updatedAt
+
+**prediction_markets table**
+- id (UUID), question, description, imageUri
+- creatorAddress, marketType (general/token), tokenMint
+- resolutionDate, status (open/resolved), outcome
+- yesPool, noPool, totalVolume (decimal precision)
+- createdAt, resolvedAt
+
+**positions table**
+- id (UUID), marketId, walletAddress
+- side (yes/no), amount, shares
+- createdAt
+
+**activity_feed table**
+- id (UUID), activityType, walletAddress
+- tokenMint, marketId, amount, side, metadata
+- createdAt
 
 ### Wallet Integration
 
