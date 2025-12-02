@@ -95,6 +95,15 @@ export class MemStorage implements IStorage {
     const token: Token = {
       ...insertToken,
       id,
+      description: insertToken.description ?? null,
+      imageUri: insertToken.imageUri ?? null,
+      twitter: insertToken.twitter ?? null,
+      telegram: insertToken.telegram ?? null,
+      website: insertToken.website ?? null,
+      bondingCurveProgress: 0,
+      marketCapSol: 0,
+      priceInSol: 0.000001,
+      isGraduated: false,
       createdAt: now,
       updatedAt: now,
     };
