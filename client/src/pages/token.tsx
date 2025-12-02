@@ -3,9 +3,23 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle } from "lucide-react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+
+interface TokenPrediction {
+  id: string;
+  question: string;
+  description: string | null;
+  yesOdds: number;
+  noOdds: number;
+  yesPool: number;
+  noPool: number;
+  totalVolume: number;
+  status: string;
+  resolutionDate: string;
+  createdAt: string;
+}
 
 interface TokenDetail {
   mint: string;
@@ -25,6 +39,7 @@ interface TokenDetail {
   virtualSolReserves: number;
   virtualTokenReserves: number;
   totalSupply: number;
+  predictions?: TokenPrediction[];
 }
 
 interface TradingStatus {
@@ -207,6 +222,85 @@ export default function TokenPage() {
                   {new Date(token.createdAt).toLocaleDateString()}
                 </p>
               </div>
+            </div>
+
+            <div className="bg-zinc-900 border border-yellow-500/30 rounded-lg p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-yellow-500" />
+                  <h2 className="text-lg font-black text-yellow-500">PREDICTION MARKETS</h2>
+                </div>
+                <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
+                  <button className="flex items-center gap-1 text-xs text-yellow-500 hover:text-yellow-400 font-bold bg-yellow-500/10 px-3 py-1.5 rounded">
+                    <Plus className="w-3 h-3" />
+                    CREATE
+                  </button>
+                </Link>
+              </div>
+              
+              {token.predictions && token.predictions.length > 0 ? (
+                <div className="space-y-3">
+                  {token.predictions.map((prediction) => {
+                    const timeLeft = new Date(prediction.resolutionDate).getTime() - Date.now();
+                    const daysLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
+                    const hoursLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+                    const isExpired = timeLeft <= 0;
+                    
+                    return (
+                      <Link key={prediction.id} href={`/market/${prediction.id}`}>
+                        <div 
+                          className="bg-zinc-800/50 border border-yellow-500/20 rounded-lg p-4 hover:bg-zinc-800 hover:border-yellow-500/40 transition-all cursor-pointer"
+                          data-testid={`prediction-${prediction.id}`}
+                        >
+                          <p className="font-bold text-white text-sm mb-2">{prediction.question}</p>
+                          
+                          <div className="grid grid-cols-2 gap-2 mb-3">
+                            <button
+                              className="bg-green-600/20 border border-green-600/40 rounded py-2 px-3 text-center hover:bg-green-600/30 transition-colors"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <span className="block text-green-400 font-black text-lg">{prediction.yesOdds}%</span>
+                              <span className="block text-xs text-gray-400">YES</span>
+                            </button>
+                            <button
+                              className="bg-red-600/20 border border-red-600/40 rounded py-2 px-3 text-center hover:bg-red-600/30 transition-colors"
+                              onClick={(e) => e.preventDefault()}
+                            >
+                              <span className="block text-red-400 font-black text-lg">{prediction.noOdds}%</span>
+                              <span className="block text-xs text-gray-400">NO</span>
+                            </button>
+                          </div>
+                          
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <Users className="w-3 h-3" />
+                              {prediction.totalVolume.toFixed(2)} SOL volume
+                            </span>
+                            <span className="flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {prediction.status === "resolved" ? (
+                                "RESOLVED"
+                              ) : isExpired ? (
+                                <span className="text-yellow-400">PENDING</span>
+                              ) : daysLeft > 0 ? (
+                                `${daysLeft}d ${hoursLeft}h`
+                              ) : (
+                                `${hoursLeft}h left`
+                              )}
+                            </span>
+                          </div>
+                        </div>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-6">
+                  <Target className="w-10 h-10 text-yellow-500/30 mx-auto mb-2" />
+                  <p className="text-gray-500 text-sm">No prediction markets for this token yet</p>
+                  <p className="text-gray-600 text-xs mt-1">Be the first to create one!</p>
+                </div>
+              )}
             </div>
           </div>
 

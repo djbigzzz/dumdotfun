@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { useLocation } from "wouter";
-import { Target, Calendar, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import { useLocation, useSearch } from "wouter";
+import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
 import { useWallet } from "@/lib/wallet-context";
+import { Link } from "wouter";
 
 interface MarketFormData {
   question: string;
@@ -16,17 +17,33 @@ interface MarketFormData {
 
 export default function CreateMarket() {
   const [, setLocation] = useLocation();
+  const searchString = useSearch();
   const { connectedWallet, connectWallet } = useWallet();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
+  
+  const searchParams = new URLSearchParams(searchString);
+  const prefilledToken = searchParams.get("token");
+  const prefilledTokenName = searchParams.get("name");
+  
   const [formData, setFormData] = useState<MarketFormData>({
     question: "",
     description: "",
-    marketType: "general",
-    tokenMint: "",
+    marketType: prefilledToken ? "token" : "general",
+    tokenMint: prefilledToken || "",
     resolutionDate: "",
   });
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (prefilledToken) {
+      setFormData(prev => ({
+        ...prev,
+        marketType: "token",
+        tokenMint: prefilledToken,
+      }));
+    }
+  }, [prefilledToken]);
 
   const createMarketMutation = useMutation({
     mutationFn: async (data: MarketFormData) => {
@@ -89,6 +106,15 @@ export default function CreateMarket() {
   return (
     <Layout>
       <div className="max-w-2xl mx-auto">
+        {prefilledToken && (
+          <Link href={`/token/${prefilledToken}`}>
+            <button className="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-mono mb-4">
+              <ArrowLeft className="w-4 h-4" />
+              Back to {prefilledTokenName || "token"}
+            </button>
+          </Link>
+        )}
+        
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,7 +126,11 @@ export default function CreateMarket() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white">CREATE PREDICTION MARKET</h1>
-              <p className="text-gray-400 text-sm">Ask a question, let the crowd predict</p>
+              <p className="text-gray-400 text-sm">
+                {prefilledTokenName 
+                  ? `Create a prediction for ${prefilledTokenName}` 
+                  : "Ask a question, let the crowd predict"}
+              </p>
             </div>
           </div>
 

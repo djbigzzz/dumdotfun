@@ -17,24 +17,43 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/tokens", async (req, res) => {
     try {
-      // Fetch tokens created on dum.fun from database
       const dbTokens = await db.select().from(tokensTable).limit(24);
       
-      const formattedTokens = dbTokens.map((token: typeof tokensTable.$inferSelect) => ({
-        mint: token.mint,
-        name: token.name,
-        symbol: token.symbol,
-        imageUri: token.imageUri,
-        bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
-        marketCapSol: Number(token.marketCapSol) || 0,
-        priceInSol: Number(token.priceInSol) || 0,
-        creatorAddress: token.creatorAddress,
-        createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
-        isGraduated: token.isGraduated,
-        source: "dum.fun"
-      }));
+      const tokensWithPredictions = await Promise.all(
+        dbTokens.map(async (token: typeof tokensTable.$inferSelect) => {
+          const linkedMarkets = await storage.getMarketsByTokenMint(token.mint);
+          const predictions = linkedMarkets.slice(0, 2).map(market => {
+            const yesPool = Number(market.yesPool) || 0;
+            const noPool = Number(market.noPool) || 0;
+            const total = yesPool + noPool;
+            return {
+              id: market.id,
+              question: market.question,
+              yesOdds: total > 0 ? Math.round((yesPool / total) * 100) : 50,
+              noOdds: total > 0 ? Math.round((noPool / total) * 100) : 50,
+              totalVolume: Number(market.totalVolume) || 0,
+              status: market.status,
+            };
+          });
+          
+          return {
+            mint: token.mint,
+            name: token.name,
+            symbol: token.symbol,
+            imageUri: token.imageUri,
+            bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
+            marketCapSol: Number(token.marketCapSol) || 0,
+            priceInSol: Number(token.priceInSol) || 0,
+            creatorAddress: token.creatorAddress,
+            createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
+            isGraduated: token.isGraduated,
+            source: "dum.fun",
+            predictions,
+          };
+        })
+      );
       
-      return res.json(formattedTokens);
+      return res.json(tokensWithPredictions);
     } catch (error: any) {
       console.error("Error fetching tokens:", error);
       return res.status(500).json({ error: "Server error while fetching tokens" });
@@ -52,6 +71,26 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Token not found on dum.fun" });
       }
 
+      const linkedMarkets = await storage.getMarketsByTokenMint(mint);
+      const predictions = linkedMarkets.map(market => {
+        const yesPool = Number(market.yesPool) || 0;
+        const noPool = Number(market.noPool) || 0;
+        const total = yesPool + noPool;
+        return {
+          id: market.id,
+          question: market.question,
+          description: market.description,
+          yesOdds: total > 0 ? Math.round((yesPool / total) * 100) : 50,
+          noOdds: total > 0 ? Math.round((noPool / total) * 100) : 50,
+          yesPool,
+          noPool,
+          totalVolume: Number(market.totalVolume) || 0,
+          status: market.status,
+          resolutionDate: market.resolutionDate,
+          createdAt: market.createdAt,
+        };
+      });
+
       return res.json({
         mint: token.mint,
         name: token.name,
@@ -67,11 +106,35 @@ export async function registerRoutes(
         website: token.website,
         createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
         isGraduated: token.isGraduated,
-        source: "dum.fun"
+        source: "dum.fun",
+        predictions,
       });
     } catch (error: any) {
       console.error("Error fetching token:", error);
       return res.status(500).json({ error: "Server error fetching token" });
+    }
+  });
+
+  app.get("/api/markets/general", async (req, res) => {
+    try {
+      const limit = Math.min(Number(req.query.limit) || 24, 50);
+      const markets = await storage.getGeneralMarkets(limit);
+      
+      const marketsWithOdds = markets.map(market => {
+        const yesPool = Number(market.yesPool) || 0;
+        const noPool = Number(market.noPool) || 0;
+        const total = yesPool + noPool;
+        return {
+          ...market,
+          yesOdds: total > 0 ? Math.round((yesPool / total) * 100) : 50,
+          noOdds: total > 0 ? Math.round((noPool / total) * 100) : 50,
+        };
+      });
+      
+      return res.json(marketsWithOdds);
+    } catch (error: any) {
+      console.error("Error fetching general markets:", error);
+      return res.status(500).json({ error: "Failed to fetch general markets" });
     }
   });
 
@@ -601,9 +664,9 @@ function calculateOdds(yesPool: number, noPool: number, side: "yes" | "no"): num
   if (total === 0) return 50;
   
   if (side === "yes") {
-    return Math.round((noPool / total) * 100);
-  } else {
     return Math.round((yesPool / total) * 100);
+  } else {
+    return Math.round((noPool / total) * 100);
   }
 }
 

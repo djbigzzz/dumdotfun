@@ -30,6 +30,12 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - **Market Types**: General predictions or token-specific predictions
 - **Atomic Transactions**: All bets execute as single database transactions
 
+### Integrated Token + Prediction UI
+- **Token Cards with Predictions**: Each token card shows up to 2 linked prediction markets with odds
+- **Token Detail + Predictions**: Token pages include full prediction markets section with betting
+- **General Predictions Rail**: Non-token predictions shown below token grid on home page
+- **Create from Token**: Create prediction directly from token page with pre-filled token link
+
 ### Platform Features
 - **Dual-Tab Home**: Switch between Tokens and Predictions views
 - **Wallet Connection**: Phantom wallet integration with message signing
@@ -68,8 +74,8 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - HTTP server on port 5000
 
 **API Endpoints**
-- `GET /api/tokens` - Fetch tokens created on dum.fun from database
-- `GET /api/tokens/:mint` - Get single token details from dum.fun
+- `GET /api/tokens` - Fetch tokens with embedded linked predictions (up to 2 per token)
+- `GET /api/tokens/:mint` - Get single token details with all linked predictions
 - `POST /api/tokens/create` - Create new token metadata (saves to database)
 - `GET /api/tokens/creator/:address` - Get tokens created by wallet address
 - `POST /api/users/connect` - Create user from wallet connection
@@ -84,6 +90,7 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 
 **Prediction Market Endpoints**
 - `GET /api/markets` - Fetch all prediction markets with odds
+- `GET /api/markets/general` - Fetch only general (non-token) markets
 - `GET /api/markets/:id` - Get single market with positions count
 - `POST /api/markets/create` - Create new prediction market
 - `POST /api/markets/:id/bet` - Place bet on market (atomic transaction)

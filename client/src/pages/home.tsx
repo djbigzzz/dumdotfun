@@ -6,6 +6,15 @@ import { Flame, TrendingUp, Zap, Crown, Radio, ArrowUpRight, ArrowDownRight, Sea
 import { useWebSocket } from "@/lib/use-websocket";
 import { useState, useEffect, useCallback, useMemo } from "react";
 
+interface TokenPrediction {
+  id: string;
+  question: string;
+  yesOdds: number;
+  noOdds: number;
+  totalVolume: number;
+  status: string;
+}
+
 interface Token {
   mint: string;
   name: string;
@@ -16,6 +25,7 @@ interface Token {
   priceInSol: number;
   creatorAddress: string;
   createdAt: string;
+  predictions?: TokenPrediction[];
 }
 
 interface Market {
@@ -58,77 +68,114 @@ function TokenCard({ token, index }: { token: Token; index: number }) {
     ? "bg-yellow-500" 
     : "bg-red-500";
 
+  const hasPredictions = token.predictions && token.predictions.length > 0;
+
   return (
-    <Link href={`/token/${token.mint}`}>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.05 }}
-        whileHover={{ scale: 1.02, y: -4 }}
-        className="bg-zinc-900 border border-red-600/30 rounded-lg p-4 cursor-pointer hover:border-red-500/60 transition-all group"
-        data-testid={`card-token-${token.mint}`}
-      >
-        <div className="flex items-start gap-3">
-          <div className="w-12 h-12 rounded-lg bg-zinc-800 border border-red-600/20 overflow-hidden flex-shrink-0">
-            {token.imageUri ? (
-              <img 
-                src={token.imageUri} 
-                alt={token.name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-red-500 font-black text-lg">
-                {token.symbol[0]}
-              </div>
-            )}
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="font-black text-white truncate group-hover:text-red-400 transition-colors">
-                {token.name}
-              </h3>
-              {index === 0 && (
-                <Crown className="w-4 h-4 text-yellow-500" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="bg-zinc-900 border border-red-600/30 rounded-lg overflow-hidden"
+      data-testid={`card-token-${token.mint}`}
+    >
+      <Link href={`/token/${token.mint}`}>
+        <div className="p-4 cursor-pointer hover:bg-zinc-800/50 transition-all group">
+          <div className="flex items-start gap-3">
+            <div className="w-12 h-12 rounded-lg bg-zinc-800 border border-red-600/20 overflow-hidden flex-shrink-0">
+              {token.imageUri ? (
+                <img 
+                  src={token.imageUri} 
+                  alt={token.name}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-red-500 font-black text-lg">
+                  {token.symbol[0]}
+                </div>
               )}
             </div>
-            <p className="text-xs font-mono text-gray-400">${token.symbol}</p>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-white truncate group-hover:text-red-400 transition-colors">
+                  {token.name}
+                </h3>
+                {index === 0 && (
+                  <Crown className="w-4 h-4 text-yellow-500" />
+                )}
+              </div>
+              <p className="text-xs font-mono text-gray-400">${token.symbol}</p>
+            </div>
+
+            <div className="text-right">
+              <p className="text-sm font-mono text-green-400">
+                {token.marketCapSol.toFixed(2)} SOL
+              </p>
+              <p className="text-xs text-gray-500">mcap</p>
+            </div>
           </div>
 
-          <div className="text-right">
-            <p className="text-sm font-mono text-green-400">
-              {token.marketCapSol.toFixed(2)} SOL
-            </p>
-            <p className="text-xs text-gray-500">mcap</p>
+          <div className="mt-3 space-y-2">
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-400">Bonding Curve</span>
+              <span className="font-mono text-yellow-500">{token.bondingCurveProgress.toFixed(1)}%</span>
+            </div>
+            <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
+              <motion.div 
+                initial={{ width: 0 }}
+                animate={{ width: `${token.bondingCurveProgress}%` }}
+                transition={{ duration: 0.5, delay: index * 0.05 }}
+                className={`h-full ${progressColor} rounded-full`}
+              />
+            </div>
           </div>
         </div>
+      </Link>
 
-        <div className="mt-3 space-y-2">
-          <div className="flex justify-between text-xs">
-            <span className="text-gray-400">Bonding Curve</span>
-            <span className="font-mono text-yellow-500">{token.bondingCurveProgress.toFixed(1)}%</span>
+      {hasPredictions && (
+        <div className="border-t border-yellow-500/20 bg-yellow-500/5 px-4 py-3">
+          <div className="flex items-center gap-1 mb-2">
+            <Target className="w-3 h-3 text-yellow-500" />
+            <span className="text-xs font-bold text-yellow-500">PREDICTIONS</span>
           </div>
-          <div className="h-2 bg-zinc-800 rounded-full overflow-hidden">
-            <motion.div 
-              initial={{ width: 0 }}
-              animate={{ width: `${token.bondingCurveProgress}%` }}
-              transition={{ duration: 0.5, delay: index * 0.05 }}
-              className={`h-full ${progressColor} rounded-full`}
-            />
+          <div className="space-y-2">
+            {token.predictions!.slice(0, 2).map((prediction) => (
+              <Link key={prediction.id} href={`/market/${prediction.id}`}>
+                <div 
+                  className="bg-zinc-800/50 rounded p-2 hover:bg-zinc-800 transition-colors cursor-pointer"
+                  data-testid={`prediction-${prediction.id}`}
+                >
+                  <p className="text-xs text-gray-300 line-clamp-1 mb-1.5">{prediction.question}</p>
+                  <div className="flex gap-2">
+                    <span className="text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400 font-bold">
+                      YES {prediction.yesOdds}%
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded bg-red-600/20 text-red-400 font-bold">
+                      NO {prediction.noOdds}%
+                    </span>
+                    {prediction.totalVolume > 0 && (
+                      <span className="text-xs text-gray-500 ml-auto">
+                        {prediction.totalVolume.toFixed(2)} SOL
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
-          <span className="font-mono truncate max-w-[100px]">
-            {token.creatorAddress.slice(0, 4)}...{token.creatorAddress.slice(-4)}
-          </span>
-          <span className="flex items-center gap-1">
-            <Zap className="w-3 h-3 text-yellow-500" />
-            NEW
-          </span>
-        </div>
-      </motion.div>
-    </Link>
+      <div className="px-4 py-2 flex items-center justify-between text-xs text-gray-500 border-t border-zinc-800">
+        <span className="font-mono truncate max-w-[100px]">
+          {token.creatorAddress.slice(0, 4)}...{token.creatorAddress.slice(-4)}
+        </span>
+        <span className="flex items-center gap-1">
+          <Zap className="w-3 h-3 text-yellow-500" />
+          NEW
+        </span>
+      </div>
+    </motion.div>
   );
 }
 
@@ -284,6 +331,16 @@ export default function Home() {
     queryFn: async () => {
       const res = await fetch("/api/markets");
       if (!res.ok) throw new Error("Failed to fetch markets");
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const { data: generalMarkets } = useQuery<Market[]>({
+    queryKey: ["generalMarkets"],
+    queryFn: async () => {
+      const res = await fetch("/api/markets/general");
+      if (!res.ok) throw new Error("Failed to fetch general markets");
       return res.json();
     },
     refetchInterval: 30000,
@@ -553,37 +610,60 @@ export default function Home() {
             </button>
           </div>
         ) : activeTab === "tokens" ? (
-          filteredTokens.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredTokens.map((token, index) => (
-                <TokenCard key={token.mint} token={token} index={index} />
-              ))}
-            </div>
-          ) : tokens && tokens.length > 0 ? (
-            <div className="text-center py-12 space-y-4">
-              <p className="text-gray-400 font-mono">No tokens match your search</p>
-              <button
-                onClick={() => setSearchQuery("")}
-                className="text-gray-500 text-sm hover:text-gray-400 underline"
-              >
-                Clear filters
-              </button>
-            </div>
-          ) : (
-            <div className="text-center py-12 space-y-4">
-              <p className="text-gray-400 font-mono">No tokens yet</p>
-              <p className="text-gray-500 text-sm">Be the first to create one!</p>
-              <Link href="/create">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-6 rounded uppercase border border-green-400/50"
+          <>
+            {filteredTokens.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredTokens.map((token, index) => (
+                  <TokenCard key={token.mint} token={token} index={index} />
+                ))}
+              </div>
+            ) : tokens && tokens.length > 0 ? (
+              <div className="text-center py-12 space-y-4">
+                <p className="text-gray-400 font-mono">No tokens match your search</p>
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="text-gray-500 text-sm hover:text-gray-400 underline"
                 >
-                  CREATE YOUR TOKEN
-                </motion.button>
-              </Link>
-            </div>
-          )
+                  Clear filters
+                </button>
+              </div>
+            ) : (
+              <div className="text-center py-12 space-y-4">
+                <p className="text-gray-400 font-mono">No tokens yet</p>
+                <p className="text-gray-500 text-sm">Be the first to create one!</p>
+                <Link href="/create">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-6 rounded uppercase border border-green-400/50"
+                  >
+                    CREATE YOUR TOKEN
+                  </motion.button>
+                </Link>
+              </div>
+            )}
+
+            {generalMarkets && generalMarkets.length > 0 && !searchQuery && (
+              <div className="mt-8 pt-6 border-t border-zinc-800">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Target className="w-5 h-5 text-yellow-500" />
+                    <h2 className="font-black text-lg text-white">GENERAL PREDICTIONS</h2>
+                  </div>
+                  <Link href="/create-market">
+                    <button className="text-xs text-yellow-500 hover:text-yellow-400 font-bold">
+                      + CREATE
+                    </button>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {generalMarkets.slice(0, 6).map((market, index) => (
+                    <MarketCard key={market.id} market={market} index={index} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
         ) : (
           filteredMarkets && filteredMarkets.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

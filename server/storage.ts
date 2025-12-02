@@ -26,6 +26,8 @@ export interface IStorage {
   getMarket(id: string): Promise<Market | undefined>;
   getMarkets(limit?: number): Promise<Market[]>;
   getMarketsByCreator(creatorAddress: string): Promise<Market[]>;
+  getMarketsByTokenMint(tokenMint: string): Promise<Market[]>;
+  getGeneralMarkets(limit?: number): Promise<Market[]>;
   updateMarketPools(id: string, yesPool: string, noPool: string, volumeAdd: string): Promise<Market | undefined>;
   resolveMarket(id: string, outcome: string): Promise<Market | undefined>;
   
@@ -136,6 +138,19 @@ export class DatabaseStorage implements IStorage {
 
   async getMarketsByCreator(creatorAddress: string): Promise<Market[]> {
     return db.select().from(predictionMarkets).where(eq(predictionMarkets.creatorAddress, creatorAddress));
+  }
+
+  async getMarketsByTokenMint(tokenMint: string): Promise<Market[]> {
+    return db.select().from(predictionMarkets)
+      .where(eq(predictionMarkets.tokenMint, tokenMint))
+      .orderBy(desc(predictionMarkets.createdAt));
+  }
+
+  async getGeneralMarkets(limit: number = 24): Promise<Market[]> {
+    return db.select().from(predictionMarkets)
+      .where(sql`${predictionMarkets.marketType} = 'general' OR ${predictionMarkets.tokenMint} IS NULL`)
+      .orderBy(desc(predictionMarkets.createdAt))
+      .limit(limit);
   }
 
   async updateMarketPools(id: string, yesPool: string, noPool: string, volumeAdd: string): Promise<Market | undefined> {
