@@ -1,8 +1,10 @@
 import { Layout } from "@/components/layout";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
-import { Flame, TrendingUp, Zap, Crown } from "lucide-react";
+import { Flame, TrendingUp, Zap, Crown, Radio, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import { useWebSocket } from "@/lib/use-websocket";
+import { useState, useEffect, useCallback } from "react";
 
 interface Token {
   mint: string;
@@ -14,6 +16,17 @@ interface Token {
   priceInSol: number;
   creatorAddress: string;
   createdAt: string;
+}
+
+interface LiveActivity {
+  id: string;
+  type: "trade" | "create" | "complete";
+  mint: string;
+  name?: string;
+  symbol?: string;
+  tradeType?: "buy" | "sell";
+  solAmount?: number;
+  timestamp: number;
 }
 
 function TokenCard({ token, index }: { token: Token; index: number }) {
@@ -98,6 +111,54 @@ function TokenCard({ token, index }: { token: Token; index: number }) {
 }
 
 export default function Home() {
+  const queryClient = useQueryClient();
+  const [liveActivities, setLiveActivities] = useState<LiveActivity[]>([]);
+  const [wsConnected, setWsConnected] = useState(false);
+
+  const handleWebSocketUpdate = useCallback((update: any) => {
+    if (update.type === "connected") {
+      setWsConnected(true);
+      return;
+    }
+
+    if (update.type === "trade" || update.type === "create" || update.type === "complete") {
+      const activity: LiveActivity = {
+        id: `${update.mint}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        type: update.type,
+        mint: update.mint,
+        name: update.name,
+        symbol: update.symbol,
+        tradeType: update.tradeType,
+        solAmount: update.solAmount,
+        timestamp: update.timestamp || Date.now(),
+      };
+
+      setLiveActivities((prev) => [activity, ...prev.slice(0, 9)]);
+
+      if (update.type === "trade" && update.mint) {
+        queryClient.setQueryData<Token[]>(["tokens"], (oldTokens) => {
+          if (!oldTokens) return oldTokens;
+          return oldTokens.map((token) => {
+            if (token.mint === update.mint) {
+              return {
+                ...token,
+                marketCapSol: update.marketCapSol ?? token.marketCapSol,
+                bondingCurveProgress: update.bondingCurveProgress ?? token.bondingCurveProgress,
+              };
+            }
+            return token;
+          });
+        });
+      }
+    }
+  }, [queryClient]);
+
+  const { isConnected } = useWebSocket({
+    onUpdate: handleWebSocketUpdate,
+    onConnect: () => setWsConnected(true),
+    onDisconnect: () => setWsConnected(false),
+  });
+
   const { data: tokens, isLoading, error } = useQuery<Token[]>({
     queryKey: ["tokens"],
     queryFn: async () => {
@@ -105,7 +166,7 @@ export default function Home() {
       if (!res.ok) throw new Error("Failed to fetch tokens");
       return res.json();
     },
-    refetchInterval: 10000,
+    refetchInterval: 30000,
   });
 
   return (
@@ -117,8 +178,16 @@ export default function Home() {
               <Flame className="w-6 h-6" />
               LIVE TOKENS
             </h2>
-            <span className="bg-red-600/20 border border-red-600/50 px-2 py-1 rounded text-xs font-mono text-red-400 animate-pulse">
-              REAL-TIME
+            <span 
+              className={`px-2 py-1 rounded text-xs font-mono flex items-center gap-1 ${
+                wsConnected 
+                  ? "bg-green-600/20 border border-green-600/50 text-green-400" 
+                  : "bg-red-600/20 border border-red-600/50 text-red-400"
+              }`}
+              data-testid="status-websocket"
+            >
+              <Radio className={`w-3 h-3 ${wsConnected ? "animate-pulse" : ""}`} />
+              {wsConnected ? "LIVE" : "CONNECTING..."}
             </span>
           </div>
 
@@ -149,6 +218,56 @@ export default function Home() {
             Graduated
           </button>
         </div>
+
+        {liveActivities.length > 0 && (
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Zap className="w-4 h-4 text-yellow-500" />
+              <span className="text-xs font-bold text-gray-400">LIVE ACTIVITY</span>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <AnimatePresence mode="popLayout">
+                {liveActivities.slice(0, 5).map((activity) => (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, scale: 0.8, x: -20 }}
+                    animate={{ opacity: 1, scale: 1, x: 0 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-mono flex items-center gap-2 ${
+                      activity.type === "create"
+                        ? "bg-green-600/20 border border-green-600/50 text-green-400"
+                        : activity.tradeType === "buy"
+                        ? "bg-green-600/20 border border-green-600/30 text-green-400"
+                        : "bg-red-600/20 border border-red-600/30 text-red-400"
+                    }`}
+                    data-testid={`activity-${activity.id}`}
+                  >
+                    {activity.type === "create" ? (
+                      <>
+                        <Zap className="w-3 h-3" />
+                        NEW: {activity.symbol || activity.mint.slice(0, 6)}
+                      </>
+                    ) : activity.type === "complete" ? (
+                      <>
+                        <Crown className="w-3 h-3 text-yellow-500" />
+                        GRADUATED: {activity.mint.slice(0, 6)}
+                      </>
+                    ) : (
+                      <>
+                        {activity.tradeType === "buy" ? (
+                          <ArrowUpRight className="w-3 h-3" />
+                        ) : (
+                          <ArrowDownRight className="w-3 h-3" />
+                        )}
+                        {activity.tradeType?.toUpperCase()} {activity.solAmount?.toFixed(2) || "?"} SOL
+                      </>
+                    )}
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </div>
+          </div>
+        )}
 
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">

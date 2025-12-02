@@ -118,7 +118,28 @@ The platform is designed for deploying your own bonding curve smart contract, no
 - Slippage protection: 5% default, configurable per trade
 - Proper error handling when contract not deployed (no fake data)
 
+### WebSocket Real-Time Updates
+
+The platform includes WebSocket integration for real-time token updates:
+
+**Backend (server/websocket.ts):**
+- Connects to PumpPortal WebSocket upstream for real token data
+- Subscribes to `subscribeNewToken` for new token creations
+- Subscribes to `subscribeTokenTrade` for trade events on specific mints
+- Handles `complete`/`migrate` events for token graduation
+- Auto-reconnects with proper cleanup when clients disconnect
+
+**Frontend (client/src/lib/use-websocket.ts):**
+- React hook `useWebSocket` for real-time updates
+- Auto-reconnects on disconnect
+- Provides subscribe/unsubscribe functions for specific mints
+
+**Home page live activity feed:**
+- Shows real-time token creations (NEW)
+- Shows buy/sell trades with SOL amounts
+- Shows graduation events (GRADUATED)
+- Updates token data in React Query cache
+
 ### Future Development
-- WebSocket integration for real-time token updates
 - Token creation directly on platform via deployed contract
-- Jupiter integration for SOL price quotes
+- Profile page with wallet stats and trading history
