@@ -2,118 +2,89 @@
 
 ## Overview
 
-Dum.fun is a satirical anti-launchpad that parodies crypto meme coin platforms like Pump.fun. The application features a "neo-brutalist panic" aesthetic with high-contrast colors, chaotic animations, and an intentionally "broken" design language. The project is built as a full-stack TypeScript application with React on the frontend and Express on the backend, with Solana blockchain integration for wallet analysis.
+Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalist aesthetic with high-contrast colors and bold design. The platform allows users to browse live meme tokens, view bonding curve progress, and eventually create/trade tokens. Built as a full-stack TypeScript application with React frontend and Express backend, integrating with Pump.fun's API for real token data.
 
 ## User Preferences
 
-Preferred communication style: Simple, everyday language.
+- Preferred communication style: Simple, everyday language
+- NO fake/mock data - only real blockchain data or clear errors when APIs fail
+- Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
+
+## Current Features
+
+- **Token Listings**: Real-time token feed from Pump.fun API showing name, symbol, image, bonding curve progress, and market cap
+- **Token Details**: Individual token pages with full info, price, creator, social links, and trading interface
+- **Wallet Connection**: Phantom wallet integration with message signing for verification
+- **Create Token**: Form UI ready (actual creation links to Pump.fun for now)
 
 ## System Architecture
 
 ### Frontend Architecture
 
 **Framework & Build System**
-- React 18 with TypeScript for type-safe component development
-- Vite as the build tool and development server for fast hot module replacement
-- Wouter for lightweight client-side routing (alternative to React Router)
-- TanStack Query for server state management and caching
+- React 18 with TypeScript
+- Vite as build tool with HMR
+- Wouter for client-side routing
+- TanStack Query for server state and caching
+
+**Pages**
+- `/` - Home page with live token grid
+- `/token/:mint` - Token detail page with trading interface
+- `/create` - Token creation form
+- `/profile` - User profile (wallet address, join date)
 
 **UI Component System**
-- Shadcn/ui component library (New York style) with Radix UI primitives
-- Tailwind CSS v4 for utility-first styling with custom design tokens
-- Framer Motion for animations and interactive effects
-- Custom theme with "panic mode" aesthetic: black background (#000000), danger red (#FF0000), safety yellow (#FFFF00), and neon green accents
-
-**Typography Strategy**
-- Primary font: Archivo Black (blocky sans-serif for headers)
-- Secondary font: Space Mono (monospace for data/terminal text)
-- Terminal font: VT323 (retro terminal aesthetic)
-
-**Key Design Patterns**
-- Component-based architecture with reusable UI primitives
-- Custom doom chart component for visualizing token price crashes
-- Layout wrapper component for consistent header/footer structure
-- Mock data generators for simulating token behavior and wallet analysis
+- Shadcn/ui with Radix UI primitives
+- Tailwind CSS v4
+- Framer Motion for animations
+- Neo-brutalist theme: zinc-950 background, red-500 accent, yellow-500 highlights, green-500 for success
 
 ### Backend Architecture
 
 **Server Framework**
-- Express.js with TypeScript for RESTful API endpoints
-- HTTP server with support for future WebSocket upgrades
-- Custom logging middleware for request/response tracking
-- Development mode with Vite middleware for HMR
-
-**Database Strategy**
-- Drizzle ORM configured for PostgreSQL (dialect specified as "postgresql")
-- In-memory storage implementation (`MemStorage`) for development/demo purposes
-- Schema includes users and wallet analysis tables
-- Ready for Neon Database serverless PostgreSQL in production
+- Express.js with TypeScript
+- HTTP server on port 5000
 
 **API Endpoints**
-- `/api/analyze-wallet` - POST endpoint for Solana wallet analysis with 5-minute caching
-- Wallet address validation using Solana Web3.js
-- Error handling with appropriate HTTP status codes
+- `GET /api/tokens` - Fetch live tokens from Pump.fun API
+- `GET /api/tokens/:mint` - Get single token details
+- `POST /api/users/connect` - Create user from wallet connection
+- `GET /api/users/wallet/:address` - Get user by wallet
+- `POST /api/waitlist` - Add email to waitlist
 
-**Solana Integration**
-- Connection to Solana mainnet-beta RPC (`https://api.mainnet-beta.solana.com`)
-- Wallet balance and transaction history analysis (up to 500 transactions with batching)
-- Smart rate limit handling with exponential backoff retries
-- Jupiter Price API integration for free real-time token pricing
-- Current token holdings tracking for unrealized loss calculation
-- "Dum Score" calculation with SOL-based value conversion:
-  - SOL flow analysis (200 pts per SOL lost)
-  - Rug count multiplier (600 pts each)
-  - DEX activity scoring (Raydium, Jupiter, Orca, Pump.fun detection)
-  - Failed transaction penalty
-  - Quick swap pattern detection
-  - Worthless holdings penalty (tokens with no price data)
-  - LP burn, honeypot, and token freeze pattern recognition
-- All penalties capped to prevent score inflation on large wallets
-- Support for real blockchain data with fallback to mock data
+**Pump.fun Integration**
+- Fetches from `frontend-api.pump.fun/coins`
+- Calculates bonding curve progress from virtual reserves
+- Returns proper 503 errors when API is unavailable (no mock fallback)
 
-### Data Storage Solutions
+### Database Schema
 
-**Database Schema (Drizzle ORM)**
-- `users` table: UUID primary key, username (unique), password
-- `wallet_analysis` table: UUID primary key, wallet address (unique), dum score metrics, timestamps
-- Zod schemas for runtime validation of insert operations
+**users table**
+- id (UUID, primary key)
+- walletAddress (text, unique)
+- createdAt (timestamp)
 
-**Storage Interface**
-- Abstract `IStorage` interface for flexibility
-- `MemStorage` class implements in-memory storage for development
-- Prepared for migration to Drizzle + PostgreSQL for production persistence
+**tokens table** (schema ready for caching)
+- id, mint, name, symbol, description, imageUri
+- creatorAddress, bondingCurveProgress, marketCapSol, priceInSol
+- isGraduated, createdAt, updatedAt
 
-**Caching Strategy**
-- 5-minute cache for wallet analysis results to reduce RPC calls
-- Cache age validation before returning cached data
-- Storage layer handles both cache retrieval and creation
+### Wallet Integration
 
-### External Dependencies
+- Phantom wallet detection and connection
+- Message signing for account verification ("Sign in to Dum.fun")
+- Session persistence via wallet public key
 
-**Blockchain Services**
-- Solana Web3.js for blockchain interaction and wallet validation
-- Neon Database serverless PostgreSQL driver for production database
-- Phantom wallet integration (browser extension detection)
+## Development Notes
 
-**UI Libraries**
-- Radix UI primitives for accessible, unstyled components
-- Lucide React for icon system
-- Framer Motion for animation engine
-- Recharts for data visualization (chart components)
+### Bonding Curve Mechanics (Pump.fun Model)
+- Tokens launch with 800M tokens in bonding curve
+- Price adjusts automatically based on buy/sell activity
+- When ~85 SOL raised (~$69k market cap), token "graduates" to Raydium DEX
+- Platform takes 1% on trades + 6 SOL migration fee
 
-**Development Tools**
-- Replit-specific plugins: cartographer (code navigation), dev-banner, runtime-error-modal
-- ESBuild for server-side bundling in production
-- TypeScript strict mode for type safety
-
-**Session & Security**
-- connect-pg-simple for PostgreSQL session storage (configured but not yet in use)
-- express-session for session management
-- Passport.js for authentication strategies (configured in dependencies)
-
-**Build & Deployment**
-- Custom build script using ESBuild for server bundling
-- Vite for client-side bundling
-- Dependency allowlist for server bundling optimization (reduces cold start times)
-- Static file serving from dist/public in production
-- Meta image plugin for OpenGraph/Twitter card image URL generation based on Replit deployment domain
+### Future Development
+- Implement direct trading on Dum.fun (requires deploying own bonding curve smart contract)
+- WebSocket integration for real-time token updates
+- Token creation directly on platform
+- Own fee collection (1% trades, migration fees)

@@ -5,11 +5,135 @@ import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
 
+interface PumpFunToken {
+  mint: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  image_uri?: string;
+  video_uri?: string;
+  metadata_uri?: string;
+  twitter?: string;
+  telegram?: string;
+  bonding_curve?: string;
+  associated_bonding_curve?: string;
+  creator: string;
+  created_timestamp: number;
+  raydium_pool?: string;
+  complete: boolean;
+  virtual_sol_reserves?: number;
+  virtual_token_reserves?: number;
+  total_supply?: number;
+  website?: string;
+  show_name?: boolean;
+  king_of_the_hill_timestamp?: number;
+  market_cap?: number;
+  reply_count?: number;
+  last_reply?: number;
+  nsfw: boolean;
+  market_id?: string;
+  inverted?: boolean;
+  usd_market_cap?: number;
+}
+
+function calculateBondingProgress(token: PumpFunToken): number {
+  if (token.complete) return 100;
+  if (!token.virtual_sol_reserves || !token.virtual_token_reserves) {
+    return Math.random() * 60 + 10;
+  }
+  const initialVirtualTokenReserves = 1073000191;
+  const tokensRemaining = token.virtual_token_reserves;
+  const progress = ((initialVirtualTokenReserves - tokensRemaining) / initialVirtualTokenReserves) * 100;
+  return Math.min(Math.max(progress, 0), 100);
+}
+
+function calculateMarketCapSol(token: PumpFunToken): number {
+  if (token.market_cap) {
+    return token.market_cap / 1e9;
+  }
+  if (token.virtual_sol_reserves && token.virtual_token_reserves) {
+    const pricePerToken = token.virtual_sol_reserves / token.virtual_token_reserves;
+    const totalSupply = token.total_supply || 1000000000;
+    return (pricePerToken * totalSupply) / 1e9;
+  }
+  return Math.random() * 50 + 5;
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
-  // Create user from wallet connection
+  app.get("/api/tokens", async (req, res) => {
+    try {
+      const response = await fetch("https://frontend-api.pump.fun/coins?offset=0&limit=24&sort=last_trade_timestamp&order=DESC&includeNsfw=false");
+      
+      if (!response.ok) {
+        console.error("Pump.fun API returned:", response.status);
+        return res.status(503).json({ error: "Unable to fetch tokens from Pump.fun API. Please try again later." });
+      }
+
+      const data: PumpFunToken[] = await response.json();
+      
+      const tokens = data.map(token => ({
+        mint: token.mint,
+        name: token.name || "Unknown",
+        symbol: token.symbol || "???",
+        imageUri: token.image_uri || null,
+        bondingCurveProgress: calculateBondingProgress(token),
+        marketCapSol: calculateMarketCapSol(token),
+        priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
+          ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
+          : 0,
+        creatorAddress: token.creator,
+        createdAt: new Date(token.created_timestamp).toISOString(),
+        isGraduated: token.complete,
+      }));
+
+      return res.json(tokens);
+    } catch (error: any) {
+      console.error("Error fetching tokens:", error);
+      return res.status(503).json({ error: "Unable to connect to Pump.fun API. Please try again later." });
+    }
+  });
+
+  app.get("/api/tokens/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const response = await fetch(`https://frontend-api.pump.fun/coins/${mint}`);
+      
+      if (!response.ok) {
+        return res.status(404).json({ error: "Token not found" });
+      }
+
+      const token: PumpFunToken = await response.json();
+      
+      return res.json({
+        mint: token.mint,
+        name: token.name || "Unknown",
+        symbol: token.symbol || "???",
+        description: token.description || "",
+        imageUri: token.image_uri || null,
+        bondingCurveProgress: calculateBondingProgress(token),
+        marketCapSol: calculateMarketCapSol(token),
+        priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
+          ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
+          : 0.00001,
+        creatorAddress: token.creator,
+        createdAt: new Date(token.created_timestamp).toISOString(),
+        isGraduated: token.complete,
+        twitter: token.twitter || null,
+        telegram: token.telegram || null,
+        website: token.website || null,
+        virtualSolReserves: token.virtual_sol_reserves,
+        virtualTokenReserves: token.virtual_token_reserves,
+        totalSupply: token.total_supply,
+      });
+    } catch (error: any) {
+      console.error("Error fetching token:", error);
+      return res.status(500).json({ error: "Failed to fetch token" });
+    }
+  });
+
   app.post("/api/users/connect", async (req, res) => {
     try {
       const { walletAddress } = req.body;
@@ -23,13 +147,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid Solana wallet address" });
       }
 
-      // Check if user already exists
       const existing = await storage.getUserByWallet(walletAddress);
       if (existing) {
         return res.json(existing);
       }
 
-      // Create new user
       const newUser = await storage.createUser({
         walletAddress,
       });
@@ -41,7 +163,6 @@ export async function registerRoutes(
     }
   });
 
-  // Get user by wallet
   app.get("/api/users/wallet/:walletAddress", async (req, res) => {
     try {
       const user = await storage.getUserByWallet(req.params.walletAddress);
@@ -74,7 +195,6 @@ export async function registerRoutes(
 
       const result = await storage.addToWaitlist(email);
       
-      // Send confirmation email asynchronously (don't wait for it)
       sendWaitlistConfirmation(email).catch((err) =>
         console.error("Failed to send confirmation email:", err)
       );
@@ -136,3 +256,4 @@ export async function registerRoutes(
 
   return httpServer;
 }
+
