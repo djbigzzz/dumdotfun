@@ -79,7 +79,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const messageBuffer = new TextEncoder().encode(message);
       const response = await window.solana.signMessage(messageBuffer);
-      return Buffer.from(response.signature).toString("base64");
+      
+      // Convert signature bytes to base64 string using browser-compatible method
+      const signatureArray = Array.from(response.signature);
+      const binaryString = String.fromCharCode(...signatureArray);
+      return btoa(binaryString);
     } catch (err) {
       console.error("Failed to sign message:", err);
       throw err;
