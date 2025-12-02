@@ -386,21 +386,16 @@ export async function registerRoutes(
       const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress } = req.body;
 
       // Validate required fields
-      if (!name || typeof name !== "string" || name.length > 32) {
+      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
         return res.status(400).json({ error: "Name is required (max 32 characters)" });
       }
 
-      if (!symbol || typeof symbol !== "string" || symbol.length > 10) {
+      if (!symbol || typeof symbol !== "string" || symbol.trim().length === 0 || symbol.length > 10) {
         return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
       }
 
-      if (!creatorAddress || typeof creatorAddress !== "string") {
+      if (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0) {
         return res.status(400).json({ error: "Creator wallet address is required" });
-      }
-
-      const isValid = await isValidSolanaAddress(creatorAddress);
-      if (!isValid) {
-        return res.status(400).json({ error: "Invalid creator wallet address" });
       }
 
       // Generate a new keypair for the token mint
