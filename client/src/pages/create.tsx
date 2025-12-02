@@ -2,11 +2,20 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Upload, Zap, AlertTriangle, ExternalLink, Info } from "lucide-react";
+import { Upload, Zap, Info, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
+import { useMutation } from "@tanstack/react-query";
+import { Link } from "wouter";
+
+interface CreatedToken {
+  id: string;
+  mint: string;
+  name: string;
+  symbol: string;
+}
 
 export default function CreateToken() {
-  const { connectedWallet } = useWallet();
+  const { connectedWallet, connectWallet } = useWallet();
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -17,12 +26,46 @@ export default function CreateToken() {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
+  const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
+
+  const createTokenMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/tokens/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description || null,
+          imageUri: imagePreview || null,
+          twitter: formData.twitter || null,
+          telegram: formData.telegram || null,
+          website: formData.website || null,
+          creatorAddress: connectedWallet,
+        }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to create token");
+      }
+      
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`Token ${data.token.name} created successfully!`);
+      setCreatedToken(data.token);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error("File must be smaller than 10MB");
+      if (file.size > 2 * 1024 * 1024) {
+        toast.error("File must be smaller than 2MB");
         return;
       }
       
@@ -48,7 +91,21 @@ export default function CreateToken() {
       return;
     }
 
-    toast.info("Token creation will be available soon!");
+    createTokenMutation.mutate();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: "",
+      symbol: "",
+      description: "",
+      twitter: "",
+      telegram: "",
+      website: "",
+    });
+    setImagePreview(null);
+    setFileName(null);
+    setCreatedToken(null);
   };
 
   return (
@@ -61,27 +118,44 @@ export default function CreateToken() {
           </p>
         </div>
 
-        <div className="bg-yellow-900/20 border border-yellow-600/50 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+        {createdToken ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-green-900/20 border border-green-600/50 rounded-lg p-6 text-center space-y-4"
+          >
+            <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
             <div>
-              <p className="text-yellow-500 font-bold text-sm">COMING SOON</p>
-              <p className="text-gray-400 text-sm mt-1">
-                Token creation is currently in development. For now, you can create tokens directly on{" "}
-                <a 
-                  href="https://pump.fun/create" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 inline-flex items-center gap-1"
-                >
-                  Pump.fun
-                  <ExternalLink className="w-3 h-3" />
-                </a>
+              <h2 className="text-2xl font-black text-green-500">TOKEN CREATED!</h2>
+              <p className="text-gray-400 text-sm mt-2">
+                Your token <span className="text-white font-bold">{createdToken.name}</span> ({createdToken.symbol}) has been created.
               </p>
             </div>
-          </div>
-        </div>
-
+            <div className="bg-zinc-800/50 rounded p-3">
+              <p className="text-xs text-gray-400 mb-1">Mint Address</p>
+              <p className="text-green-400 font-mono text-sm break-all">{createdToken.mint}</p>
+            </div>
+            <div className="flex gap-3 justify-center">
+              <Link href={`/token/${createdToken.mint}`}>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  className="px-6 py-3 bg-red-600 text-white font-bold rounded hover:bg-red-700 transition-colors"
+                >
+                  View Token
+                </motion.button>
+              </Link>
+              <motion.button
+                onClick={resetForm}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="px-6 py-3 bg-zinc-700 text-white font-bold rounded hover:bg-zinc-600 transition-colors"
+              >
+                Create Another
+              </motion.button>
+            </div>
+          </motion.div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Coin Details Section */}
           <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
@@ -246,20 +320,37 @@ export default function CreateToken() {
           {connectedWallet ? (
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-4 rounded-lg uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2"
+              disabled={createTokenMutation.isPending}
+              whileHover={{ scale: createTokenMutation.isPending ? 1 : 1.02 }}
+              whileTap={{ scale: createTokenMutation.isPending ? 1 : 0.98 }}
+              className={`w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-4 rounded-lg uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2 ${createTokenMutation.isPending ? "opacity-70 cursor-not-allowed" : ""}`}
               data-testid="button-create-token"
             >
-              <Zap className="w-5 h-5" />
-              CREATE COIN
+              {createTokenMutation.isPending ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  CREATING...
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5" />
+                  CREATE COIN
+                </>
+              )}
             </motion.button>
           ) : (
-            <div className="text-center py-4">
-              <p className="text-gray-400 font-mono">Connect your wallet to create a token</p>
-            </div>
+            <motion.button
+              type="button"
+              onClick={() => connectWallet()}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-lg uppercase transition-all border border-red-500/50"
+            >
+              Connect Wallet to Create
+            </motion.button>
           )}
         </form>
+        )}
       </div>
     </Layout>
   );

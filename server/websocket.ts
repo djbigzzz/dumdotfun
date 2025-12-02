@@ -47,17 +47,20 @@ function connectUpstream() {
     upstreamWs.on("open", () => {
       log("Connected to PumpPortal WebSocket", "websocket");
       
-      // Subscribe to new token creations
-      upstreamWs?.send(JSON.stringify({
-        method: "subscribeNewToken",
-      }));
-
-      // Resubscribe to any previously tracked mints
-      if (subscribedMints.size > 0) {
-        upstreamWs?.send(JSON.stringify({
-          method: "subscribeTokenTrade",
-          keys: Array.from(subscribedMints),
+      // Check if still connected before sending
+      if (upstreamWs?.readyState === WebSocket.OPEN) {
+        // Subscribe to new token creations
+        upstreamWs.send(JSON.stringify({
+          method: "subscribeNewToken",
         }));
+
+        // Resubscribe to any previously tracked mints
+        if (subscribedMints.size > 0) {
+          upstreamWs.send(JSON.stringify({
+            method: "subscribeTokenTrade",
+            keys: Array.from(subscribedMints),
+          }));
+        }
       }
     });
 
@@ -100,7 +103,14 @@ function scheduleReconnect() {
 function disconnectUpstreamIfNoClients() {
   if (clients.size === 0 && upstreamWs) {
     log("No clients remaining, closing upstream connection", "websocket");
-    upstreamWs.close();
+    // Only close if the WebSocket is open or connecting
+    if (upstreamWs.readyState === WebSocket.OPEN || upstreamWs.readyState === WebSocket.CONNECTING) {
+      try {
+        upstreamWs.close();
+      } catch (e) {
+        // Ignore close errors
+      }
+    }
     upstreamWs = null;
     subscribedMints.clear();
   }

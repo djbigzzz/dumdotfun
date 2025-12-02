@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, users, tokens, walletAnalysis, waitlist } from "@shared/schema";
+import { db } from "./db";
+import { eq } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -10,6 +11,7 @@ export interface IStorage {
   // Token methods
   createToken(token: InsertToken): Promise<Token>;
   getTokenByMint(mint: string): Promise<Token | undefined>;
+  getTokensByCreator(creatorAddress: string): Promise<Token[]>;
   
   // Wallet analysis methods
   getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
@@ -20,81 +22,45 @@ export interface IStorage {
   isEmailInWaitlist(email: string): Promise<boolean>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private walletAddressToUser: Map<string, string>;
-  private tokens: Map<string, Token>;
-  private mintToToken: Map<string, string>;
-  private walletAnalyses: Map<string, WalletAnalysis>;
-  private waitlistEmails: Set<string>;
-
-  constructor() {
-    this.users = new Map();
-    this.walletAddressToUser = new Map();
-    this.tokens = new Map();
-    this.mintToToken = new Map();
-    this.walletAnalyses = new Map();
-    this.waitlistEmails = new Set();
-  }
-
+export class DatabaseStorage implements IStorage {
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByWallet(walletAddress: string): Promise<User | undefined> {
-    const userId = this.walletAddressToUser.get(walletAddress);
-    return userId ? this.users.get(userId) : undefined;
+    const [user] = await db.select().from(users).where(eq(users.walletAddress, walletAddress));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id,
-      createdAt: new Date(),
-    };
-    this.users.set(id, user);
-    this.walletAddressToUser.set(insertUser.walletAddress, id);
+    const [user] = await db.insert(users).values(insertUser).returning();
     return user;
   }
 
   async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {
-    return this.walletAnalyses.get(walletAddress);
+    const [analysis] = await db.select().from(walletAnalysis).where(eq(walletAnalysis.walletAddress, walletAddress));
+    return analysis || undefined;
   }
 
   async createWalletAnalysis(insertAnalysis: InsertWalletAnalysis): Promise<WalletAnalysis> {
-    const id = randomUUID();
-    const now = new Date();
-    const analysis: WalletAnalysis = {
-      ...insertAnalysis,
-      id,
-      createdAt: now,
-    };
-    this.walletAnalyses.set(insertAnalysis.walletAddress, analysis);
+    const [analysis] = await db.insert(walletAnalysis).values(insertAnalysis).returning();
     return analysis;
   }
 
   async addToWaitlist(email: string): Promise<Waitlist> {
-    const id = randomUUID();
-    const now = new Date();
-    this.waitlistEmails.add(email);
-    return {
-      id,
-      email,
-      createdAt: now,
-    };
+    const [entry] = await db.insert(waitlist).values({ email }).returning();
+    return entry;
   }
 
   async isEmailInWaitlist(email: string): Promise<boolean> {
-    return this.waitlistEmails.has(email);
+    const [entry] = await db.select().from(waitlist).where(eq(waitlist.email, email));
+    return !!entry;
   }
 
   async createToken(insertToken: InsertToken): Promise<Token> {
-    const id = randomUUID();
-    const now = new Date();
-    const token: Token = {
+    const [token] = await db.insert(tokens).values({
       ...insertToken,
-      id,
       description: insertToken.description ?? null,
       imageUri: insertToken.imageUri ?? null,
       twitter: insertToken.twitter ?? null,
@@ -104,18 +70,18 @@ export class MemStorage implements IStorage {
       marketCapSol: 0,
       priceInSol: 0.000001,
       isGraduated: false,
-      createdAt: now,
-      updatedAt: now,
-    };
-    this.tokens.set(id, token);
-    this.mintToToken.set(insertToken.mint, id);
+    }).returning();
     return token;
   }
 
   async getTokenByMint(mint: string): Promise<Token | undefined> {
-    const tokenId = this.mintToToken.get(mint);
-    return tokenId ? this.tokens.get(tokenId) : undefined;
+    const [token] = await db.select().from(tokens).where(eq(tokens.mint, mint));
+    return token || undefined;
+  }
+
+  async getTokensByCreator(creatorAddress: string): Promise<Token[]> {
+    return db.select().from(tokens).where(eq(tokens.creatorAddress, creatorAddress));
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

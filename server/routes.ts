@@ -2,10 +2,11 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
-import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
+import { insertWaitlistSchema, insertUserSchema, insertTokenSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
 import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
+import { Keypair } from "@solana/web3.js";
 
 interface PumpFunToken {
   mint: string;
@@ -376,6 +377,78 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error building sell transaction:", error);
       return res.status(500).json({ error: "Failed to build transaction" });
+    }
+  });
+
+  // Token creation endpoint
+  app.post("/api/tokens/create", async (req, res) => {
+    try {
+      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress } = req.body;
+
+      // Validate required fields
+      if (!name || typeof name !== "string" || name.length > 32) {
+        return res.status(400).json({ error: "Name is required (max 32 characters)" });
+      }
+
+      if (!symbol || typeof symbol !== "string" || symbol.length > 10) {
+        return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
+      }
+
+      if (!creatorAddress || typeof creatorAddress !== "string") {
+        return res.status(400).json({ error: "Creator wallet address is required" });
+      }
+
+      const isValid = await isValidSolanaAddress(creatorAddress);
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid creator wallet address" });
+      }
+
+      // Generate a new keypair for the token mint
+      // In production, this would be done on-chain with user signing
+      const mintKeypair = Keypair.generate();
+      const mint = mintKeypair.publicKey.toBase58();
+
+      // Create token in database
+      const token = await storage.createToken({
+        mint,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description?.trim() || null,
+        imageUri: imageUri || null,
+        creatorAddress,
+        twitter: twitter?.trim() || null,
+        telegram: telegram?.trim() || null,
+        website: website?.trim() || null,
+      });
+
+      console.log(`Token created: ${token.name} (${token.symbol}) - ${token.mint}`);
+
+      return res.json({
+        success: true,
+        token,
+        message: "Token created successfully! Note: On-chain deployment requires contract integration.",
+      });
+    } catch (error: any) {
+      console.error("Error creating token:", error);
+      return res.status(500).json({ error: "Failed to create token" });
+    }
+  });
+
+  // Get tokens created by a wallet
+  app.get("/api/tokens/creator/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      
+      const isValid = await isValidSolanaAddress(address);
+      if (!isValid) {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+
+      const tokens = await storage.getTokensByCreator(address);
+      return res.json(tokens);
+    } catch (error: any) {
+      console.error("Error fetching creator tokens:", error);
+      return res.status(500).json({ error: "Failed to fetch tokens" });
     }
   });
 
