@@ -21,6 +21,9 @@ export const tokens = pgTable("tokens", {
   marketCapSol: real("market_cap_sol").notNull().default(0),
   priceInSol: real("price_in_sol").notNull().default(0),
   isGraduated: boolean("is_graduated").notNull().default(false),
+  twitter: text("twitter"),
+  telegram: text("telegram"),
+  website: text("website"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -53,6 +56,16 @@ export const insertTokenSchema = createInsertSchema(tokens).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+  bondingCurveProgress: true,
+  marketCapSol: true,
+  priceInSol: true,
+  isGraduated: true,
+}).partial({
+  description: true,
+  imageUri: true,
+  twitter: true,
+  telegram: true,
+  website: true,
 });
 
 export const insertWalletAnalysisSchema = createInsertSchema(walletAnalysis).omit({
