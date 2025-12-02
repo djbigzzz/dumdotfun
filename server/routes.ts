@@ -8,62 +8,8 @@ import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFI
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
-import { getTokensFromDexscreener } from "./dexscreener";
-import { getTokensFromOnChain, getTokensFromHeliusDAS } from "./solana-rpc";
+import { eq } from "drizzle-orm";
 
-interface PumpFunToken {
-  mint: string;
-  name: string;
-  symbol: string;
-  description?: string;
-  image_uri?: string;
-  video_uri?: string;
-  metadata_uri?: string;
-  twitter?: string;
-  telegram?: string;
-  bonding_curve?: string;
-  associated_bonding_curve?: string;
-  creator: string;
-  created_timestamp: number;
-  raydium_pool?: string;
-  complete: boolean;
-  virtual_sol_reserves?: number;
-  virtual_token_reserves?: number;
-  total_supply?: number;
-  website?: string;
-  show_name?: boolean;
-  king_of_the_hill_timestamp?: number;
-  market_cap?: number;
-  reply_count?: number;
-  last_reply?: number;
-  nsfw: boolean;
-  market_id?: string;
-  inverted?: boolean;
-  usd_market_cap?: number;
-}
-
-function calculateBondingProgress(token: PumpFunToken): number {
-  if (token.complete) return 100;
-  if (!token.virtual_sol_reserves || !token.virtual_token_reserves) {
-    return 0;
-  }
-  const initialVirtualTokenReserves = 1073000191;
-  const tokensRemaining = token.virtual_token_reserves;
-  const progress = ((initialVirtualTokenReserves - tokensRemaining) / initialVirtualTokenReserves) * 100;
-  return Math.min(Math.max(progress, 0), 100);
-}
-
-function calculateMarketCapSol(token: PumpFunToken): number {
-  if (token.market_cap) {
-    return token.market_cap / 1e9;
-  }
-  if (token.virtual_sol_reserves && token.virtual_token_reserves) {
-    const pricePerToken = token.virtual_sol_reserves / token.virtual_token_reserves;
-    const totalSupply = token.total_supply || 1000000000;
-    return (pricePerToken * totalSupply) / 1e9;
-  }
-  return 0;
-}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -71,95 +17,24 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/tokens", async (req, res) => {
     try {
-      // Try to fetch from Pump.fun with retry logic
-      let response = null;
-      let retries = 0;
-      const maxRetries = 2;
-      
-      while (retries < maxRetries && !response?.ok) {
-        try {
-          response = await fetch("https://frontend-api.pump.fun/coins?offset=0&limit=24&sort=last_trade_timestamp&order=DESC&includeNsfw=false");
-          
-          if (response.ok) break;
-          
-          retries++;
-          if (retries < maxRetries) {
-            await new Promise(r => setTimeout(r, 1000 * retries)); // exponential backoff
-          }
-        } catch (err) {
-          retries++;
-          if (retries < maxRetries) {
-            await new Promise(r => setTimeout(r, 1000 * retries));
-          }
-        }
-      }
-      
-      // If Pump.fun is available, use it
-      if (response?.ok) {
-        try {
-          const data: PumpFunToken[] = await response.json();
-          
-          const tokens = data.map(token => ({
-            mint: token.mint,
-            name: token.name || "Unknown",
-            symbol: token.symbol || "???",
-            imageUri: token.image_uri || null,
-            bondingCurveProgress: calculateBondingProgress(token),
-            marketCapSol: calculateMarketCapSol(token),
-            priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
-              ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
-              : 0,
-            creatorAddress: token.creator,
-            createdAt: new Date(token.created_timestamp).toISOString(),
-            isGraduated: token.complete,
-          }));
-
-          return res.json(tokens);
-        } catch (parseErr) {
-          console.error("Error parsing Pump.fun response:", parseErr);
-        }
-      }
-      
-      // Fallback 1: Try Dexscreener for live trending tokens
-      console.log("Pump.fun API unavailable, trying Dexscreener...");
-      const dexscreenerTokens = await getTokensFromDexscreener();
-      
-      if (dexscreenerTokens.length > 0) {
-        console.log(`Found ${dexscreenerTokens.length} tokens from Dexscreener`);
-        return res.json(dexscreenerTokens);
-      }
-
-      // Fallback 2: Try direct Solana RPC for on-chain tokens (requires external connectivity)
-      console.log("Dexscreener unavailable, RPC APIs blocked in dev environment...");
-      
-      // Fallback 4: Return user-created tokens from database
-      console.log("All external sources unavailable, falling back to user-created tokens");
+      // Fetch tokens created on dum.fun from database
       const dbTokens = await db.select().from(tokensTable).limit(24);
       
-      if (dbTokens.length > 0) {
-        const formattedTokens = dbTokens.map((token: typeof tokensTable.$inferSelect) => ({
-          mint: token.mint,
-          name: token.name,
-          symbol: token.symbol,
-          imageUri: token.imageUri,
-          bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
-          marketCapSol: Number(token.marketCapSol) || 0,
-          priceInSol: Number(token.priceInSol) || 0,
-          creatorAddress: token.creatorAddress,
-          createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
-          isGraduated: token.isGraduated,
-          source: "local"
-        }));
-        
-        return res.json(formattedTokens);
-      }
+      const formattedTokens = dbTokens.map((token: typeof tokensTable.$inferSelect) => ({
+        mint: token.mint,
+        name: token.name,
+        symbol: token.symbol,
+        imageUri: token.imageUri,
+        bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
+        marketCapSol: Number(token.marketCapSol) || 0,
+        priceInSol: Number(token.priceInSol) || 0,
+        creatorAddress: token.creatorAddress,
+        createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
+        isGraduated: token.isGraduated,
+        source: "dum.fun"
+      }));
       
-      // If all else fails
-      console.error("All token sources unavailable");
-      return res.status(503).json({ 
-        error: "Unable to fetch tokens from available sources.",
-        suggestion: "Try creating your own token or check back in a few moments."
-      });
+      return res.json(formattedTokens);
     } catch (error: any) {
       console.error("Error fetching tokens:", error);
       return res.status(500).json({ error: "Server error while fetching tokens" });
@@ -169,38 +44,34 @@ export async function registerRoutes(
   app.get("/api/tokens/:mint", async (req, res) => {
     try {
       const { mint } = req.params;
-      const response = await fetch(`https://frontend-api.pump.fun/coins/${mint}`);
+      const token = await db.query.tokens.findFirst({
+        where: (tokens) => eq(tokens.mint, mint)
+      });
       
-      if (!response.ok) {
-        return res.status(404).json({ error: "Token not found" });
+      if (!token) {
+        return res.status(404).json({ error: "Token not found on dum.fun" });
       }
 
-      const token: PumpFunToken = await response.json();
-      
       return res.json({
         mint: token.mint,
-        name: token.name || "Unknown",
-        symbol: token.symbol || "???",
+        name: token.name,
+        symbol: token.symbol,
         description: token.description || "",
-        imageUri: token.image_uri || null,
-        bondingCurveProgress: calculateBondingProgress(token),
-        marketCapSol: calculateMarketCapSol(token),
-        priceInSol: token.virtual_sol_reserves && token.virtual_token_reserves 
-          ? (token.virtual_sol_reserves / token.virtual_token_reserves) / 1e9 
-          : 0.00001,
-        creatorAddress: token.creator,
-        createdAt: new Date(token.created_timestamp).toISOString(),
-        isGraduated: token.complete,
-        twitter: token.twitter || null,
-        telegram: token.telegram || null,
-        website: token.website || null,
-        virtualSolReserves: token.virtual_sol_reserves,
-        virtualTokenReserves: token.virtual_token_reserves,
-        totalSupply: token.total_supply,
+        imageUri: token.imageUri,
+        bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
+        marketCapSol: Number(token.marketCapSol) || 0,
+        priceInSol: Number(token.priceInSol) || 0,
+        creatorAddress: token.creatorAddress,
+        twitter: token.twitter,
+        telegram: token.telegram,
+        website: token.website,
+        createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
+        isGraduated: token.isGraduated,
+        source: "dum.fun"
       });
     } catch (error: any) {
       console.error("Error fetching token:", error);
-      return res.status(500).json({ error: "Failed to fetch token" });
+      return res.status(500).json({ error: "Server error fetching token" });
     }
   });
 

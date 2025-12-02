@@ -12,13 +12,13 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 
 ## Current Features
 
-- **Token Listings**: Real-time token feed from Pump.fun API with search, filtering by trending/new/graduating/graduated
-- **Token Search & Filters**: Search by name/symbol/mint, filter by market cap, creation date, or bonding curve progress
-- **Token Details**: Individual token pages with full info, price, creator, social links, and trading interface
+- **Token Listings**: Token feed from dum.fun database (tokens created on the platform)
+- **Token Creation**: Full-featured token creation form saving metadata to database with image upload
+- **Token Details**: Individual token pages with full info, price, creator, social links
 - **Wallet Connection**: Phantom wallet integration with message signing for verification
 - **User Profile**: Wallet address display with copy button, Solscan link, join date tracking, quick navigation
 - **Live Activity Feed**: Real-time updates showing new tokens, trades, and graduations from WebSocket
-- **Create Token**: Functional token creation form saving metadata to database with image upload (on-chain deployment pending contract)
+- **Platform-Native Tokens**: All tokens are user-created on dum.fun (no external Pump.fun feed)
 
 ## System Architecture
 
@@ -49,8 +49,8 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - HTTP server on port 5000
 
 **API Endpoints**
-- `GET /api/tokens` - Fetch live tokens from Pump.fun API
-- `GET /api/tokens/:mint` - Get single token details
+- `GET /api/tokens` - Fetch tokens created on dum.fun from database
+- `GET /api/tokens/:mint` - Get single token details from dum.fun
 - `POST /api/tokens/create` - Create new token metadata (saves to database)
 - `GET /api/tokens/creator/:address` - Get tokens created by wallet address
 - `POST /api/users/connect` - Create user from wallet connection
@@ -63,10 +63,10 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - `POST /api/trading/buy` - Build buy transaction (requires deployed contract)
 - `POST /api/trading/sell` - Build sell transaction (requires deployed contract)
 
-**Pump.fun Integration**
-- Fetches from `frontend-api.pump.fun/coins`
-- Calculates bonding curve progress from virtual reserves
-- Returns proper 503 errors when API is unavailable (no mock fallback)
+**Platform Architecture**
+- Dum.fun is a dedicated launchpad for user-created tokens only (no external feeds)
+- All tokens saved to PostgreSQL database
+- WebSocket integration for real-time activity (user trades, graduations)
 
 **Trading Infrastructure**
 - `server/bonding-curve.ts` - Bonding curve math (constant product x*y=k formula)
