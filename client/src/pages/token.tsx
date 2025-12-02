@@ -27,9 +27,20 @@ interface TokenDetail {
   totalSupply: number;
 }
 
+interface TradingStatus {
+  tradingEnabled: boolean;
+  message: string;
+  programId: string | null;
+}
+
+interface SolPrice {
+  price: number;
+  currency: string;
+}
+
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
-  const { connectedWallet } = useWallet();
+  const { connectedWallet, connectWallet } = useWallet();
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
 
@@ -41,6 +52,24 @@ export default function TokenPage() {
       return res.json();
     },
     enabled: !!mint,
+  });
+
+  const { data: tradingStatus } = useQuery<TradingStatus>({
+    queryKey: ["trading-status"],
+    queryFn: async () => {
+      const res = await fetch("/api/trading/status");
+      return res.json();
+    },
+  });
+
+  const { data: solPrice, isError: solPriceError } = useQuery<SolPrice | null>({
+    queryKey: ["sol-price"],
+    queryFn: async () => {
+      const res = await fetch("/api/price/sol");
+      if (!res.ok) return null; // Return null when price unavailable
+      return res.json();
+    },
+    refetchInterval: 60000, // Refresh every minute
   });
 
   if (isLoading) {
@@ -239,29 +268,92 @@ export default function TokenPage() {
                   ))}
                 </div>
 
-                <div className="bg-yellow-900/20 border border-yellow-600/30 rounded p-3 mb-3">
-                  <p className="text-yellow-500 text-xs font-bold text-center">TRADING COMING SOON</p>
-                  <p className="text-gray-400 text-xs text-center mt-1">
-                    Trading directly on Dum.fun is in development
-                  </p>
-                </div>
-                
-                <a
-                  href={`https://pump.fun/coin/${token.mint}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block"
-                >
+                {/* Trading status message */}
+                {!tradingStatus?.tradingEnabled && (
+                  <div className="bg-yellow-900/20 border border-yellow-600/30 rounded p-3 mb-3">
+                    <div className="flex items-center gap-2 justify-center">
+                      <AlertCircle className="w-4 h-4 text-yellow-500" />
+                      <p className="text-yellow-500 text-xs font-bold">TRADING COMING SOON</p>
+                    </div>
+                    <p className="text-gray-400 text-xs text-center mt-1">
+                      {tradingStatus?.message || "Deploy bonding curve contract to enable trading"}
+                    </p>
+                  </div>
+                )}
+
+                {/* Estimated value display */}
+                {tradeAmount && Number(tradeAmount) > 0 && (
+                  <div className="bg-zinc-800 rounded p-3 mb-3">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400">
+                        {tradeType === "buy" ? "You pay:" : "You sell:"}
+                      </span>
+                      <span className="font-mono text-white">
+                        {tradeAmount} {tradeType === "buy" ? "SOL" : token.symbol}
+                      </span>
+                    </div>
+                    {tradeType === "buy" && solPrice && solPrice.price > 0 && (
+                      <div className="flex justify-between text-xs mt-1">
+                        <span className="text-gray-400">USD value:</span>
+                        <span className="font-mono text-gray-300">
+                          ${(Number(tradeAmount) * solPrice.price).toFixed(2)}
+                        </span>
+                      </div>
+                    )}
+                    {tradeType === "buy" && (!solPrice || solPriceError) && (
+                      <div className="flex justify-between text-xs mt-1">
+                        <span className="text-gray-400">USD value:</span>
+                        <span className="font-mono text-gray-500 italic">
+                          unavailable
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Connect wallet or trade buttons */}
+                {!connectedWallet ? (
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center gap-2"
-                    data-testid="button-trade-on-pumpfun"
+                    onClick={connectWallet}
+                    className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                    data-testid="button-connect-wallet-trade"
                   >
-                    TRADE ON PUMP.FUN
-                    <ExternalLink className="w-4 h-4" />
+                    CONNECT WALLET TO TRADE
                   </motion.button>
-                </a>
+                ) : tradingStatus?.tradingEnabled ? (
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    disabled={!tradeAmount || Number(tradeAmount) <= 0}
+                    className={`w-full py-3 rounded font-black uppercase transition-all ${
+                      tradeType === "buy" 
+                        ? "bg-green-600 hover:bg-green-700 disabled:bg-green-900" 
+                        : "bg-red-600 hover:bg-red-700 disabled:bg-red-900"
+                    } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                    data-testid={`button-${tradeType}-token`}
+                  >
+                    {tradeType === "buy" ? "BUY" : "SELL"} {token.symbol}
+                  </motion.button>
+                ) : (
+                  <a
+                    href={`https://pump.fun/coin/${token.mint}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                  >
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center gap-2"
+                      data-testid="button-trade-on-pumpfun"
+                    >
+                      TRADE ON PUMP.FUN
+                      <ExternalLink className="w-4 h-4" />
+                    </motion.button>
+                  </a>
+                )}
               </div>
             </div>
 

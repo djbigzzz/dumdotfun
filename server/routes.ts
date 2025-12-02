@@ -4,7 +4,8 @@ import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
-import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG } from "./trading";
+import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG, isTradingEnabled } from "./trading";
+import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 
 interface PumpFunToken {
   mint: string;
@@ -255,9 +256,40 @@ export async function registerRoutes(
     }
   });
 
+  // Price endpoints (Jupiter API)
+  app.get("/api/price/sol", async (req, res) => {
+    try {
+      const price = await getSolPrice();
+      if (price === null) {
+        return res.status(503).json({ error: "Unable to fetch SOL price" });
+      }
+      return res.json({ price, currency: "USD" });
+    } catch (error) {
+      console.error("Error fetching SOL price:", error);
+      return res.status(500).json({ error: "Failed to fetch SOL price" });
+    }
+  });
+
+  app.get("/api/price/token/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const priceInSol = await getTokenPriceInSol(mint);
+      const solPrice = await getSolPrice();
+      
+      return res.json({ 
+        priceInSol: priceInSol,
+        priceInUsd: priceInSol && solPrice ? priceInSol * solPrice : null,
+        solPriceUsd: solPrice
+      });
+    } catch (error) {
+      console.error("Error fetching token price:", error);
+      return res.status(500).json({ error: "Failed to fetch token price" });
+    }
+  });
+
   // Trading endpoints
   app.get("/api/trading/status", async (req, res) => {
-    const isReady = TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID !== "11111111111111111111111111111111";
+    const isReady = isTradingEnabled();
     return res.json({
       tradingEnabled: isReady,
       message: isReady 
