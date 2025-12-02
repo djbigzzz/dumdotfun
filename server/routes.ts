@@ -421,12 +421,13 @@ export async function registerRoutes(
         website: website?.trim() || null,
       });
 
-      console.log(`Token created: ${token.name} (${token.symbol}) - ${token.mint}`);
+      console.log(`Token metadata saved: ${token.name} (${token.symbol}) - ${token.mint}`);
 
       return res.json({
         success: true,
         token,
-        message: "Token created successfully! Note: On-chain deployment requires contract integration.",
+        deploymentStatus: "pending",
+        message: "Token metadata saved! On-chain deployment will be available once bonding curve contract is deployed.",
       });
     } catch (error: any) {
       console.error("Error creating token:", error);

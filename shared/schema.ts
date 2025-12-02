@@ -21,6 +21,7 @@ export const tokens = pgTable("tokens", {
   marketCapSol: real("market_cap_sol").notNull().default(0),
   priceInSol: real("price_in_sol").notNull().default(0),
   isGraduated: boolean("is_graduated").notNull().default(false),
+  deploymentStatus: text("deployment_status").notNull().default("pending"),
   twitter: text("twitter"),
   telegram: text("telegram"),
   website: text("website"),
@@ -60,6 +61,7 @@ export const insertTokenSchema = createInsertSchema(tokens).omit({
   marketCapSol: true,
   priceInSol: true,
   isGraduated: true,
+  deploymentStatus: true,
 }).partial({
   description: true,
   imageUri: true,

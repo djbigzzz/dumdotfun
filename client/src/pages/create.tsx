@@ -126,14 +126,18 @@ export default function CreateToken() {
           >
             <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
             <div>
-              <h2 className="text-2xl font-black text-green-500">TOKEN CREATED!</h2>
+              <h2 className="text-2xl font-black text-green-500">TOKEN SAVED!</h2>
               <p className="text-gray-400 text-sm mt-2">
-                Your token <span className="text-white font-bold">{createdToken.name}</span> ({createdToken.symbol}) has been created.
+                Your token <span className="text-white font-bold">{createdToken.name}</span> ({createdToken.symbol}) metadata has been saved.
               </p>
             </div>
             <div className="bg-zinc-800/50 rounded p-3">
-              <p className="text-xs text-gray-400 mb-1">Mint Address</p>
+              <p className="text-xs text-gray-400 mb-1">Token ID</p>
               <p className="text-green-400 font-mono text-sm break-all">{createdToken.mint}</p>
+            </div>
+            <div className="bg-yellow-900/30 border border-yellow-600/30 rounded p-3">
+              <p className="text-xs text-yellow-500 font-bold">DEPLOYMENT STATUS: PENDING</p>
+              <p className="text-xs text-gray-400 mt-1">On-chain deployment will be available once the bonding curve contract is deployed.</p>
             </div>
             <div className="flex gap-3 justify-center">
               <Link href={`/token/${createdToken.mint}`}>
