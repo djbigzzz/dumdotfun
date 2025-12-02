@@ -18,7 +18,7 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - **Wallet Connection**: Phantom wallet integration with message signing for verification
 - **User Profile**: Wallet address display with copy button, Solscan link, join date tracking, quick navigation
 - **Live Activity Feed**: Real-time updates showing new tokens, trades, and graduations from WebSocket
-- **Create Token**: Form UI ready (actual creation links to Pump.fun for now)
+- **Create Token**: Functional token creation form saving metadata to database with image upload (on-chain deployment pending contract)
 
 ## System Architecture
 
@@ -51,6 +51,8 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 **API Endpoints**
 - `GET /api/tokens` - Fetch live tokens from Pump.fun API
 - `GET /api/tokens/:mint` - Get single token details
+- `POST /api/tokens/create` - Create new token metadata (saves to database)
+- `GET /api/tokens/creator/:address` - Get tokens created by wallet address
 - `POST /api/users/connect` - Create user from wallet connection
 - `GET /api/users/wallet/:address` - Get user by wallet
 - `POST /api/waitlist` - Add email to waitlist
@@ -79,10 +81,12 @@ Dum.fun is a Pump.fun-style token launchpad for Solana, featuring a neo-brutalis
 - walletAddress (text, unique)
 - createdAt (timestamp)
 
-**tokens table** (schema ready for caching)
+**tokens table** (supports both caching and user-created tokens)
 - id, mint, name, symbol, description, imageUri
 - creatorAddress, bondingCurveProgress, marketCapSol, priceInSol
-- isGraduated, createdAt, updatedAt
+- isGraduated, deploymentStatus (pending/deployed/graduated)
+- twitter, telegram, website (social links)
+- createdAt, updatedAt
 
 ### Wallet Integration
 
@@ -159,8 +163,18 @@ The platform includes WebSocket integration for real-time token updates:
 - Placeholder stat cards for future tokens created and trades tracking
 - Quick action buttons for navigation to browse or create tokens
 
+**Turn 4: Token Creation Infrastructure**
+- Built complete token creation backend: storage layer, API endpoints, validation
+- Implemented frontend form with name, symbol, description, image upload, social links
+- Added deploymentStatus tracking for progressive on-chain deployment
+- Form submission saves metadata to PostgreSQL database
+- Success state shows token ID and pending deployment status
+- GET /api/tokens/creator/:address endpoint for fetching user's created tokens
+
 ### Future Development
-- Complete token creation on platform via deployed bonding curve contract
-- Implement tokens created and trading history stats (requires contract integration)
+- On-chain token deployment via deployed bonding curve contract (steps 7-10 of creation)
+- SPL token creation transaction building
+- Bonding curve initialization with user wallet signing
+- Implement tokens created count on profile page
 - Portfolio tracking and trading analytics
 - Advanced trading features (slippage settings, batch trades)
