@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist } from "@shared/schema";
+import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -6,6 +6,10 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByWallet(walletAddress: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Token methods
+  createToken(token: InsertToken): Promise<Token>;
+  getTokenByMint(mint: string): Promise<Token | undefined>;
   
   // Wallet analysis methods
   getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined>;
@@ -19,12 +23,16 @@ export interface IStorage {
 export class MemStorage implements IStorage {
   private users: Map<string, User>;
   private walletAddressToUser: Map<string, string>;
+  private tokens: Map<string, Token>;
+  private mintToToken: Map<string, string>;
   private walletAnalyses: Map<string, WalletAnalysis>;
   private waitlistEmails: Set<string>;
 
   constructor() {
     this.users = new Map();
     this.walletAddressToUser = new Map();
+    this.tokens = new Map();
+    this.mintToToken = new Map();
     this.walletAnalyses = new Map();
     this.waitlistEmails = new Set();
   }
@@ -79,6 +87,25 @@ export class MemStorage implements IStorage {
 
   async isEmailInWaitlist(email: string): Promise<boolean> {
     return this.waitlistEmails.has(email);
+  }
+
+  async createToken(insertToken: InsertToken): Promise<Token> {
+    const id = randomUUID();
+    const now = new Date();
+    const token: Token = {
+      ...insertToken,
+      id,
+      createdAt: now,
+      updatedAt: now,
+    };
+    this.tokens.set(id, token);
+    this.mintToToken.set(insertToken.mint, id);
+    return token;
+  }
+
+  async getTokenByMint(mint: string): Promise<Token | undefined> {
+    const tokenId = this.mintToToken.get(mint);
+    return tokenId ? this.tokens.get(tokenId) : undefined;
   }
 }
 
