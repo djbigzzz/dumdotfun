@@ -146,8 +146,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Wallet address is required" });
       }
 
-      const existing = await storage.getUserByWallet(walletAddress);
+      let existing = await storage.getUserByWallet(walletAddress);
       if (existing) {
+        // Ensure existing user has a referral code (backfill for users created before referral system)
+        if (!existing.referralCode) {
+          const newCode = generateUserReferralCode(walletAddress);
+          const updated = await storage.updateUserReferralCode(walletAddress, newCode);
+          if (updated) {
+            existing = updated;
+          }
+        }
         const referralCount = await storage.getReferralCount(walletAddress);
         return res.json({ ...existing, referralCount });
       }
@@ -162,9 +170,17 @@ export async function registerRoutes(
 
   app.get("/api/users/wallet/:walletAddress", async (req, res) => {
     try {
-      const user = await storage.getUserByWallet(req.params.walletAddress);
+      let user = await storage.getUserByWallet(req.params.walletAddress);
       if (!user) {
         return res.status(404).json({ error: "User not found" });
+      }
+      // Backfill referral code for users created before referral system
+      if (!user.referralCode) {
+        const newCode = generateUserReferralCode(req.params.walletAddress);
+        const updated = await storage.updateUserReferralCode(req.params.walletAddress, newCode);
+        if (updated) {
+          user = updated;
+        }
       }
       const referralCount = await storage.getReferralCount(req.params.walletAddress);
       return res.json({ ...user, referralCount });
@@ -681,5 +697,12 @@ function calculateOdds(yesPool: number, noPool: number, side: "yes" | "no"): num
   } else {
     return Math.round((noPool / total) * 100);
   }
+}
+
+// Helper function to generate referral codes
+function generateUserReferralCode(walletAddress: string): string {
+  const prefix = walletAddress.slice(0, 4).toUpperCase();
+  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+  return `${prefix}${suffix}`;
 }
 

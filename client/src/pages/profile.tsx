@@ -2,43 +2,49 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { useLocation, Link } from "wouter";
-import { useEffect } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Zap, TrendingUp } from "lucide-react";
-import { useState } from "react";
+import { useLocation } from "wouter";
+import { useEffect, useState } from "react";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2 } from "lucide-react";
 
-interface User {
+interface UserWithReferrals {
   id: string;
   walletAddress: string;
+  referralCode: string | null;
+  referredBy: string | null;
+  referralCount: number;
   createdAt: string;
-}
-
-interface WalletStats {
-  tokens_created: number;
-  total_trades: number;
 }
 
 export default function Profile() {
   const { connectedWallet, disconnectWallet } = useWallet();
   const [, setLocation] = useLocation();
-  const [copied, setCopied] = useState(false);
+  const [copiedWallet, setCopiedWallet] = useState(false);
+  const [copiedReferral, setCopiedReferral] = useState(false);
 
-  // Redirect if not connected
   useEffect(() => {
     if (!connectedWallet) {
       setLocation("/");
     }
   }, [connectedWallet, setLocation]);
 
-  const copyToClipboard = () => {
+  const copyWallet = () => {
     if (connectedWallet) {
       navigator.clipboard.writeText(connectedWallet);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
+      setCopiedWallet(true);
+      setTimeout(() => setCopiedWallet(false), 2000);
     }
   };
 
-  const { data: user, isLoading } = useQuery<User | null>({
+  const copyReferralLink = () => {
+    if (user?.referralCode) {
+      const link = `${window.location.origin}?ref=${user.referralCode}`;
+      navigator.clipboard.writeText(link);
+      setCopiedReferral(true);
+      setTimeout(() => setCopiedReferral(false), 2000);
+    }
+  };
+
+  const { data: user, isLoading } = useQuery<UserWithReferrals | null>({
     queryKey: ["user", connectedWallet],
     queryFn: async () => {
       if (!connectedWallet) return null;
@@ -84,11 +90,10 @@ export default function Profile() {
           className="w-full max-w-4xl mx-auto px-4"
         >
           <div className="space-y-6">
-            {/* Profile Header with Logout */}
             <div className="flex items-start justify-between gap-4">
               <div>
                 <h1 className="text-3xl font-black text-white mb-2">Your Profile</h1>
-                <p className="text-gray-400 text-sm">Manage your wallet and trading activity</p>
+                <p className="text-gray-400 text-sm">Manage your wallet and referrals</p>
               </div>
               <motion.button
                 onClick={handleLogout}
@@ -101,7 +106,6 @@ export default function Profile() {
               </motion.button>
             </div>
 
-            {/* Wallet Card */}
             <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6 space-y-4">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-red-500" />
@@ -112,13 +116,13 @@ export default function Profile() {
                   {user.walletAddress}
                 </p>
                 <motion.button
-                  onClick={copyToClipboard}
+                  onClick={copyWallet}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
                   className="flex-shrink-0 text-gray-400 hover:text-white transition-colors"
                   data-testid="button-copy-wallet"
                 >
-                  {copied ? (
+                  {copiedWallet ? (
                     <Check className="w-5 h-5 text-green-500" />
                   ) : (
                     <Copy className="w-5 h-5" />
@@ -139,9 +143,37 @@ export default function Profile() {
               </div>
             </div>
 
-            {/* Stats Grid */}
+            <div className="bg-zinc-900 border border-green-600/30 rounded-lg p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-green-500" />
+                <h2 className="text-sm font-bold text-gray-400 uppercase">Your Referral Link</h2>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-4 py-3 bg-zinc-800 rounded-lg text-sm font-mono text-gray-400 truncate">
+                  {user.referralCode 
+                    ? `${window.location.origin}?ref=${user.referralCode}`
+                    : "Generating..."
+                  }
+                </div>
+                <motion.button
+                  onClick={copyReferralLink}
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  disabled={!user.referralCode}
+                  className="px-4 py-3 bg-green-600 text-black font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  data-testid="button-copy-referral"
+                >
+                  {copiedReferral ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
+                </motion.button>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                Share this link to earn rewards for every friend who joins!
+              </p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Joined Date */}
               <motion.div
                 whileHover={{ y: -2 }}
                 className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4"
@@ -158,58 +190,47 @@ export default function Profile() {
                 </p>
               </motion.div>
 
-              {/* Coming Soon - Tokens Created */}
               <motion.div
                 whileHover={{ y: -2 }}
-                className="bg-green-900/20 border border-green-600/30 rounded-lg p-4 opacity-70"
+                className="bg-green-900/20 border border-green-600/30 rounded-lg p-4"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Zap className="w-4 h-4 text-green-500" />
-                  <span className="text-xs font-bold text-gray-400">TOKENS CREATED</span>
+                  <Users className="w-4 h-4 text-green-500" />
+                  <span className="text-xs font-bold text-gray-400">REFERRALS</span>
                 </div>
-                <p className="text-xl font-mono text-green-500">—</p>
-                <p className="text-xs text-gray-500 mt-1">Coming soon</p>
+                <p className="text-xl font-mono text-green-500">
+                  {user.referralCount}
+                </p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {user.referralCount === 1 ? "friend referred" : "friends referred"}
+                </p>
               </motion.div>
 
-              {/* Coming Soon - Total Trades */}
               <motion.div
                 whileHover={{ y: -2 }}
-                className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4 opacity-70"
+                className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <TrendingUp className="w-4 h-4 text-blue-500" />
-                  <span className="text-xs font-bold text-gray-400">TOTAL TRADES</span>
+                  <Gift className="w-4 h-4 text-purple-500" />
+                  <span className="text-xs font-bold text-gray-400">REWARDS</span>
                 </div>
-                <p className="text-xl font-mono text-blue-500">—</p>
-                <p className="text-xs text-gray-500 mt-1">Coming soon</p>
+                <p className="text-xl font-mono text-purple-500">???</p>
+                <p className="text-xs text-gray-500 mt-1">Coming at launch</p>
               </motion.div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-6">
-              <h3 className="text-sm font-bold text-gray-400 uppercase mb-4">Quick Actions</h3>
-              <div className="flex gap-3">
-                <Link href="/">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 bg-red-600 text-white font-bold text-sm rounded hover:bg-red-700 transition-colors border border-red-500/50"
-                    data-testid="button-browse-tokens"
-                  >
-                    Browse Tokens
-                  </motion.button>
-                </Link>
-                <Link href="/create">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className="px-4 py-2 bg-green-600 text-black font-bold text-sm rounded hover:bg-green-700 transition-colors border border-green-500/50"
-                    data-testid="button-create-from-profile"
-                  >
-                    Create Token
-                  </motion.button>
-                </Link>
+            {user.referredBy && (
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
+                <p className="text-xs text-gray-500">
+                  You were referred by: <span className="text-green-400 font-mono">{user.referredBy}</span>
+                </p>
               </div>
+            )}
+
+            <div className="text-center pt-4">
+              <p className="text-xs text-gray-600">
+                Your referral code: <span className="font-mono text-green-400">{user.referralCode || "—"}</span>
+              </p>
             </div>
           </div>
         </motion.div>

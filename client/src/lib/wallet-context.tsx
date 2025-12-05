@@ -16,7 +16,7 @@ declare global {
 interface WalletContextType {
   connectedWallet: string | null;
   hasPhantom: boolean;
-  connectWallet: () => Promise<void>;
+  connectWallet: (referralCode?: string) => Promise<void>;
   signMessage: (message: string) => Promise<string>;
   disconnectWallet: () => Promise<void>;
 }
@@ -45,7 +45,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const connectWallet = async () => {
+  const connectWallet = async (referralCode?: string) => {
     if (!window.solana?.isPhantom) {
       window.open("https://phantom.app/", "_blank");
       return;
@@ -56,12 +56,12 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const walletAddress = response.publicKey.toString();
       setConnectedWallet(walletAddress);
 
-      // Create user in database
+      // Create user in database with optional referral code
       try {
         await fetch("/api/users/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ walletAddress }),
+          body: JSON.stringify({ walletAddress, referralCode }),
         });
       } catch (err) {
         console.error("Failed to create user:", err);

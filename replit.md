@@ -15,7 +15,20 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
 - Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
 
-## Current Features
+## Current State: Coming Soon Mode
+
+The platform is currently in "Coming Soon" mode with:
+- **Landing Page**: Simple waitlist signup with referral program
+- **Profile Page**: Active for connected users with referral stats
+
+## Referral System
+
+- **Unique Referral Codes**: Generated as 8-char codes (e.g., "8NNL3X5F") 
+- **Referral Links**: `https://dum.fun?ref=CODE`
+- **Tracking**: Counts referrals per user, stores who referred whom
+- **Backfill**: Existing users automatically get codes on next connection
+
+## Features (Launching Soon)
 
 ### Token Launchpad
 - **Token Listings**: Token feed from dum.fun database (tokens created on the platform)
@@ -37,7 +50,6 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - **Create from Token**: Create prediction directly from token page with pre-filled token link
 
 ### Platform Features
-- **Dual-Tab Home**: Switch between Tokens and Predictions views
 - **Wallet Connection**: Phantom wallet integration with message signing
 - **User Profile**: Wallet address display with copy button, Solscan link, join date tracking
 - **Live Activity Feed**: Real-time updates showing tokens, trades, and bets
@@ -54,12 +66,12 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - TanStack Query for server state and caching
 
 **Pages**
-- `/` - Home page with dual tabs (Tokens / Predictions)
-- `/token/:mint` - Token detail page with trading interface
-- `/create` - Token creation form
-- `/create-market` - Prediction market creation form
-- `/market/:id` - Market detail page with betting interface
-- `/profile` - User profile (wallet address, join date)
+- `/` - Coming Soon landing page with waitlist + referral program
+- `/token/:mint` - Token detail page with trading interface (hidden for now)
+- `/create` - Token creation form (hidden for now)
+- `/create-market` - Prediction market creation form (hidden for now)
+- `/market/:id` - Market detail page with betting interface (hidden for now)
+- `/profile` - User profile (wallet address, referral stats, referral link)
 
 **UI Component System**
 - Shadcn/ui with Radix UI primitives
@@ -78,8 +90,9 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - `GET /api/tokens/:mint` - Get single token details with all linked predictions
 - `POST /api/tokens/create` - Create new token metadata (saves to database)
 - `GET /api/tokens/creator/:address` - Get tokens created by wallet address
-- `POST /api/users/connect` - Create user from wallet connection
-- `GET /api/users/wallet/:address` - Get user by wallet
+- `POST /api/users/connect` - Create user from wallet connection (with optional referralCode)
+- `GET /api/users/wallet/:address` - Get user by wallet (includes referralCode, referralCount)
+- `GET /api/users/referrals/:address` - Get referral stats for a wallet
 - `POST /api/waitlist` - Add email to waitlist
 - `GET /api/price/sol` - Get SOL price in USD (Jupiter API)
 - `GET /api/price/token/:mint` - Get token price in SOL and USD
