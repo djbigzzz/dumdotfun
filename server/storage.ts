@@ -6,7 +6,11 @@ export interface IStorage {
   // User methods
   getUser(id: string): Promise<User | undefined>;
   getUserByWallet(walletAddress: string): Promise<User | undefined>;
+  getUserByReferralCode(referralCode: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  createUserWithReferral(walletAddress: string, referredByCode?: string): Promise<User>;
+  getReferralCount(walletAddress: string): Promise<number>;
+  updateUserReferralCode(walletAddress: string, referralCode: string): Promise<User | undefined>;
   
   // Token methods
   createToken(token: InsertToken): Promise<Token>;
@@ -66,6 +70,51 @@ export class DatabaseStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(users).values(insertUser).returning();
     return user;
+  }
+
+  async getUserByReferralCode(referralCode: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.referralCode, referralCode));
+    return user || undefined;
+  }
+
+  async createUserWithReferral(walletAddress: string, referredByCode?: string): Promise<User> {
+    const referralCode = this.generateReferralCode(walletAddress);
+    let referredBy: string | null = null;
+    
+    if (referredByCode) {
+      const referrer = await this.getUserByReferralCode(referredByCode);
+      if (referrer) {
+        referredBy = referrer.walletAddress;
+      }
+    }
+    
+    const [user] = await db.insert(users).values({
+      walletAddress,
+      referralCode,
+      referredBy,
+    }).returning();
+    return user;
+  }
+
+  async getReferralCount(walletAddress: string): Promise<number> {
+    const result = await db.select({ count: sql<number>`count(*)` })
+      .from(users)
+      .where(eq(users.referredBy, walletAddress));
+    return Number(result[0]?.count) || 0;
+  }
+
+  async updateUserReferralCode(walletAddress: string, referralCode: string): Promise<User | undefined> {
+    const [user] = await db.update(users)
+      .set({ referralCode })
+      .where(eq(users.walletAddress, walletAddress))
+      .returning();
+    return user || undefined;
+  }
+
+  private generateReferralCode(walletAddress: string): string {
+    const prefix = walletAddress.slice(0, 4).toUpperCase();
+    const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `${prefix}${suffix}`;
   }
 
   async getWalletAnalysis(walletAddress: string): Promise<WalletAnalysis | undefined> {

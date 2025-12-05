@@ -140,7 +140,7 @@ export async function registerRoutes(
 
   app.post("/api/users/connect", async (req, res) => {
     try {
-      const { walletAddress } = req.body;
+      const { walletAddress, referralCode } = req.body;
 
       if (!walletAddress || typeof walletAddress !== "string" || walletAddress.length < 32) {
         return res.status(400).json({ error: "Wallet address is required" });
@@ -148,14 +148,12 @@ export async function registerRoutes(
 
       const existing = await storage.getUserByWallet(walletAddress);
       if (existing) {
-        return res.json(existing);
+        const referralCount = await storage.getReferralCount(walletAddress);
+        return res.json({ ...existing, referralCount });
       }
 
-      const newUser = await storage.createUser({
-        walletAddress,
-      });
-
-      return res.json(newUser);
+      const newUser = await storage.createUserWithReferral(walletAddress, referralCode);
+      return res.json({ ...newUser, referralCount: 0 });
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
       return res.status(500).json({ error: "Failed to connect wallet" });
@@ -168,9 +166,24 @@ export async function registerRoutes(
       if (!user) {
         return res.status(404).json({ error: "User not found" });
       }
-      return res.json(user);
+      const referralCount = await storage.getReferralCount(req.params.walletAddress);
+      return res.json({ ...user, referralCount });
     } catch (error: any) {
       return res.status(500).json({ error: "Failed to get user" });
+    }
+  });
+
+  app.get("/api/users/referrals/:walletAddress", async (req, res) => {
+    try {
+      const referralCount = await storage.getReferralCount(req.params.walletAddress);
+      const user = await storage.getUserByWallet(req.params.walletAddress);
+      return res.json({ 
+        referralCount, 
+        referralCode: user?.referralCode || null 
+      });
+    } catch (error: any) {
+      console.error("Error fetching referrals:", error);
+      return res.status(500).json({ error: "Failed to fetch referrals" });
     }
   });
   

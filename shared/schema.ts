@@ -6,6 +6,8 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletAddress: text("wallet_address").notNull().unique(),
+  referralCode: text("referral_code").unique(),
+  referredBy: text("referred_by"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -91,6 +93,9 @@ export const activityFeed = pgTable("activity_feed", {
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,
+}).partial({
+  referralCode: true,
+  referredBy: true,
 });
 
 export const insertTokenSchema = createInsertSchema(tokens).omit({
