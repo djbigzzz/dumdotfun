@@ -48,13 +48,11 @@ interface WalletModalProps {
 }
 
 const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
-  const { connectWallet, connectedWallet, signMessage } = useWallet();
+  const { connectWallet } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState<"connect" | "sign">("connect");
 
   useEffect(() => {
     if (isOpen) {
-      setStep("connect");
       setLoading(false);
     }
   }, [isOpen]);
@@ -63,32 +61,12 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
     setLoading(true);
     try {
       await connectWallet();
-      // Give Phantom a moment to update, then check if wallet is connected
-      setTimeout(() => {
-        setStep("sign");
-        setLoading(false);
-      }, 500);
+      toast.success("Wallet connected!");
+      onClose();
     } catch (err) {
       console.error("Connect error:", err);
       toast.error("Failed to connect wallet");
-      setLoading(false);
-    }
-  };
-
-  const handleSign = async () => {
-    setLoading(true);
-    try {
-      const message = "Sign in to Dum.fun";
-      const signature = await signMessage(message);
-      if (!signature) throw new Error("No signature received");
-      
-      await onConnect();
-      toast.success("Wallet connected!");
-      onClose();
-      setStep("connect");
-    } catch (err: any) {
-      console.error("Sign error:", err);
-      toast.error(err?.message || "Failed to sign message");
+    } finally {
       setLoading(false);
     }
   };
@@ -109,37 +87,18 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
           </button>
         </div>
 
-        {step === "connect" ? (
-          <>
-            <motion.button
-              onClick={handleConnect}
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50"
-            >
-              {loading ? "Connecting..." : "Phantom"}
-            </motion.button>
-            <p className="text-xs text-gray-400 font-mono text-center">
-              Only Phantom supported for now
-            </p>
-          </>
-        ) : (
-          <>
-            <p className="text-sm text-gray-300 font-mono">
-              Sign a message to verify your wallet
-            </p>
-            <motion.button
-              onClick={handleSign}
-              disabled={loading}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-3 px-4 rounded-lg uppercase transition-all border border-green-400/50 disabled:opacity-50"
-            >
-              {loading ? "Signing..." : "Sign Message"}
-            </motion.button>
-          </>
-        )}
+        <motion.button
+          onClick={handleConnect}
+          disabled={loading}
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50"
+        >
+          {loading ? "Connecting..." : "Phantom"}
+        </motion.button>
+        <p className="text-xs text-gray-400 font-mono text-center">
+          Only Phantom supported for now
+        </p>
       </motion.div>
     </div>
   );

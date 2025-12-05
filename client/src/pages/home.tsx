@@ -80,9 +80,16 @@ export default function Home() {
     }
   };
 
+  const [isConnecting, setIsConnecting] = useState(false);
+
   const handleConnect = async () => {
-    const storedRef = localStorage.getItem("referralCode");
-    await connectWallet(storedRef || undefined);
+    setIsConnecting(true);
+    try {
+      const storedRef = localStorage.getItem("referralCode");
+      await connectWallet(storedRef || undefined);
+    } finally {
+      setIsConnecting(false);
+    }
   };
 
   const copyReferralLink = () => {
@@ -195,12 +202,13 @@ export default function Home() {
                 </p>
                 <motion.button
                   onClick={handleConnect}
+                  disabled={isConnecting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-6 py-3 bg-zinc-800 border border-zinc-700 text-white font-bold rounded-lg hover:bg-zinc-700 hover:border-zinc-600 transition-all"
+                  className="px-6 py-3 bg-zinc-800 border border-zinc-700 text-white font-bold rounded-lg hover:bg-zinc-700 hover:border-zinc-600 transition-all disabled:opacity-50"
                   data-testid="button-connect-wallet"
                 >
-                  Connect Wallet
+                  {isConnecting ? "Connecting..." : "Connect Wallet"}
                 </motion.button>
                 {referralCode && (
                   <p className="text-xs text-gray-500">
