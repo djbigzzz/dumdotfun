@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
 declare global {
   interface Window {
@@ -26,13 +27,25 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined);
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [hasPhantom, setHasPhantom] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
-    const checkPhantom = () => {
+    const checkPhantom = async () => {
       if (window.solana?.isPhantom) {
         setHasPhantom(true);
         if (window.solana.publicKey) {
-          setConnectedWallet(window.solana.publicKey.toString());
+          const walletAddress = window.solana.publicKey.toString();
+          // Ensure user exists in database on page load
+          try {
+            await fetch("/api/users/connect", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ walletAddress }),
+            });
+          } catch (err) {
+            console.error("Failed to sync user on load:", err);
+          }
+          setConnectedWallet(walletAddress);
         }
       }
     };
@@ -54,18 +67,25 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const response = await window.solana.connect({ onlyIfTrusted: false });
       const walletAddress = response.publicKey.toString();
-      setConnectedWallet(walletAddress);
 
-      // Create user in database with optional referral code
+      // Create user in database FIRST, then set connected state
       try {
-        await fetch("/api/users/connect", {
+        const res = await fetch("/api/users/connect", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ walletAddress, referralCode }),
         });
+        
+        if (res.ok) {
+          // Invalidate user query so it refetches with new data
+          queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
+        }
       } catch (err) {
         console.error("Failed to create user:", err);
       }
+      
+      // Set connected wallet AFTER user is created
+      setConnectedWallet(walletAddress);
     } catch (err) {
       console.error("Failed to connect wallet:", err);
     }
@@ -80,7 +100,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const messageBuffer = new TextEncoder().encode(message);
       const response = await window.solana.signMessage(messageBuffer);
       
-      // Convert signature bytes to base64 string using browser-compatible method
       const signatureArray = Array.from(response.signature);
       const binaryString = String.fromCharCode(...signatureArray);
       return btoa(binaryString);
