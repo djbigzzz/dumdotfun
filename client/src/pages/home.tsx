@@ -465,16 +465,29 @@ export default function Home() {
             )}
           </motion.section>
 
-          {/* Footer Note */}
-          <motion.div
+          {/* Footer */}
+          <motion.footer
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="text-center text-xs text-gray-600 space-y-1"
+            className="border-t border-zinc-800 pt-8 space-y-4"
           >
-            <p>Building the dumbest way to make money on Solana</p>
-            <p className="font-mono">@dumfun</p>
-          </motion.div>
+            <div className="flex items-center justify-center gap-6 text-sm">
+              <a href="#" className="text-gray-500 hover:text-white transition-colors">About</a>
+              <a href="#" className="text-gray-500 hover:text-white transition-colors">Terms</a>
+              <button
+                onClick={() => alert("LOL NO! 😂")}
+                className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+                data-testid="link-refund"
+              >
+                Refund
+              </button>
+            </div>
+            <div className="text-center text-xs text-gray-600 space-y-1">
+              <p>Building the dumbest way to make money on Solana</p>
+              <p className="font-mono">@dumfun</p>
+            </div>
+          </motion.footer>
         </div>
       </div>
     </Layout>
