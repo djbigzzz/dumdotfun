@@ -10,21 +10,18 @@ import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352
 const Marquee = () => {
   return (
     <div 
-      className="py-3 overflow-hidden border-b border-red-600/50 relative"
-      style={{
-        background: "linear-gradient(90deg, rgba(239,68,68,0.15) 0%, rgba(127,29,29,0.2) 50%, rgba(239,68,68,0.15) 100%)",
-      }}
+      className="py-3 overflow-hidden border-b-2 border-black relative bg-red-500"
     >
       <div className="flex items-center justify-center gap-2 animate-marquee whitespace-nowrap font-mono text-sm">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-red-500 font-black">⚡</span>
-            <span className="text-red-400 font-black">LIVE NOW</span>
-            <span className="text-red-600">•</span>
-            <span className="text-gray-400">JOIN THE RACE</span>
-            <span className="text-red-600">•</span>
-            <span className="text-yellow-500 font-black">CLIMB THE RANKS</span>
-            <span className="text-red-600 mx-2">•</span>
+            <span className="text-white font-black">⚡</span>
+            <span className="text-white font-black">COMING SOON</span>
+            <span className="text-pink-200">•</span>
+            <span className="text-pink-100">JOIN THE WAITLIST</span>
+            <span className="text-pink-200">•</span>
+            <span className="text-yellow-300 font-black">EARN REWARDS</span>
+            <span className="text-pink-200 mx-2">•</span>
           </div>
         ))}
       </div>
@@ -109,9 +106,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [showWalletModal, setShowWalletModal] = useState(false);
 
   return (
-    <div className="min-h-screen flex flex-col bg-zinc-950 text-gray-100 selection:bg-red-600 selection:text-white">
+    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white">
       <Marquee />
-      <header className="p-4 border-b border-red-900 flex justify-between items-center bg-zinc-900">
+      <header className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
         <Link href="/">
           <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
             <img src={pillLogo} alt="DUM.FUN" className="h-12 md:h-14 w-auto" />
@@ -125,7 +122,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {connectedWallet ? (
             <Link href="/profile">
               <button 
-                className="font-mono font-bold border-2 border-red-600 px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-600 text-white"
+                className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 data-testid="button-profile"
               >
                 Profile
@@ -134,7 +131,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           ) : (
             <button 
               onClick={() => setShowWalletModal(true)}
-              className="font-mono font-bold border-2 border-red-600 px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-zinc-900 text-red-500 hover:bg-red-900/20"
+              className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-white text-red-500 hover:bg-red-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               data-testid="button-login"
             >
               LOG IN
@@ -150,13 +147,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
       />
 
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
-        <div className="fixed inset-0 pointer-events-none opacity-[0.03] z-0" style={{ backgroundImage: `url('/attached_assets/generated_images/gritty_digital_noise_texture.png')` }}></div>
         <div className="relative z-10">
           {children}
         </div>
       </main>
 
-      <footer className="p-8 border-t border-red-900 bg-zinc-900 text-center font-mono text-sm text-neutral-500">
+      <footer className="p-8 border-t-2 border-black bg-white text-center font-mono text-sm text-gray-500">
         <p className="mb-4">
           COPYRIGHT © 1999-2025 DUM.FUN INC. ALL RIGHTS RESERVED (BUT NOT REALLY).
         </p>

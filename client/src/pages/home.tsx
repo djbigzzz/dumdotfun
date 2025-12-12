@@ -232,12 +232,12 @@ export default function Home() {
               <span className="text-pink-300">FUN</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed font-bold">
+            <p className="text-xl md:text-2xl text-gray-700 max-w-2xl mx-auto leading-relaxed font-bold">
               Launch tokens. Bet on rugs.{" "}
-              <span className="text-green-400">Make money either way.</span>
+              <span className="text-green-600 font-black">Make money either way.</span>
             </p>
 
-            <p className="text-base text-gray-400 max-w-xl mx-auto">
+            <p className="text-base text-gray-500 max-w-xl mx-auto">
               The only platform where you can launch your own meme coin{" "}
               <span className="text-red-500 font-bold">AND</span> bet that the dev will rug.{" "}
               Win-win, degen style.
@@ -256,7 +256,7 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="space-y-8"
           >
-            <h2 className="text-center text-2xl font-black text-white">
+            <h2 className="text-center text-2xl font-black text-gray-900">
               How It Works
             </h2>
             
@@ -340,11 +340,11 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-zinc-800 border-2 border-black rounded-2xl p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(239,68,68,1)]"
+            className="bg-white border-2 border-black rounded-2xl p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(239,68,68,1)]"
           >
             <div className="text-center space-y-2">
-              <h2 className="text-2xl font-black text-white">Get Early Access</h2>
-              <p className="text-gray-400">Join the waitlist and be first to launch</p>
+              <h2 className="text-2xl font-black text-gray-900">Get Early Access</h2>
+              <p className="text-gray-600">Join the waitlist and be first to launch</p>
             </div>
 
             {submitStatus === "success" ? (
@@ -395,15 +395,15 @@ export default function Home() {
           >
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-2">
-                <Users className="w-6 h-6 text-pink-400" />
-                <h2 className="text-2xl font-black text-white">Referral Program</h2>
+                <Users className="w-6 h-6 text-pink-500" />
+                <h2 className="text-2xl font-black text-gray-900">Referral Program</h2>
               </div>
-              <p className="text-gray-400">Invite friends, earn rewards at launch</p>
+              <p className="text-gray-600">Invite friends, earn rewards at launch</p>
             </div>
 
             {!connectedWallet ? (
-              <div className="bg-zinc-800 border-2 border-black rounded-xl p-8 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(251,207,232,1)]">
-                <p className="text-gray-300 font-medium">
+              <div className="bg-white border-2 border-black rounded-xl p-8 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]">
+                <p className="text-gray-700 font-medium">
                   Connect your wallet to get your unique referral link
                 </p>
                 <motion.button
@@ -426,12 +426,12 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-zinc-800 border-2 border-black rounded-xl p-6 space-y-6 shadow-[4px_4px_0px_0px_rgba(251,207,232,1)]"
+                className="bg-white border-2 border-black rounded-xl p-6 space-y-6 shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <p className="text-gray-400 text-sm font-medium">Your Referral Code</p>
-                    <p className="text-2xl font-mono font-black text-pink-400">
+                    <p className="text-gray-500 text-sm font-medium">Your Referral Code</p>
+                    <p className="text-2xl font-mono font-black text-pink-500">
                       {user?.referralCode || "Loading..."}
                     </p>
                   </div>
@@ -442,7 +442,7 @@ export default function Home() {
                 </div>
 
                 <div className="flex gap-2">
-                  <div className="flex-1 px-4 py-3 bg-white border-2 border-black rounded-lg text-sm font-mono text-gray-700 truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                  <div className="flex-1 px-4 py-3 bg-gray-100 border-2 border-black rounded-lg text-sm font-mono text-gray-700 truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     {user?.referralCode 
                       ? `${window.location.origin}?ref=${user.referralCode}`
                       : "Loading..."
@@ -460,7 +460,7 @@ export default function Home() {
                   </motion.button>
                 </div>
 
-                <p className="text-xs text-gray-400 text-center font-medium">
+                <p className="text-xs text-gray-500 text-center font-medium">
                   Top referrers will receive bonus rewards at launch
                 </p>
               </motion.div>
@@ -472,22 +472,22 @@ export default function Home() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="border-t border-zinc-800 pt-8 space-y-4"
+            className="border-t-2 border-black pt-8 space-y-4"
           >
             <div className="flex items-center justify-center gap-6 text-sm">
-              <a href="#" className="text-gray-500 hover:text-white transition-colors">About</a>
-              <a href="#" className="text-gray-500 hover:text-white transition-colors">Terms</a>
+              <a href="#" className="text-gray-500 hover:text-gray-900 transition-colors font-medium">About</a>
+              <a href="#" className="text-gray-500 hover:text-gray-900 transition-colors font-medium">Terms</a>
               <button
                 onClick={() => alert("LOL NO! 😂")}
-                className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer"
+                className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer font-medium"
                 data-testid="link-refund"
               >
                 Refund
               </button>
             </div>
-            <div className="text-center text-xs text-gray-600 space-y-1">
+            <div className="text-center text-xs text-gray-500 space-y-1">
               <p>Building the dumbest way to make money on Solana</p>
-              <p className="font-mono">@dumfun</p>
+              <p className="font-mono font-bold">@dumfun</p>
             </div>
           </motion.footer>
         </div>
