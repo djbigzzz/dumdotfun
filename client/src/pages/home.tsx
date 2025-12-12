@@ -66,33 +66,33 @@ function CountdownTimer() {
     );
   }
 
-  const TimeBlock = ({ value, label }: { value: number; label: string }) => (
+  const TimeBlock = ({ value, label, color }: { value: number; label: string; color: string }) => (
     <div className="flex flex-col items-center">
       <motion.div
         key={value}
         initial={{ scale: 1.1, opacity: 0.5 }}
         animate={{ scale: 1, opacity: 1 }}
-        className="bg-zinc-900 border-2 border-red-600 rounded-lg p-3 md:p-4 min-w-[70px] md:min-w-[90px]"
+        className={`${color} border-2 border-black rounded-xl p-3 md:p-4 min-w-[65px] md:min-w-[85px] shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}
       >
-        <span className="text-3xl md:text-5xl font-black text-white font-mono">
+        <span className="text-3xl md:text-5xl font-black text-white font-mono drop-shadow-sm">
           {String(value).padStart(2, "0")}
         </span>
       </motion.div>
-      <span className="text-xs md:text-sm font-bold text-gray-500 mt-2 uppercase tracking-wider">
+      <span className="text-xs md:text-sm font-black text-gray-400 mt-2 uppercase tracking-wider">
         {label}
       </span>
     </div>
   );
 
   return (
-    <div className="flex gap-2 md:gap-4 justify-center">
-      <TimeBlock value={timeLeft.days} label="Days" />
-      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
-      <TimeBlock value={timeLeft.hours} label="Hours" />
-      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
-      <TimeBlock value={timeLeft.minutes} label="Mins" />
-      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
-      <TimeBlock value={timeLeft.seconds} label="Secs" />
+    <div className="flex gap-2 md:gap-3 justify-center items-start">
+      <TimeBlock value={timeLeft.days} label="Days" color="bg-red-500" />
+      <div className="text-3xl md:text-5xl font-black text-pink-400 mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.hours} label="Hours" color="bg-red-400" />
+      <div className="text-3xl md:text-5xl font-black text-pink-400 mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.minutes} label="Mins" color="bg-pink-400" />
+      <div className="text-3xl md:text-5xl font-black text-pink-400 mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.seconds} label="Secs" color="bg-pink-300" />
     </div>
   );
 }
@@ -206,7 +206,7 @@ export default function Home() {
   return (
     <Layout>
       <div className="min-h-[calc(100vh-120px)] py-8 md:py-16">
-        <div className="max-w-5xl mx-auto px-4 space-y-16">
+        <div className="max-w-5xl mx-auto px-4 space-y-12">
           
           {/* Hero Section */}
           <motion.section
@@ -218,26 +218,28 @@ export default function Home() {
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="inline-flex items-center gap-2 px-4 py-2 bg-red-900/30 border border-red-600/50 rounded-full"
+              className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border-2 border-black rounded-full shadow-[3px_3px_0px_0px_rgba(239,68,68,1)]"
             >
               <Clock className="w-4 h-4 text-red-500" />
-              <span className="text-red-400 font-bold text-sm uppercase tracking-wider">
+              <span className="text-red-500 font-black text-sm uppercase tracking-wider">
                 Launching Soon
               </span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-none">
-              DUM<span className="text-red-500">.</span>FUN
+            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">
+              <span className="text-red-500">DUM</span>
+              <span className="text-pink-400">.</span>
+              <span className="text-pink-300">FUN</span>
             </h1>
 
-            <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="text-xl md:text-2xl text-gray-300 max-w-2xl mx-auto leading-relaxed font-bold">
               Launch tokens. Bet on rugs.{" "}
-              <span className="text-green-400 font-bold">Make money either way.</span>
+              <span className="text-green-400">Make money either way.</span>
             </p>
 
-            <p className="text-base text-gray-500 max-w-xl mx-auto">
+            <p className="text-base text-gray-400 max-w-xl mx-auto">
               The only platform where you can launch your own meme coin{" "}
-              <span className="text-red-400">AND</span> bet that the dev will rug.{" "}
+              <span className="text-red-500 font-bold">AND</span> bet that the dev will rug.{" "}
               Win-win, degen style.
             </p>
 
@@ -260,58 +262,58 @@ export default function Home() {
             
             <div className="grid md:grid-cols-2 gap-6">
               <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-gradient-to-br from-red-900/20 to-zinc-900 border border-red-600/30 rounded-xl p-8 space-y-4"
+                whileHover={{ y: -3, x: -2 }}
+                className="bg-red-500 border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-red-900/50 border border-red-600/50 flex items-center justify-center">
-                    <Rocket className="w-7 h-7 text-red-500" />
+                  <div className="w-12 h-12 rounded-lg bg-white border-2 border-black flex items-center justify-center">
+                    <Rocket className="w-6 h-6 text-red-500" />
                   </div>
                   <div>
                     <h3 className="text-xl font-black text-white">Launch Your Token</h3>
-                    <p className="text-sm text-gray-500">Create meme coins in seconds</p>
+                    <p className="text-sm text-red-100/80">Create meme coins in seconds</p>
                   </div>
                 </div>
-                <ul className="space-y-2 text-gray-400 text-sm">
+                <ul className="space-y-2 text-white/90 text-sm font-medium">
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    <ChevronRight className="w-4 h-4 text-white" />
                     Pick a name, add an image, launch
                   </li>
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    <ChevronRight className="w-4 h-4 text-white" />
                     Price goes up as people buy in
                   </li>
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    <ChevronRight className="w-4 h-4 text-white" />
                     Hit the goal? Token goes to real trading
                   </li>
                 </ul>
               </motion.div>
 
               <motion.div
-                whileHover={{ y: -5 }}
-                className="bg-gradient-to-br from-yellow-900/20 to-zinc-900 border border-yellow-600/30 rounded-xl p-8 space-y-4"
+                whileHover={{ y: -3, x: -2 }}
+                className="bg-pink-300 border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-14 h-14 rounded-xl bg-yellow-900/50 border border-yellow-600/50 flex items-center justify-center">
-                    <Target className="w-7 h-7 text-yellow-500" />
+                  <div className="w-12 h-12 rounded-lg bg-white border-2 border-black flex items-center justify-center">
+                    <Target className="w-6 h-6 text-pink-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Bet on Everything</h3>
-                    <p className="text-sm text-gray-500">Make money on your predictions</p>
+                    <h3 className="text-xl font-black text-black">Bet on Everything</h3>
+                    <p className="text-sm text-black/60">Make money on your predictions</p>
                   </div>
                 </div>
-                <ul className="space-y-2 text-gray-400 text-sm">
+                <ul className="space-y-2 text-black/80 text-sm font-medium">
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    <ChevronRight className="w-4 h-4 text-black" />
                     Think the dev will rug? Bet on it
                   </li>
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    <ChevronRight className="w-4 h-4 text-black" />
                     Token gonna moon? Bet on it
                   </li>
                   <li className="flex items-center gap-2">
-                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    <ChevronRight className="w-4 h-4 text-black" />
                     You're right? You get paid
                   </li>
                 </ul>
@@ -319,14 +321,14 @@ export default function Home() {
             </div>
 
             <motion.div
-              whileHover={{ y: -3 }}
-              className="bg-gradient-to-r from-green-900/20 via-zinc-900 to-green-900/20 border border-green-600/30 rounded-xl p-6 text-center"
+              whileHover={{ y: -2 }}
+              className="bg-green-400 border-2 border-black rounded-xl p-5 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               <div className="flex items-center justify-center gap-3 mb-2">
-                <Zap className="w-6 h-6 text-green-500" />
-                <h3 className="text-lg font-black text-white">The Smart Degen Move</h3>
+                <Zap className="w-6 h-6 text-black" />
+                <h3 className="text-lg font-black text-black">The Smart Degen Move</h3>
               </div>
-              <p className="text-gray-400 text-sm max-w-lg mx-auto">
+              <p className="text-black/70 text-sm max-w-lg mx-auto font-medium">
                 Buy a token you believe in. Or don't - just bet that it'll fail instead. 
                 Every token gets prediction markets attached. Hedge your bets, literally.
               </p>
@@ -338,7 +340,7 @@ export default function Home() {
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.3 }}
-            className="bg-zinc-900 border border-red-600/30 rounded-2xl p-8 space-y-6"
+            className="bg-zinc-800 border-2 border-black rounded-2xl p-8 space-y-6 shadow-[6px_6px_0px_0px_rgba(239,68,68,1)]"
           >
             <div className="text-center space-y-2">
               <h2 className="text-2xl font-black text-white">Get Early Access</h2>
@@ -349,10 +351,10 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-6 bg-green-900/20 border border-green-600/30 rounded-xl text-center"
+                className="p-6 bg-green-400 border-2 border-black rounded-xl text-center shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
               >
-                <p className="text-green-400 font-bold text-lg">You're on the list!</p>
-                <p className="text-gray-400 text-sm mt-2">
+                <p className="text-black font-black text-lg">You're on the list!</p>
+                <p className="text-black/70 text-sm mt-2 font-medium">
                   We'll notify you the moment we launch.
                 </p>
               </motion.div>
@@ -363,15 +365,15 @@ export default function Home() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors text-center sm:text-left"
+                  className="flex-1 px-5 py-4 bg-white border-2 border-black rounded-xl text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-center sm:text-left font-medium shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                   data-testid="input-email"
                 />
                 <motion.button
                   type="submit"
                   disabled={isSubmitting || !email.trim()}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-8 py-4 bg-red-600 text-white font-black rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wide"
+                  whileHover={{ y: -2, x: -2 }}
+                  whileTap={{ y: 0, x: 0 }}
+                  className="px-8 py-4 bg-red-500 text-white font-black rounded-xl border-2 border-black hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wide shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                   data-testid="button-join-waitlist"
                 >
                   {isSubmitting ? "..." : "Join"}
@@ -380,7 +382,7 @@ export default function Home() {
             )}
 
             {submitStatus === "error" && (
-              <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+              <p className="text-red-400 text-sm text-center font-bold">{errorMessage}</p>
             )}
           </motion.section>
 
@@ -393,30 +395,30 @@ export default function Home() {
           >
             <div className="text-center space-y-2">
               <div className="flex items-center justify-center gap-2">
-                <Users className="w-6 h-6 text-green-500" />
+                <Users className="w-6 h-6 text-pink-400" />
                 <h2 className="text-2xl font-black text-white">Referral Program</h2>
               </div>
               <p className="text-gray-400">Invite friends, earn rewards at launch</p>
             </div>
 
             {!connectedWallet ? (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 text-center space-y-4">
-                <p className="text-gray-400">
+              <div className="bg-zinc-800 border-2 border-black rounded-xl p-8 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(251,207,232,1)]">
+                <p className="text-gray-300 font-medium">
                   Connect your wallet to get your unique referral link
                 </p>
                 <motion.button
                   onClick={handleConnect}
                   disabled={isConnecting}
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-black font-black rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition-all uppercase"
+                  whileHover={{ y: -2, x: -2 }}
+                  whileTap={{ y: 0, x: 0 }}
+                  className="px-8 py-4 bg-pink-400 text-black font-black rounded-xl border-2 border-black hover:bg-pink-500 disabled:opacity-50 transition-all uppercase shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
                   data-testid="button-connect-wallet"
                 >
                   {isConnecting ? "Connecting..." : "Connect Wallet"}
                 </motion.button>
                 {referralCode && (
                   <p className="text-xs text-gray-500">
-                    Referred by: <span className="text-green-400 font-mono">{referralCode}</span>
+                    Referred by: <span className="text-pink-400 font-mono font-bold">{referralCode}</span>
                   </p>
                 )}
               </div>
@@ -424,23 +426,23 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-zinc-900 border border-green-600/30 rounded-xl p-6 space-y-6"
+                className="bg-zinc-800 border-2 border-black rounded-xl p-6 space-y-6 shadow-[4px_4px_0px_0px_rgba(251,207,232,1)]"
               >
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                   <div>
-                    <p className="text-gray-400 text-sm">Your Referral Code</p>
-                    <p className="text-2xl font-mono font-black text-green-400">
+                    <p className="text-gray-400 text-sm font-medium">Your Referral Code</p>
+                    <p className="text-2xl font-mono font-black text-pink-400">
                       {user?.referralCode || "Loading..."}
                     </p>
                   </div>
-                  <div className="text-center sm:text-right">
-                    <p className="text-4xl font-black text-white">{user?.referralCount ?? 0}</p>
-                    <p className="text-xs text-gray-500 uppercase">Referrals</p>
+                  <div className="text-center sm:text-right bg-pink-400 border-2 border-black rounded-lg px-4 py-2 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                    <p className="text-3xl font-black text-black">{user?.referralCount ?? 0}</p>
+                    <p className="text-xs text-black/70 uppercase font-bold">Referrals</p>
                   </div>
                 </div>
 
                 <div className="flex gap-2">
-                  <div className="flex-1 px-4 py-3 bg-zinc-800 rounded-lg text-sm font-mono text-gray-400 truncate">
+                  <div className="flex-1 px-4 py-3 bg-white border-2 border-black rounded-lg text-sm font-mono text-gray-700 truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     {user?.referralCode 
                       ? `${window.location.origin}?ref=${user.referralCode}`
                       : "Loading..."
@@ -448,17 +450,17 @@ export default function Home() {
                   </div>
                   <motion.button
                     onClick={copyReferralLink}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                    whileHover={{ y: -1, x: -1 }}
+                    whileTap={{ y: 0, x: 0 }}
                     disabled={!user?.referralCode}
-                    className="px-5 py-3 bg-green-600 text-black font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    className="px-5 py-3 bg-pink-400 text-black font-bold rounded-lg border-2 border-black hover:bg-pink-500 disabled:opacity-50 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                     data-testid="button-copy-referral"
                   >
                     {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                   </motion.button>
                 </div>
 
-                <p className="text-xs text-gray-500 text-center">
+                <p className="text-xs text-gray-400 text-center font-medium">
                   Top referrers will receive bonus rewards at launch
                 </p>
               </motion.div>
