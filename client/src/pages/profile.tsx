@@ -65,7 +65,7 @@ export default function Profile() {
     return (
       <Layout>
         <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
-          <p className="text-gray-400 font-mono">Loading...</p>
+          <p className="text-gray-600 font-mono font-bold">Loading...</p>
         </div>
       </Layout>
     );
@@ -75,7 +75,7 @@ export default function Profile() {
     return (
       <Layout>
         <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
-          <p className="text-gray-400 font-mono">User not found</p>
+          <p className="text-gray-600 font-mono font-bold">User not found</p>
         </div>
       </Layout>
     );
@@ -92,34 +92,34 @@ export default function Profile() {
           <div className="space-y-6">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-3xl font-black text-white mb-2">Your Profile</h1>
-                <p className="text-gray-400 text-sm">Manage your wallet and referrals</p>
+                <h1 className="text-3xl font-black text-gray-900 mb-2">Your Profile</h1>
+                <p className="text-gray-500 text-sm">Manage your wallet and referrals</p>
               </div>
               <motion.button
                 onClick={handleLogout}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-4 py-2 bg-red-600 text-white font-bold text-sm uppercase hover:bg-red-700 transition-all rounded border border-red-500/50"
+                whileHover={{ y: -2, x: -2 }}
+                whileTap={{ y: 0, x: 0 }}
+                className="px-4 py-2 bg-red-500 text-white font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                 data-testid="button-logout"
               >
                 Log Out
               </motion.button>
             </div>
 
-            <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6 space-y-4">
+            <div className="bg-white border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]">
               <div className="flex items-center gap-2">
                 <Wallet className="w-5 h-5 text-red-500" />
-                <h2 className="text-sm font-bold text-gray-400 uppercase">Wallet Address</h2>
+                <h2 className="text-sm font-bold text-gray-500 uppercase">Wallet Address</h2>
               </div>
-              <div className="flex items-center justify-between gap-4 bg-zinc-800/50 rounded p-4">
-                <p className="text-green-400 font-mono text-sm break-all flex-1">
+              <div className="flex items-center justify-between gap-4 bg-gray-100 border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-red-500 font-mono text-sm break-all flex-1 font-bold">
                   {user.walletAddress}
                 </p>
                 <motion.button
                   onClick={copyWallet}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex-shrink-0 text-gray-400 hover:text-white transition-colors"
+                  className="flex-shrink-0 text-gray-600 hover:text-gray-900 transition-colors"
                   data-testid="button-copy-wallet"
                 >
                   {copiedWallet ? (
@@ -134,7 +134,7 @@ export default function Profile() {
                   href={`https://solscan.io/account/${user.walletAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-2 bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-xs font-mono rounded transition-colors"
+                  className="flex items-center gap-2 px-3 py-2 bg-gray-100 hover:bg-gray-200 border-2 border-black text-gray-700 text-xs font-mono rounded-lg transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                   data-testid="link-solscan"
                 >
                   View on Solscan
@@ -143,14 +143,14 @@ export default function Profile() {
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-green-600/30 rounded-lg p-6 space-y-4">
+            <div className="bg-white border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]">
               <div className="flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-green-500" />
-                <h2 className="text-sm font-bold text-gray-400 uppercase">Your Referral Link</h2>
+                <Share2 className="w-5 h-5 text-pink-500" />
+                <h2 className="text-sm font-bold text-gray-500 uppercase">Your Referral Link</h2>
               </div>
               
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-4 py-3 bg-zinc-800 rounded-lg text-sm font-mono text-gray-400 truncate">
+                <div className="flex-1 px-4 py-3 bg-gray-100 border-2 border-black rounded-lg text-sm font-mono text-gray-700 truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                   {user.referralCode 
                     ? `${window.location.origin}?ref=${user.referralCode}`
                     : "Generating..."
@@ -158,17 +158,17 @@ export default function Profile() {
                 </div>
                 <motion.button
                   onClick={copyReferralLink}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                  whileHover={{ y: -1, x: -1 }}
+                  whileTap={{ y: 0, x: 0 }}
                   disabled={!user.referralCode}
-                  className="px-4 py-3 bg-green-600 text-black font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  className="px-4 py-3 bg-pink-400 text-black font-bold rounded-lg border-2 border-black hover:bg-pink-500 disabled:opacity-50 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                   data-testid="button-copy-referral"
                 >
                   {copiedReferral ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                 </motion.button>
               </div>
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-gray-500 font-medium">
                 Share this link to earn rewards for every friend who joins!
               </p>
             </div>
@@ -176,60 +176,60 @@ export default function Profile() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <motion.div
                 whileHover={{ y: -2 }}
-                className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4"
+                className="bg-yellow-300 border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Calendar className="w-4 h-4 text-yellow-500" />
-                  <span className="text-xs font-bold text-gray-400">JOINED</span>
+                  <Calendar className="w-4 h-4 text-black" />
+                  <span className="text-xs font-black text-black/70 uppercase">Joined</span>
                 </div>
-                <p className="text-xl font-mono text-yellow-500">
+                <p className="text-xl font-mono font-black text-black">
                   {new Date(user.createdAt).toLocaleDateString()}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-black/60 mt-1 font-medium">
                   {Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))} days ago
                 </p>
               </motion.div>
 
               <motion.div
                 whileHover={{ y: -2 }}
-                className="bg-green-900/20 border border-green-600/30 rounded-lg p-4"
+                className="bg-green-400 border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className="w-4 h-4 text-green-500" />
-                  <span className="text-xs font-bold text-gray-400">REFERRALS</span>
+                  <Users className="w-4 h-4 text-black" />
+                  <span className="text-xs font-black text-black/70 uppercase">Referrals</span>
                 </div>
-                <p className="text-xl font-mono text-green-500">
+                <p className="text-xl font-mono font-black text-black">
                   {user.referralCount}
                 </p>
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-xs text-black/60 mt-1 font-medium">
                   {user.referralCount === 1 ? "friend referred" : "friends referred"}
                 </p>
               </motion.div>
 
               <motion.div
                 whileHover={{ y: -2 }}
-                className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4"
+                className="bg-pink-300 border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Gift className="w-4 h-4 text-purple-500" />
-                  <span className="text-xs font-bold text-gray-400">REWARDS</span>
+                  <Gift className="w-4 h-4 text-black" />
+                  <span className="text-xs font-black text-black/70 uppercase">Rewards</span>
                 </div>
-                <p className="text-xl font-mono text-purple-500">???</p>
-                <p className="text-xs text-gray-500 mt-1">Coming at launch</p>
+                <p className="text-xl font-mono font-black text-black">???</p>
+                <p className="text-xs text-black/60 mt-1 font-medium">Coming at launch</p>
               </motion.div>
             </div>
 
             {user.referredBy && (
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4">
-                <p className="text-xs text-gray-500">
-                  You were referred by: <span className="text-green-400 font-mono">{user.referredBy}</span>
+              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-sm text-gray-600 font-medium">
+                  You were referred by: <span className="text-pink-500 font-mono font-bold">{user.referredBy}</span>
                 </p>
               </div>
             )}
 
             <div className="text-center pt-4">
-              <p className="text-xs text-gray-600">
-                Your referral code: <span className="font-mono text-green-400">{user.referralCode || "—"}</span>
+              <p className="text-xs text-gray-500 font-medium">
+                Your referral code: <span className="font-mono font-bold text-pink-500">{user.referralCode || "—"}</span>
               </p>
             </div>
           </div>
