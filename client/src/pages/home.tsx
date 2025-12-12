@@ -231,9 +231,14 @@ export default function Home() {
             </h1>
 
             <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
-              The first platform combining{" "}
-              <span className="text-red-400 font-bold">token launches</span> and{" "}
-              <span className="text-yellow-400 font-bold">prediction markets</span> on Solana
+              Launch tokens. Bet on rugs.{" "}
+              <span className="text-green-400 font-bold">Make money either way.</span>
+            </p>
+
+            <p className="text-base text-gray-500 max-w-xl mx-auto">
+              The only platform where you can launch your own meme coin{" "}
+              <span className="text-red-400">AND</span> bet that the dev will rug.{" "}
+              Win-win, degen style.
             </p>
 
             {/* Countdown Timer */}
@@ -242,7 +247,7 @@ export default function Home() {
             </div>
           </motion.section>
 
-          {/* Features Grid */}
+          {/* How It Works */}
           <motion.section
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -250,7 +255,7 @@ export default function Home() {
             className="space-y-8"
           >
             <h2 className="text-center text-2xl font-black text-white">
-              Two Platforms. One Experience.
+              How It Works
             </h2>
             
             <div className="grid md:grid-cols-2 gap-6">
@@ -263,22 +268,22 @@ export default function Home() {
                     <Rocket className="w-7 h-7 text-red-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Token Launchpad</h3>
-                    <p className="text-sm text-gray-500">Like pump.fun, but better</p>
+                    <h3 className="text-xl font-black text-white">Launch Your Token</h3>
+                    <p className="text-sm text-gray-500">Create meme coins in seconds</p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-gray-400 text-sm">
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-red-500" />
-                    Launch meme tokens instantly
+                    Pick a name, add an image, launch
                   </li>
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-red-500" />
-                    Bonding curve pricing
+                    Price goes up as people buy in
                   </li>
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-red-500" />
-                    Auto-graduation to DEX
+                    Hit the goal? Token goes to real trading
                   </li>
                 </ul>
               </motion.div>
@@ -292,22 +297,22 @@ export default function Home() {
                     <Target className="w-7 h-7 text-yellow-500" />
                   </div>
                   <div>
-                    <h3 className="text-xl font-black text-white">Prediction Markets</h3>
-                    <p className="text-sm text-gray-500">Like Polymarket, for degen</p>
+                    <h3 className="text-xl font-black text-white">Bet on Everything</h3>
+                    <p className="text-sm text-gray-500">Make money on your predictions</p>
                   </div>
                 </div>
                 <ul className="space-y-2 text-gray-400 text-sm">
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-yellow-500" />
-                    Bet on token outcomes
+                    Think the dev will rug? Bet on it
                   </li>
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-yellow-500" />
-                    Predict graduations & milestones
+                    Token gonna moon? Bet on it
                   </li>
                   <li className="flex items-center gap-2">
                     <ChevronRight className="w-4 h-4 text-yellow-500" />
-                    CPMM odds engine
+                    You're right? You get paid
                   </li>
                 </ul>
               </motion.div>
@@ -319,11 +324,11 @@ export default function Home() {
             >
               <div className="flex items-center justify-center gap-3 mb-2">
                 <Zap className="w-6 h-6 text-green-500" />
-                <h3 className="text-lg font-black text-white">The DUM Advantage</h3>
+                <h3 className="text-lg font-black text-white">The Smart Degen Move</h3>
               </div>
               <p className="text-gray-400 text-sm max-w-lg mx-auto">
-                Create a token and instantly get prediction markets attached to it. 
-                Will it graduate? Hit $1M? Let the community bet on it.
+                Buy a token you believe in. Or don't - just bet that it'll fail instead. 
+                Every token gets prediction markets attached. Hedge your bets, literally.
               </p>
             </motion.div>
           </motion.section>
