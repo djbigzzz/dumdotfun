@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
-import { Copy, Check, Users, Gift, Rocket, Zap } from "lucide-react";
+import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight } from "lucide-react";
 
 interface UserWithReferrals {
   id: string;
@@ -14,6 +14,109 @@ interface UserWithReferrals {
   createdAt: string;
 }
 
+const LAUNCH_DATE = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000);
+
+function CountdownTimer() {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0,
+    hours: 0,
+    minutes: 0,
+    seconds: 0,
+  });
+  const [isLaunched, setIsLaunched] = useState(false);
+
+  useEffect(() => {
+    const calculateTimeLeft = () => {
+      const difference = LAUNCH_DATE.getTime() - Date.now();
+      if (difference <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0 });
+        setIsLaunched(true);
+        return true;
+      }
+      setTimeLeft({
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+        minutes: Math.floor((difference / 1000 / 60) % 60),
+        seconds: Math.floor((difference / 1000) % 60),
+      });
+      return false;
+    };
+
+    if (calculateTimeLeft()) return;
+    
+    const timer = setInterval(() => {
+      if (calculateTimeLeft()) {
+        clearInterval(timer);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  if (isLaunched) {
+    return (
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="text-center py-4"
+      >
+        <span className="text-3xl md:text-5xl font-black text-green-500">
+          WE ARE LIVE!
+        </span>
+      </motion.div>
+    );
+  }
+
+  const TimeBlock = ({ value, label }: { value: number; label: string }) => (
+    <div className="flex flex-col items-center">
+      <motion.div
+        key={value}
+        initial={{ scale: 1.1, opacity: 0.5 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="bg-zinc-900 border-2 border-red-600 rounded-lg p-3 md:p-4 min-w-[70px] md:min-w-[90px]"
+      >
+        <span className="text-3xl md:text-5xl font-black text-white font-mono">
+          {String(value).padStart(2, "0")}
+        </span>
+      </motion.div>
+      <span className="text-xs md:text-sm font-bold text-gray-500 mt-2 uppercase tracking-wider">
+        {label}
+      </span>
+    </div>
+  );
+
+  return (
+    <div className="flex gap-2 md:gap-4 justify-center">
+      <TimeBlock value={timeLeft.days} label="Days" />
+      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.hours} label="Hours" />
+      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.minutes} label="Mins" />
+      <div className="text-3xl md:text-5xl font-black text-red-500 self-start mt-3 md:mt-4">:</div>
+      <TimeBlock value={timeLeft.seconds} label="Secs" />
+    </div>
+  );
+}
+
+function FeatureCard({ icon: Icon, title, description, color }: { 
+  icon: typeof Rocket; 
+  title: string; 
+  description: string;
+  color: string;
+}) {
+  return (
+    <motion.div
+      whileHover={{ y: -5, scale: 1.02 }}
+      className={`bg-zinc-900/80 backdrop-blur border border-${color}-600/30 rounded-xl p-6 space-y-3`}
+    >
+      <div className={`w-12 h-12 rounded-lg bg-${color}-900/50 border border-${color}-600/50 flex items-center justify-center`}>
+        <Icon className={`w-6 h-6 text-${color}-500`} />
+      </div>
+      <h3 className="text-lg font-black text-white">{title}</h3>
+      <p className="text-sm text-gray-400 leading-relaxed">{description}</p>
+    </motion.div>
+  );
+}
+
 export default function Home() {
   const { connectedWallet, connectWallet } = useWallet();
   const [email, setEmail] = useState("");
@@ -21,6 +124,7 @@ export default function Home() {
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [copied, setCopied] = useState(false);
+  const [isConnecting, setIsConnecting] = useState(false);
   const [referralCode, setReferralCode] = useState<string | null>(null);
 
   useEffect(() => {
@@ -80,8 +184,6 @@ export default function Home() {
     }
   };
 
-  const [isConnecting, setIsConnecting] = useState(false);
-
   const handleConnect = async () => {
     setIsConnecting(true);
     try {
@@ -103,109 +205,206 @@ export default function Home() {
 
   return (
     <Layout>
-      <div className="min-h-[calc(100vh-120px)] flex flex-col items-center justify-center px-4 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-2xl text-center space-y-8"
-        >
-          <div className="space-y-4">
+      <div className="min-h-[calc(100vh-120px)] py-8 md:py-16">
+        <div className="max-w-5xl mx-auto px-4 space-y-16">
+          
+          {/* Hero Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center space-y-8"
+          >
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
               transition={{ delay: 0.1 }}
-              className="inline-block px-4 py-2 bg-yellow-500/20 border border-yellow-500/50 rounded-full"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-red-900/30 border border-red-600/50 rounded-full"
             >
-              <span className="text-yellow-500 font-bold text-sm uppercase tracking-wider">
-                Coming Soon
+              <Clock className="w-4 h-4 text-red-500" />
+              <span className="text-red-400 font-bold text-sm uppercase tracking-wider">
+                Launching Soon
               </span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-7xl font-black text-white tracking-tighter">
+            <h1 className="text-5xl md:text-8xl font-black text-white tracking-tighter leading-none">
               DUM<span className="text-red-500">.</span>FUN
             </h1>
 
-            <p className="text-xl text-gray-400 max-w-lg mx-auto">
-              Launch tokens. Predict outcomes. Trade the chaos.
+            <p className="text-xl md:text-2xl text-gray-400 max-w-2xl mx-auto leading-relaxed">
+              The first platform combining{" "}
+              <span className="text-red-400 font-bold">token launches</span> and{" "}
+              <span className="text-yellow-400 font-bold">prediction markets</span> on Solana
             </p>
 
-            <div className="flex flex-wrap justify-center gap-4 text-sm text-gray-500">
-              <div className="flex items-center gap-2">
-                <Rocket className="w-4 h-4 text-red-500" />
-                <span>Token Launchpad</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Zap className="w-4 h-4 text-yellow-500" />
-                <span>Prediction Markets</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Gift className="w-4 h-4 text-green-500" />
-                <span>Referral Rewards</span>
-              </div>
+            {/* Countdown Timer */}
+            <div className="py-8">
+              <CountdownTimer />
             </div>
-          </div>
+          </motion.section>
 
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6 space-y-6">
-            <h2 className="text-lg font-bold text-white">Join the Waitlist</h2>
+          {/* Features Grid */}
+          <motion.section
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="space-y-8"
+          >
+            <h2 className="text-center text-2xl font-black text-white">
+              Two Platforms. One Experience.
+            </h2>
+            
+            <div className="grid md:grid-cols-2 gap-6">
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="bg-gradient-to-br from-red-900/20 to-zinc-900 border border-red-600/30 rounded-xl p-8 space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-red-900/50 border border-red-600/50 flex items-center justify-center">
+                    <Rocket className="w-7 h-7 text-red-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white">Token Launchpad</h3>
+                    <p className="text-sm text-gray-500">Like pump.fun, but better</p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    Launch meme tokens instantly
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    Bonding curve pricing
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-red-500" />
+                    Auto-graduation to DEX
+                  </li>
+                </ul>
+              </motion.div>
+
+              <motion.div
+                whileHover={{ y: -5 }}
+                className="bg-gradient-to-br from-yellow-900/20 to-zinc-900 border border-yellow-600/30 rounded-xl p-8 space-y-4"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-14 h-14 rounded-xl bg-yellow-900/50 border border-yellow-600/50 flex items-center justify-center">
+                    <Target className="w-7 h-7 text-yellow-500" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-black text-white">Prediction Markets</h3>
+                    <p className="text-sm text-gray-500">Like Polymarket, for degen</p>
+                  </div>
+                </div>
+                <ul className="space-y-2 text-gray-400 text-sm">
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    Bet on token outcomes
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    Predict graduations & milestones
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <ChevronRight className="w-4 h-4 text-yellow-500" />
+                    CPMM odds engine
+                  </li>
+                </ul>
+              </motion.div>
+            </div>
+
+            <motion.div
+              whileHover={{ y: -3 }}
+              className="bg-gradient-to-r from-green-900/20 via-zinc-900 to-green-900/20 border border-green-600/30 rounded-xl p-6 text-center"
+            >
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <Zap className="w-6 h-6 text-green-500" />
+                <h3 className="text-lg font-black text-white">The DUM Advantage</h3>
+              </div>
+              <p className="text-gray-400 text-sm max-w-lg mx-auto">
+                Create a token and instantly get prediction markets attached to it. 
+                Will it graduate? Hit $1M? Let the community bet on it.
+              </p>
+            </motion.div>
+          </motion.section>
+
+          {/* Waitlist Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-zinc-900 border border-red-600/30 rounded-2xl p-8 space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <h2 className="text-2xl font-black text-white">Get Early Access</h2>
+              <p className="text-gray-400">Join the waitlist and be first to launch</p>
+            </div>
 
             {submitStatus === "success" ? (
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                className="p-4 bg-green-900/20 border border-green-600/30 rounded-lg"
+                className="p-6 bg-green-900/20 border border-green-600/30 rounded-xl text-center"
               >
-                <p className="text-green-400 font-bold">You're on the list!</p>
-                <p className="text-gray-400 text-sm mt-1">
-                  We'll notify you when we launch.
+                <p className="text-green-400 font-bold text-lg">You're on the list!</p>
+                <p className="text-gray-400 text-sm mt-2">
+                  We'll notify you the moment we launch.
                 </p>
               </motion.div>
             ) : (
-              <form onSubmit={handleWaitlist} className="space-y-4">
-                <div className="flex gap-2">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter your email"
-                    className="flex-1 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors"
-                    data-testid="input-email"
-                  />
-                  <motion.button
-                    type="submit"
-                    disabled={isSubmitting || !email.trim()}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    className="px-6 py-3 bg-red-600 text-white font-bold rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    data-testid="button-join-waitlist"
-                  >
-                    {isSubmitting ? "..." : "Join"}
-                  </motion.button>
-                </div>
-
-                {submitStatus === "error" && (
-                  <p className="text-red-400 text-sm">{errorMessage}</p>
-                )}
+              <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-5 py-4 bg-zinc-800 border border-zinc-700 rounded-xl text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors text-center sm:text-left"
+                  data-testid="input-email"
+                />
+                <motion.button
+                  type="submit"
+                  disabled={isSubmitting || !email.trim()}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-8 py-4 bg-red-600 text-white font-black rounded-xl hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors uppercase tracking-wide"
+                  data-testid="button-join-waitlist"
+                >
+                  {isSubmitting ? "..." : "Join"}
+                </motion.button>
               </form>
             )}
-          </div>
 
-          <div className="border-t border-zinc-800 pt-8 space-y-6">
-            <div className="flex items-center justify-center gap-2">
-              <Users className="w-5 h-5 text-green-500" />
-              <h3 className="text-lg font-bold text-white">Referral Program</h3>
+            {submitStatus === "error" && (
+              <p className="text-red-400 text-sm text-center">{errorMessage}</p>
+            )}
+          </motion.section>
+
+          {/* Referral Section */}
+          <motion.section
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="space-y-6"
+          >
+            <div className="text-center space-y-2">
+              <div className="flex items-center justify-center gap-2">
+                <Users className="w-6 h-6 text-green-500" />
+                <h2 className="text-2xl font-black text-white">Referral Program</h2>
+              </div>
+              <p className="text-gray-400">Invite friends, earn rewards at launch</p>
             </div>
 
             {!connectedWallet ? (
-              <div className="space-y-4">
-                <p className="text-gray-400 text-sm">
-                  Connect your wallet to get your referral link and earn rewards for every friend you bring.
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 text-center space-y-4">
+                <p className="text-gray-400">
+                  Connect your wallet to get your unique referral link
                 </p>
                 <motion.button
                   onClick={handleConnect}
                   disabled={isConnecting}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-6 py-3 bg-zinc-800 border border-zinc-700 text-white font-bold rounded-lg hover:bg-zinc-700 hover:border-zinc-600 transition-all disabled:opacity-50"
+                  className="px-8 py-4 bg-gradient-to-r from-green-600 to-green-700 text-black font-black rounded-xl hover:from-green-700 hover:to-green-800 disabled:opacity-50 transition-all uppercase"
                   data-testid="button-connect-wallet"
                 >
                   {isConnecting ? "Connecting..." : "Connect Wallet"}
@@ -220,16 +419,22 @@ export default function Home() {
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-zinc-900 border border-green-600/30 rounded-lg p-6 space-y-4"
+                className="bg-zinc-900 border border-green-600/30 rounded-xl p-6 space-y-6"
               >
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Your Referral Code</span>
-                  <span className="text-xl font-mono font-bold text-green-400">
-                    {user?.referralCode || "Loading..."}
-                  </span>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                  <div>
+                    <p className="text-gray-400 text-sm">Your Referral Code</p>
+                    <p className="text-2xl font-mono font-black text-green-400">
+                      {user?.referralCode || "Loading..."}
+                    </p>
+                  </div>
+                  <div className="text-center sm:text-right">
+                    <p className="text-4xl font-black text-white">{user?.referralCount ?? 0}</p>
+                    <p className="text-xs text-gray-500 uppercase">Referrals</p>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex gap-2">
                   <div className="flex-1 px-4 py-3 bg-zinc-800 rounded-lg text-sm font-mono text-gray-400 truncate">
                     {user?.referralCode 
                       ? `${window.location.origin}?ref=${user.referralCode}`
@@ -241,39 +446,31 @@ export default function Home() {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     disabled={!user?.referralCode}
-                    className="px-4 py-3 bg-green-600 text-black font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
+                    className="px-5 py-3 bg-green-600 text-black font-bold rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors"
                     data-testid="button-copy-referral"
                   >
                     {copied ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
                   </motion.button>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-zinc-800">
-                  <div className="text-center">
-                    <p className="text-3xl font-black text-white">
-                      {user?.referralCount ?? 0}
-                    </p>
-                    <p className="text-xs text-gray-500 uppercase">Referrals</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-3xl font-black text-yellow-500">???</p>
-                    <p className="text-xs text-gray-500 uppercase">Rewards Coming</p>
-                  </div>
-                </div>
-
-                {user?.referredBy && (
-                  <p className="text-xs text-gray-500 pt-2 border-t border-zinc-800">
-                    You were referred by: <span className="text-green-400 font-mono">{user.referredBy.slice(0, 8)}...</span>
-                  </p>
-                )}
+                <p className="text-xs text-gray-500 text-center">
+                  Top referrers will receive bonus rewards at launch
+                </p>
               </motion.div>
             )}
-          </div>
+          </motion.section>
 
-          <p className="text-xs text-gray-600">
-            Early referrers will receive bonus rewards when we launch.
-          </p>
-        </motion.div>
+          {/* Footer Note */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className="text-center text-xs text-gray-600 space-y-1"
+          >
+            <p>Building the dumbest way to make money on Solana</p>
+            <p className="font-mono">@dumfun</p>
+          </motion.div>
+        </div>
       </div>
     </Layout>
   );
