@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
 import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight } from "lucide-react";
+import { ScrollVideo, ScrollVideoPlaceholder } from "@/components/scroll-video";
 
 interface UserWithReferrals {
   id: string;
@@ -248,7 +249,14 @@ export default function Home() {
               <CountdownTimer />
             </div>
           </motion.section>
+        </div>
+      </div>
 
+      {/* Scroll-Driven Video Section */}
+      <ScrollVideoPlaceholder containerHeight="200vh" />
+
+      <div className="py-8 md:py-16">
+        <div className="max-w-5xl mx-auto px-4 space-y-12">
           {/* How It Works */}
           <motion.section
             initial={{ opacity: 0, y: 30 }}
