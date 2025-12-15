@@ -196,7 +196,7 @@ export default function Home() {
 
   const copyReferralLink = () => {
     if (user?.referralCode) {
-      const link = `${window.location.origin}?ref=${user.referralCode}`;
+      const link = `https://dum.fun?ref=${user.referralCode}`;
       navigator.clipboard.writeText(link);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
@@ -444,7 +444,7 @@ export default function Home() {
                 <div className="flex gap-2">
                   <div className="flex-1 px-4 py-3 bg-gray-100 border-2 border-black rounded-lg text-sm font-mono text-gray-700 truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                     {user?.referralCode 
-                      ? `${window.location.origin}?ref=${user.referralCode}`
+                      ? `https://dum.fun?ref=${user.referralCode}`
                       : "Loading..."
                     }
                   </div>
