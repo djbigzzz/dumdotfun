@@ -10,6 +10,12 @@ import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 
+function generateUserReferralCode(walletAddress: string): string {
+  const prefix = walletAddress.slice(0, 4).toUpperCase();
+  const timestamp = Date.now().toString(36).toUpperCase().slice(-3);
+  const random = Math.random().toString(36).substring(2, 5).toUpperCase();
+  return `${prefix}${timestamp}${random}`;
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -697,12 +703,5 @@ function calculateOdds(yesPool: number, noPool: number, side: "yes" | "no"): num
   } else {
     return Math.round((noPool / total) * 100);
   }
-}
-
-// Helper function to generate referral codes
-function generateUserReferralCode(walletAddress: string): string {
-  const prefix = walletAddress.slice(0, 4).toUpperCase();
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${prefix}${suffix}`;
 }
 
