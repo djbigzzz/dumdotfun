@@ -25,11 +25,12 @@ export function ScrollVideo({
     if (!video || !container) return;
 
     let animationFrame: number;
+    let trigger: ScrollTrigger | null = null;
 
     const handleLoadedMetadata = () => {
       const duration = video.duration;
       
-      ScrollTrigger.create({
+      trigger = ScrollTrigger.create({
         trigger: container,
         start: "top top",
         end: "bottom bottom",
@@ -60,7 +61,9 @@ export function ScrollVideo({
       if (animationFrame) {
         cancelAnimationFrame(animationFrame);
       }
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      if (trigger) {
+        trigger.kill();
+      }
     };
   }, [src]);
 
@@ -98,7 +101,7 @@ export function ScrollVideoPlaceholder({
     
     if (!container || !progress) return;
 
-    ScrollTrigger.create({
+    const trigger = ScrollTrigger.create({
       trigger: container,
       start: "top top",
       end: "bottom bottom",
@@ -109,7 +112,7 @@ export function ScrollVideoPlaceholder({
     });
 
     return () => {
-      ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
+      trigger.kill();
     };
   }, []);
 
