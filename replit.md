@@ -178,28 +178,42 @@ The web app is fully built and ready. Once a bonding curve smart contract is dep
 - When ~85 SOL raised (~$69k market cap), token "graduates" to Raydium DEX
 - Platform takes 1% on trades + 6 SOL migration fee
 
-### Trading Infrastructure (Option B - Own Contract)
+### PumpPortal Integration (Active)
 
-The platform is designed for deploying your own bonding curve smart contract, not just wrapping Pump.fun. This enables:
-- Custom fee structure (1% trading fee configured)
-- Full control over graduation mechanism
-- Independent token creation
+Token creation now uses PumpPortal API for real on-chain deployment to Pump.fun:
 
-**To Enable Trading:**
-1. Clone one of the open-source bonding curve contracts:
-   - `m8s-lab/pump-fun-smart-contract` (recommended)
-   - `asseph/pumpfun-smart-contract-solana`
-   - `Rabnail-SOL/Solana-Pump-Fun-Smart-Contract`
-2. Build with Anchor: `anchor build && anchor keys sync`
-3. Deploy to devnet: `anchor deploy --provider.cluster devnet`
-4. Set env var: `BONDING_CURVE_PROGRAM_ID=<your-program-id>`
-5. Update instruction encoding in `server/trading.ts` to match your contract's IDL
+**Token Creation Flow:**
+1. User fills out token form (name, symbol, description, image, socials)
+2. Frontend generates mint keypair CLIENT-SIDE (security: secret never leaves browser)
+3. Backend uploads metadata to IPFS via `pump.fun/api/ipfs`
+4. Backend builds unsigned transaction via `pumpportal.fun/api/trade-local`
+5. Frontend signs with both mint keypair AND user wallet via Phantom
+6. Frontend submits to Solana and confirms transaction
+7. Token is live on Pump.fun!
 
-**Trading Architecture:**
-- `server/bonding-curve.ts` - Constant product formula, quote calculations, fee math
-- `server/trading.ts` - Solana transaction builders, PDA derivation, on-chain state fetching
-- Slippage protection: 5% default, configurable per trade
-- Proper error handling when contract not deployed (no fake data)
+**Files:**
+- `server/pumpportal.ts` - IPFS upload, transaction building via PumpPortal API
+- `client/src/pages/create.tsx` - Wallet signing flow with Phantom
+
+**Security:**
+- Mint keypair generated client-side, never exposed to server
+- User signs transaction with their wallet proving ownership
+- No secret keys transmitted over network
+
+### Price API with Fallback
+
+**SOL Price Fetching (server/jupiter.ts):**
+- Primary: Jupiter API v2 (`api.jup.ag/price/v2`)
+- Fallback: CoinGecko API
+- 30-second cache to reduce API calls
+- Returns stale cached price if all APIs fail
+
+### Legacy: Own Contract Option (Not Active)
+
+For future custom bonding curve deployment:
+- `server/bonding-curve.ts` - Constant product formula, quote calculations
+- `server/trading.ts` - Transaction builders for custom contract
+- Set `BONDING_CURVE_PROGRAM_ID` env var to enable
 
 ### WebSocket Real-Time Updates
 
