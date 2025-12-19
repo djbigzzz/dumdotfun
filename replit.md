@@ -15,11 +15,21 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
 - Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
 
-## Current State: Coming Soon Mode
+## Current State: Ready for Contract Deployment
 
-The platform is currently in "Coming Soon" mode with:
-- **Landing Page**: Simple waitlist signup with referral program
-- **Profile Page**: Active for connected users with referral stats
+The web app is fully built and ready. Once a bonding curve smart contract is deployed on Solana, trading will be enabled.
+
+**What's Working Now:**
+- Token feed at `/tokens` - browse all tokens with prediction odds
+- Token creation at `/create` - creates token metadata + auto "Will it graduate?" prediction
+- Inline betting on token pages - click YES/NO to bet directly
+- Prediction market creation from token pages
+- Profile page with wallet info and referral stats
+- Waitlist signup on landing page
+
+**What Needs Contract:**
+- Actual token trading (buy/sell) - UI shows "Trading Coming Soon"
+- On-chain token deployment (currently saves metadata to database only)
 
 ## Referral System
 
