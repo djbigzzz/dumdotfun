@@ -1,5 +1,6 @@
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
+import FormData from "form-data";
 
 const PUMPPORTAL_API = "https://pumpportal.fun/api/trade-local";
 const PUMP_IPFS_API = "https://pump.fun/api/ipfs";
@@ -34,6 +35,7 @@ export async function uploadMetadataToIPFS(
   if (metadata.twitter) formData.append("twitter", metadata.twitter);
   if (metadata.telegram) formData.append("telegram", metadata.telegram);
   if (metadata.website) formData.append("website", metadata.website);
+  formData.append("showName", "true");
   
   if (imageBase64) {
     const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
@@ -41,17 +43,36 @@ export async function uploadMetadataToIPFS(
       const mimeType = matches[1];
       const base64Data = matches[2];
       const buffer = Buffer.from(base64Data, "base64");
-      const blob = new Blob([buffer], { type: mimeType });
       const extension = mimeType.split("/")[1] || "png";
-      formData.append("file", blob, `token-image.${extension}`);
+      formData.append("file", buffer, {
+        filename: `token-image.${extension}`,
+        contentType: mimeType,
+      });
+    } else {
+      const placeholderPng = Buffer.from(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+        'base64'
+      );
+      formData.append("file", placeholderPng, {
+        filename: "placeholder.png",
+        contentType: "image/png",
+      });
     }
+  } else {
+    const placeholderPng = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'
+    );
+    formData.append("file", placeholderPng, {
+      filename: "placeholder.png",
+      contentType: "image/png",
+    });
   }
-  
-  formData.append("showName", "true");
 
   const response = await fetch(PUMP_IPFS_API, {
     method: "POST",
-    body: formData,
+    body: formData as any,
+    headers: formData.getHeaders(),
   });
 
   if (!response.ok) {
