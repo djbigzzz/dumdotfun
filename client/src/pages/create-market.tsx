@@ -10,7 +10,6 @@ import { Link } from "wouter";
 interface MarketFormData {
   question: string;
   description: string;
-  marketType: "general" | "token";
   tokenMint: string;
   resolutionDate: string;
 }
@@ -29,7 +28,6 @@ export default function CreateMarket() {
   const [formData, setFormData] = useState<MarketFormData>({
     question: "",
     description: "",
-    marketType: prefilledToken ? "token" : "general",
     tokenMint: prefilledToken || "",
     resolutionDate: "",
   });
@@ -39,11 +37,28 @@ export default function CreateMarket() {
     if (prefilledToken) {
       setFormData(prev => ({
         ...prev,
-        marketType: "token",
         tokenMint: prefilledToken,
       }));
     }
   }, [prefilledToken]);
+
+  // Redirect if no token specified - predictions must be token-specific
+  if (!prefilledToken) {
+    return (
+      <Layout>
+        <div className="max-w-2xl mx-auto text-center py-12">
+          <Target className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+          <h1 className="text-2xl font-black text-white mb-2">No Token Selected</h1>
+          <p className="text-gray-400 mb-6">Predictions must be created for a specific token.</p>
+          <Link href="/tokens">
+            <button className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-6 py-3 rounded-lg">
+              Browse Tokens
+            </button>
+          </Link>
+        </div>
+      </Layout>
+    );
+  }
 
   const createMarketMutation = useMutation({
     mutationFn: async (data: MarketFormData) => {
@@ -178,59 +193,11 @@ export default function CreateMarket() {
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-gray-300 mb-2">
-                MARKET TYPE
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "general", tokenMint: "" })}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    formData.marketType === "general"
-                      ? "bg-yellow-500/20 border-yellow-500/50 text-yellow-400"
-                      : "bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-600"
-                  }`}
-                  data-testid="button-type-general"
-                >
-                  <span className="block font-bold">GENERAL</span>
-                  <span className="block text-xs mt-1 opacity-70">Crypto, sports, events, etc.</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setFormData({ ...formData, marketType: "token" })}
-                  className={`p-4 rounded-lg border text-left transition-all ${
-                    formData.marketType === "token"
-                      ? "bg-red-500/20 border-red-500/50 text-red-400"
-                      : "bg-zinc-800 border-zinc-700 text-gray-400 hover:border-zinc-600"
-                  }`}
-                  data-testid="button-type-token"
-                >
-                  <span className="block font-bold">TOKEN</span>
-                  <span className="block text-xs mt-1 opacity-70">About a specific token</span>
-                </button>
-              </div>
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+              <p className="text-xs text-gray-400 mb-1">CREATING PREDICTION FOR</p>
+              <p className="text-white font-bold">{prefilledTokenName || "Token"}</p>
+              <p className="text-xs text-gray-500 font-mono mt-1 truncate">{formData.tokenMint}</p>
             </div>
-
-            {formData.marketType === "token" && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-              >
-                <label className="block text-sm font-bold text-gray-300 mb-2">
-                  TOKEN MINT ADDRESS
-                </label>
-                <input
-                  type="text"
-                  value={formData.tokenMint}
-                  onChange={(e) => setFormData({ ...formData, tokenMint: e.target.value })}
-                  placeholder="Enter token mint address..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-red-500 transition-colors font-mono text-sm"
-                  data-testid="input-token-mint"
-                />
-              </motion.div>
-            )}
 
             <div>
               <label className="block text-sm font-bold text-gray-300 mb-2">
