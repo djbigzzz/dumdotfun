@@ -427,11 +427,51 @@ export async function registerRoutes(
 
       console.log(`Token metadata saved: ${token.name} (${token.symbol}) - ${token.mint}`);
 
+      // Auto-create 3 standard prediction markets for the token
+      const standardPredictions = [
+        {
+          question: `Will $${token.symbol} graduate to DEX?`,
+          description: `Prediction on whether ${token.name} will reach the graduation threshold and migrate to Raydium DEX.`,
+          resolutionDays: 30,
+        },
+        {
+          question: `Will $${token.symbol} reach 100 SOL market cap?`,
+          description: `Prediction on whether ${token.name} will achieve a 100 SOL market cap milestone.`,
+          resolutionDays: 14,
+        },
+        {
+          question: `Will $${token.symbol} 10x from launch price?`,
+          description: `Prediction on whether ${token.name} will increase 10x from its initial launch price.`,
+          resolutionDays: 7,
+        },
+      ];
+
+      const createdMarkets = [];
+      for (const pred of standardPredictions) {
+        try {
+          const market = await storage.createMarket({
+            question: pred.question,
+            description: pred.description,
+            imageUri: token.imageUri,
+            creatorAddress,
+            predictionType: "token",
+            tokenMint: mint,
+            resolutionDate: new Date(Date.now() + pred.resolutionDays * 24 * 60 * 60 * 1000),
+          });
+          createdMarkets.push(market);
+        } catch (marketError) {
+          console.error(`Failed to create prediction market: ${pred.question}`, marketError);
+        }
+      }
+
+      console.log(`Created ${createdMarkets.length} prediction markets for ${token.symbol}`);
+
       return res.json({
         success: true,
         token,
+        predictions: createdMarkets,
         deploymentStatus: "pending",
-        message: "Token metadata saved! On-chain deployment will be available once bonding curve contract is deployed.",
+        message: "Token metadata saved with prediction markets! On-chain deployment will be available once bonding curve contract is deployed.",
       });
     } catch (error: any) {
       console.error("Error creating token:", error);
