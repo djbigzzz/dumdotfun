@@ -54,6 +54,13 @@ export interface IStorage {
     newYesPool: string,
     newNoPool: string
   ): Promise<Position>;
+
+  createMarketWithInitialBet(
+    marketData: InsertMarket,
+    initialBetSide: "yes" | "no",
+    initialBetAmount: string,
+    creationFee: number
+  ): Promise<{ market: Market; position: Position }>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -292,6 +299,55 @@ export class DatabaseStorage implements IStorage {
       });
 
       return position;
+    });
+  }
+
+  async createMarketWithInitialBet(
+    marketData: InsertMarket,
+    initialBetSide: "yes" | "no",
+    initialBetAmount: string,
+    creationFee: number
+  ): Promise<{ market: Market; position: Position }> {
+    return await db.transaction(async (tx) => {
+      const yesPool = initialBetSide === "yes" ? initialBetAmount : "0";
+      const noPool = initialBetSide === "no" ? initialBetAmount : "0";
+
+      const [market] = await tx.insert(predictionMarkets).values({
+        ...marketData,
+        description: marketData.description ?? null,
+        imageUri: marketData.imageUri ?? null,
+        predictionType: marketData.predictionType ?? "custom",
+        status: "open",
+        yesPool,
+        noPool,
+        totalVolume: initialBetAmount,
+      }).returning();
+
+      const [position] = await tx.insert(positions).values({
+        marketId: market.id,
+        walletAddress: marketData.creatorAddress,
+        side: initialBetSide,
+        amount: initialBetAmount,
+        shares: initialBetAmount,
+      }).returning();
+
+      await tx.insert(activityFeed).values({
+        activityType: "market_created",
+        walletAddress: marketData.creatorAddress,
+        marketId: market.id,
+        metadata: JSON.stringify({ question: market.question, creationFee }),
+      });
+
+      await tx.insert(activityFeed).values({
+        activityType: "bet_placed",
+        walletAddress: marketData.creatorAddress,
+        marketId: market.id,
+        amount: initialBetAmount,
+        side: initialBetSide,
+        metadata: JSON.stringify({ isInitialBet: true }),
+      });
+
+      return { market, position };
     });
   }
 }

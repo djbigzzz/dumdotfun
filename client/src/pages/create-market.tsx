@@ -3,15 +3,20 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
-import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft } from "lucide-react";
+import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft, Coins } from "lucide-react";
 import { useWallet } from "@/lib/wallet-context";
 import { Link } from "wouter";
+
+const CREATION_FEE = 0.05; // SOL
+const MIN_INITIAL_BET = 0.5; // SOL
 
 interface MarketFormData {
   question: string;
   description: string;
   tokenMint: string;
   resolutionDate: string;
+  initialBetSide: "yes" | "no";
+  initialBetAmount: number;
 }
 
 export default function CreateMarket() {
@@ -30,8 +35,12 @@ export default function CreateMarket() {
     description: "",
     tokenMint: prefilledToken || "",
     resolutionDate: "",
+    initialBetSide: "yes",
+    initialBetAmount: MIN_INITIAL_BET,
   });
   const [error, setError] = useState<string | null>(null);
+  
+  const totalCost = CREATION_FEE + formData.initialBetAmount;
 
   useEffect(() => {
     if (prefilledToken) {
@@ -66,8 +75,13 @@ export default function CreateMarket() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...data,
+          question: data.question,
+          description: data.description,
+          tokenMint: data.tokenMint,
+          resolutionDate: data.resolutionDate,
           creatorAddress: publicKey,
+          initialBetSide: data.initialBetSide,
+          initialBetAmount: data.initialBetAmount,
         }),
       });
       
@@ -108,6 +122,11 @@ export default function CreateMarket() {
     const resolutionDate = new Date(formData.resolutionDate);
     if (resolutionDate <= new Date()) {
       setError("Resolution date must be in the future");
+      return;
+    }
+
+    if (formData.initialBetAmount < MIN_INITIAL_BET) {
+      setError(`Minimum initial bet is ${MIN_INITIAL_BET} SOL`);
       return;
     }
 
@@ -217,11 +236,78 @@ export default function CreateMarket() {
               </p>
             </div>
 
+            <div className="bg-zinc-800/50 border border-yellow-600/30 rounded-lg p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-bold text-gray-300 mb-3">
+                  <Coins className="w-4 h-4 inline mr-1" />
+                  YOUR INITIAL BET *
+                </label>
+                <p className="text-xs text-gray-400 mb-3">
+                  Place your first bet to seed the market. Minimum {MIN_INITIAL_BET} SOL.
+                </p>
+                
+                <div className="flex gap-2 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, initialBetSide: "yes" })}
+                    className={`flex-1 py-3 rounded-lg font-bold uppercase transition-all ${
+                      formData.initialBetSide === "yes"
+                        ? "bg-green-500 text-black"
+                        : "bg-zinc-700 text-gray-400 hover:bg-zinc-600"
+                    }`}
+                    data-testid="button-bet-yes"
+                  >
+                    YES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, initialBetSide: "no" })}
+                    className={`flex-1 py-3 rounded-lg font-bold uppercase transition-all ${
+                      formData.initialBetSide === "no"
+                        ? "bg-red-500 text-white"
+                        : "bg-zinc-700 text-gray-400 hover:bg-zinc-600"
+                    }`}
+                    data-testid="button-bet-no"
+                  >
+                    NO
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={formData.initialBetAmount}
+                    onChange={(e) => setFormData({ ...formData, initialBetAmount: Math.max(MIN_INITIAL_BET, Number(e.target.value) || MIN_INITIAL_BET) })}
+                    min={MIN_INITIAL_BET}
+                    step="0.1"
+                    className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-yellow-500 transition-colors"
+                    data-testid="input-bet-amount"
+                  />
+                  <span className="text-gray-400 font-bold">SOL</span>
+                </div>
+              </div>
+
+              <div className="border-t border-zinc-700 pt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Creation Fee</span>
+                  <span className="text-white font-mono">{CREATION_FEE} SOL</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-400">Initial Bet ({formData.initialBetSide.toUpperCase()})</span>
+                  <span className="text-white font-mono">{formData.initialBetAmount.toFixed(2)} SOL</span>
+                </div>
+                <div className="flex justify-between text-lg font-bold border-t border-zinc-600 pt-2 mt-2">
+                  <span className="text-yellow-500">Total Cost</span>
+                  <span className="text-yellow-500 font-mono">{totalCost.toFixed(2)} SOL</span>
+                </div>
+              </div>
+            </div>
+
             <div className="pt-4">
               {!connected ? (
                 <motion.button
                   type="button"
-                  onClick={connectWallet}
+                  onClick={() => connectWallet()}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                   className="w-full bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-black py-4 rounded-lg uppercase transition-all"

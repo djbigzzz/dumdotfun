@@ -523,9 +523,16 @@ export async function registerRoutes(
   });
 
   // Create prediction market (always linked to a token)
+  // Requires creation fee (0.05 SOL) + minimum initial bet (0.5 SOL)
   app.post("/api/markets/create", async (req, res) => {
     try {
-      const { question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate } = req.body;
+      const { 
+        question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate,
+        initialBetSide, initialBetAmount 
+      } = req.body;
+
+      const CREATION_FEE = 0.05; // SOL
+      const MIN_INITIAL_BET = 0.5; // SOL
 
       // Validate required fields
       if (!question || typeof question !== "string" || question.trim().length < 10) {
@@ -545,41 +552,60 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Token mint address is required" });
       }
 
+      // Validate initial bet
+      if (!initialBetSide || (initialBetSide !== "yes" && initialBetSide !== "no")) {
+        return res.status(400).json({ error: "Initial bet side must be 'yes' or 'no'" });
+      }
+
+      const betAmount = Number(initialBetAmount);
+      if (!betAmount || isNaN(betAmount) || betAmount < MIN_INITIAL_BET) {
+        return res.status(400).json({ error: `Minimum initial bet is ${MIN_INITIAL_BET} SOL` });
+      }
+
       const resolutionTimestamp = new Date(resolutionDate);
       if (isNaN(resolutionTimestamp.getTime()) || resolutionTimestamp <= new Date()) {
         return res.status(400).json({ error: "Resolution date must be in the future" });
       }
 
-      const market = await storage.createMarket({
-        question: question.trim(),
-        description: description?.trim() || null,
-        imageUri: imageUri || null,
-        creatorAddress,
-        predictionType: predictionType || "custom",
-        tokenMint,
-        resolutionDate: resolutionTimestamp,
-      });
+      // Create market with initial bet atomically in a single transaction
+      const { market, position } = await storage.createMarketWithInitialBet(
+        {
+          question: question.trim(),
+          description: description?.trim() || null,
+          imageUri: imageUri || null,
+          creatorAddress,
+          predictionType: predictionType || "custom",
+          tokenMint,
+          resolutionDate: resolutionTimestamp,
+        },
+        initialBetSide,
+        betAmount.toString(),
+        CREATION_FEE
+      );
 
-      // Log activity
-      await storage.addActivity({
-        activityType: "market_created",
-        walletAddress: creatorAddress,
-        marketId: market.id,
-        metadata: JSON.stringify({ question: market.question }),
-      });
+      console.log(`Market created: "${market.question}" by ${creatorAddress} with ${betAmount} SOL on ${initialBetSide.toUpperCase()}`);
 
-      console.log(`Market created: "${market.question}" by ${creatorAddress}`);
+      // Use actual pool values from the created market
+      const actualYesPool = Number(market.yesPool);
+      const actualNoPool = Number(market.noPool);
+      
+      // Calculate odds from actual pools (with fallback for single-sided initial bet)
+      const yesOdds = calculateOdds(actualYesPool, actualNoPool, "yes");
+      const noOdds = calculateOdds(actualYesPool, actualNoPool, "no");
 
       return res.json({
         success: true,
         market: {
           ...market,
-          yesPool: 0,
-          noPool: 0,
-          totalVolume: 0,
-          yesOdds: 50,
-          noOdds: 50,
+          yesPool: actualYesPool,
+          noPool: actualNoPool,
+          totalVolume: betAmount,
+          yesOdds,
+          noOdds,
         },
+        creationFee: CREATION_FEE,
+        initialBet: { side: initialBetSide, amount: betAmount },
+        totalCost: CREATION_FEE + betAmount,
       });
     } catch (error: any) {
       console.error("Error creating market:", error);
