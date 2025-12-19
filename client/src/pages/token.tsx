@@ -1,10 +1,10 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 
 interface TokenPrediction {
@@ -56,8 +56,71 @@ interface SolPrice {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const { connectedWallet, connectWallet } = useWallet();
+  const queryClient = useQueryClient();
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [activeBet, setActiveBet] = useState<{ predictionId: string; side: "yes" | "no" } | null>(null);
+  const [betAmount, setBetAmount] = useState("");
+
+  const placeBetMutation = useMutation({
+    mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
+      const res = await fetch(`/api/markets/${marketId}/bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          side,
+          amount,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to place bet");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast.success(`Bet placed! You received ${data.position?.shares?.toFixed(4) || "some"} shares`);
+      setActiveBet(null);
+      setBetAmount("");
+      queryClient.invalidateQueries({ queryKey: ["token", mint] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleBetClick = (predictionId: string, side: "yes" | "no", e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!connectedWallet) {
+      connectWallet();
+      return;
+    }
+    if (activeBet?.predictionId === predictionId && activeBet?.side === side) {
+      setActiveBet(null);
+      setBetAmount("");
+    } else {
+      setActiveBet({ predictionId, side });
+      setBetAmount("");
+    }
+  };
+
+  const handlePlaceBet = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!activeBet || !betAmount) return;
+    const amount = parseFloat(betAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    placeBetMutation.mutate({
+      marketId: activeBet.predictionId,
+      side: activeBet.side,
+      amount,
+    });
+  };
 
   const { data: token, isLoading, error } = useQuery<TokenDetail>({
     queryKey: ["token", mint],
@@ -248,52 +311,122 @@ export default function TokenPage() {
                     const daysLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
                     const hoursLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
                     const isExpired = timeLeft <= 0;
+                    const isBettingActive = activeBet?.predictionId === prediction.id;
+                    const canBet = prediction.status === "open" && !isExpired;
                     
                     return (
-                      <Link key={prediction.id} href={`/market/${prediction.id}`}>
-                        <div 
-                          className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
-                          data-testid={`prediction-${prediction.id}`}
-                        >
-                          <p className="font-bold text-gray-900 text-sm mb-2">{prediction.question}</p>
-                          
-                          <div className="grid grid-cols-2 gap-2 mb-3">
-                            <button
-                              className="bg-green-100 border-2 border-green-500 rounded-lg py-2 px-3 text-center hover:bg-green-200 transition-colors"
-                              onClick={(e) => e.preventDefault()}
+                      <div 
+                        key={prediction.id}
+                        className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
+                        data-testid={`prediction-${prediction.id}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <Link href={`/market/${prediction.id}`}>
+                            <p className="font-bold text-gray-900 text-sm hover:text-yellow-700 cursor-pointer">{prediction.question}</p>
+                          </Link>
+                          {isBettingActive && (
+                            <button 
+                              onClick={(e) => { e.preventDefault(); setActiveBet(null); setBetAmount(""); }}
+                              className="text-gray-400 hover:text-gray-600"
+                              data-testid={`button-close-bet-${prediction.id}`}
                             >
-                              <span className="block text-green-700 font-black text-lg">{prediction.yesOdds}%</span>
-                              <span className="block text-xs text-gray-600 font-bold">YES</span>
+                              <X className="w-4 h-4" />
                             </button>
-                            <button
-                              className="bg-red-100 border-2 border-red-500 rounded-lg py-2 px-3 text-center hover:bg-red-200 transition-colors"
-                              onClick={(e) => e.preventDefault()}
-                            >
-                              <span className="block text-red-700 font-black text-lg">{prediction.noOdds}%</span>
-                              <span className="block text-xs text-gray-600 font-bold">NO</span>
-                            </button>
-                          </div>
-                          
-                          <div className="flex items-center justify-between text-xs text-gray-500">
-                            <span className="flex items-center gap-1">
-                              <Users className="w-3 h-3" />
-                              {prediction.totalVolume.toFixed(2)} SOL volume
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {prediction.status === "resolved" ? (
-                                "RESOLVED"
-                              ) : isExpired ? (
-                                <span className="text-yellow-600 font-bold">PENDING</span>
-                              ) : daysLeft > 0 ? (
-                                `${daysLeft}d ${hoursLeft}h`
-                              ) : (
-                                `${hoursLeft}h left`
-                              )}
-                            </span>
-                          </div>
+                          )}
                         </div>
-                      </Link>
+                        
+                        <div className="grid grid-cols-2 gap-2 mb-3">
+                          <button
+                            className={`border-2 rounded-lg py-2 px-3 text-center transition-all ${
+                              isBettingActive && activeBet?.side === "yes"
+                                ? "bg-green-500 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                : "bg-green-100 border-green-500 hover:bg-green-200"
+                            } ${!canBet ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                            onClick={(e) => canBet && handleBetClick(prediction.id, "yes", e)}
+                            disabled={!canBet}
+                            data-testid={`button-bet-yes-${prediction.id}`}
+                          >
+                            <span className={`block font-black text-lg ${isBettingActive && activeBet?.side === "yes" ? "text-white" : "text-green-700"}`}>{prediction.yesOdds}%</span>
+                            <span className={`block text-xs font-bold ${isBettingActive && activeBet?.side === "yes" ? "text-green-100" : "text-gray-600"}`}>YES</span>
+                          </button>
+                          <button
+                            className={`border-2 rounded-lg py-2 px-3 text-center transition-all ${
+                              isBettingActive && activeBet?.side === "no"
+                                ? "bg-red-500 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                                : "bg-red-100 border-red-500 hover:bg-red-200"
+                            } ${!canBet ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                            onClick={(e) => canBet && handleBetClick(prediction.id, "no", e)}
+                            disabled={!canBet}
+                            data-testid={`button-bet-no-${prediction.id}`}
+                          >
+                            <span className={`block font-black text-lg ${isBettingActive && activeBet?.side === "no" ? "text-white" : "text-red-700"}`}>{prediction.noOdds}%</span>
+                            <span className={`block text-xs font-bold ${isBettingActive && activeBet?.side === "no" ? "text-red-100" : "text-gray-600"}`}>NO</span>
+                          </button>
+                        </div>
+
+                        {isBettingActive && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="mb-3 p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg"
+                          >
+                            <div className="flex gap-2">
+                              <div className="flex-1">
+                                <input
+                                  type="number"
+                                  value={betAmount}
+                                  onChange={(e) => setBetAmount(e.target.value)}
+                                  placeholder="Amount in SOL"
+                                  className="w-full px-3 py-2 text-sm border-2 border-black rounded-lg font-mono focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                                  onClick={(e) => e.stopPropagation()}
+                                  data-testid={`input-bet-amount-${prediction.id}`}
+                                />
+                              </div>
+                              <motion.button
+                                whileHover={{ y: -1, x: -1 }}
+                                whileTap={{ scale: 0.98 }}
+                                onClick={handlePlaceBet}
+                                disabled={placeBetMutation.isPending || !betAmount}
+                                className={`px-4 py-2 rounded-lg font-bold text-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                                  activeBet?.side === "yes" 
+                                    ? "bg-green-500 text-white hover:bg-green-600" 
+                                    : "bg-red-500 text-white hover:bg-red-600"
+                                } disabled:opacity-50 disabled:cursor-not-allowed`}
+                                data-testid={`button-confirm-bet-${prediction.id}`}
+                              >
+                                {placeBetMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  `BET ${activeBet?.side?.toUpperCase()}`
+                                )}
+                              </motion.button>
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2 text-center">
+                              Click to bet on {activeBet?.side?.toUpperCase()} outcome
+                            </p>
+                          </motion.div>
+                        )}
+                        
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {prediction.totalVolume.toFixed(2)} SOL volume
+                          </span>
+                          <span className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {prediction.status === "resolved" ? (
+                              "RESOLVED"
+                            ) : isExpired ? (
+                              <span className="text-yellow-600 font-bold">PENDING</span>
+                            ) : daysLeft > 0 ? (
+                              `${daysLeft}d ${hoursLeft}h`
+                            ) : (
+                              `${hoursLeft}h left`
+                            )}
+                          </span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
