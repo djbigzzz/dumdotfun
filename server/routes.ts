@@ -4,11 +4,12 @@ import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, insertMarketSchema, tokens as tokensTable } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
-import { getTradeQuote, buildBuyTransaction, buildSellTransaction, TRADING_CONFIG, isTradingEnabled } from "./trading";
+import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction as buildSellTx, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -343,7 +344,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required parameters" });
       }
 
-      const result = await buildBuyTransaction({
+      const result = await buildBuyTx({
         userWallet,
         tokenMint,
         amount: amount.toString(),
@@ -370,7 +371,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Missing required parameters" });
       }
 
-      const result = await buildSellTransaction({
+      const result = await buildSellTx({
         userWallet,
         tokenMint,
         amount: amount.toString(),
@@ -389,10 +390,10 @@ export async function registerRoutes(
     }
   });
 
-  // Token creation endpoint
+  // Token creation endpoint - now uses PumpPortal for real on-chain deployment
   app.post("/api/tokens/create", async (req, res) => {
     try {
-      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress } = req.body;
+      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, mintPublicKey, initialBuyAmount } = req.body;
 
       // Validate required fields
       if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
@@ -407,14 +408,46 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Creator wallet address is required" });
       }
 
-      // Generate a new keypair for the token mint
-      // In production, this would be done on-chain with user signing
-      const mintKeypair = Keypair.generate();
-      const mint = mintKeypair.publicKey.toBase58();
+      if (!mintPublicKey || typeof mintPublicKey !== "string" || mintPublicKey.length === 0) {
+        return res.status(400).json({ error: "Mint public key is required (generated client-side)" });
+      }
 
-      // Create token in database
+      console.log(`Creating token: ${name} (${symbol}) for ${creatorAddress}, mint: ${mintPublicKey}`);
+
+      // Step 1: Upload metadata to IPFS via Pump.fun
+      let metadataUri: string;
+      try {
+        const ipfsResult = await uploadMetadataToIPFS(
+          { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: description?.trim(), twitter, telegram, website },
+          imageUri
+        );
+        metadataUri = ipfsResult.metadataUri;
+        console.log(`Metadata uploaded to IPFS: ${metadataUri}`);
+      } catch (ipfsError: any) {
+        console.error("IPFS upload failed:", ipfsError);
+        return res.status(500).json({ error: `Failed to upload metadata: ${ipfsError.message}` });
+      }
+
+      // Step 2: Build transaction via PumpPortal (mint keypair stays client-side for security)
+      let txResult;
+      try {
+        txResult = await buildCreateTokenTransaction(
+          creatorAddress,
+          mintPublicKey,
+          metadataUri,
+          name.trim(),
+          symbol.trim().toUpperCase(),
+          initialBuyAmount || 0
+        );
+        console.log(`Transaction built for mint: ${txResult.mint}`);
+      } catch (txError: any) {
+        console.error("PumpPortal transaction build failed:", txError);
+        return res.status(500).json({ error: `Failed to build transaction: ${txError.message}` });
+      }
+
+      // Step 3: Save token to database (pending deployment)
       const token = await storage.createToken({
-        mint,
+        mint: mintPublicKey,
         name: name.trim(),
         symbol: symbol.trim().toUpperCase(),
         description: description?.trim() || null,
@@ -425,7 +458,7 @@ export async function registerRoutes(
         website: website?.trim() || null,
       });
 
-      console.log(`Token metadata saved: ${token.name} (${token.symbol}) - ${token.mint}`);
+      console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
 
       // Auto-create the standard "Will it graduate?" prediction market
       let graduationMarket = null;
@@ -436,20 +469,24 @@ export async function registerRoutes(
           imageUri: token.imageUri,
           creatorAddress,
           predictionType: "graduation",
-          tokenMint: mint,
-          resolutionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+          tokenMint: mintPublicKey,
+          resolutionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
         });
         console.log(`Created graduation prediction for ${token.symbol}`);
       } catch (marketError) {
         console.error(`Failed to create graduation prediction for ${token.symbol}`, marketError);
       }
 
+      // Return transaction for frontend to sign (no secret keys exposed)
       return res.json({
         success: true,
         token,
         graduationMarket,
-        deploymentStatus: "pending",
-        message: "Token metadata saved with graduation prediction! On-chain deployment will be available once bonding curve contract is deployed.",
+        transaction: txResult.transaction,
+        mint: mintPublicKey,
+        metadataUri,
+        deploymentStatus: "awaiting_signature",
+        message: "Transaction ready! Sign with your wallet to deploy on Pump.fun.",
       });
     } catch (error: any) {
       console.error("Error creating token:", error);

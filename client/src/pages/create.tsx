@@ -2,16 +2,26 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Upload, Zap, Info, Loader2, CheckCircle } from "lucide-react";
+import { Upload, Zap, Info, Loader2, CheckCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
+import { Buffer } from "buffer";
+import { Connection, VersionedTransaction, Keypair } from "@solana/web3.js";
+import bs58 from "bs58";
+
+if (typeof window !== "undefined") {
+  (window as any).Buffer = Buffer;
+}
+
+const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
 
 interface CreatedToken {
   id: string;
   mint: string;
   name: string;
   symbol: string;
+  signature?: string;
 }
 
 export default function CreateToken() {
@@ -28,8 +38,22 @@ export default function CreateToken() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
 
+  const [creationStep, setCreationStep] = useState<string>("");
+
   const createTokenMutation = useMutation({
     mutationFn: async () => {
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom) {
+        throw new Error("Phantom wallet not found. Please install Phantom.");
+      }
+
+      // Generate mint keypair CLIENT-SIDE for security (never expose secret key)
+      setCreationStep("Generating mint keypair...");
+      const mintKeypair = Keypair.generate();
+      const mintPublicKey = mintKeypair.publicKey.toBase58();
+
+      setCreationStep("Uploading metadata to IPFS...");
+      
       const res = await fetch("/api/tokens/create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -42,6 +66,8 @@ export default function CreateToken() {
           telegram: formData.telegram || null,
           website: formData.website || null,
           creatorAddress: connectedWallet,
+          mintPublicKey,
+          initialBuyAmount: 0,
         }),
       });
       
@@ -50,14 +76,49 @@ export default function CreateToken() {
         throw new Error(error.error || "Failed to create token");
       }
       
-      return res.json();
+      const data = await res.json();
+      
+      if (!data.transaction) {
+        throw new Error("No transaction returned from server");
+      }
+
+      setCreationStep("Sign with your wallet...");
+
+      const transactionBytes = bs58.decode(data.transaction);
+      const transaction = VersionedTransaction.deserialize(transactionBytes);
+
+      // Sign with the mint keypair (kept client-side, never exposed to server)
+      transaction.sign([mintKeypair]);
+
+      // Then sign with user's wallet via Phantom
+      const signedTransaction = await phantom.signTransaction(transaction);
+
+      setCreationStep("Submitting to Solana...");
+
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+
+      setCreationStep("Confirming transaction...");
+
+      await connection.confirmTransaction(signature, "confirmed");
+
+      return {
+        ...data,
+        signature,
+        token: { ...data.token, signature },
+      };
     },
     onSuccess: (data) => {
-      toast.success(`Token ${data.token.name} created successfully!`);
-      setCreatedToken(data.token);
+      toast.success(`Token ${data.token.name} deployed on Pump.fun!`);
+      setCreatedToken({ ...data.token, signature: data.signature });
+      setCreationStep("");
     },
     onError: (error: Error) => {
       toast.error(error.message);
+      setCreationStep("");
     },
   });
 
@@ -126,27 +187,54 @@ export default function CreateToken() {
           >
             <CheckCircle className="w-16 h-16 mx-auto text-green-600" />
             <div>
-              <h2 className="text-2xl font-black text-green-700">TOKEN SAVED!</h2>
+              <h2 className="text-2xl font-black text-green-700">TOKEN DEPLOYED!</h2>
               <p className="text-gray-600 text-sm mt-2">
-                Your token <span className="text-gray-900 font-bold">{createdToken.name}</span> ({createdToken.symbol}) metadata has been saved.
+                Your token <span className="text-gray-900 font-bold">{createdToken.name}</span> ({createdToken.symbol}) is now live on Pump.fun!
               </p>
             </div>
             <div className="bg-white border-2 border-black rounded-lg p-3">
-              <p className="text-xs text-gray-500 mb-1 font-bold">Token ID</p>
+              <p className="text-xs text-gray-500 mb-1 font-bold">Token Mint Address</p>
               <p className="text-green-600 font-mono text-sm break-all">{createdToken.mint}</p>
             </div>
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3">
-              <p className="text-xs text-yellow-700 font-bold">DEPLOYMENT STATUS: PENDING</p>
-              <p className="text-xs text-gray-600 mt-1">On-chain deployment will be available once the bonding curve contract is deployed.</p>
-            </div>
-            <div className="flex gap-3 justify-center">
+            {createdToken.signature && (
+              <div className="bg-white border-2 border-black rounded-lg p-3">
+                <p className="text-xs text-gray-500 mb-1 font-bold">Transaction Signature</p>
+                <a 
+                  href={`https://solscan.io/tx/${createdToken.signature}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 font-mono text-sm break-all hover:underline flex items-center justify-center gap-1"
+                  data-testid="link-transaction"
+                >
+                  {createdToken.signature.slice(0, 20)}...{createdToken.signature.slice(-20)}
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            )}
+            <div className="flex gap-3 justify-center flex-wrap">
+              <a 
+                href={`https://pump.fun/${createdToken.mint}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <motion.button
+                  whileHover={{ y: -2, x: -2 }}
+                  whileTap={{ y: 0, x: 0 }}
+                  className="px-6 py-3 bg-green-500 text-white font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2"
+                  data-testid="button-view-pumpfun"
+                >
+                  View on Pump.fun
+                  <ExternalLink className="w-4 h-4" />
+                </motion.button>
+              </a>
               <Link href={`/token/${createdToken.mint}`}>
                 <motion.button
                   whileHover={{ y: -2, x: -2 }}
                   whileTap={{ y: 0, x: 0 }}
                   className="px-6 py-3 bg-red-500 text-white font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+                  data-testid="button-view-token"
                 >
-                  View Token
+                  View on Dum.fun
                 </motion.button>
               </Link>
               <motion.button
@@ -154,6 +242,7 @@ export default function CreateToken() {
                 whileHover={{ y: -2, x: -2 }}
                 whileTap={{ y: 0, x: 0 }}
                 className="px-6 py-3 bg-white text-gray-900 font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+                data-testid="button-create-another"
               >
                 Create Another
               </motion.button>
@@ -331,7 +420,7 @@ export default function CreateToken() {
               {createTokenMutation.isPending ? (
                 <>
                   <Loader2 className="w-5 h-5 animate-spin" />
-                  CREATING...
+                  {creationStep || "CREATING..."}
                 </>
               ) : (
                 <>

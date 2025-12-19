@@ -1,9 +1,10 @@
 /**
  * Jupiter API integration for SOL price quotes
- * Uses Jupiter's free public API
+ * Uses Jupiter's free public API with CoinGecko fallback
  */
 
-const JUPITER_PRICE_API = "https://price.jup.ag/v6/price";
+const JUPITER_PRICE_API = "https://api.jup.ag/price/v2";
+const COINGECKO_API = "https://api.coingecko.com/api/v3/simple/price";
 
 // Common token addresses
 export const TOKEN_ADDRESSES = {
@@ -11,6 +12,10 @@ export const TOKEN_ADDRESSES = {
   USDC: "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v",
   USDT: "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB",
 };
+
+// Cache for SOL price to reduce API calls
+let cachedSolPrice: { price: number; timestamp: number } | null = null;
+const CACHE_TTL = 30000; // 30 seconds
 
 interface JupiterPriceResponse {
   data: {
@@ -26,32 +31,70 @@ interface JupiterPriceResponse {
 }
 
 /**
- * Get SOL price in USD
+ * Get SOL price in USD from CoinGecko (fallback)
  */
-export async function getSolPrice(): Promise<number | null> {
+async function getSolPriceFromCoinGecko(): Promise<number | null> {
   try {
     const response = await fetch(
-      `${JUPITER_PRICE_API}?ids=${TOKEN_ADDRESSES.SOL}&vsToken=${TOKEN_ADDRESSES.USDC}`
+      `${COINGECKO_API}?ids=solana&vs_currencies=usd`
     );
 
     if (!response.ok) {
-      console.error("Jupiter API returned:", response.status);
+      console.error("CoinGecko API returned:", response.status);
       return null;
     }
 
-    const data: JupiterPriceResponse = await response.json();
-    const solData = data.data[TOKEN_ADDRESSES.SOL];
-
-    if (!solData) {
-      console.error("No SOL data in Jupiter response");
-      return null;
-    }
-
-    return solData.price;
+    const data = await response.json();
+    return data.solana?.usd || null;
   } catch (error) {
-    console.error("Error fetching SOL price from Jupiter:", error);
+    console.error("Error fetching SOL price from CoinGecko:", error);
     return null;
   }
+}
+
+/**
+ * Get SOL price in USD with caching and fallback
+ */
+export async function getSolPrice(): Promise<number | null> {
+  // Return cached price if still valid
+  if (cachedSolPrice && Date.now() - cachedSolPrice.timestamp < CACHE_TTL) {
+    return cachedSolPrice.price;
+  }
+
+  // Try Jupiter API first
+  try {
+    const response = await fetch(
+      `${JUPITER_PRICE_API}?ids=${TOKEN_ADDRESSES.SOL}`
+    );
+
+    if (response.ok) {
+      const data: JupiterPriceResponse = await response.json();
+      const solData = data.data[TOKEN_ADDRESSES.SOL];
+
+      if (solData?.price) {
+        cachedSolPrice = { price: solData.price, timestamp: Date.now() };
+        return solData.price;
+      }
+    }
+  } catch (error) {
+    console.error("Jupiter API failed, trying CoinGecko:", error);
+  }
+
+  // Fallback to CoinGecko
+  const coinGeckoPrice = await getSolPriceFromCoinGecko();
+  if (coinGeckoPrice) {
+    cachedSolPrice = { price: coinGeckoPrice, timestamp: Date.now() };
+    return coinGeckoPrice;
+  }
+
+  // Return last cached price if all APIs fail
+  if (cachedSolPrice) {
+    console.warn("All price APIs failed, returning stale cached price");
+    return cachedSolPrice.price;
+  }
+
+  console.error("All price sources failed");
+  return null;
 }
 
 /**
