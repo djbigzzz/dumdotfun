@@ -10,17 +10,17 @@ import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352
 const Marquee = () => {
   return (
     <div 
-      className="py-3 overflow-hidden border-b-2 border-black relative bg-red-500"
+      className="py-2 overflow-hidden border-b-2 border-black relative bg-red-500"
     >
       <div className="flex items-center justify-center gap-2 animate-marquee whitespace-nowrap font-mono text-sm">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-2">
             <span className="text-white font-black">⚡</span>
-            <span className="text-white font-black">COMING SOON</span>
+            <span className="text-yellow-300 font-black">LAUNCH TOKENS</span>
             <span className="text-pink-200">•</span>
-            <span className="text-pink-100">JOIN THE WAITLIST</span>
+            <span className="text-pink-100">BET ON PREDICTIONS</span>
             <span className="text-pink-200">•</span>
-            <span className="text-yellow-300 font-black">EARN REWARDS</span>
+            <span className="text-white font-black">WIN EITHER WAY</span>
             <span className="text-pink-200 mx-2">•</span>
           </div>
         ))}
@@ -109,16 +109,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white">
       <Marquee />
       <header className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
-        <Link href="/">
-          <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
-            <img src={pillLogo} alt="DUM.FUN" className="h-12 md:h-14 w-auto" />
-            <h1 className="text-2xl md:text-4xl font-black text-red-500 tracking-tighter uppercase hidden sm:block" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
-              DUM.FUN
-            </h1>
-          </div>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/">
+            <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
+              <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
+              <h1 className="text-xl md:text-3xl font-black text-red-500 tracking-tighter uppercase hidden sm:block" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
+                DUM.FUN
+              </h1>
+            </div>
+          </Link>
+          
+          <nav className="hidden md:flex items-center gap-4">
+            <Link href="/tokens">
+              <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Tokens</span>
+            </Link>
+            <Link href="/create">
+              <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Launch</span>
+            </Link>
+          </nav>
+        </div>
         
-        <div>
+        <div className="flex items-center gap-3">
           {connectedWallet ? (
             <Link href="/profile">
               <button 

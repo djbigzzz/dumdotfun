@@ -7,6 +7,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/lib/wallet-context";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
+import TokensPage from "@/pages/tokens";
 import Profile from "@/pages/profile";
 import TokenPage from "@/pages/token";
 import CreateToken from "@/pages/create";
@@ -17,6 +18,7 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={Home} />
+      <Route path="/tokens" component={TokensPage} />
       <Route path="/profile" component={Profile} />
       <Route path="/token/:mint" component={TokenPage} />
       <Route path="/create" component={CreateToken} />
