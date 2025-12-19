@@ -56,8 +56,8 @@ export const predictionMarkets = pgTable("prediction_markets", {
   description: text("description"),
   imageUri: text("image_uri"),
   creatorAddress: text("creator_address").notNull(),
-  marketType: text("market_type").notNull().default("general"),
-  tokenMint: text("token_mint"),
+  predictionType: text("prediction_type").notNull().default("custom"),
+  tokenMint: text("token_mint").notNull(),
   resolutionDate: timestamp("resolution_date").notNull(),
   status: text("status").notNull().default("open"),
   outcome: text("outcome"),
@@ -137,7 +137,7 @@ export const insertMarketSchema = createInsertSchema(predictionMarkets).omit({
 }).partial({
   description: true,
   imageUri: true,
-  tokenMint: true,
+  predictionType: true,
 });
 
 export const insertPositionSchema = createInsertSchema(positions).omit({

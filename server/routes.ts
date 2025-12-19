@@ -121,28 +121,6 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/markets/general", async (req, res) => {
-    try {
-      const limit = Math.min(Number(req.query.limit) || 24, 50);
-      const markets = await storage.getGeneralMarkets(limit);
-      
-      const marketsWithOdds = markets.map(market => {
-        const yesPool = Number(market.yesPool) || 0;
-        const noPool = Number(market.noPool) || 0;
-        const total = yesPool + noPool;
-        return {
-          ...market,
-          yesOdds: total > 0 ? Math.round((yesPool / total) * 100) : 50,
-          noOdds: total > 0 ? Math.round((noPool / total) * 100) : 50,
-        };
-      });
-      
-      return res.json(marketsWithOdds);
-    } catch (error: any) {
-      console.error("Error fetching general markets:", error);
-      return res.status(500).json({ error: "Failed to fetch general markets" });
-    }
-  });
 
   app.post("/api/users/connect", async (req, res) => {
     try {
@@ -526,10 +504,10 @@ export async function registerRoutes(
     }
   });
 
-  // Create prediction market
+  // Create prediction market (always linked to a token)
   app.post("/api/markets/create", async (req, res) => {
     try {
-      const { question, description, imageUri, creatorAddress, marketType, tokenMint, resolutionDate } = req.body;
+      const { question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate } = req.body;
 
       // Validate required fields
       if (!question || typeof question !== "string" || question.trim().length < 10) {
@@ -544,9 +522,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Resolution date is required" });
       }
 
-      // Validate token-linked markets require tokenMint
-      if (marketType === "token" && (!tokenMint || typeof tokenMint !== "string" || tokenMint.length < 32)) {
-        return res.status(400).json({ error: "Token mint address is required for token markets" });
+      // All predictions must be linked to a token
+      if (!tokenMint || typeof tokenMint !== "string" || tokenMint.length < 32) {
+        return res.status(400).json({ error: "Token mint address is required" });
       }
 
       const resolutionTimestamp = new Date(resolutionDate);
@@ -559,8 +537,8 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress,
-        marketType: marketType || "general",
-        tokenMint: tokenMint || null,
+        predictionType: predictionType || "custom",
+        tokenMint,
         resolutionDate: resolutionTimestamp,
       });
 
