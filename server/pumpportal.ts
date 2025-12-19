@@ -37,37 +37,45 @@ export async function uploadMetadataToIPFS(
   if (metadata.website) formData.append("website", metadata.website);
   formData.append("showName", "true");
   
+  let imageBuffer: Buffer;
+  let imageMimeType = "image/png";
+  let imageFilename = "token.png";
+  
   if (imageBase64) {
     const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (matches && matches.length === 3) {
-      const mimeType = matches[1];
+      imageMimeType = matches[1];
       const base64Data = matches[2];
-      const buffer = Buffer.from(base64Data, "base64");
-      const extension = mimeType.split("/")[1] || "png";
-      formData.append("file", buffer, {
-        filename: `token-image.${extension}`,
-        contentType: mimeType,
-      });
+      imageBuffer = Buffer.from(base64Data, "base64");
+      const extension = imageMimeType.split("/")[1] || "png";
+      imageFilename = `token.${extension}`;
+      console.log(`Image size: ${imageBuffer.length} bytes, type: ${imageMimeType}`);
     } else {
-      const placeholderPng = Buffer.from(
+      console.log("Image base64 format not recognized, using placeholder");
+      imageBuffer = Buffer.from(
         'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
         'base64'
       );
-      formData.append("file", placeholderPng, {
-        filename: "placeholder.png",
-        contentType: "image/png",
-      });
     }
   } else {
-    const placeholderPng = Buffer.from(
+    console.log("No image provided, using placeholder");
+    imageBuffer = Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
       'base64'
     );
-    formData.append("file", placeholderPng, {
-      filename: "placeholder.png",
-      contentType: "image/png",
-    });
   }
+  
+  formData.append("file", imageBuffer, {
+    filename: imageFilename,
+    contentType: imageMimeType,
+  });
+
+  console.log("Uploading to pump.fun IPFS...", {
+    name: metadata.name,
+    symbol: metadata.symbol,
+    imageSize: imageBuffer.length,
+    headers: formData.getHeaders(),
+  });
 
   const response = await fetch(PUMP_IPFS_API, {
     method: "POST",
@@ -75,13 +83,19 @@ export async function uploadMetadataToIPFS(
     headers: formData.getHeaders(),
   });
 
+  const responseText = await response.text();
+  console.log("IPFS response status:", response.status, "body:", responseText);
+
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("IPFS upload failed:", errorText);
-    throw new Error(`IPFS upload failed: ${response.status} ${errorText}`);
+    throw new Error(`IPFS upload failed: ${response.status} ${responseText}`);
   }
 
-  const result = await response.json();
+  let result;
+  try {
+    result = JSON.parse(responseText);
+  } catch (e) {
+    throw new Error(`IPFS response not valid JSON: ${responseText}`);
+  }
   
   if (!result.metadataUri) {
     throw new Error("IPFS response missing metadataUri");
