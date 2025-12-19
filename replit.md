@@ -48,10 +48,12 @@ The web app is fully built and ready. Once a bonding curve smart contract is dep
 
 ### Prediction Markets
 - **Market Creation**: Create yes/no prediction markets with resolution dates
+- **Creation Fee**: 0.05 SOL fee to create a prediction market
+- **Initial Bet Requirement**: Minimum 0.5 SOL initial bet (YES or NO) when creating a market
 - **Betting Interface**: Place bets on YES or NO outcomes using SOL
 - **CPMM Odds**: Constant Product Market Maker for dynamic odds calculation
 - **Market Types**: General predictions or token-specific predictions
-- **Atomic Transactions**: All bets execute as single database transactions
+- **Atomic Transactions**: All market creation and bets execute as single database transactions
 
 ### Integrated Token + Prediction UI
 - **Token Cards with Predictions**: Each token card shows up to 2 linked prediction markets with odds
