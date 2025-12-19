@@ -410,7 +410,7 @@ export default function TokenPage() {
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={connectWallet}
+                    onClick={() => connectWallet()}
                     className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
                     data-testid="button-connect-wallet-trade"
                   >
