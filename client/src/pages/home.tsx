@@ -253,7 +253,10 @@ export default function Home() {
       </div>
 
       {/* Scroll-Driven Video Section */}
-      <ScrollVideoPlaceholder containerHeight="200vh" />
+      <ScrollVideo 
+        src="/assets/qctfxzcb65rmc0cttmwtnhkptw_result__1766181044261.mp4" 
+        containerHeight="200vh" 
+      />
 
       <div className="py-8 md:py-16">
         <div className="max-w-5xl mx-auto px-4 space-y-12">
