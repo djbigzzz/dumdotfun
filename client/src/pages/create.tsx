@@ -112,9 +112,9 @@ export default function CreateToken() {
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <h1 className="text-3xl font-black text-red-500">CREATE NEW COIN</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Fields marked with * cannot be changed once the coin is created
+          <h1 className="text-3xl md:text-4xl font-black text-gray-900">Launch New Token</h1>
+          <p className="text-gray-500 mt-1">
+            Fields marked with * cannot be changed once created
           </p>
         </div>
 
@@ -122,38 +122,38 @@ export default function CreateToken() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-green-900/20 border border-green-600/50 rounded-lg p-6 text-center space-y-4"
+            className="bg-green-50 border-2 border-black rounded-lg p-6 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           >
-            <CheckCircle className="w-16 h-16 mx-auto text-green-500" />
+            <CheckCircle className="w-16 h-16 mx-auto text-green-600" />
             <div>
-              <h2 className="text-2xl font-black text-green-500">TOKEN SAVED!</h2>
-              <p className="text-gray-400 text-sm mt-2">
-                Your token <span className="text-white font-bold">{createdToken.name}</span> ({createdToken.symbol}) metadata has been saved.
+              <h2 className="text-2xl font-black text-green-700">TOKEN SAVED!</h2>
+              <p className="text-gray-600 text-sm mt-2">
+                Your token <span className="text-gray-900 font-bold">{createdToken.name}</span> ({createdToken.symbol}) metadata has been saved.
               </p>
             </div>
-            <div className="bg-zinc-800/50 rounded p-3">
-              <p className="text-xs text-gray-400 mb-1">Token ID</p>
-              <p className="text-green-400 font-mono text-sm break-all">{createdToken.mint}</p>
+            <div className="bg-white border-2 border-black rounded-lg p-3">
+              <p className="text-xs text-gray-500 mb-1 font-bold">Token ID</p>
+              <p className="text-green-600 font-mono text-sm break-all">{createdToken.mint}</p>
             </div>
-            <div className="bg-yellow-900/30 border border-yellow-600/30 rounded p-3">
-              <p className="text-xs text-yellow-500 font-bold">DEPLOYMENT STATUS: PENDING</p>
-              <p className="text-xs text-gray-400 mt-1">On-chain deployment will be available once the bonding curve contract is deployed.</p>
+            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3">
+              <p className="text-xs text-yellow-700 font-bold">DEPLOYMENT STATUS: PENDING</p>
+              <p className="text-xs text-gray-600 mt-1">On-chain deployment will be available once the bonding curve contract is deployed.</p>
             </div>
             <div className="flex gap-3 justify-center">
               <Link href={`/token/${createdToken.mint}`}>
                 <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="px-6 py-3 bg-red-600 text-white font-bold rounded hover:bg-red-700 transition-colors"
+                  whileHover={{ y: -2, x: -2 }}
+                  whileTap={{ y: 0, x: 0 }}
+                  className="px-6 py-3 bg-red-500 text-white font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
                 >
                   View Token
                 </motion.button>
               </Link>
               <motion.button
                 onClick={resetForm}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                className="px-6 py-3 bg-zinc-700 text-white font-bold rounded hover:bg-zinc-600 transition-colors"
+                whileHover={{ y: -2, x: -2 }}
+                whileTap={{ y: 0, x: 0 }}
+                className="px-6 py-3 bg-white text-gray-900 font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
               >
                 Create Another
               </motion.button>
@@ -162,112 +162,110 @@ export default function CreateToken() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Coin Details Section */}
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+          <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <h2 className="text-sm font-black text-red-500 mb-4 uppercase">COIN DETAILS</h2>
             
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="text-xs text-gray-400 block mb-2 font-bold">COIN NAME *</label>
+                <label className="text-xs text-gray-600 block mb-2 font-bold">COIN NAME *</label>
                 <input
                   type="text"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   placeholder="Name your coin"
                   maxLength={32}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
+                  className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none"
                   data-testid="input-token-name"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-2 font-bold">TICKER *</label>
+                <label className="text-xs text-gray-600 block mb-2 font-bold">TICKER *</label>
                 <input
                   type="text"
                   value={formData.symbol}
                   onChange={(e) => setFormData({ ...formData, symbol: e.target.value.toUpperCase() })}
                   placeholder="Add a coin ticker (e.g., DUNI)"
                   maxLength={10}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none"
+                  className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none"
                   data-testid="input-token-symbol"
                 />
               </div>
             </div>
 
             <div>
-              <label className="text-xs text-gray-400 block mb-2 font-bold">DESCRIPTION (OPTIONAL)</label>
+              <label className="text-xs text-gray-600 block mb-2 font-bold">DESCRIPTION (OPTIONAL)</label>
               <textarea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Write a short description"
                 rows={3}
                 maxLength={500}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-red-500 focus:outline-none resize-none"
+                className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 focus:ring-2 focus:ring-red-500 focus:outline-none resize-none"
                 data-testid="input-token-description"
               />
             </div>
           </div>
 
           {/* Social Links Section */}
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
-            <button
-              type="button"
-              className="flex items-center gap-2 text-sm font-bold text-gray-300 hover:text-white transition-colors mb-4"
-            >
-              <span>+ ADD SOCIAL LINKS (OPTIONAL)</span>
-            </button>
+          <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+            <h2 className="text-sm font-black text-gray-700 mb-4 uppercase">+ SOCIAL LINKS (OPTIONAL)</h2>
             
             <div className="space-y-4">
               <div>
-                <label className="text-xs text-gray-400 block mb-2 font-bold">TWITTER</label>
+                <label className="text-xs text-gray-600 block mb-2 font-bold">TWITTER</label>
                 <input
                   type="url"
                   value={formData.twitter}
                   onChange={(e) => setFormData({ ...formData, twitter: e.target.value })}
                   placeholder="https://twitter.com/..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  data-testid="input-token-twitter"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-2 font-bold">TELEGRAM</label>
+                <label className="text-xs text-gray-600 block mb-2 font-bold">TELEGRAM</label>
                 <input
                   type="url"
                   value={formData.telegram}
                   onChange={(e) => setFormData({ ...formData, telegram: e.target.value })}
                   placeholder="https://t.me/..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  data-testid="input-token-telegram"
                 />
               </div>
               <div>
-                <label className="text-xs text-gray-400 block mb-2 font-bold">WEBSITE</label>
+                <label className="text-xs text-gray-600 block mb-2 font-bold">WEBSITE</label>
                 <input
                   type="url"
                   value={formData.website}
                   onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                   placeholder="https://..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white text-sm focus:border-red-500 focus:outline-none"
+                  className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 text-sm focus:ring-2 focus:ring-red-500 focus:outline-none"
+                  data-testid="input-token-website"
                 />
               </div>
             </div>
           </div>
 
           {/* Image Upload Section */}
-          <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+          <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
             <h2 className="text-sm font-black text-red-500 mb-4 uppercase">COIN IMAGE</h2>
             
-            <div className="border-2 border-dashed border-red-600/50 rounded-lg p-8 text-center hover:border-red-600/80 transition-colors">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-red-500 transition-colors bg-gray-50">
               {imagePreview ? (
                 <div className="space-y-4">
-                  <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border border-red-600/30">
+                  <div className="w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 border-black">
                     <img src={imagePreview} alt="Token" className="w-full h-full object-cover" />
                   </div>
                   <div>
-                    <p className="text-gray-400 text-sm font-mono">{fileName}</p>
+                    <p className="text-gray-600 text-sm font-mono">{fileName}</p>
                     <button
                       type="button"
                       onClick={() => {
                         setImagePreview(null);
                         setFileName(null);
                       }}
-                      className="text-red-400 hover:text-red-300 text-xs mt-2 underline"
+                      className="text-red-500 hover:text-red-600 text-xs mt-2 underline font-bold"
                     >
                       Change image
                     </button>
@@ -276,9 +274,9 @@ export default function CreateToken() {
               ) : (
                 <label className="cursor-pointer block">
                   <div className="space-y-2">
-                    <Upload className="w-8 h-8 mx-auto text-red-500/50" />
-                    <p className="text-gray-400 text-sm">Select video or image to upload</p>
-                    <p className="text-gray-500 text-xs">or drag and drop here</p>
+                    <Upload className="w-8 h-8 mx-auto text-gray-400" />
+                    <p className="text-gray-600 text-sm font-medium">Select video or image to upload</p>
+                    <p className="text-gray-400 text-xs">or drag and drop here</p>
                   </div>
                   <input
                     type="file"
@@ -292,31 +290,31 @@ export default function CreateToken() {
             </div>
 
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="bg-zinc-800 border border-zinc-700 rounded p-3">
-                <p className="text-xs text-gray-400 font-bold mb-1">File size and type</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-xs text-gray-700 font-bold mb-1">File size and type</p>
                 <ul className="text-xs text-gray-500 space-y-0.5">
-                  <li>• Image: <span className="text-gray-400">2mb</span></li>
-                  <li>• Video: <span className="text-gray-400">2mb</span></li>
-                  <li>• Format: <span className="text-gray-400">JPG, PNG or MP4</span></li>
+                  <li>• Image: <span className="text-gray-600">2mb</span></li>
+                  <li>• Video: <span className="text-gray-600">2mb</span></li>
+                  <li>• Format: <span className="text-gray-600">JPG, PNG or MP4</span></li>
                 </ul>
               </div>
-              <div className="bg-zinc-800 border border-zinc-700 rounded p-3">
-                <p className="text-xs text-gray-400 font-bold mb-1">Resolution and aspect ratio</p>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
+                <p className="text-xs text-gray-700 font-bold mb-1">Resolution and aspect ratio</p>
                 <ul className="text-xs text-gray-500 space-y-0.5">
-                  <li>• Image: <span className="text-gray-400">1000x1000px</span></li>
-                  <li>• Video: <span className="text-gray-400">16:9, 1080x600px</span></li>
+                  <li>• Image: <span className="text-gray-600">1000x1000px</span></li>
+                  <li>• Video: <span className="text-gray-600">16:9, 1080x600px</span></li>
                 </ul>
               </div>
             </div>
           </div>
 
           {/* Launch Cost Section */}
-          <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-4">
+          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-yellow-500 font-bold text-sm">LAUNCH COST: ~0.02 SOL</p>
-                <p className="text-gray-400 text-xs mt-1">Paid to deploy on Solana blockchain</p>
+                <p className="text-yellow-700 font-bold text-sm">LAUNCH COST: ~0.02 SOL</p>
+                <p className="text-gray-600 text-xs mt-1">Paid to deploy on Solana blockchain</p>
               </div>
             </div>
           </div>
@@ -325,9 +323,9 @@ export default function CreateToken() {
             <motion.button
               type="submit"
               disabled={createTokenMutation.isPending}
-              whileHover={{ scale: createTokenMutation.isPending ? 1 : 1.02 }}
-              whileTap={{ scale: createTokenMutation.isPending ? 1 : 0.98 }}
-              className={`w-full bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 text-black font-black py-4 rounded-lg uppercase transition-all border border-green-400/50 flex items-center justify-center gap-2 ${createTokenMutation.isPending ? "opacity-70 cursor-not-allowed" : ""}`}
+              whileHover={{ y: createTokenMutation.isPending ? 0 : -2, x: createTokenMutation.isPending ? 0 : -2 }}
+              whileTap={{ y: 0, x: 0 }}
+              className={`w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-lg uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 ${createTokenMutation.isPending ? "opacity-70 cursor-not-allowed" : ""}`}
               data-testid="button-create-token"
             >
               {createTokenMutation.isPending ? (
@@ -346,9 +344,9 @@ export default function CreateToken() {
             <motion.button
               type="button"
               onClick={() => connectWallet()}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-black py-4 rounded-lg uppercase transition-all border border-red-500/50"
+              whileHover={{ y: -2, x: -2 }}
+              whileTap={{ y: 0, x: 0 }}
+              className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-lg uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             >
               Connect Wallet to Create
             </motion.button>

@@ -91,7 +91,7 @@ export default function TokenPage() {
     return (
       <Layout>
         <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
-          <div className="animate-pulse text-gray-400 font-mono">Loading token...</div>
+          <div className="animate-pulse text-gray-500 font-mono">Loading token...</div>
         </div>
       </Layout>
     );
@@ -102,10 +102,10 @@ export default function TokenPage() {
       <Layout>
         <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-4">
           <p className="text-red-500 font-mono">Token not found</p>
-          <Link href="/">
-            <button className="text-gray-400 hover:text-white flex items-center gap-2">
+          <Link href="/tokens">
+            <button className="text-gray-500 hover:text-gray-900 flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
-              Back to home
+              Back to tokens
             </button>
           </Link>
         </div>
@@ -122,8 +122,8 @@ export default function TokenPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <Link href="/">
-          <button className="text-gray-400 hover:text-white flex items-center gap-2 text-sm font-mono">
+        <Link href="/tokens">
+          <button className="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm font-mono">
             <ArrowLeft className="w-4 h-4" />
             Back to tokens
           </button>
@@ -131,13 +131,13 @@ export default function TokenPage() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-2 space-y-6">
-            <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="flex items-start gap-4">
-                <div className="w-20 h-20 rounded-lg bg-zinc-800 border border-red-600/20 overflow-hidden flex-shrink-0">
+                <div className="w-20 h-20 rounded-lg bg-gray-100 border-2 border-black overflow-hidden flex-shrink-0">
                   {token.imageUri ? (
                     <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-red-500 font-black text-2xl">
+                    <div className="w-full h-full flex items-center justify-center text-red-500 font-black text-2xl bg-gray-50">
                       {token.symbol[0]}
                     </div>
                   )}
@@ -145,30 +145,30 @@ export default function TokenPage() {
                 
                 <div className="flex-1">
                   <div className="flex items-center gap-3 flex-wrap">
-                    <h1 className="text-2xl font-black text-white">{token.name}</h1>
-                    <span className="text-gray-400 font-mono">${token.symbol}</span>
+                    <h1 className="text-2xl font-black text-gray-900">{token.name}</h1>
+                    <span className="text-gray-500 font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200">${token.symbol}</span>
                     {token.isGraduated && (
-                      <span className="bg-green-600/20 border border-green-600/50 px-2 py-0.5 rounded text-xs font-mono text-green-400">
+                      <span className="bg-green-100 border-2 border-green-500 px-2 py-0.5 rounded text-xs font-bold text-green-700">
                         GRADUATED
                       </span>
                     )}
                   </div>
                   
-                  <p className="text-gray-400 text-sm mt-2 max-w-lg">{token.description || "No description"}</p>
+                  <p className="text-gray-600 text-sm mt-2 max-w-lg">{token.description || "No description"}</p>
                   
                   <div className="flex gap-3 mt-4">
                     {token.twitter && (
-                      <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400">
+                      <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
                         <Twitter className="w-5 h-5" />
                       </a>
                     )}
                     {token.telegram && (
-                      <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400">
+                      <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
                         <MessageCircle className="w-5 h-5" />
                       </a>
                     )}
                     {token.website && (
-                      <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-blue-400">
+                      <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
                         <Globe className="w-5 h-5" />
                       </a>
                     )}
@@ -177,16 +177,16 @@ export default function TokenPage() {
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <h2 className="text-lg font-black text-red-500 mb-4">BONDING CURVE PROGRESS</h2>
               
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Progress to Raydium</span>
-                  <span className="font-mono text-yellow-500">{token.bondingCurveProgress.toFixed(2)}%</span>
+                  <span className="text-gray-600">Progress to Raydium</span>
+                  <span className="font-mono text-yellow-600 font-bold">{token.bondingCurveProgress.toFixed(2)}%</span>
                 </div>
                 
-                <div className="h-4 bg-zinc-800 rounded-full overflow-hidden">
+                <div className="h-4 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: `${token.bondingCurveProgress}%` }}
@@ -202,39 +202,42 @@ export default function TokenPage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-4">
-                <p className="text-xs text-gray-400 mb-1">MARKET CAP</p>
-                <p className="text-lg font-mono text-green-400">{token.marketCapSol.toFixed(2)} SOL</p>
+              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xs text-gray-500 mb-1 font-bold">MARKET CAP</p>
+                <p className="text-lg font-mono text-green-600 font-bold">{token.marketCapSol.toFixed(2)} SOL</p>
               </div>
-              <div className="bg-zinc-900 border border-yellow-600/30 rounded-lg p-4">
-                <p className="text-xs text-gray-400 mb-1">PRICE</p>
-                <p className="text-lg font-mono text-yellow-400">{token.priceInSol.toFixed(8)} SOL</p>
+              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xs text-gray-500 mb-1 font-bold">PRICE</p>
+                <p className="text-lg font-mono text-yellow-600 font-bold">{token.priceInSol.toFixed(8)} SOL</p>
               </div>
-              <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-4">
-                <p className="text-xs text-gray-400 mb-1">CREATOR</p>
-                <p className="text-sm font-mono text-gray-300 truncate">
+              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xs text-gray-500 mb-1 font-bold">CREATOR</p>
+                <p className="text-sm font-mono text-gray-700 truncate">
                   {token.creatorAddress.slice(0, 6)}...{token.creatorAddress.slice(-4)}
                 </p>
               </div>
-              <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-4">
-                <p className="text-xs text-gray-400 mb-1">CREATED</p>
-                <p className="text-sm font-mono text-gray-300">
+              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <p className="text-xs text-gray-500 mb-1 font-bold">CREATED</p>
+                <p className="text-sm font-mono text-gray-700">
                   {new Date(token.createdAt).toLocaleDateString()}
                 </p>
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-yellow-500/30 rounded-lg p-6">
+            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-yellow-500" />
-                  <h2 className="text-lg font-black text-yellow-500">PREDICTION MARKETS</h2>
+                  <Target className="w-5 h-5 text-yellow-600" />
+                  <h2 className="text-lg font-black text-yellow-700">PREDICTION MARKETS</h2>
                 </div>
                 <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
-                  <button className="flex items-center gap-1 text-xs text-yellow-500 hover:text-yellow-400 font-bold bg-yellow-500/10 px-3 py-1.5 rounded">
+                  <motion.button 
+                    whileHover={{ y: -1, x: -1 }}
+                    className="flex items-center gap-1 text-xs text-yellow-700 font-bold bg-white px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  >
                     <Plus className="w-3 h-3" />
                     CREATE
-                  </button>
+                  </motion.button>
                 </Link>
               </div>
               
@@ -249,25 +252,25 @@ export default function TokenPage() {
                     return (
                       <Link key={prediction.id} href={`/market/${prediction.id}`}>
                         <div 
-                          className="bg-zinc-800/50 border border-yellow-500/20 rounded-lg p-4 hover:bg-zinc-800 hover:border-yellow-500/40 transition-all cursor-pointer"
+                          className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer"
                           data-testid={`prediction-${prediction.id}`}
                         >
-                          <p className="font-bold text-white text-sm mb-2">{prediction.question}</p>
+                          <p className="font-bold text-gray-900 text-sm mb-2">{prediction.question}</p>
                           
                           <div className="grid grid-cols-2 gap-2 mb-3">
                             <button
-                              className="bg-green-600/20 border border-green-600/40 rounded py-2 px-3 text-center hover:bg-green-600/30 transition-colors"
+                              className="bg-green-100 border-2 border-green-500 rounded-lg py-2 px-3 text-center hover:bg-green-200 transition-colors"
                               onClick={(e) => e.preventDefault()}
                             >
-                              <span className="block text-green-400 font-black text-lg">{prediction.yesOdds}%</span>
-                              <span className="block text-xs text-gray-400">YES</span>
+                              <span className="block text-green-700 font-black text-lg">{prediction.yesOdds}%</span>
+                              <span className="block text-xs text-gray-600 font-bold">YES</span>
                             </button>
                             <button
-                              className="bg-red-600/20 border border-red-600/40 rounded py-2 px-3 text-center hover:bg-red-600/30 transition-colors"
+                              className="bg-red-100 border-2 border-red-500 rounded-lg py-2 px-3 text-center hover:bg-red-200 transition-colors"
                               onClick={(e) => e.preventDefault()}
                             >
-                              <span className="block text-red-400 font-black text-lg">{prediction.noOdds}%</span>
-                              <span className="block text-xs text-gray-400">NO</span>
+                              <span className="block text-red-700 font-black text-lg">{prediction.noOdds}%</span>
+                              <span className="block text-xs text-gray-600 font-bold">NO</span>
                             </button>
                           </div>
                           
@@ -281,7 +284,7 @@ export default function TokenPage() {
                               {prediction.status === "resolved" ? (
                                 "RESOLVED"
                               ) : isExpired ? (
-                                <span className="text-yellow-400">PENDING</span>
+                                <span className="text-yellow-600 font-bold">PENDING</span>
                               ) : daysLeft > 0 ? (
                                 `${daysLeft}d ${hoursLeft}h`
                               ) : (
@@ -296,26 +299,26 @@ export default function TokenPage() {
                 </div>
               ) : (
                 <div className="text-center py-6">
-                  <Target className="w-10 h-10 text-yellow-500/30 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">No prediction markets for this token yet</p>
-                  <p className="text-gray-600 text-xs mt-1">Be the first to create one!</p>
+                  <Target className="w-10 h-10 text-yellow-400 mx-auto mb-2" />
+                  <p className="text-gray-600 text-sm font-medium">No prediction markets for this token yet</p>
+                  <p className="text-gray-500 text-xs mt-1">Be the first to create one!</p>
                 </div>
               )}
             </div>
           </div>
 
           <div className="space-y-6">
-            <div className="bg-zinc-900 border border-green-600/30 rounded-lg p-6">
-              <h2 className="text-lg font-black text-green-500 mb-4">TRADE</h2>
+            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <h2 className="text-lg font-black text-green-600 mb-4">TRADE</h2>
               
               <div className="flex gap-2 mb-4">
                 <button
                   onClick={() => setTradeType("buy")}
                   data-testid="button-trade-buy"
-                  className={`flex-1 py-2 px-4 rounded font-bold text-sm transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all border-2 ${
                     tradeType === "buy" 
-                      ? "bg-green-600 text-black" 
-                      : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                      ? "bg-green-500 text-white border-black" 
+                      : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
                   }`}
                 >
                   <TrendingUp className="w-4 h-4 inline mr-1" />
@@ -324,10 +327,10 @@ export default function TokenPage() {
                 <button
                   onClick={() => setTradeType("sell")}
                   data-testid="button-trade-sell"
-                  className={`flex-1 py-2 px-4 rounded font-bold text-sm transition-all ${
+                  className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all border-2 ${
                     tradeType === "sell" 
-                      ? "bg-red-600 text-white" 
-                      : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                      ? "bg-red-500 text-white border-black" 
+                      : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
                   }`}
                 >
                   <TrendingDown className="w-4 h-4 inline mr-1" />
@@ -337,7 +340,7 @@ export default function TokenPage() {
               
               <div className="space-y-3">
                 <div>
-                  <label className="text-xs text-gray-400 block mb-1">
+                  <label className="text-xs text-gray-600 block mb-1 font-bold">
                     Amount ({tradeType === "buy" ? "SOL" : token.symbol})
                   </label>
                   <input
@@ -345,7 +348,7 @@ export default function TokenPage() {
                     value={tradeAmount}
                     onChange={(e) => setTradeAmount(e.target.value)}
                     placeholder="0.00"
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded px-3 py-2 font-mono text-white focus:border-green-500 focus:outline-none"
+                    className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 focus:ring-2 focus:ring-green-500 focus:outline-none"
                     data-testid="input-trade-amount"
                   />
                 </div>
@@ -355,7 +358,7 @@ export default function TokenPage() {
                     <button
                       key={amount}
                       onClick={() => setTradeAmount(amount)}
-                      className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-gray-300 text-xs py-1 rounded font-mono"
+                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-1.5 rounded-lg font-mono border border-gray-300"
                     >
                       {amount}
                     </button>
@@ -364,12 +367,12 @@ export default function TokenPage() {
 
                 {/* Trading status message */}
                 {!tradingStatus?.tradingEnabled && (
-                  <div className="bg-yellow-900/20 border border-yellow-600/30 rounded p-3 mb-3">
+                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 mb-3">
                     <div className="flex items-center gap-2 justify-center">
-                      <AlertCircle className="w-4 h-4 text-yellow-500" />
-                      <p className="text-yellow-500 text-xs font-bold">TRADING COMING SOON</p>
+                      <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      <p className="text-yellow-700 text-xs font-bold">TRADING COMING SOON</p>
                     </div>
-                    <p className="text-gray-400 text-xs text-center mt-1">
+                    <p className="text-gray-600 text-xs text-center mt-1">
                       {tradingStatus?.message || "Deploy bonding curve contract to enable trading"}
                     </p>
                   </div>
@@ -377,27 +380,27 @@ export default function TokenPage() {
 
                 {/* Estimated value display */}
                 {tradeAmount && Number(tradeAmount) > 0 && (
-                  <div className="bg-zinc-800 rounded p-3 mb-3">
+                  <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 mb-3">
                     <div className="flex justify-between text-xs">
-                      <span className="text-gray-400">
+                      <span className="text-gray-600">
                         {tradeType === "buy" ? "You pay:" : "You sell:"}
                       </span>
-                      <span className="font-mono text-white">
+                      <span className="font-mono text-gray-900 font-bold">
                         {tradeAmount} {tradeType === "buy" ? "SOL" : token.symbol}
                       </span>
                     </div>
                     {tradeType === "buy" && solPrice && solPrice.price > 0 && (
                       <div className="flex justify-between text-xs mt-1">
-                        <span className="text-gray-400">USD value:</span>
-                        <span className="font-mono text-gray-300">
+                        <span className="text-gray-600">USD value:</span>
+                        <span className="font-mono text-gray-700">
                           ${(Number(tradeAmount) * solPrice.price).toFixed(2)}
                         </span>
                       </div>
                     )}
                     {tradeType === "buy" && (!solPrice || solPriceError) && (
                       <div className="flex justify-between text-xs mt-1">
-                        <span className="text-gray-400">USD value:</span>
-                        <span className="font-mono text-gray-500 italic">
+                        <span className="text-gray-600">USD value:</span>
+                        <span className="font-mono text-gray-400 italic">
                           unavailable
                         </span>
                       </div>
@@ -408,23 +411,23 @@ export default function TokenPage() {
                 {/* Connect wallet or trade buttons */}
                 {!connectedWallet ? (
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ y: -2, x: -2 }}
+                    whileTap={{ y: 0, x: 0 }}
                     onClick={() => connectWallet()}
-                    className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white"
+                    className="w-full py-3 rounded-lg font-black uppercase transition-all bg-red-500 hover:bg-red-600 text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                     data-testid="button-connect-wallet-trade"
                   >
                     CONNECT WALLET TO TRADE
                   </motion.button>
                 ) : tradingStatus?.tradingEnabled ? (
                   <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+                    whileHover={{ y: -2, x: -2 }}
+                    whileTap={{ y: 0, x: 0 }}
                     disabled={!tradeAmount || Number(tradeAmount) <= 0}
-                    className={`w-full py-3 rounded font-black uppercase transition-all ${
+                    className={`w-full py-3 rounded-lg font-black uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
                       tradeType === "buy" 
-                        ? "bg-green-600 hover:bg-green-700 disabled:bg-green-900" 
-                        : "bg-red-600 hover:bg-red-700 disabled:bg-red-900"
+                        ? "bg-green-500 hover:bg-green-600" 
+                        : "bg-red-500 hover:bg-red-600"
                     } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
                     data-testid={`button-${tradeType}-token`}
                   >
@@ -438,9 +441,9 @@ export default function TokenPage() {
                     className="block"
                   >
                     <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className="w-full py-3 rounded font-black uppercase transition-all bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center gap-2"
+                      whileHover={{ y: -2, x: -2 }}
+                      whileTap={{ y: 0, x: 0 }}
+                      className="w-full py-3 rounded-lg font-black uppercase transition-all bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                       data-testid="button-trade-on-pumpfun"
                     >
                       TRADE ON PUMP.FUN
@@ -451,29 +454,29 @@ export default function TokenPage() {
               </div>
             </div>
 
-            <div className="bg-zinc-900 border border-red-600/30 rounded-lg p-6">
+            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
               <h2 className="text-lg font-black text-red-500 mb-4">TOKEN INFO</h2>
               
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Contract</span>
+                  <span className="text-gray-600">Contract</span>
                   <a 
                     href={`https://solscan.io/token/${token.mint}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="font-mono text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                    className="font-mono text-blue-500 hover:text-blue-600 flex items-center gap-1"
                   >
                     {token.mint.slice(0, 6)}...{token.mint.slice(-4)}
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Total Supply</span>
-                  <span className="font-mono text-gray-300">1B</span>
+                  <span className="text-gray-600">Total Supply</span>
+                  <span className="font-mono text-gray-900">1B</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Status</span>
-                  <span className={`font-mono ${token.isGraduated ? "text-green-400" : "text-yellow-400"}`}>
+                  <span className="text-gray-600">Status</span>
+                  <span className={`font-mono font-bold ${token.isGraduated ? "text-green-600" : "text-yellow-600"}`}>
                     {token.isGraduated ? "Graduated" : "Bonding"}
                   </span>
                 </div>
