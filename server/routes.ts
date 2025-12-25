@@ -4,7 +4,7 @@ import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
 import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, insertMarketSchema, tokens as tokensTable } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
-import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction as buildSellTx, TRADING_CONFIG, isTradingEnabled } from "./trading";
+import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction as buildSellTx, buildCreateTokenTransaction as buildCustomCreateTx, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair } from "@solana/web3.js";
 import { db } from "./db";
@@ -387,6 +387,34 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error building sell transaction:", error);
       return res.status(500).json({ error: "Failed to build transaction" });
+    }
+  });
+
+  // Custom bonding curve contract - create token transaction
+  app.post("/api/trading/create-token", async (req, res) => {
+    try {
+      const { creator, mint, name, symbol, uri } = req.body;
+
+      if (!creator || !mint || !name || !symbol || !uri) {
+        return res.status(400).json({ error: "Missing required parameters: creator, mint, name, symbol, uri" });
+      }
+
+      const result = await buildCustomCreateTx({
+        creator,
+        mint,
+        name,
+        symbol,
+        uri,
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error building create token transaction:", error);
+      return res.status(500).json({ error: "Failed to build create token transaction" });
     }
   });
 

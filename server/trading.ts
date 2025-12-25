@@ -41,19 +41,21 @@ export function getConnection(): Connection {
 }
 
 // Derive bonding curve PDA for a token mint
+// Seeds: ["bonding_curve", mint] - matches our Rust contract
 export function deriveBondingCurvePDA(tokenMint: PublicKey, programId: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [Buffer.from("bonding-curve"), tokenMint.toBytes()],
+    [Buffer.from("bonding_curve"), tokenMint.toBytes()],
     programId
   );
 }
 
-// Derive associated bonding curve account
-export function deriveAssociatedBondingCurve(bondingCurve: PublicKey, tokenMint: PublicKey): PublicKey {
+// Derive SOL vault PDA for a token mint
+// Seeds: ["curve_vault", mint] - matches our Rust contract
+export function deriveCurveVaultPDA(tokenMint: PublicKey, programId: PublicKey): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
-    [bondingCurve.toBytes(), TOKEN_PROGRAM_ID.toBytes(), tokenMint.toBytes()],
-    ASSOCIATED_TOKEN_PROGRAM_ID
-  )[0];
+    [Buffer.from("curve_vault"), tokenMint.toBytes()],
+    programId
+  );
 }
 
 export interface TradeParams {
@@ -155,9 +157,9 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
     
     const programId = new PublicKey(TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID);
     
-    // Derive PDAs
-    const [bondingCurve] = deriveBondingCurvePDA(tokenMint, programId);
-    const associatedBondingCurve = deriveAssociatedBondingCurve(bondingCurve, tokenMint);
+    // Derive PDAs matching our Rust contract
+    const [bondingCurve, bondingCurveBump] = deriveBondingCurvePDA(tokenMint, programId);
+    const [curveVault, curveVaultBump] = deriveCurveVaultPDA(tokenMint, programId);
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -199,15 +201,14 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
       );
     }
     
-    // Add buy instruction (placeholder - actual instruction depends on deployed contract)
-    // This would be replaced with the actual buy instruction from the deployed contract
+    // Add buy instruction
     const buyInstruction = createBuyInstruction({
       programId,
+      buyer: userWallet,
+      mint: tokenMint,
       bondingCurve,
-      associatedBondingCurve,
-      tokenMint,
-      userWallet,
-      userTokenAccount,
+      curveVault,
+      buyerTokenAccount: userTokenAccount,
       solAmount,
       minTokensOut,
     });
@@ -263,9 +264,9 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
     
     const programId = new PublicKey(TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID);
     
-    // Derive PDAs
+    // Derive PDAs matching our Rust contract
     const [bondingCurve] = deriveBondingCurvePDA(tokenMint, programId);
-    const associatedBondingCurve = deriveAssociatedBondingCurve(bondingCurve, tokenMint);
+    const [curveVault] = deriveCurveVaultPDA(tokenMint, programId);
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -294,14 +295,14 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
     // Build transaction
     const transaction = new Transaction();
     
-    // Add sell instruction (placeholder - actual instruction depends on deployed contract)
+    // Add sell instruction
     const sellInstruction = createSellInstruction({
       programId,
+      seller: userWallet,
+      mint: tokenMint,
       bondingCurve,
-      associatedBondingCurve,
-      tokenMint,
-      userWallet,
-      userTokenAccount,
+      curveVault,
+      sellerTokenAccount: userTokenAccount,
       tokenAmount,
       minSolOut,
     });
@@ -337,17 +338,25 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
 
 /**
  * Bonding curve account data layout
- * This must match the deployed contract's account structure
+ * Must match the deployed contract's BondingCurve struct
+ * 
+ * pub struct BondingCurve {
+ *   pub mint: Pubkey,                  // 32 bytes
+ *   pub creator: Pubkey,               // 32 bytes
+ *   pub virtual_sol_reserves: u64,     // 8 bytes
+ *   pub virtual_token_reserves: u64,   // 8 bytes
+ *   pub real_sol_reserves: u64,        // 8 bytes
+ *   pub real_token_reserves: u64,      // 8 bytes
+ *   pub total_supply: u64,             // 8 bytes
+ *   pub is_graduated: bool,            // 1 byte
+ *   pub created_at: i64,               // 8 bytes
+ *   pub name: String,                  // 4 + max 32 bytes
+ *   pub symbol: String,                // 4 + max 10 bytes
+ *   pub uri: String,                   // 4 + max 200 bytes
+ *   pub bump: u8,                      // 1 byte
+ *   pub vault_bump: u8,                // 1 byte
+ * }
  */
-interface BondingCurveAccountData {
-  discriminator: number[];
-  virtualTokenReserves: BN;
-  virtualSolReserves: BN;
-  realTokenReserves: BN;
-  realSolReserves: BN;
-  tokenTotalSupply: BN;
-  complete: boolean;
-}
 
 /**
  * Fetch bonding curve state from on-chain
@@ -371,28 +380,48 @@ async function fetchBondingCurveState(
     }
 
     // Parse the account data
-    // Account layout (assuming standard Anchor layout):
+    // Account layout (matching our Anchor contract):
     // - 8 bytes: discriminator
-    // - 8 bytes: virtualTokenReserves (u64)
-    // - 8 bytes: virtualSolReserves (u64)
-    // - 8 bytes: realTokenReserves (u64)
-    // - 8 bytes: realSolReserves (u64)
-    // - 8 bytes: tokenTotalSupply (u64)
-    // - 1 byte: complete (bool)
+    // - 32 bytes: mint (Pubkey)
+    // - 32 bytes: creator (Pubkey)
+    // - 8 bytes: virtual_sol_reserves (u64)
+    // - 8 bytes: virtual_token_reserves (u64)
+    // - 8 bytes: real_sol_reserves (u64)
+    // - 8 bytes: real_token_reserves (u64)
+    // - 8 bytes: total_supply (u64)
+    // - 1 byte: is_graduated (bool)
+    // ... (name, symbol, uri, bumps follow)
+    
     const data = accountInfo.data;
     
-    if (data.length < 49) {
+    // Minimum size check: 8 + 32 + 32 + 8*5 + 1 = 113 bytes
+    if (data.length < 113) {
       console.error("Bonding curve account data too short");
       return null;
     }
 
-    // Skip 8-byte discriminator
-    const virtualTokenReserves = new BN(data.slice(8, 16), "le");
-    const virtualSolReserves = new BN(data.slice(16, 24), "le");
-    const realTokenReserves = new BN(data.slice(24, 32), "le");
-    const realSolReserves = new BN(data.slice(32, 40), "le");
-    const tokenTotalSupply = new BN(data.slice(40, 48), "le");
-    const complete = data[48] === 1;
+    let offset = 8; // Skip 8-byte discriminator
+    
+    // Skip mint and creator pubkeys (32 + 32 = 64 bytes)
+    offset += 64;
+    
+    // Read reserves - note the order in our contract
+    const virtualSolReserves = new BN(data.slice(offset, offset + 8), "le");
+    offset += 8;
+    
+    const virtualTokenReserves = new BN(data.slice(offset, offset + 8), "le");
+    offset += 8;
+    
+    const realSolReserves = new BN(data.slice(offset, offset + 8), "le");
+    offset += 8;
+    
+    const realTokenReserves = new BN(data.slice(offset, offset + 8), "le");
+    offset += 8;
+    
+    const tokenTotalSupply = new BN(data.slice(offset, offset + 8), "le");
+    offset += 8;
+    
+    const complete = data[offset] === 1;
 
     return {
       virtualTokenReserves,
@@ -409,38 +438,97 @@ async function fetchBondingCurveState(
 }
 
 /**
- * Create buy instruction (placeholder - needs actual contract IDL)
+ * Create buy instruction matching our Anchor contract
+ * 
+ * pub fn buy(ctx: Context<Buy>, sol_amount: u64, min_tokens_out: u64) -> Result<()>
  */
 function createBuyInstruction(params: {
   programId: PublicKey;
+  buyer: PublicKey;
+  mint: PublicKey;
   bondingCurve: PublicKey;
-  associatedBondingCurve: PublicKey;
-  tokenMint: PublicKey;
-  userWallet: PublicKey;
-  userTokenAccount: PublicKey;
+  curveVault: PublicKey;
+  buyerTokenAccount: PublicKey;
   solAmount: BN;
   minTokensOut: BN;
 }): TransactionInstruction {
-  // This is a placeholder instruction
-  // In production, this would be built using the contract's IDL
-  
-  // Instruction discriminator for "buy" (first 8 bytes of sha256("global:buy"))
+  // Anchor instruction discriminator for "buy"
+  // First 8 bytes of sha256("global:buy")
   const discriminator = Buffer.from([102, 6, 61, 18, 1, 218, 235, 234]);
   
-  // Encode parameters
+  // Encode parameters: sol_amount (u64) + min_tokens_out (u64)
   const data = Buffer.concat([
     discriminator,
     params.solAmount.toArrayLike(Buffer, "le", 8),
     params.minTokensOut.toArrayLike(Buffer, "le", 8),
   ]);
   
+  // Account order must match Buy struct in contract:
+  // 1. buyer (signer, mut)
+  // 2. mint (mut)
+  // 3. bonding_curve (mut)
+  // 4. curve_sol_vault (mut)
+  // 5. buyer_token_account (mut)
+  // 6. system_program
+  // 7. token_program
+  // 8. associated_token_program
   return new TransactionInstruction({
     keys: [
+      { pubkey: params.buyer, isSigner: true, isWritable: true },
+      { pubkey: params.mint, isSigner: false, isWritable: true },
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
-      { pubkey: params.associatedBondingCurve, isSigner: false, isWritable: true },
-      { pubkey: params.tokenMint, isSigner: false, isWritable: false },
-      { pubkey: params.userWallet, isSigner: true, isWritable: true },
-      { pubkey: params.userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: params.curveVault, isSigner: false, isWritable: true },
+      { pubkey: params.buyerTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+      { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    ],
+    programId: params.programId,
+    data,
+  });
+}
+
+/**
+ * Create sell instruction matching our Anchor contract
+ * 
+ * pub fn sell(ctx: Context<Sell>, token_amount: u64, min_sol_out: u64) -> Result<()>
+ */
+function createSellInstruction(params: {
+  programId: PublicKey;
+  seller: PublicKey;
+  mint: PublicKey;
+  bondingCurve: PublicKey;
+  curveVault: PublicKey;
+  sellerTokenAccount: PublicKey;
+  tokenAmount: BN;
+  minSolOut: BN;
+}): TransactionInstruction {
+  // Anchor instruction discriminator for "sell"
+  // First 8 bytes of sha256("global:sell")
+  const discriminator = Buffer.from([51, 230, 133, 164, 1, 127, 131, 173]);
+  
+  // Encode parameters: token_amount (u64) + min_sol_out (u64)
+  const data = Buffer.concat([
+    discriminator,
+    params.tokenAmount.toArrayLike(Buffer, "le", 8),
+    params.minSolOut.toArrayLike(Buffer, "le", 8),
+  ]);
+  
+  // Account order must match Sell struct in contract:
+  // 1. seller (signer, mut)
+  // 2. mint (mut)
+  // 3. bonding_curve (mut)
+  // 4. curve_sol_vault (mut)
+  // 5. seller_token_account (mut)
+  // 6. system_program
+  // 7. token_program
+  return new TransactionInstruction({
+    keys: [
+      { pubkey: params.seller, isSigner: true, isWritable: true },
+      { pubkey: params.mint, isSigner: false, isWritable: true },
+      { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
+      { pubkey: params.curveVault, isSigner: false, isWritable: true },
+      { pubkey: params.sellerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
     ],
@@ -450,40 +538,130 @@ function createBuyInstruction(params: {
 }
 
 /**
- * Create sell instruction (placeholder - needs actual contract IDL)
+ * Build create token transaction for custom bonding curve
  */
-function createSellInstruction(params: {
+export async function buildCreateTokenTransaction(params: {
+  creator: string;
+  mint: string;
+  name: string;
+  symbol: string;
+  uri: string;
+}): Promise<TradeResult> {
+  if (!isTradingEnabled()) {
+    return {
+      success: false,
+      error: "Custom bonding curve contract not deployed. Set BONDING_CURVE_PROGRAM_ID environment variable.",
+    };
+  }
+
+  try {
+    const connection = getConnection();
+    const creator = new PublicKey(params.creator);
+    const mint = new PublicKey(params.mint);
+    const programId = new PublicKey(TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID);
+    
+    // Derive PDAs
+    const [bondingCurve] = deriveBondingCurvePDA(mint, programId);
+    const [curveVault] = deriveCurveVaultPDA(mint, programId);
+    
+    // Build transaction
+    const transaction = new Transaction();
+    
+    // Add create token instruction
+    const createInstruction = createTokenInstruction({
+      programId,
+      creator,
+      mint,
+      bondingCurve,
+      curveVault,
+      name: params.name,
+      symbol: params.symbol,
+      uri: params.uri,
+    });
+    
+    transaction.add(createInstruction);
+    
+    // Get recent blockhash
+    const { blockhash } = await connection.getLatestBlockhash();
+    transaction.recentBlockhash = blockhash;
+    transaction.feePayer = creator;
+    
+    // Serialize transaction
+    const serialized = transaction.serialize({ requireAllSignatures: false });
+    
+    return {
+      success: true,
+      transaction: serialized.toString("base64"),
+    };
+  } catch (error: any) {
+    console.error("Error building create token transaction:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to build create token transaction",
+    };
+  }
+}
+
+/**
+ * Create token instruction matching our Anchor contract
+ * 
+ * pub fn create_token(ctx: Context<CreateToken>, name: String, symbol: String, uri: String) -> Result<()>
+ */
+function createTokenInstruction(params: {
   programId: PublicKey;
+  creator: PublicKey;
+  mint: PublicKey;
   bondingCurve: PublicKey;
-  associatedBondingCurve: PublicKey;
-  tokenMint: PublicKey;
-  userWallet: PublicKey;
-  userTokenAccount: PublicKey;
-  tokenAmount: BN;
-  minSolOut: BN;
+  curveVault: PublicKey;
+  name: string;
+  symbol: string;
+  uri: string;
 }): TransactionInstruction {
-  // This is a placeholder instruction
-  // In production, this would be built using the contract's IDL
+  // Anchor instruction discriminator for "create_token"
+  // First 8 bytes of sha256("global:create_token")
+  const discriminator = Buffer.from([84, 52, 204, 228, 24, 140, 234, 75]);
   
-  // Instruction discriminator for "sell" (first 8 bytes of sha256("global:sell"))
-  const discriminator = Buffer.from([51, 230, 133, 164, 1, 127, 131, 173]);
+  // Encode string parameters with Borsh format (4-byte length prefix + utf8 bytes)
+  const nameBytes = Buffer.from(params.name, "utf8");
+  const symbolBytes = Buffer.from(params.symbol, "utf8");
+  const uriBytes = Buffer.from(params.uri, "utf8");
   
-  // Encode parameters
+  const nameLenBuf = Buffer.alloc(4);
+  nameLenBuf.writeUInt32LE(nameBytes.length, 0);
+  
+  const symbolLenBuf = Buffer.alloc(4);
+  symbolLenBuf.writeUInt32LE(symbolBytes.length, 0);
+  
+  const uriLenBuf = Buffer.alloc(4);
+  uriLenBuf.writeUInt32LE(uriBytes.length, 0);
+  
   const data = Buffer.concat([
     discriminator,
-    params.tokenAmount.toArrayLike(Buffer, "le", 8),
-    params.minSolOut.toArrayLike(Buffer, "le", 8),
+    nameLenBuf,
+    nameBytes,
+    symbolLenBuf,
+    symbolBytes,
+    uriLenBuf,
+    uriBytes,
   ]);
   
+  // Account order must match CreateToken struct in contract:
+  // 1. creator (signer, mut)
+  // 2. mint (init, mut)
+  // 3. bonding_curve (init, mut)
+  // 4. curve_sol_vault (init, mut)
+  // 5. system_program
+  // 6. token_program
+  // 7. rent
   return new TransactionInstruction({
     keys: [
+      { pubkey: params.creator, isSigner: true, isWritable: true },
+      { pubkey: params.mint, isSigner: true, isWritable: true },
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
-      { pubkey: params.associatedBondingCurve, isSigner: false, isWritable: true },
-      { pubkey: params.tokenMint, isSigner: false, isWritable: false },
-      { pubkey: params.userWallet, isSigner: true, isWritable: true },
-      { pubkey: params.userTokenAccount, isSigner: false, isWritable: true },
+      { pubkey: params.curveVault, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+      { pubkey: new PublicKey("SysvarRent111111111111111111111111111111111"), isSigner: false, isWritable: false },
     ],
     programId: params.programId,
     data,

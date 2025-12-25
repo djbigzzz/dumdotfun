@@ -1,18 +1,23 @@
 import BN from "bn.js";
 
-// Bonding curve constants (Pump.fun style)
+// Bonding curve constants - matches our custom Rust contract
 export const BONDING_CURVE_CONSTANTS = {
-  // Initial virtual reserves
-  INITIAL_VIRTUAL_TOKEN_RESERVES: new BN("1073000000000000"), // 1.073B tokens (with 6 decimals)
-  INITIAL_VIRTUAL_SOL_RESERVES: new BN("30000000000"), // 30 SOL (with 9 decimals)
-  INITIAL_REAL_TOKEN_RESERVES: new BN("793100000000000"), // 793.1M tokens for sale
+  // Total supply: 1 trillion tokens with 6 decimals
+  TOTAL_SUPPLY: new BN("1000000000000000"), // 1T tokens
   
-  // Migration threshold
-  MIGRATION_FEE_LAMPORTS: new BN("6000000000"), // 6 SOL migration fee
-  MIGRATION_THRESHOLD_SOL: new BN("85000000000"), // 85 SOL triggers migration
+  // Initial bonding curve supply: 800 billion tokens
+  BONDING_CURVE_SUPPLY: new BN("800000000000000"), // 800B tokens
   
-  // Fees
-  TRADING_FEE_BPS: 100, // 1% trading fee (100 basis points)
+  // Initial virtual reserves (for pricing)
+  INITIAL_VIRTUAL_TOKEN_RESERVES: new BN("800000000000000"), // 800B tokens
+  INITIAL_VIRTUAL_SOL_RESERVES: new BN("30000000000"), // 30 SOL (30B lamports)
+  INITIAL_REAL_TOKEN_RESERVES: new BN("800000000000000"), // 800B tokens for sale
+  
+  // Graduation threshold: 85 SOL triggers DEX migration
+  MIGRATION_THRESHOLD_SOL: new BN("85000000000"), // 85 SOL
+  
+  // Fees: 1% platform fee (100 basis points)
+  TRADING_FEE_BPS: 100,
   
   // Token decimals
   TOKEN_DECIMALS: 6,
