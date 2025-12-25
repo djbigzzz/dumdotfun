@@ -3,7 +3,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X } from "lucide-react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -51,6 +51,28 @@ interface TradingStatus {
 interface SolPrice {
   price: number;
   currency: string;
+}
+
+interface TokenActivity {
+  id: string;
+  activityType: string;
+  walletAddress: string | null;
+  tokenMint: string | null;
+  amount: string | null;
+  side: string | null;
+  metadata: string | null;
+  createdAt: string;
+}
+
+function getTimeAgo(date: Date): string {
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 export default function TokenPage() {
@@ -144,10 +166,21 @@ export default function TokenPage() {
     queryKey: ["sol-price"],
     queryFn: async () => {
       const res = await fetch("/api/price/sol");
-      if (!res.ok) return null; // Return null when price unavailable
+      if (!res.ok) return null;
       return res.json();
     },
-    refetchInterval: 60000, // Refresh every minute
+    refetchInterval: 60000,
+  });
+
+  const { data: tokenActivity } = useQuery<TokenActivity[]>({
+    queryKey: ["token-activity", mint],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/${mint}/activity?limit=20`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!mint,
+    refetchInterval: 5000,
   });
 
   if (isLoading) {
@@ -285,6 +318,69 @@ export default function TokenPage() {
                   {new Date(token.createdAt).toLocaleDateString()}
                 </p>
               </div>
+            </div>
+
+            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-5 h-5 text-red-500" />
+                <h2 className="text-lg font-black text-gray-900">LIVE TRADES</h2>
+                <span className="ml-auto flex items-center gap-1">
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  <span className="text-xs text-gray-500 font-mono">LIVE</span>
+                </span>
+              </div>
+              
+              {tokenActivity && tokenActivity.length > 0 ? (
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {tokenActivity.map((activity) => {
+                    const isBuy = activity.side === "buy" || activity.activityType === "buy";
+                    const amount = activity.amount ? parseFloat(activity.amount) : 0;
+                    const timeAgo = getTimeAgo(new Date(activity.createdAt));
+                    
+                    return (
+                      <motion.div
+                        key={activity.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        className={`flex items-center justify-between p-3 rounded-lg border-2 ${
+                          isBuy 
+                            ? "bg-green-50 border-green-300" 
+                            : "bg-red-50 border-red-300"
+                        }`}
+                        data-testid={`trade-${activity.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {isBuy ? (
+                            <TrendingUp className="w-4 h-4 text-green-600" />
+                          ) : (
+                            <TrendingDown className="w-4 h-4 text-red-600" />
+                          )}
+                          <div>
+                            <p className={`font-bold text-sm ${isBuy ? "text-green-700" : "text-red-700"}`}>
+                              {isBuy ? "BUY" : "SELL"}
+                            </p>
+                            <p className="text-xs text-gray-500 font-mono">
+                              {activity.walletAddress?.slice(0, 4)}...{activity.walletAddress?.slice(-4)}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className={`font-mono font-bold ${isBuy ? "text-green-600" : "text-red-600"}`}>
+                            {amount.toFixed(4)} SOL
+                          </p>
+                          <p className="text-xs text-gray-400">{timeAgo}</p>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-400">
+                  <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm font-mono">No trades yet</p>
+                  <p className="text-xs">Be the first to trade!</p>
+                </div>
+              )}
             </div>
 
             <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
