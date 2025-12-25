@@ -3,7 +3,7 @@ import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, Ve
 const SOLANA_RPC = process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 
 export const PLATFORM_FEES = {
-  TOKEN_CREATION: 0.1,
+  TOKEN_CREATION: 0.05,
   MARKET_CREATION: 0.05,
   BETTING_FEE_PERCENT: 2,
   TRADING_FEE_PERCENT: 1,
