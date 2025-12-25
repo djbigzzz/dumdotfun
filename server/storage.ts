@@ -43,6 +43,7 @@ export interface IStorage {
   // Activity feed methods
   addActivity(activity: InsertActivity): Promise<Activity>;
   getRecentActivity(limit?: number): Promise<Activity[]>;
+  getActivityByToken(tokenMint: string, limit?: number): Promise<Activity[]>;
   
   // Transactional operations
   placeBetTransaction(
@@ -261,6 +262,13 @@ export class DatabaseStorage implements IStorage {
 
   async getRecentActivity(limit: number = 50): Promise<Activity[]> {
     return db.select().from(activityFeed).orderBy(desc(activityFeed.createdAt)).limit(limit);
+  }
+
+  async getActivityByToken(tokenMint: string, limit: number = 50): Promise<Activity[]> {
+    return db.select().from(activityFeed)
+      .where(eq(activityFeed.tokenMint, tokenMint))
+      .orderBy(desc(activityFeed.createdAt))
+      .limit(limit);
   }
 
   async placeBetTransaction(

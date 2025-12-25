@@ -857,6 +857,19 @@ export async function registerRoutes(
     }
   });
 
+  // Get activity for a specific token
+  app.get("/api/tokens/:mint/activity", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const limit = Math.min(Number(req.query.limit) || 50, 100);
+      const activity = await storage.getActivityByToken(mint, limit);
+      return res.json(activity);
+    } catch (error: any) {
+      console.error("Error fetching token activity:", error);
+      return res.status(500).json({ error: "Failed to fetch token activity" });
+    }
+  });
+
   // Get platform fees info
   app.get("/api/fees", async (req, res) => {
     try {
