@@ -15,21 +15,33 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
 - Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
 
-## Current State: Ready for Contract Deployment
+## Current State: Production Ready for Pump.fun Launch
 
-The web app is fully built and ready. Once a bonding curve smart contract is deployed on Solana, trading will be enabled.
+The web app is fully integrated with pump.fun for token creation and trading.
+
+**Token Creation Flow (Pump.fun Integration):**
+1. User fills token form (name, symbol, description, image, socials)
+2. Frontend generates mint keypair CLIENT-SIDE (security: secret never leaves browser)
+3. Image is compressed to max 512x512 if over 500KB (using sharp)
+4. Backend uploads metadata to pump.fun IPFS API
+5. Backend builds unsigned transaction via PumpPortal API
+6. Frontend signs with both mint keypair AND user wallet via Phantom
+7. Frontend submits to Solana and confirms transaction
+8. Token is LIVE on pump.fun with bonding curve!
 
 **What's Working Now:**
+- Token creation at `/create` - REAL on-chain deployment to pump.fun
 - Token feed at `/tokens` - browse all tokens with prediction odds
-- Token creation at `/create` - creates token metadata + auto "Will it graduate?" prediction
 - Inline betting on token pages - click YES/NO to bet directly
 - Prediction market creation from token pages
 - Profile page with wallet info and referral stats
 - Waitlist signup on landing page
 
-**What Needs Contract:**
-- Actual token trading (buy/sell) - UI shows "Trading Coming Soon"
-- On-chain token deployment (currently saves metadata to database only)
+**Technical Improvements (Dec 2025):**
+- Image compression with sharp (auto-resize large images)
+- Axios for reliable multipart form uploads to pump.fun IPFS
+- Buffer polyfill for browser compatibility with Solana libraries
+- Better error handling and logging throughout
 
 ## Referral System
 
