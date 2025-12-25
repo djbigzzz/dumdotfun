@@ -16,6 +16,29 @@ pub const DECIMALS: u8 = 6;
 pub mod bonding_curve {
     use super::*;
 
+    pub fn initialize_platform(ctx: Context<InitializePlatform>) -> Result<()> {
+        let config = &mut ctx.accounts.platform_config;
+        config.authority = ctx.accounts.authority.key();
+        config.fee_recipient = ctx.accounts.fee_recipient.key();
+        config.total_fees_collected = 0;
+        config.bump = ctx.bumps.platform_config;
+        config.fee_vault_bump = ctx.bumps.fee_vault;
+        
+        msg!("Platform initialized");
+        msg!("Authority: {}", config.authority);
+        msg!("Fee recipient: {}", config.fee_recipient);
+        
+        Ok(())
+    }
+
+    pub fn update_fee_recipient(ctx: Context<UpdateFeeRecipient>, new_recipient: Pubkey) -> Result<()> {
+        let config = &mut ctx.accounts.platform_config;
+        config.fee_recipient = new_recipient;
+        
+        msg!("Fee recipient updated to: {}", new_recipient);
+        Ok(())
+    }
+
     pub fn create_token(
         ctx: Context<CreateToken>,
         name: String,
@@ -47,6 +70,7 @@ pub mod bonding_curve {
 
     pub fn buy(ctx: Context<Buy>, sol_amount: u64, min_tokens_out: u64) -> Result<()> {
         let curve = &mut ctx.accounts.bonding_curve;
+        let config = &mut ctx.accounts.platform_config;
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
         require!(sol_amount > 0, ErrorCode::InvalidAmount);
@@ -70,7 +94,18 @@ pub mod bonding_curve {
                 to: ctx.accounts.curve_sol_vault.to_account_info(),
             },
         );
-        anchor_lang::system_program::transfer(cpi_context, sol_amount)?;
+        anchor_lang::system_program::transfer(cpi_context, sol_after_fee)?;
+
+        let fee_cpi_context = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.buyer.to_account_info(),
+                to: ctx.accounts.fee_vault.to_account_info(),
+            },
+        );
+        anchor_lang::system_program::transfer(fee_cpi_context, fee)?;
+
+        config.total_fees_collected += fee;
 
         let seeds = &[
             b"bonding_curve",
@@ -101,13 +136,14 @@ pub mod bonding_curve {
             msg!("Token graduated! Ready for DEX migration.");
         }
 
-        msg!("Buy: {} lamports for {} tokens", sol_amount, tokens_out);
+        msg!("Buy: {} lamports for {} tokens (fee: {})", sol_amount, tokens_out, fee);
         
         Ok(())
     }
 
     pub fn sell(ctx: Context<Sell>, token_amount: u64, min_sol_out: u64) -> Result<()> {
         let curve = &mut ctx.accounts.bonding_curve;
+        let config = &mut ctx.accounts.platform_config;
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
         require!(token_amount > 0, ErrorCode::InvalidAmount);
@@ -135,15 +171,32 @@ pub mod bonding_curve {
         );
         token::burn(cpi_ctx, token_amount)?;
 
-        **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= sol_after_fee;
+        **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= sol_out;
         **ctx.accounts.seller.to_account_info().try_borrow_mut_lamports()? += sol_after_fee;
+        **ctx.accounts.fee_vault.to_account_info().try_borrow_mut_lamports()? += fee;
+
+        config.total_fees_collected += fee;
 
         curve.virtual_sol_reserves -= sol_out;
         curve.virtual_token_reserves += token_amount;
-        curve.real_sol_reserves -= sol_after_fee;
+        curve.real_sol_reserves -= sol_out;
         curve.real_token_reserves += token_amount;
 
-        msg!("Sell: {} tokens for {} lamports", token_amount, sol_after_fee);
+        msg!("Sell: {} tokens for {} lamports (fee: {})", token_amount, sol_after_fee, fee);
+        
+        Ok(())
+    }
+
+    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
+        let fee_vault_balance = ctx.accounts.fee_vault.lamports();
+        
+        require!(amount <= fee_vault_balance, ErrorCode::InsufficientFees);
+        require!(amount > 0, ErrorCode::InvalidAmount);
+
+        **ctx.accounts.fee_vault.try_borrow_mut_lamports()? -= amount;
+        **ctx.accounts.fee_recipient.try_borrow_mut_lamports()? += amount;
+
+        msg!("Withdrew {} lamports in fees to {}", amount, ctx.accounts.fee_recipient.key());
         
         Ok(())
     }
@@ -199,6 +252,51 @@ fn calculate_sol_out(tokens_in: u64, sol_reserves: u64, token_reserves: u64) -> 
     let new_sol_reserves = k / (new_token_reserves as u128);
     let sol_out = sol_reserves - (new_sol_reserves as u64);
     Ok(sol_out)
+}
+
+#[derive(Accounts)]
+pub struct InitializePlatform<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    /// CHECK: The wallet that will receive fees
+    pub fee_recipient: AccountInfo<'info>,
+
+    #[account(
+        init,
+        payer = authority,
+        space = 8 + PlatformConfig::INIT_SPACE,
+        seeds = [b"platform_config"],
+        bump,
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    #[account(
+        init,
+        payer = authority,
+        space = 0,
+        seeds = [b"fee_vault"],
+        bump,
+    )]
+    /// CHECK: Fee vault PDA - holds collected platform fees
+    pub fee_vault: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateFeeRecipient<'info> {
+    #[account(
+        constraint = authority.key() == platform_config.authority @ ErrorCode::Unauthorized
+    )]
+    pub authority: Signer<'info>,
+
+    #[account(
+        mut,
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
 }
 
 #[derive(Accounts)]
@@ -264,6 +362,21 @@ pub struct Buy<'info> {
     pub curve_sol_vault: AccountInfo<'info>,
 
     #[account(
+        mut,
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_vault"],
+        bump = platform_config.fee_vault_bump,
+    )]
+    /// CHECK: Fee vault for platform fees
+    pub fee_vault: AccountInfo<'info>,
+
+    #[account(
         init_if_needed,
         payer = buyer,
         associated_token::mint = mint,
@@ -301,6 +414,21 @@ pub struct Sell<'info> {
 
     #[account(
         mut,
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_vault"],
+        bump = platform_config.fee_vault_bump,
+    )]
+    /// CHECK: Fee vault for platform fees
+    pub fee_vault: AccountInfo<'info>,
+
+    #[account(
+        mut,
         associated_token::mint = mint,
         associated_token::authority = seller,
     )]
@@ -308,6 +436,35 @@ pub struct Sell<'info> {
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
+}
+
+#[derive(Accounts)]
+pub struct WithdrawFees<'info> {
+    #[account(
+        constraint = authority.key() == platform_config.authority @ ErrorCode::Unauthorized
+    )]
+    pub authority: Signer<'info>,
+
+    #[account(
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+        constraint = fee_recipient.key() == platform_config.fee_recipient @ ErrorCode::InvalidFeeRecipient
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    #[account(
+        mut,
+        seeds = [b"fee_vault"],
+        bump = platform_config.fee_vault_bump,
+    )]
+    /// CHECK: Fee vault for platform fees
+    pub fee_vault: AccountInfo<'info>,
+
+    /// CHECK: Must match platform_config.fee_recipient
+    #[account(mut)]
+    pub fee_recipient: AccountInfo<'info>,
+
+    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -319,6 +476,16 @@ pub struct GetQuote<'info> {
         bump = bonding_curve.bump,
     )]
     pub bonding_curve: Account<'info, BondingCurve>,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct PlatformConfig {
+    pub authority: Pubkey,
+    pub fee_recipient: Pubkey,
+    pub total_fees_collected: u64,
+    pub bump: u8,
+    pub fee_vault_bump: u8,
 }
 
 #[account]
@@ -353,4 +520,10 @@ pub enum ErrorCode {
     SlippageExceeded,
     #[msg("Insufficient liquidity")]
     InsufficientLiquidity,
+    #[msg("Unauthorized")]
+    Unauthorized,
+    #[msg("Invalid fee recipient")]
+    InvalidFeeRecipient,
+    #[msg("Insufficient fees to withdraw")]
+    InsufficientFees,
 }

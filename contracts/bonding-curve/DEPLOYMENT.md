@@ -2,6 +2,30 @@
 
 This guide explains how to deploy the Dum.fun bonding curve smart contract to Solana.
 
+## Income Streams & Fee Collection
+
+The contract generates revenue through:
+
+1. **Trading Fees (1%)** - Collected on every buy and sell transaction
+2. **Fee Vault** - All fees accumulate in a dedicated fee vault PDA
+3. **Withdraw Function** - Platform authority can withdraw fees to their wallet
+
+### How to Collect Your Fees
+
+After deployment, call `initialize_platform` once to set up:
+- Your **authority wallet** (controls fee withdrawal)
+- Your **fee recipient wallet** (receives the fees)
+
+Then periodically call `withdraw_fees` to transfer accumulated fees to your wallet.
+
+```bash
+# Example: Check fee vault balance
+solana balance <fee_vault_pda>
+
+# Withdraw fees (via your deployed program)
+# Use Anchor client or custom script to call withdraw_fees instruction
+```
+
 ## Prerequisites
 
 1. **Install Rust**
@@ -131,6 +155,56 @@ anchor deploy --provider.cluster devnet
 
 # Run tests
 anchor test
+```
+
+## Post-Deployment Setup
+
+After deploying, you MUST initialize the platform:
+
+```typescript
+// Initialize platform (run once after deployment)
+const [platformConfig] = PublicKey.findProgramAddressSync(
+  [Buffer.from("platform_config")],
+  programId
+);
+
+const [feeVault] = PublicKey.findProgramAddressSync(
+  [Buffer.from("fee_vault")],
+  programId
+);
+
+await program.methods
+  .initializePlatform()
+  .accounts({
+    authority: yourWallet.publicKey,
+    feeRecipient: yourFeeWallet.publicKey, // Where fees go
+    platformConfig,
+    feeVault,
+    systemProgram: SystemProgram.programId,
+  })
+  .signers([yourWallet])
+  .rpc();
+```
+
+## Withdrawing Fees
+
+```typescript
+// Check accumulated fees
+const feeVaultBalance = await connection.getBalance(feeVault);
+console.log(`Fees available: ${feeVaultBalance / LAMPORTS_PER_SOL} SOL`);
+
+// Withdraw fees
+await program.methods
+  .withdrawFees(new BN(feeVaultBalance))
+  .accounts({
+    authority: yourWallet.publicKey,
+    platformConfig,
+    feeVault,
+    feeRecipient: yourFeeWallet.publicKey,
+    systemProgram: SystemProgram.programId,
+  })
+  .signers([yourWallet])
+  .rpc();
 ```
 
 ## Security Considerations

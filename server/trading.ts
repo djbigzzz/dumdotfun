@@ -58,6 +58,22 @@ export function deriveCurveVaultPDA(tokenMint: PublicKey, programId: PublicKey):
   );
 }
 
+// Derive platform config PDA
+export function derivePlatformConfigPDA(programId: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("platform_config")],
+    programId
+  );
+}
+
+// Derive fee vault PDA
+export function deriveFeeVaultPDA(programId: PublicKey): [PublicKey, number] {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("fee_vault")],
+    programId
+  );
+}
+
 export interface TradeParams {
   userWallet: string;
   tokenMint: string;
@@ -160,6 +176,8 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
     // Derive PDAs matching our Rust contract
     const [bondingCurve, bondingCurveBump] = deriveBondingCurvePDA(tokenMint, programId);
     const [curveVault, curveVaultBump] = deriveCurveVaultPDA(tokenMint, programId);
+    const [platformConfig] = derivePlatformConfigPDA(programId);
+    const [feeVault] = deriveFeeVaultPDA(programId);
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -208,6 +226,8 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
       mint: tokenMint,
       bondingCurve,
       curveVault,
+      platformConfig,
+      feeVault,
       buyerTokenAccount: userTokenAccount,
       solAmount,
       minTokensOut,
@@ -267,6 +287,8 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
     // Derive PDAs matching our Rust contract
     const [bondingCurve] = deriveBondingCurvePDA(tokenMint, programId);
     const [curveVault] = deriveCurveVaultPDA(tokenMint, programId);
+    const [platformConfig] = derivePlatformConfigPDA(programId);
+    const [feeVault] = deriveFeeVaultPDA(programId);
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -302,6 +324,8 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
       mint: tokenMint,
       bondingCurve,
       curveVault,
+      platformConfig,
+      feeVault,
       sellerTokenAccount: userTokenAccount,
       tokenAmount,
       minSolOut,
@@ -448,6 +472,8 @@ function createBuyInstruction(params: {
   mint: PublicKey;
   bondingCurve: PublicKey;
   curveVault: PublicKey;
+  platformConfig: PublicKey;
+  feeVault: PublicKey;
   buyerTokenAccount: PublicKey;
   solAmount: BN;
   minTokensOut: BN;
@@ -468,16 +494,20 @@ function createBuyInstruction(params: {
   // 2. mint (mut)
   // 3. bonding_curve (mut)
   // 4. curve_sol_vault (mut)
-  // 5. buyer_token_account (mut)
-  // 6. system_program
-  // 7. token_program
-  // 8. associated_token_program
+  // 5. platform_config (mut)
+  // 6. fee_vault (mut)
+  // 7. buyer_token_account (mut)
+  // 8. system_program
+  // 9. token_program
+  // 10. associated_token_program
   return new TransactionInstruction({
     keys: [
       { pubkey: params.buyer, isSigner: true, isWritable: true },
       { pubkey: params.mint, isSigner: false, isWritable: true },
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
       { pubkey: params.curveVault, isSigner: false, isWritable: true },
+      { pubkey: params.platformConfig, isSigner: false, isWritable: true },
+      { pubkey: params.feeVault, isSigner: false, isWritable: true },
       { pubkey: params.buyerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -499,6 +529,8 @@ function createSellInstruction(params: {
   mint: PublicKey;
   bondingCurve: PublicKey;
   curveVault: PublicKey;
+  platformConfig: PublicKey;
+  feeVault: PublicKey;
   sellerTokenAccount: PublicKey;
   tokenAmount: BN;
   minSolOut: BN;
@@ -519,15 +551,19 @@ function createSellInstruction(params: {
   // 2. mint (mut)
   // 3. bonding_curve (mut)
   // 4. curve_sol_vault (mut)
-  // 5. seller_token_account (mut)
-  // 6. system_program
-  // 7. token_program
+  // 5. platform_config (mut)
+  // 6. fee_vault (mut)
+  // 7. seller_token_account (mut)
+  // 8. system_program
+  // 9. token_program
   return new TransactionInstruction({
     keys: [
       { pubkey: params.seller, isSigner: true, isWritable: true },
       { pubkey: params.mint, isSigner: false, isWritable: true },
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
       { pubkey: params.curveVault, isSigner: false, isWritable: true },
+      { pubkey: params.platformConfig, isSigner: false, isWritable: true },
+      { pubkey: params.feeVault, isSigner: false, isWritable: true },
       { pubkey: params.sellerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
