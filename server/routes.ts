@@ -6,10 +6,13 @@ import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, insertMarket
 import { sendWaitlistConfirmation } from "./email";
 import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction as buildSellTx, buildCreateTokenTransaction as buildCustomCreateTx, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
-import { Keypair } from "@solana/web3.js";
+import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
+import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
+
+const SOLANA_RPC = process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -505,16 +508,41 @@ export async function registerRoutes(
         console.error(`Failed to create graduation prediction for ${token.symbol}`, marketError);
       }
 
-      // Return transaction for frontend to sign (no secret keys exposed)
+      // Build platform fee transaction (separate from pump.fun tx)
+      let feeTransaction = null;
+      try {
+        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const { blockhash } = await connection.getLatestBlockhash();
+        const feeRecipient = getFeeRecipientWallet();
+        const feeLamports = Math.floor(PLATFORM_FEES.TOKEN_CREATION * LAMPORTS_PER_SOL);
+        
+        const feeTx = new Transaction();
+        feeTx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(creatorAddress),
+          toPubkey: feeRecipient,
+          lamports: feeLamports,
+        }));
+        feeTx.recentBlockhash = blockhash;
+        feeTx.feePayer = new PublicKey(creatorAddress);
+        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
+        console.log(`Fee transaction built: ${PLATFORM_FEES.TOKEN_CREATION} SOL to ${feeRecipient.toString()}`);
+      } catch (feeError) {
+        console.error("Failed to build fee transaction:", feeError);
+      }
+
+      // Return transactions for frontend to sign (no secret keys exposed)
       return res.json({
         success: true,
         token,
         graduationMarket,
         transaction: txResult.transaction,
+        feeTransaction,
+        platformFee: PLATFORM_FEES.TOKEN_CREATION,
+        feeRecipient: getFeeRecipientWallet().toString(),
         mint: mintPublicKey,
         metadataUri,
         deploymentStatus: "awaiting_signature",
-        message: "Transaction ready! Sign with your wallet to deploy on Pump.fun.",
+        message: `Transaction ready! Sign to deploy on Pump.fun (includes ${PLATFORM_FEES.TOKEN_CREATION} SOL platform fee).`,
       });
     } catch (error: any) {
       console.error("Error creating token:", error);
@@ -588,7 +616,7 @@ export async function registerRoutes(
   });
 
   // Create prediction market (always linked to a token)
-  // Requires creation fee (0.05 SOL) + minimum initial bet (0.5 SOL)
+  // Requires creation fee + minimum initial bet (0.5 SOL)
   app.post("/api/markets/create", async (req, res) => {
     try {
       const { 
@@ -596,7 +624,7 @@ export async function registerRoutes(
         initialBetSide, initialBetAmount 
       } = req.body;
 
-      const CREATION_FEE = 0.05; // SOL
+      const CREATION_FEE = PLATFORM_FEES.MARKET_CREATION;
       const MIN_INITIAL_BET = 0.5; // SOL
 
       // Validate required fields
@@ -658,6 +686,28 @@ export async function registerRoutes(
       const yesOdds = calculateOdds(actualYesPool, actualNoPool, "yes");
       const noOdds = calculateOdds(actualYesPool, actualNoPool, "no");
 
+      // Build fee transaction for market creation
+      let feeTransaction = null;
+      try {
+        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const { blockhash } = await connection.getLatestBlockhash();
+        const feeRecipient = getFeeRecipientWallet();
+        const feeLamports = Math.floor(CREATION_FEE * LAMPORTS_PER_SOL);
+        
+        const feeTx = new Transaction();
+        feeTx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(creatorAddress),
+          toPubkey: feeRecipient,
+          lamports: feeLamports,
+        }));
+        feeTx.recentBlockhash = blockhash;
+        feeTx.feePayer = new PublicKey(creatorAddress);
+        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
+        console.log(`Market creation fee tx built: ${CREATION_FEE} SOL`);
+      } catch (feeError) {
+        console.error("Failed to build market fee transaction:", feeError);
+      }
+
       return res.json({
         success: true,
         market: {
@@ -668,7 +718,9 @@ export async function registerRoutes(
           yesOdds,
           noOdds,
         },
-        creationFee: CREATION_FEE,
+        feeTransaction,
+        platformFee: CREATION_FEE,
+        feeRecipient: getFeeRecipientWallet().toString(),
         initialBet: { side: initialBetSide, amount: betAmount },
         totalCost: CREATION_FEE + betAmount,
       });
@@ -710,21 +762,45 @@ export async function registerRoutes(
       }
 
       const amountNum = Number(amount);
+      
+      // Calculate platform fee (2% of bet amount)
+      const { netAmount, fee } = calculateBettingFee(amountNum);
+      
       const currentYes = Number(market.yesPool);
       const currentNo = Number(market.noPool);
 
-      // Calculate shares using CPMM formula (simplified)
-      const k = (currentYes + 1) * (currentNo + 1); // Add 1 to avoid division by zero
+      // Calculate shares using CPMM formula (net amount after fees goes to pool)
       let newYes = currentYes;
       let newNo = currentNo;
       let shares: number;
 
       if (side === "yes") {
-        newYes = currentYes + amountNum;
-        shares = amountNum * (currentNo + 1) / (currentYes + 1); // Simplified share calculation
+        newYes = currentYes + netAmount;
+        shares = netAmount * (currentNo + 1) / (currentYes + 1);
       } else {
-        newNo = currentNo + amountNum;
-        shares = amountNum * (currentYes + 1) / (currentNo + 1);
+        newNo = currentNo + netAmount;
+        shares = netAmount * (currentYes + 1) / (currentNo + 1);
+      }
+
+      // Build fee transaction for betting
+      let feeTransaction = null;
+      try {
+        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const { blockhash } = await connection.getLatestBlockhash();
+        const feeRecipient = getFeeRecipientWallet();
+        const feeLamports = Math.floor(fee * LAMPORTS_PER_SOL);
+        
+        const feeTx = new Transaction();
+        feeTx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(walletAddress),
+          toPubkey: feeRecipient,
+          lamports: feeLamports,
+        }));
+        feeTx.recentBlockhash = blockhash;
+        feeTx.feePayer = new PublicKey(walletAddress);
+        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
+      } catch (feeError) {
+        console.error("Failed to build betting fee transaction:", feeError);
       }
 
       // Execute bet as single atomic transaction
@@ -732,17 +808,21 @@ export async function registerRoutes(
         id,
         walletAddress,
         side,
-        amountNum.toString(),
+        netAmount.toString(),
         shares.toString(),
         newYes.toString(),
         newNo.toString()
       );
 
-      console.log(`Bet placed: ${amountNum} SOL on ${side} for market ${id}`);
+      console.log(`Bet placed: ${amountNum} SOL (${netAmount} net, ${fee} fee) on ${side} for market ${id}`);
 
       return res.json({
         success: true,
         position,
+        feeTransaction,
+        platformFee: fee,
+        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
+        netBetAmount: netAmount,
         newOdds: {
           yes: calculateOdds(newYes, newNo, "yes"),
           no: calculateOdds(newYes, newNo, "no"),
@@ -774,6 +854,38 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching activity:", error);
       return res.status(500).json({ error: "Failed to fetch activity" });
+    }
+  });
+
+  // Get platform fees info
+  app.get("/api/fees", async (req, res) => {
+    try {
+      return res.json({
+        tokenCreation: {
+          fee: PLATFORM_FEES.TOKEN_CREATION,
+          unit: "SOL",
+          description: "Fee for launching a new token on the platform"
+        },
+        marketCreation: {
+          fee: PLATFORM_FEES.MARKET_CREATION,
+          unit: "SOL",
+          description: "Fee for creating a prediction market"
+        },
+        betting: {
+          fee: PLATFORM_FEES.BETTING_FEE_PERCENT,
+          unit: "%",
+          description: "Platform fee on each prediction market bet"
+        },
+        trading: {
+          fee: PLATFORM_FEES.TRADING_FEE_PERCENT,
+          unit: "%",
+          description: "Platform fee on each bonding curve trade (buy/sell)"
+        },
+        feeRecipient: getFeeRecipientWallet().toString(),
+      });
+    } catch (error: any) {
+      console.error("Error fetching fees:", error);
+      return res.status(500).json({ error: "Failed to fetch fee info" });
     }
   });
 
