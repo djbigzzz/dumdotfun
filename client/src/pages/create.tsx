@@ -14,7 +14,7 @@ if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
 }
 
-const SOLANA_RPC = "https://api.mainnet-beta.solana.com";
+const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 interface CreatedToken {
   id: string;

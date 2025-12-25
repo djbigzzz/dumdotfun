@@ -166,7 +166,7 @@ export async function signAndSendTransaction(
   }
 
   const connection = new Connection(
-    import.meta.env.VITE_SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
+    import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com",
     "confirmed"
   );
 

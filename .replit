@@ -54,3 +54,6 @@ integrations = ["sendgrid:1.0.0", "javascript_database:1.0.0"]
 
 [userenv.shared]
 FEE_RECIPIENT_WALLET = "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM"
+SOLANA_RPC = "https://api.devnet.solana.com"
+SOLANA_RPC_URL = "https://api.devnet.solana.com"
+SOLANA_NETWORK = "devnet"
