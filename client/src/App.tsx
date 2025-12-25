@@ -17,7 +17,7 @@ import MarketDetail from "@/pages/market";
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={Home} />
+      <Route path="/" component={TokensPage} />
       <Route path="/tokens" component={TokensPage} />
       <Route path="/profile" component={Profile} />
       <Route path="/token/:mint" component={TokenPage} />
