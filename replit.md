@@ -2,12 +2,7 @@
 
 ## Overview
 
-Dum.fun is a combined token launchpad AND prediction market platform for Solana. It features a neo-brutalist aesthetic with high-contrast colors and bold design. Users can:
-- Launch meme tokens with bonding curves
-- Create and bet on prediction markets (yes/no outcomes)
-- Bet on token-specific predictions (graduation, market cap targets)
-
-Built as a full-stack TypeScript application with React frontend, Express backend, and PostgreSQL database.
+Dum.fun is a Solana-based platform offering both token launchpad and prediction market functionalities with a neo-brutalist aesthetic. Its primary purpose is to allow users to launch meme tokens with bonding curves and create/bet on prediction markets for various outcomes, including token-specific events. The platform supports two token creation paths: integration with Pump.fun for quick launches and a custom bonding curve contract for greater control.
 
 ## User Preferences
 
@@ -15,277 +10,45 @@ Built as a full-stack TypeScript application with React frontend, Express backen
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
 - Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
 
-## Current State: Production Ready for Pump.fun Launch
-
-The web app is fully integrated with pump.fun for token creation and trading.
-
-**Token Creation Flow (Pump.fun Integration):**
-1. User fills token form (name, symbol, description, image, socials)
-2. Frontend generates mint keypair CLIENT-SIDE (security: secret never leaves browser)
-3. Image is compressed to max 512x512 if over 500KB (using sharp)
-4. Backend uploads metadata to pump.fun IPFS API
-5. Backend builds unsigned transaction via PumpPortal API
-6. Frontend signs with both mint keypair AND user wallet via Phantom
-7. Frontend submits to Solana and confirms transaction
-8. Token is LIVE on pump.fun with bonding curve!
-
-**What's Working Now:**
-- Token creation at `/create` - REAL on-chain deployment to pump.fun
-- Token feed at `/tokens` - browse all tokens with prediction odds
-- Inline betting on token pages - click YES/NO to bet directly
-- Prediction market creation from token pages
-- Profile page with wallet info and referral stats
-- Waitlist signup on landing page
-
-**Technical Improvements (Dec 2025):**
-- Image compression with sharp (auto-resize large images)
-- Axios for reliable multipart form uploads to pump.fun IPFS
-- Buffer polyfill for browser compatibility with Solana libraries
-- Better error handling and logging throughout
-
-## Referral System
-
-- **Unique Referral Codes**: Generated as 8-char codes (e.g., "8NNL3X5F") 
-- **Referral Links**: `https://dum.fun?ref=CODE`
-- **Tracking**: Counts referrals per user, stores who referred whom
-- **Backfill**: Existing users automatically get codes on next connection
-
-## Features (Launching Soon)
-
-### Token Launchpad
-- **Token Listings**: Token feed from dum.fun database (tokens created on the platform)
-- **Token Creation**: Full-featured token creation form saving metadata to database with image upload
-- **Token Details**: Individual token pages with full info, price, creator, social links
-- **Bonding Curves**: Automatic price discovery mechanism (pending contract deployment)
-
-### Prediction Markets
-- **Market Creation**: Create yes/no prediction markets with resolution dates
-- **Creation Fee**: 0.05 SOL fee to create a prediction market
-- **Initial Bet Requirement**: Minimum 0.5 SOL initial bet (YES or NO) when creating a market
-- **Betting Interface**: Place bets on YES or NO outcomes using SOL
-- **CPMM Odds**: Constant Product Market Maker for dynamic odds calculation
-- **Market Types**: General predictions or token-specific predictions
-- **Atomic Transactions**: All market creation and bets execute as single database transactions
-
-### Integrated Token + Prediction UI
-- **Token Cards with Predictions**: Each token card shows up to 2 linked prediction markets with odds
-- **Token Detail + Predictions**: Token pages include full prediction markets section with betting
-- **General Predictions Rail**: Non-token predictions shown below token grid on home page
-- **Create from Token**: Create prediction directly from token page with pre-filled token link
-
-### Platform Features
-- **Wallet Connection**: Phantom wallet integration with message signing
-- **User Profile**: Wallet address display with copy button, Solscan link, join date tracking
-- **Live Activity Feed**: Real-time updates showing tokens, trades, and bets
-- **Search & Filter**: Find tokens and markets by name/question
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework & Build System**
-- React 18 with TypeScript
-- Vite as build tool with HMR
-- Wouter for client-side routing
-- TanStack Query for server state and caching
-
-**Pages**
-- `/` - Coming Soon landing page with waitlist + referral program
-- `/token/:mint` - Token detail page with trading interface (hidden for now)
-- `/create` - Token creation form (hidden for now)
-- `/create-market` - Prediction market creation form (hidden for now)
-- `/market/:id` - Market detail page with betting interface (hidden for now)
-- `/profile` - User profile (wallet address, referral stats, referral link)
-
-**UI Component System**
-- Shadcn/ui with Radix UI primitives
-- Tailwind CSS v4
-- Framer Motion for animations
-- Neo-brutalist theme: zinc-950 background, red-500 accent, yellow-500 highlights, green-500 for success
+The frontend is built with React 18 and TypeScript, using Vite for building and Wouter for routing. UI components leverage Shadcn/ui with Radix UI primitives, styled with Tailwind CSS v4, and animations handled by Framer Motion. The design follows a neo-brutalist theme using specific color palettes (zinc-950, red-500, yellow-500, green-500). Key pages include `/create` for token creation, `/tokens` for browsing, and `/profile` for user details.
 
 ### Backend Architecture
 
-**Server Framework**
-- Express.js with TypeScript
-- HTTP server on port 5000
+The backend is an Express.js application with TypeScript, providing API endpoints for token management, user authentication, prediction markets, and trading. It integrates with Solana for on-chain interactions. All tokens created on the platform are stored in a PostgreSQL database. Real-time updates are handled via WebSocket integration, connecting to PumpPortal for live token creation and trade events.
 
-**API Endpoints**
-- `GET /api/tokens` - Fetch tokens with embedded linked predictions (up to 2 per token)
-- `GET /api/tokens/:mint` - Get single token details with all linked predictions
-- `POST /api/tokens/create` - Create new token metadata (saves to database)
-- `GET /api/tokens/creator/:address` - Get tokens created by wallet address
-- `POST /api/users/connect` - Create user from wallet connection (with optional referralCode)
-- `GET /api/users/wallet/:address` - Get user by wallet (includes referralCode, referralCount)
-- `GET /api/users/referrals/:address` - Get referral stats for a wallet
-- `POST /api/waitlist` - Add email to waitlist
-- `GET /api/price/sol` - Get SOL price in USD (Jupiter API)
-- `GET /api/price/token/:mint` - Get token price in SOL and USD
-- `GET /api/trading/status` - Check if trading is enabled
-- `POST /api/trading/quote` - Get quote for buy/sell (requires deployed contract)
-- `POST /api/trading/buy` - Build buy transaction (requires deployed contract)
-- `POST /api/trading/sell` - Build sell transaction (requires deployed contract)
+### Platform Features
 
-**Prediction Market Endpoints**
-- `GET /api/markets` - Fetch all prediction markets with odds
-- `GET /api/markets/general` - Fetch only general (non-token) markets
-- `GET /api/markets/:id` - Get single market with positions count
-- `POST /api/markets/create` - Create new prediction market
-- `POST /api/markets/:id/bet` - Place bet on market (atomic transaction)
-- `GET /api/positions/wallet/:address` - Get user's positions
-- `GET /api/activity` - Get recent activity feed
-
-**Platform Architecture**
-- Dum.fun is a dedicated launchpad for user-created tokens only (no external feeds)
-- All tokens saved to PostgreSQL database
-- WebSocket integration for real-time activity (user trades, graduations)
-
-**Trading Infrastructure**
-- `server/bonding-curve.ts` - Bonding curve math (constant product x*y=k formula)
-- `server/trading.ts` - Transaction builders for buy/sell operations
-- All trading endpoints return errors until bonding curve contract is deployed
-- No mock/fake data - only real on-chain data when contract is live
+- **Token Launchpad**: Supports token creation via Pump.fun integration or a custom bonding curve contract, with metadata stored in PostgreSQL.
+- **Prediction Markets**: Users can create general or token-specific yes/no markets, with betting functionality and Constant Product Market Maker (CPMM) for odds.
+- **Referral System**: Generates unique referral codes and tracks referrals.
+- **Wallet Integration**: Phantom wallet integration for connection and message signing.
+- **Real-time Activity**: Live activity feed for new tokens, trades, and graduations via WebSockets.
 
 ### Database Schema
 
-**users table**
-- id (UUID, primary key)
-- walletAddress (text, unique)
-- createdAt (timestamp)
+The PostgreSQL database includes tables for `users`, `tokens`, `prediction_markets`, `positions`, and `activity_feed` to manage user data, token metadata, market details, user bets, and platform activity respectively.
 
-**tokens table** (supports both caching and user-created tokens)
-- id, mint, name, symbol, description, imageUri
-- creatorAddress, bondingCurveProgress, marketCapSol, priceInSol
-- isGraduated, deploymentStatus (pending/deployed/graduated)
-- twitter, telegram, website (social links)
-- createdAt, updatedAt
+### Technical Implementations
 
-**prediction_markets table**
-- id (UUID), question, description, imageUri
-- creatorAddress, marketType (general/token), tokenMint
-- resolutionDate, status (open/resolved), outcome
-- yesPool, noPool, totalVolume (decimal precision)
-- createdAt, resolvedAt
+- **Token Creation**: Utilizes PumpPortal API for real on-chain deployment to Pump.fun, including client-side mint keypair generation for security.
+- **Bonding Curve**: The custom contract (Anchor-based Solana program) implements a constant product (x*y=k) bonding curve with platform fees and a graduation threshold for DEX migration.
+- **Image Handling**: Client-side image compression using sharp for uploads.
+- **Price Fetching**: SOL price fetching uses Jupiter API with CoinGecko fallback and caching.
+- **Error Handling**: Focuses on robust error handling with no mock data, only real blockchain data or clear error messages.
 
-**positions table**
-- id (UUID), marketId, walletAddress
-- side (yes/no), amount, shares
-- createdAt
+## External Dependencies
 
-**activity_feed table**
-- id (UUID), activityType, walletAddress
-- tokenMint, marketId, amount, side, metadata
-- createdAt
-
-### Wallet Integration
-
-- Phantom wallet detection and connection
-- Message signing for account verification ("Sign in to Dum.fun")
-- Session persistence via wallet public key
-
-## Development Notes
-
-### Bonding Curve Mechanics (Pump.fun Model)
-- Tokens launch with 800M tokens in bonding curve
-- Price adjusts automatically based on buy/sell activity
-- When ~85 SOL raised (~$69k market cap), token "graduates" to Raydium DEX
-- Platform takes 1% on trades + 6 SOL migration fee
-
-### PumpPortal Integration (Active)
-
-Token creation now uses PumpPortal API for real on-chain deployment to Pump.fun:
-
-**Token Creation Flow:**
-1. User fills out token form (name, symbol, description, image, socials)
-2. Frontend generates mint keypair CLIENT-SIDE (security: secret never leaves browser)
-3. Backend uploads metadata to IPFS via `pump.fun/api/ipfs`
-4. Backend builds unsigned transaction via `pumpportal.fun/api/trade-local`
-5. Frontend signs with both mint keypair AND user wallet via Phantom
-6. Frontend submits to Solana and confirms transaction
-7. Token is live on Pump.fun!
-
-**Files:**
-- `server/pumpportal.ts` - IPFS upload, transaction building via PumpPortal API
-- `client/src/pages/create.tsx` - Wallet signing flow with Phantom
-
-**Security:**
-- Mint keypair generated client-side, never exposed to server
-- User signs transaction with their wallet proving ownership
-- No secret keys transmitted over network
-
-### Price API with Fallback
-
-**SOL Price Fetching (server/jupiter.ts):**
-- Primary: Jupiter API v2 (`api.jup.ag/price/v2`)
-- Fallback: CoinGecko API
-- 30-second cache to reduce API calls
-- Returns stale cached price if all APIs fail
-
-### Legacy: Own Contract Option (Not Active)
-
-For future custom bonding curve deployment:
-- `server/bonding-curve.ts` - Constant product formula, quote calculations
-- `server/trading.ts` - Transaction builders for custom contract
-- Set `BONDING_CURVE_PROGRAM_ID` env var to enable
-
-### WebSocket Real-Time Updates
-
-The platform includes WebSocket integration for real-time token updates:
-
-**Backend (server/websocket.ts):**
-- Connects to PumpPortal WebSocket upstream for real token data
-- Subscribes to `subscribeNewToken` for new token creations
-- Subscribes to `subscribeTokenTrade` for trade events on specific mints
-- Handles `complete`/`migrate` events for token graduation
-- Auto-reconnects with proper cleanup when clients disconnect
-
-**Frontend (client/src/lib/use-websocket.ts):**
-- React hook `useWebSocket` for real-time updates
-- Auto-reconnects on disconnect
-- Provides subscribe/unsubscribe functions for specific mints
-
-**Home page live activity feed:**
-- Shows real-time token creations (NEW)
-- Shows buy/sell trades with SOL amounts
-- Shows graduation events (GRADUATED)
-- Updates token data in React Query cache
-
-### Session Completed Features (Latest)
-
-**Turn 1-2: WebSocket & Search/Filter**
-- Integrated PumpPortal WebSocket for real-time new token creation events
-- Implemented live activity feed showing NEW, GRADUATED, and trade events
-- Added comprehensive search and filtering system with 4 filter modes
-- Fixed all data integrity issues - no mock data fallbacks
-
-**Turn 3: Profile Page Enhancement**
-- Redesigned profile page with modern card-based layout
-- Added wallet address copy functionality with visual feedback
-- Integrated Solscan link for on-chain verification
-- Added stat cards showing join date (active, in days)
-- Placeholder stat cards for future tokens created and trades tracking
-- Quick action buttons for navigation to browse or create tokens
-
-**Turn 4: Token Creation Infrastructure**
-- Built complete token creation backend: storage layer, API endpoints, validation
-- Implemented frontend form with name, symbol, description, image upload, social links
-- Added deploymentStatus tracking for progressive on-chain deployment
-- Form submission saves metadata to PostgreSQL database
-- Success state shows token ID and pending deployment status
-- GET /api/tokens/creator/:address endpoint for fetching user's created tokens
-
-**Turn 5: Multi-Source Token Fetching with Fallback Chain**
-- Built smart fallback system for live token data with NO fake/mock data
-- Created Dexscreener API integration (free, no auth)
-- Implemented Helius DAS API integration for on-chain tokens (free tier available)
-- Added direct Solana RPC querying support (requires Helius API key)
-- Graceful degradation: External APIs → User-created tokens from database
-- App never crashes - honest errors or real data only
-- Token endpoint now: `GET /api/tokens` with 4-tier fallback
-
-### Future Development
-- On-chain token deployment via deployed bonding curve contract (steps 7-10 of creation)
-- SPL token creation transaction building
-- Bonding curve initialization with user wallet signing
-- Implement tokens created count on profile page
-- Portfolio tracking and trading analytics
-- Advanced trading features (slippage settings, batch trades)
+- **Solana Blockchain**: Core blockchain for token operations and smart contracts.
+- **Phantom Wallet**: For user wallet connection and transaction signing.
+- **Pump.fun API**: For quick token launches and IPFS metadata uploads.
+- **PumpPortal API**: For building unsigned transactions for Pump.fun.
+- **Jupiter API**: Primary API for fetching SOL and token prices.
+- **CoinGecko API**: Fallback API for fetching SOL prices.
+- **Dexscreener API**: For live token data (free, no auth).
+- **Helius DAS API**: For on-chain token data.
+- **PostgreSQL**: Relational database for storing platform data.
+- **Sharp (Node.js library)**: For image compression and resizing.
