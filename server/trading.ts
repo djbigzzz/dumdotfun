@@ -66,12 +66,13 @@ export function derivePlatformConfigPDA(programId: PublicKey): [PublicKey, numbe
   );
 }
 
-// Derive fee vault PDA
-export function deriveFeeVaultPDA(programId: PublicKey): [PublicKey, number] {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("fee_vault")],
-    programId
-  );
+// Get fee recipient wallet from environment or platform config
+export function getFeeRecipientWallet(): PublicKey {
+  const feeRecipient = process.env.FEE_RECIPIENT_WALLET;
+  if (!feeRecipient) {
+    throw new Error("FEE_RECIPIENT_WALLET environment variable not set");
+  }
+  return new PublicKey(feeRecipient);
 }
 
 export interface TradeParams {
@@ -177,7 +178,7 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
     const [bondingCurve, bondingCurveBump] = deriveBondingCurvePDA(tokenMint, programId);
     const [curveVault, curveVaultBump] = deriveCurveVaultPDA(tokenMint, programId);
     const [platformConfig] = derivePlatformConfigPDA(programId);
-    const [feeVault] = deriveFeeVaultPDA(programId);
+    const feeRecipient = getFeeRecipientWallet();
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -227,7 +228,7 @@ export async function buildBuyTransaction(params: TradeParams): Promise<TradeRes
       bondingCurve,
       curveVault,
       platformConfig,
-      feeVault,
+      feeRecipient,
       buyerTokenAccount: userTokenAccount,
       solAmount,
       minTokensOut,
@@ -288,7 +289,7 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
     const [bondingCurve] = deriveBondingCurvePDA(tokenMint, programId);
     const [curveVault] = deriveCurveVaultPDA(tokenMint, programId);
     const [platformConfig] = derivePlatformConfigPDA(programId);
-    const [feeVault] = deriveFeeVaultPDA(programId);
+    const feeRecipient = getFeeRecipientWallet();
     
     // Get user's token account
     const userTokenAccount = await getAssociatedTokenAddress(tokenMint, userWallet);
@@ -325,7 +326,7 @@ export async function buildSellTransaction(params: TradeParams): Promise<TradeRe
       bondingCurve,
       curveVault,
       platformConfig,
-      feeVault,
+      feeRecipient,
       sellerTokenAccount: userTokenAccount,
       tokenAmount,
       minSolOut,
@@ -473,7 +474,7 @@ function createBuyInstruction(params: {
   bondingCurve: PublicKey;
   curveVault: PublicKey;
   platformConfig: PublicKey;
-  feeVault: PublicKey;
+  feeRecipient: PublicKey;
   buyerTokenAccount: PublicKey;
   solAmount: BN;
   minTokensOut: BN;
@@ -495,7 +496,7 @@ function createBuyInstruction(params: {
   // 3. bonding_curve (mut)
   // 4. curve_sol_vault (mut)
   // 5. platform_config (mut)
-  // 6. fee_vault (mut)
+  // 6. fee_recipient (mut) - YOUR WALLET receives fees directly!
   // 7. buyer_token_account (mut)
   // 8. system_program
   // 9. token_program
@@ -507,7 +508,7 @@ function createBuyInstruction(params: {
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
       { pubkey: params.curveVault, isSigner: false, isWritable: true },
       { pubkey: params.platformConfig, isSigner: false, isWritable: true },
-      { pubkey: params.feeVault, isSigner: false, isWritable: true },
+      { pubkey: params.feeRecipient, isSigner: false, isWritable: true },
       { pubkey: params.buyerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -530,7 +531,7 @@ function createSellInstruction(params: {
   bondingCurve: PublicKey;
   curveVault: PublicKey;
   platformConfig: PublicKey;
-  feeVault: PublicKey;
+  feeRecipient: PublicKey;
   sellerTokenAccount: PublicKey;
   tokenAmount: BN;
   minSolOut: BN;
@@ -552,7 +553,7 @@ function createSellInstruction(params: {
   // 3. bonding_curve (mut)
   // 4. curve_sol_vault (mut)
   // 5. platform_config (mut)
-  // 6. fee_vault (mut)
+  // 6. fee_recipient (mut) - YOUR WALLET receives fees directly!
   // 7. seller_token_account (mut)
   // 8. system_program
   // 9. token_program
@@ -563,7 +564,7 @@ function createSellInstruction(params: {
       { pubkey: params.bondingCurve, isSigner: false, isWritable: true },
       { pubkey: params.curveVault, isSigner: false, isWritable: true },
       { pubkey: params.platformConfig, isSigner: false, isWritable: true },
-      { pubkey: params.feeVault, isSigner: false, isWritable: true },
+      { pubkey: params.feeRecipient, isSigner: false, isWritable: true },
       { pubkey: params.sellerTokenAccount, isSigner: false, isWritable: true },
       { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
       { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },

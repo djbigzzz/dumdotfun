@@ -7,24 +7,23 @@ This guide explains how to deploy the Dum.fun bonding curve smart contract to So
 The contract generates revenue through:
 
 1. **Trading Fees (1%)** - Collected on every buy and sell transaction
-2. **Fee Vault** - All fees accumulate in a dedicated fee vault PDA
-3. **Withdraw Function** - Platform authority can withdraw fees to their wallet
+2. **Direct to Your Wallet** - Fees go straight to your personal wallet on EVERY trade!
 
-### How to Collect Your Fees
+### How It Works
 
-After deployment, call `initialize_platform` once to set up:
-- Your **authority wallet** (controls fee withdrawal)
-- Your **fee recipient wallet** (receives the fees)
+After deployment, call `initialize_platform` once with your wallet address. From then on:
 
-Then periodically call `withdraw_fees` to transfer accumulated fees to your wallet.
+- **Every buy** → 1% fee sent directly to your wallet
+- **Every sell** → 1% fee sent directly to your wallet
+- **No withdrawals needed** → Money appears in your wallet instantly!
 
-```bash
-# Example: Check fee vault balance
-solana balance <fee_vault_pda>
+### Example
 
-# Withdraw fees (via your deployed program)
-# Use Anchor client or custom script to call withdraw_fees instruction
-```
+If someone buys 10 SOL worth of tokens:
+- 0.1 SOL (1%) goes to YOUR wallet immediately
+- 9.9 SOL goes to the bonding curve for trading
+
+That's it! No vault, no claiming, no waiting.
 
 ## Prerequisites
 
@@ -159,7 +158,7 @@ anchor test
 
 ## Post-Deployment Setup
 
-After deploying, you MUST initialize the platform:
+After deploying, run this ONCE to set your fee wallet:
 
 ```typescript
 // Initialize platform (run once after deployment)
@@ -168,44 +167,31 @@ const [platformConfig] = PublicKey.findProgramAddressSync(
   programId
 );
 
-const [feeVault] = PublicKey.findProgramAddressSync(
-  [Buffer.from("fee_vault")],
-  programId
-);
-
 await program.methods
   .initializePlatform()
   .accounts({
     authority: yourWallet.publicKey,
-    feeRecipient: yourFeeWallet.publicKey, // Where fees go
+    feeRecipient: yourFeeWallet.publicKey, // YOUR WALLET - receives all fees!
     platformConfig,
-    feeVault,
     systemProgram: SystemProgram.programId,
   })
   .signers([yourWallet])
   .rpc();
+
+console.log("Done! All trading fees will now go directly to:", yourFeeWallet.publicKey.toString());
 ```
 
-## Withdrawing Fees
+## Environment Variable
 
-```typescript
-// Check accumulated fees
-const feeVaultBalance = await connection.getBalance(feeVault);
-console.log(`Fees available: ${feeVaultBalance / LAMPORTS_PER_SOL} SOL`);
+Set this in your Replit app so the backend knows your wallet:
 
-// Withdraw fees
-await program.methods
-  .withdrawFees(new BN(feeVaultBalance))
-  .accounts({
-    authority: yourWallet.publicKey,
-    platformConfig,
-    feeVault,
-    feeRecipient: yourFeeWallet.publicKey,
-    systemProgram: SystemProgram.programId,
-  })
-  .signers([yourWallet])
-  .rpc();
 ```
+FEE_RECIPIENT_WALLET=<your-wallet-address>
+```
+
+## That's It!
+
+No withdrawal functions needed. Every trade automatically sends 1% to your wallet.
 
 ## Security Considerations
 

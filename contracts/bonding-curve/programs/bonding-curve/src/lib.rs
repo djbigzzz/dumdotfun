@@ -22,11 +22,11 @@ pub mod bonding_curve {
         config.fee_recipient = ctx.accounts.fee_recipient.key();
         config.total_fees_collected = 0;
         config.bump = ctx.bumps.platform_config;
-        config.fee_vault_bump = ctx.bumps.fee_vault;
         
         msg!("Platform initialized");
         msg!("Authority: {}", config.authority);
         msg!("Fee recipient: {}", config.fee_recipient);
+        msg!("All trading fees will go directly to: {}", config.fee_recipient);
         
         Ok(())
     }
@@ -87,6 +87,7 @@ pub mod bonding_curve {
         require!(tokens_out >= min_tokens_out, ErrorCode::SlippageExceeded);
         require!(tokens_out <= curve.real_token_reserves, ErrorCode::InsufficientLiquidity);
 
+        // Transfer SOL to bonding curve vault (for trading liquidity)
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
@@ -96,11 +97,12 @@ pub mod bonding_curve {
         );
         anchor_lang::system_program::transfer(cpi_context, sol_after_fee)?;
 
+        // Send fee DIRECTLY to your wallet - no vault needed!
         let fee_cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
                 from: ctx.accounts.buyer.to_account_info(),
-                to: ctx.accounts.fee_vault.to_account_info(),
+                to: ctx.accounts.fee_recipient.to_account_info(),
             },
         );
         anchor_lang::system_program::transfer(fee_cpi_context, fee)?;
@@ -136,7 +138,8 @@ pub mod bonding_curve {
             msg!("Token graduated! Ready for DEX migration.");
         }
 
-        msg!("Buy: {} lamports for {} tokens (fee: {})", sol_amount, tokens_out, fee);
+        msg!("Buy: {} lamports for {} tokens (fee: {} sent to {})", 
+            sol_amount, tokens_out, fee, ctx.accounts.fee_recipient.key());
         
         Ok(())
     }
@@ -171,9 +174,12 @@ pub mod bonding_curve {
         );
         token::burn(cpi_ctx, token_amount)?;
 
+        // Pay seller from curve vault
         **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= sol_out;
         **ctx.accounts.seller.to_account_info().try_borrow_mut_lamports()? += sol_after_fee;
-        **ctx.accounts.fee_vault.to_account_info().try_borrow_mut_lamports()? += fee;
+        
+        // Send fee DIRECTLY to your wallet!
+        **ctx.accounts.fee_recipient.to_account_info().try_borrow_mut_lamports()? += fee;
 
         config.total_fees_collected += fee;
 
@@ -182,21 +188,8 @@ pub mod bonding_curve {
         curve.real_sol_reserves -= sol_out;
         curve.real_token_reserves += token_amount;
 
-        msg!("Sell: {} tokens for {} lamports (fee: {})", token_amount, sol_after_fee, fee);
-        
-        Ok(())
-    }
-
-    pub fn withdraw_fees(ctx: Context<WithdrawFees>, amount: u64) -> Result<()> {
-        let fee_vault_balance = ctx.accounts.fee_vault.lamports();
-        
-        require!(amount <= fee_vault_balance, ErrorCode::InsufficientFees);
-        require!(amount > 0, ErrorCode::InvalidAmount);
-
-        **ctx.accounts.fee_vault.try_borrow_mut_lamports()? -= amount;
-        **ctx.accounts.fee_recipient.try_borrow_mut_lamports()? += amount;
-
-        msg!("Withdrew {} lamports in fees to {}", amount, ctx.accounts.fee_recipient.key());
+        msg!("Sell: {} tokens for {} lamports (fee: {} sent to {})", 
+            token_amount, sol_after_fee, fee, ctx.accounts.fee_recipient.key());
         
         Ok(())
     }
@@ -259,7 +252,7 @@ pub struct InitializePlatform<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
-    /// CHECK: The wallet that will receive fees
+    /// CHECK: Your personal wallet that will receive all fees directly
     pub fee_recipient: AccountInfo<'info>,
 
     #[account(
@@ -270,16 +263,6 @@ pub struct InitializePlatform<'info> {
         bump,
     )]
     pub platform_config: Account<'info, PlatformConfig>,
-
-    #[account(
-        init,
-        payer = authority,
-        space = 0,
-        seeds = [b"fee_vault"],
-        bump,
-    )]
-    /// CHECK: Fee vault PDA - holds collected platform fees
-    pub fee_vault: AccountInfo<'info>,
 
     pub system_program: Program<'info, System>,
 }
@@ -368,13 +351,12 @@ pub struct Buy<'info> {
     )]
     pub platform_config: Account<'info, PlatformConfig>,
 
+    /// CHECK: Your wallet - receives fees directly on every trade!
     #[account(
         mut,
-        seeds = [b"fee_vault"],
-        bump = platform_config.fee_vault_bump,
+        constraint = fee_recipient.key() == platform_config.fee_recipient @ ErrorCode::InvalidFeeRecipient
     )]
-    /// CHECK: Fee vault for platform fees
-    pub fee_vault: AccountInfo<'info>,
+    pub fee_recipient: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
@@ -419,13 +401,12 @@ pub struct Sell<'info> {
     )]
     pub platform_config: Account<'info, PlatformConfig>,
 
+    /// CHECK: Your wallet - receives fees directly on every trade!
     #[account(
         mut,
-        seeds = [b"fee_vault"],
-        bump = platform_config.fee_vault_bump,
+        constraint = fee_recipient.key() == platform_config.fee_recipient @ ErrorCode::InvalidFeeRecipient
     )]
-    /// CHECK: Fee vault for platform fees
-    pub fee_vault: AccountInfo<'info>,
+    pub fee_recipient: AccountInfo<'info>,
 
     #[account(
         mut,
@@ -436,35 +417,6 @@ pub struct Sell<'info> {
 
     pub system_program: Program<'info, System>,
     pub token_program: Program<'info, Token>,
-}
-
-#[derive(Accounts)]
-pub struct WithdrawFees<'info> {
-    #[account(
-        constraint = authority.key() == platform_config.authority @ ErrorCode::Unauthorized
-    )]
-    pub authority: Signer<'info>,
-
-    #[account(
-        seeds = [b"platform_config"],
-        bump = platform_config.bump,
-        constraint = fee_recipient.key() == platform_config.fee_recipient @ ErrorCode::InvalidFeeRecipient
-    )]
-    pub platform_config: Account<'info, PlatformConfig>,
-
-    #[account(
-        mut,
-        seeds = [b"fee_vault"],
-        bump = platform_config.fee_vault_bump,
-    )]
-    /// CHECK: Fee vault for platform fees
-    pub fee_vault: AccountInfo<'info>,
-
-    /// CHECK: Must match platform_config.fee_recipient
-    #[account(mut)]
-    pub fee_recipient: AccountInfo<'info>,
-
-    pub system_program: Program<'info, System>,
 }
 
 #[derive(Accounts)]
@@ -485,7 +437,6 @@ pub struct PlatformConfig {
     pub fee_recipient: Pubkey,
     pub total_fees_collected: u64,
     pub bump: u8,
-    pub fee_vault_bump: u8,
 }
 
 #[account]
@@ -524,6 +475,4 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Invalid fee recipient")]
     InvalidFeeRecipient,
-    #[msg("Insufficient fees to withdraw")]
-    InsufficientFees,
 }
