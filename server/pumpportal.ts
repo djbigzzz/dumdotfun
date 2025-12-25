@@ -1,9 +1,13 @@
 import { VersionedTransaction } from "@solana/web3.js";
 import bs58 from "bs58";
 import FormData from "form-data";
+import sharp from "sharp";
+import axios from "axios";
 
 const PUMPPORTAL_API = "https://pumpportal.fun/api/trade-local";
 const PUMP_IPFS_API = "https://pump.fun/api/ipfs";
+const MAX_IMAGE_SIZE = 500 * 1024;
+const MAX_IMAGE_DIMENSION = 512;
 
 interface TokenMetadata {
   name: string;
@@ -22,6 +26,33 @@ interface TradeResult {
   transaction: string;
 }
 
+async function compressImage(imageBuffer: Buffer): Promise<Buffer> {
+  try {
+    const metadata = await sharp(imageBuffer).metadata();
+    console.log(`Original image: ${metadata.width}x${metadata.height}, ${imageBuffer.length} bytes`);
+    
+    let pipeline = sharp(imageBuffer);
+    
+    if ((metadata.width && metadata.width > MAX_IMAGE_DIMENSION) || 
+        (metadata.height && metadata.height > MAX_IMAGE_DIMENSION)) {
+      pipeline = pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, {
+        fit: 'inside',
+        withoutEnlargement: true
+      });
+    }
+    
+    const compressed = await pipeline
+      .png({ quality: 80, compressionLevel: 9 })
+      .toBuffer();
+    
+    console.log(`Compressed image: ${compressed.length} bytes`);
+    return compressed;
+  } catch (error) {
+    console.error("Image compression failed:", error);
+    return imageBuffer;
+  }
+}
+
 export async function uploadMetadataToIPFS(
   metadata: TokenMetadata,
   imageBase64?: string
@@ -38,18 +69,18 @@ export async function uploadMetadataToIPFS(
   formData.append("showName", "true");
   
   let imageBuffer: Buffer;
-  let imageMimeType = "image/png";
-  let imageFilename = "token.png";
   
   if (imageBase64) {
     const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
     if (matches && matches.length === 3) {
-      imageMimeType = matches[1];
       const base64Data = matches[2];
       imageBuffer = Buffer.from(base64Data, "base64");
-      const extension = imageMimeType.split("/")[1] || "png";
-      imageFilename = `token.${extension}`;
-      console.log(`Image size: ${imageBuffer.length} bytes, type: ${imageMimeType}`);
+      console.log(`Original image size: ${imageBuffer.length} bytes`);
+      
+      if (imageBuffer.length > MAX_IMAGE_SIZE) {
+        console.log("Image too large, compressing...");
+        imageBuffer = await compressImage(imageBuffer);
+      }
     } else {
       console.log("Image base64 format not recognized, using placeholder");
       imageBuffer = Buffer.from(
@@ -66,42 +97,41 @@ export async function uploadMetadataToIPFS(
   }
   
   formData.append("file", imageBuffer, {
-    filename: imageFilename,
-    contentType: imageMimeType,
+    filename: "token.png",
+    contentType: "image/png",
   });
 
   console.log("Uploading to pump.fun IPFS...", {
     name: metadata.name,
     symbol: metadata.symbol,
     imageSize: imageBuffer.length,
-    headers: formData.getHeaders(),
   });
 
-  const response = await fetch(PUMP_IPFS_API, {
-    method: "POST",
-    body: formData as any,
-    headers: formData.getHeaders(),
-  });
-
-  const responseText = await response.text();
-  console.log("IPFS response status:", response.status, "body:", responseText);
-
-  if (!response.ok) {
-    throw new Error(`IPFS upload failed: ${response.status} ${responseText}`);
-  }
-
-  let result;
   try {
-    result = JSON.parse(responseText);
-  } catch (e) {
-    throw new Error(`IPFS response not valid JSON: ${responseText}`);
-  }
-  
-  if (!result.metadataUri) {
-    throw new Error("IPFS response missing metadataUri");
-  }
+    const response = await axios.post(PUMP_IPFS_API, formData, {
+      headers: {
+        ...formData.getHeaders(),
+      },
+      maxContentLength: Infinity,
+      maxBodyLength: Infinity,
+      timeout: 30000,
+    });
 
-  return { metadataUri: result.metadataUri };
+    console.log("IPFS response status:", response.status, "body:", JSON.stringify(response.data));
+
+    if (!response.data.metadataUri) {
+      throw new Error("IPFS response missing metadataUri");
+    }
+
+    return { metadataUri: response.data.metadataUri };
+  } catch (error: any) {
+    if (error.response) {
+      console.error("IPFS upload failed:", error.response.status, error.response.data);
+      throw new Error(`IPFS upload failed: ${error.response.status} ${JSON.stringify(error.response.data)}`);
+    }
+    console.error("IPFS upload error:", error.message);
+    throw new Error(`IPFS upload failed: ${error.message}`);
+  }
 }
 
 export async function buildCreateTokenTransaction(
