@@ -6,6 +6,7 @@ import { useParams, Link } from "wouter";
 import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
 interface TokenPrediction {
   id: string;
@@ -62,6 +63,12 @@ interface TokenActivity {
   side: string | null;
   metadata: string | null;
   createdAt: string;
+}
+
+interface PricePoint {
+  time: number;
+  price: number;
+  volume: number;
 }
 
 function getTimeAgo(date: Date): string {
@@ -183,6 +190,17 @@ export default function TokenPage() {
     refetchInterval: 5000,
   });
 
+  const { data: priceHistory } = useQuery<PricePoint[]>({
+    queryKey: ["price-history", mint],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/${mint}/price-history`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!mint,
+    refetchInterval: 30000,
+  });
+
   if (isLoading) {
     return (
       <Layout>
@@ -270,6 +288,68 @@ export default function TokenPage() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+
+            <div className="bg-zinc-950 border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-sm font-bold text-white">PRICE CHART</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-green-400 font-mono">{token.priceInSol.toFixed(8)} SOL</span>
+                </div>
+              </div>
+              
+              <div className="h-48">
+                {priceHistory && priceHistory.length > 0 ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={priceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                      <defs>
+                        <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
+                          <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <XAxis 
+                        dataKey="time" 
+                        tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        stroke="#666"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                      />
+                      <YAxis 
+                        domain={['auto', 'auto']}
+                        tickFormatter={(v) => v.toExponential(1)}
+                        stroke="#666"
+                        fontSize={10}
+                        tickLine={false}
+                        axisLine={false}
+                        width={50}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: '#18181b', 
+                          border: '2px solid #333',
+                          borderRadius: '8px',
+                          fontSize: '12px'
+                        }}
+                        labelFormatter={(t) => new Date(t).toLocaleString()}
+                        formatter={(value: number) => [value.toFixed(10) + ' SOL', 'Price']}
+                      />
+                      <Area 
+                        type="monotone" 
+                        dataKey="price" 
+                        stroke="#22c55e" 
+                        strokeWidth={2}
+                        fill="url(#priceGradient)" 
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                    Loading chart...
+                  </div>
+                )}
               </div>
             </div>
 
