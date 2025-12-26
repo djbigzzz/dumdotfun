@@ -743,22 +743,13 @@ export default function TokenPage() {
                     {tradeType === "buy" ? "BUY" : "SELL"} {token.symbol}
                   </motion.button>
                 ) : (
-                  <a
-                    href={`https://pump.fun/coin/${token.mint}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block"
+                  <motion.button
+                    disabled
+                    className="w-full py-3 rounded-lg font-black uppercase transition-all bg-gray-400 text-white flex items-center justify-center gap-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-not-allowed opacity-70"
+                    data-testid="button-trading-coming-soon"
                   >
-                    <motion.button
-                      whileHover={{ y: -2, x: -2 }}
-                      whileTap={{ y: 0, x: 0 }}
-                      className="w-full py-3 rounded-lg font-black uppercase transition-all bg-purple-500 hover:bg-purple-600 text-white flex items-center justify-center gap-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-                      data-testid="button-trade-on-pumpfun"
-                    >
-                      TRADE ON PUMP.FUN
-                      <ExternalLink className="w-4 h-4" />
-                    </motion.button>
-                  </a>
+                    TRADING COMING SOON
+                  </motion.button>
                 )}
               </div>
             </div>
