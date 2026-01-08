@@ -1,0 +1,57 @@
+n The Growth Meta, we highlight trends in tech marketing and growth that savvy founders are using to gain an edge. The best compounding advantage in startups is building a kick-ass product, but these strategies can act as a multiplier.
+
+
+In the early days of AI hype, it felt like you could toss up a form, post a half-baked demo on X, and wake up to 5,000 people on a waitlist.
+
+That era is over.
+
+Today, waitlists are harder to fill, and are more valuable for it. They’ve transformed from half-baked ideas into the crucial linchpins in early-stage startups marketing funnels. It’s about improving one thing: lead quality. A great waitlist can be a mechanism to separate people who think your thing is neat from people who will actually pay for it.
+
+The Waitlist Metrics that Matter
+Back in 2022, Lenny Rachitsky collected benchmark data on waitlist conversion rates. For converting waitlisted users into paid customers, Lenny found a range of 5%–25%, averaging around 20% if you get people off the waitlist in under a month, and dropping below 10% if you wait over three months. A big list that you don’t activate quickly has an expiration date. In short, waitlists rot.
+
+The best waitlist is one where you can confidently say:
+
+who these people are
+
+why they joined
+
+what they want
+
+and what percentage of them will take the next step when you invite them
+
+Everything else is just growthslop.
+
+What “doing it right” looks like in 2026
+Let’s look at a few recent AI examples where the waitlist was used as a quality GTM engine.
+
+1) Make everything spike to the waitlist
+Day.ai wrote up their seed announcement playbook which earned them 4,000+ waitlist signups in the first 72 hours. The important part was how they got there. They didn’t announce early. They waited until they had a coherent story and something worth pointing attention at. Then they ran the more typical launch announcement playbook (press + owned content + social distribution). From there, the waitlist became a controlled intake mechanism that matched their sales capacity.
+
+To copy this, you’ll want to pick a “spike moment” you can rally around (launch, funding, feature reveal, customer story), and make everything point to a single conversion surface.
+
+2) The waitlist is an intent ladder
+Paid.ai published their own playbook post on how they attracted 15.8K visitors, >650 signups, and >140 scheduled meetings. Rather than viewing the waitlist as an end destination for your launch, view it as a lead qualification event within your larger pipeline. From order of difficulty your waitlist can go for:
+
+Email signup
+
+Email with additional demographic data (role, industry)
+
+Book a discovery call
+
+Pay to reserve your spot
+
+In most cases, early-stage startups should be aiming to add revenue as early in the journey as possible and your waitlist should help you in that goal. There is no more helpful form of feedback than a customer giving you cash for the thing you made.
+
+3) For hardware, the waitlist is the product validation
+If you’re building atoms instead of bits, the waitlist isn’t optional. Hardware is very expensive to get wrong. You can’t iterate in production. You can’t ship a buggy v1 and patch it next week.
+
+The smart play is to treat preorders as a forcing function. For an example, check out how Taya (speedrun alumni, class of SR005) handled their waitlist launch. Not satisfied with a simple “sign up and we’ll email you” prompt, they asked for actual money down. It worked. On launch day Taya founder Elena Wagenmans reported that one Taya Necklace was pre-ordered every four minutes.
+
+The amount you ask for here could be the entire price of the product or—if it’s on the pricier side—a lower barrier to entry that nonetheless collects payment details and gets some skin in the game from customers: $50, $99, whatever. Enough to separate the curious from the committed.
+
+This does two things. First, it proves demand before you’ve sunk real capital into manufacturing. Second, and this is the part most founders miss, it tells you who wants this thing. Are they developers? Parents? Commuters? The answer shapes everything from your marketing to your roadmap as you prep up for a broad release. (It has the additional benefit of functioning as an interest free loan).
+
+Which brings us back to the thesis:
+
+Using waitlists solely to signal hype leaves significant revenue and learning opportunities on the table. A waitlist is a machine for generating quality leads. If you build it that way—qualify, segment, invite quickly, and measure the next step—you’ll end up with high-quality revenue.

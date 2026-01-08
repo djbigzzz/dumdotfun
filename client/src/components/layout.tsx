@@ -164,9 +164,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="p-8 border-t-2 border-black bg-white text-center font-mono text-sm text-gray-500">
-        <p className="mb-4">
-          COPYRIGHT © 1999-2025 DUM.FUN INC. ALL RIGHTS RESERVED (BUT NOT REALLY).
-        </p>
+        <div className="flex items-center justify-center gap-4 mb-2">
+          <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">@dumdotfun</a>
+        </div>
+        <p>© 2025 Dum.fun. All rights reserved.</p>
       </footer>
     </div>
   );

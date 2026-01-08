@@ -121,6 +121,7 @@ function FeatureCard({ icon: Icon, title, description, color }: {
 export default function Home() {
   const { connectedWallet, connectWallet } = useWallet();
   const [email, setEmail] = useState("");
+  const [userType, setUserType] = useState<"creator" | "trader" | "both" | "">("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<"idle" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
@@ -166,7 +167,7 @@ export default function Home() {
       const res = await fetch("/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), userType: userType || null }),
       });
 
       const data = await res.json();
@@ -177,6 +178,7 @@ export default function Home() {
 
       setSubmitStatus("success");
       setEmail("");
+      setUserType("");
     } catch (error: any) {
       setSubmitStatus("error");
       setErrorMessage(error.message);
@@ -370,25 +372,50 @@ export default function Home() {
                 </p>
               </motion.div>
             ) : (
-              <form onSubmit={handleWaitlist} className="flex flex-col sm:flex-row gap-3 max-w-lg mx-auto">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 px-5 py-4 bg-white border-2 border-black rounded-xl text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-center sm:text-left font-medium shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                  data-testid="input-email"
-                />
-                <motion.button
-                  type="submit"
-                  disabled={isSubmitting || !email.trim()}
-                  whileHover={{ y: -2, x: -2 }}
-                  whileTap={{ y: 0, x: 0 }}
-                  className="px-8 py-4 bg-red-500 text-white font-black rounded-xl border-2 border-black hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wide shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
-                  data-testid="button-join-waitlist"
-                >
-                  {isSubmitting ? "..." : "Join"}
-                </motion.button>
+              <form onSubmit={handleWaitlist} className="space-y-4 max-w-lg mx-auto">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="flex-1 px-5 py-4 bg-white border-2 border-black rounded-xl text-black placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-red-500 transition-colors text-center sm:text-left font-medium shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    data-testid="input-email"
+                  />
+                  <motion.button
+                    type="submit"
+                    disabled={isSubmitting || !email.trim()}
+                    whileHover={{ y: -2, x: -2 }}
+                    whileTap={{ y: 0, x: 0 }}
+                    className="px-8 py-4 bg-red-500 text-white font-black rounded-xl border-2 border-black hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all uppercase tracking-wide shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    data-testid="button-join-waitlist"
+                  >
+                    {isSubmitting ? "..." : "Join"}
+                  </motion.button>
+                </div>
+                
+                <div className="flex flex-wrap justify-center gap-2">
+                  <span className="text-sm text-gray-500 font-medium w-full text-center mb-1">I want to:</span>
+                  {[
+                    { value: "creator", label: "Launch tokens" },
+                    { value: "trader", label: "Trade tokens" },
+                    { value: "both", label: "Both" },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setUserType(option.value as "creator" | "trader" | "both")}
+                      className={`px-4 py-2 rounded-lg border-2 border-black text-sm font-bold transition-all ${
+                        userType === option.value
+                          ? "bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                      }`}
+                      data-testid={`button-usertype-${option.value}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </form>
             )}
 
@@ -488,17 +515,11 @@ export default function Home() {
             <div className="flex items-center justify-center gap-6 text-sm">
               <a href="#" className="text-gray-500 hover:text-gray-900 transition-colors font-medium">About</a>
               <a href="#" className="text-gray-500 hover:text-gray-900 transition-colors font-medium">Terms</a>
-              <button
-                onClick={() => alert("LOL NO! 😂")}
-                className="text-gray-500 hover:text-red-500 transition-colors cursor-pointer font-medium"
-                data-testid="link-refund"
-              >
-                Refund
-              </button>
+              <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-gray-900 transition-colors font-medium">Twitter</a>
             </div>
             <div className="text-center text-xs text-gray-500 space-y-1">
-              <p>Building the dumbest way to make money on Solana</p>
-              <p className="font-mono font-bold">@dumfun</p>
+              <p>The easiest way to launch and trade tokens on Solana</p>
+              <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="font-mono font-bold hover:text-black transition-colors">@dumdotfun</a>
             </div>
           </motion.footer>
         </div>

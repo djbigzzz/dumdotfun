@@ -193,13 +193,13 @@ export async function registerRoutes(
   
   app.post("/api/waitlist", async (req, res) => {
     try {
-      const { email } = req.body;
+      const { email, userType } = req.body;
       
       if (!email || typeof email !== "string") {
         return res.status(400).json({ error: "Email is required" });
       }
 
-      const validation = insertWaitlistSchema.safeParse({ email });
+      const validation = insertWaitlistSchema.safeParse({ email, userType });
       if (!validation.success) {
         return res.status(400).json({ error: "Invalid email format" });
       }
@@ -209,7 +209,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Email already on waitlist" });
       }
 
-      const result = await storage.addToWaitlist(email);
+      const result = await storage.addToWaitlist(email, userType);
       
       sendWaitlistConfirmation(email).catch((err) =>
         console.error("Failed to send confirmation email:", err)

@@ -47,6 +47,7 @@ export const walletAnalysis = pgTable("wallet_analysis", {
 export const waitlist = pgTable("waitlist", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: text("email").notNull().unique(),
+  userType: text("user_type"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

@@ -22,7 +22,7 @@ export interface IStorage {
   createWalletAnalysis(analysis: InsertWalletAnalysis): Promise<WalletAnalysis>;
   
   // Waitlist methods
-  addToWaitlist(email: string): Promise<Waitlist>;
+  addToWaitlist(email: string, userType?: string): Promise<Waitlist>;
   isEmailInWaitlist(email: string): Promise<boolean>;
   
   // Prediction market methods
@@ -135,8 +135,8 @@ export class DatabaseStorage implements IStorage {
     return analysis;
   }
 
-  async addToWaitlist(email: string): Promise<Waitlist> {
-    const [entry] = await db.insert(waitlist).values({ email }).returning();
+  async addToWaitlist(email: string, userType?: string): Promise<Waitlist> {
+    const [entry] = await db.insert(waitlist).values({ email, userType: userType || null }).returning();
     return entry;
   }
 
