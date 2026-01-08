@@ -4,6 +4,29 @@ import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign } 
 
 const sections = [
   {
+    id: "demo-notice",
+    icon: Shield,
+    title: "Demo Notice",
+    content: `**This is a working demo of dum.fun.**
+
+The platform is currently in testnet/demo mode. Here's what works:
+- ✅ Connecting your Phantom wallet
+- ✅ Creating tokens (simulated on demo)
+- ✅ Viewing token listings
+- ✅ Creating prediction markets
+- ✅ Placing bets on predictions
+- ✅ Viewing your profile
+
+**Coming at full launch:**
+- Real Solana mainnet deployment
+- Live bonding curve smart contract
+- Real SOL transactions
+- DFlow/Kalshi prediction market integration
+- Token graduation to Raydium
+
+Join the waitlist to be notified when we go live!`
+  },
+  {
     id: "what-is-dumfun",
     icon: Zap,
     title: "What is dum.fun?",

@@ -15,12 +15,13 @@ const Marquee = () => {
       <div className="flex items-center justify-center gap-2 animate-marquee whitespace-nowrap font-mono text-sm">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-white font-black">⚡</span>
-            <span className="text-yellow-300 font-black">LAUNCH TOKENS</span>
+            <span className="text-yellow-300 font-black">⚠️ DEMO MODE</span>
             <span className="text-pink-200">•</span>
-            <span className="text-pink-100">BET ON PREDICTIONS</span>
+            <span className="text-white font-black">🧪 TESTNET PREVIEW</span>
             <span className="text-pink-200">•</span>
-            <span className="text-white font-black">WIN EITHER WAY</span>
+            <span className="text-pink-100">FULL LAUNCH COMING SOON</span>
+            <span className="text-pink-200">•</span>
+            <span className="text-yellow-300 font-black">JOIN WAITLIST</span>
             <span className="text-pink-200 mx-2">•</span>
           </div>
         ))}

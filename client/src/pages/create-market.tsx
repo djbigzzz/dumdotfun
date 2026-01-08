@@ -149,6 +149,12 @@ export default function CreateMarket() {
           </Link>
         )}
         
+        <div className="bg-yellow-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] mb-4">
+          <p className="text-sm font-bold text-yellow-800">
+            ⚠️ DEMO MODE: Markets created here are saved to our demo database. Real mainnet betting coming soon!
+          </p>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

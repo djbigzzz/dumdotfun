@@ -172,6 +172,12 @@ export default function CreateToken() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
+        <div className="bg-yellow-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <p className="text-sm font-bold text-yellow-800">
+            ⚠️ DEMO MODE: Tokens created here are saved to our demo database. Real mainnet deployment coming soon!
+          </p>
+        </div>
+
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-gray-900">Launch New Token</h1>
           <p className="text-gray-500 mt-1">
