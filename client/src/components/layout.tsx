@@ -123,6 +123,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/tokens">
               <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Tokens</span>
             </Link>
+            <Link href="/predictions">
+              <span className="font-bold text-gray-700 hover:text-yellow-500 transition-colors cursor-pointer">Predictions</span>
+            </Link>
             <Link href="/create">
               <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Launch</span>
             </Link>

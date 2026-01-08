@@ -11,6 +11,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
+import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
 const SOLANA_RPC = process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com";
 
@@ -963,6 +964,136 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching fees:", error);
       return res.status(500).json({ error: "Failed to fetch fee info" });
+    }
+  });
+
+  // DFlow Prediction Markets API
+  app.get("/api/dflow/status", async (req, res) => {
+    return res.json({ configured: isDFlowConfigured() });
+  });
+
+  app.get("/api/dflow/events", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.json({ events: [], cursor: null, configured: false });
+      }
+
+      const { limit, cursor, status, sort } = req.query;
+      const result = await fetchEvents({
+        limit: limit ? parseInt(limit as string) : 20,
+        cursor: cursor ? parseInt(cursor as string) : undefined,
+        status: status as string,
+        sort: sort as any,
+        withNestedMarkets: true,
+      });
+
+      return res.json({
+        events: result.events.map(formatEventForDisplay),
+        cursor: result.cursor,
+        configured: true,
+      });
+    } catch (error: any) {
+      console.error("Error fetching DFlow events:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dflow/markets", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.json({ markets: [], cursor: null, configured: false });
+      }
+
+      const { limit, cursor, status, sort } = req.query;
+      const result = await fetchMarkets({
+        limit: limit ? parseInt(limit as string) : 20,
+        cursor: cursor ? parseInt(cursor as string) : undefined,
+        status: status as string,
+        sort: sort as any,
+      });
+
+      return res.json({
+        markets: result.markets.map(formatMarketForDisplay),
+        cursor: result.cursor,
+        configured: true,
+      });
+    } catch (error: any) {
+      console.error("Error fetching DFlow markets:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dflow/markets/:ticker", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.status(503).json({ error: "DFlow not configured" });
+      }
+
+      const market = await fetchMarketByTicker(req.params.ticker);
+      if (!market) {
+        return res.status(404).json({ error: "Market not found" });
+      }
+
+      return res.json(formatMarketForDisplay(market));
+    } catch (error: any) {
+      console.error("Error fetching DFlow market:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dflow/orderbook/:ticker", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.status(503).json({ error: "DFlow not configured" });
+      }
+
+      const orderbook = await fetchOrderbook(req.params.ticker);
+      if (!orderbook) {
+        return res.status(404).json({ error: "Orderbook not available" });
+      }
+
+      return res.json(orderbook);
+    } catch (error: any) {
+      console.error("Error fetching DFlow orderbook:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dflow/trades/:ticker", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.json({ trades: [], cursor: null });
+      }
+
+      const { limit, cursor } = req.query;
+      const result = await fetchTrades(req.params.ticker, {
+        limit: limit ? parseInt(limit as string) : 50,
+        cursor: cursor ? parseInt(cursor as string) : undefined,
+      });
+
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error fetching DFlow trades:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/dflow/search", async (req, res) => {
+    try {
+      if (!isDFlowConfigured()) {
+        return res.json({ events: [] });
+      }
+
+      const { q } = req.query;
+      if (!q || typeof q !== "string") {
+        return res.status(400).json({ error: "Query parameter 'q' is required" });
+      }
+
+      const events = await searchEvents(q);
+      return res.json({ events: events.map(formatEventForDisplay) });
+    } catch (error: any) {
+      console.error("Error searching DFlow:", error);
+      return res.status(500).json({ error: error.message });
     }
   });
 
