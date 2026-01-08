@@ -105,6 +105,7 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
 export function Layout({ children }: { children: React.ReactNode }) {
   const { connectedWallet, connectWallet: contextConnect } = useWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showRefundJoke, setShowRefundJoke] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white">
@@ -168,9 +169,32 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       <footer className="p-8 border-t-2 border-black bg-white text-center font-mono text-sm text-gray-500">
-        <div className="flex items-center justify-center gap-4 mb-2">
+        <div className="flex items-center justify-center gap-4 mb-4">
           <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">@dumdotfun</a>
         </div>
+        
+        <div className="mb-4">
+          {!showRefundJoke ? (
+            <motion.button
+              onClick={() => setShowRefundJoke(true)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="bg-green-500 text-white font-black px-8 py-3 text-lg border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all uppercase"
+              data-testid="button-refund"
+            >
+              Request Refund
+            </motion.button>
+          ) : (
+            <motion.div
+              initial={{ scale: 0, rotate: -10 }}
+              animate={{ scale: 1, rotate: 0 }}
+              className="inline-block bg-red-500 text-white font-black px-8 py-4 text-3xl border-4 border-black rounded-lg shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+            >
+              LOL NO
+            </motion.div>
+          )}
+        </div>
+        
         <p>© 2025 Dum.fun. All rights reserved.</p>
       </footer>
     </div>
