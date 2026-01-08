@@ -129,6 +129,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/create">
               <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Launch</span>
             </Link>
+            <Link href="/docs">
+              <span className="font-bold text-gray-700 hover:text-blue-500 transition-colors cursor-pointer">Docs</span>
+            </Link>
           </nav>
         </div>
         
