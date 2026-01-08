@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout";
 import { TokenCard } from "@/components/token-card";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Plus, Loader2, AlertCircle, Rocket, Search } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Rocket, Search, Mail, CheckCircle } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 
 interface TokenPrediction {
   id: string;
@@ -31,6 +32,38 @@ interface Token {
 
 export default function TokensPage() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [email, setEmail] = useState("");
+  const [waitlistJoined, setWaitlistJoined] = useState(false);
+
+  const waitlistMutation = useMutation({
+    mutationFn: async (emailAddress: string) => {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: emailAddress }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to join waitlist");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      setWaitlistJoined(true);
+      setEmail("");
+      toast.success("You're on the waitlist!");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const handleWaitlist = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (email.trim()) {
+      waitlistMutation.mutate(email.trim());
+    }
+  };
 
   const { data: tokens, isLoading, error } = useQuery<Token[]>({
     queryKey: ["tokens"],
@@ -49,6 +82,60 @@ export default function TokensPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        {!waitlistJoined && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-gradient-to-r from-red-500 to-pink-500 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <Mail className="w-6 h-6 text-white" />
+                <div>
+                  <h3 className="font-black text-white">Join the Waitlist</h3>
+                  <p className="text-white/80 text-sm">Be first to know when we launch on mainnet!</p>
+                </div>
+              </div>
+              <form onSubmit={handleWaitlist} className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="your@email.com"
+                  className="px-4 py-2 bg-white border-2 border-black rounded-lg text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400 font-medium w-48 md:w-64"
+                  data-testid="input-waitlist-email"
+                />
+                <motion.button
+                  type="submit"
+                  disabled={waitlistMutation.isPending || !email.trim()}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="px-4 py-2 bg-yellow-400 text-black font-bold rounded-lg border-2 border-black hover:bg-yellow-300 disabled:opacity-50 transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  data-testid="button-join-waitlist"
+                >
+                  {waitlistMutation.isPending ? "..." : "Join"}
+                </motion.button>
+              </form>
+            </div>
+          </motion.div>
+        )}
+
+        {waitlistJoined && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-green-400 border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          >
+            <div className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-black" />
+              <div>
+                <h3 className="font-black text-black">You're on the list!</h3>
+                <p className="text-black/70 text-sm">We'll notify you when we launch on mainnet.</p>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-3xl md:text-4xl font-black text-gray-900">
