@@ -42,19 +42,10 @@ export default function CreateToken() {
 
   const createTokenMutation = useMutation({
     mutationFn: async () => {
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom) {
-        throw new Error("Phantom wallet not found. Please install Phantom.");
-      }
-
-      // Generate mint keypair CLIENT-SIDE for security (never expose secret key)
-      setCreationStep("Generating mint keypair...");
-      const mintKeypair = Keypair.generate();
-      const mintPublicKey = mintKeypair.publicKey.toBase58();
-
-      setCreationStep("Uploading metadata to IPFS...");
+      setCreationStep("Creating token in demo mode...");
       
-      const res = await fetch("/api/tokens/create", {
+      // Demo mode: save directly to database without blockchain transaction
+      const res = await fetch("/api/tokens/demo-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -66,8 +57,6 @@ export default function CreateToken() {
           telegram: formData.telegram || null,
           website: formData.website || null,
           creatorAddress: connectedWallet,
-          mintPublicKey,
-          initialBuyAmount: 0,
         }),
       });
       
@@ -78,41 +67,15 @@ export default function CreateToken() {
       
       const data = await res.json();
       
-      if (!data.transaction) {
-        throw new Error("No transaction returned from server");
-      }
-
-      setCreationStep("Sign with your wallet...");
-
-      const transactionBytes = bs58.decode(data.transaction);
-      const transaction = VersionedTransaction.deserialize(transactionBytes);
-
-      // Sign with the mint keypair (kept client-side, never exposed to server)
-      transaction.sign([mintKeypair]);
-
-      // Then sign with user's wallet via Phantom
-      const signedTransaction = await phantom.signTransaction(transaction);
-
-      setCreationStep("Submitting to Solana...");
-
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-
-      setCreationStep("Confirming transaction...");
-
-      await connection.confirmTransaction(signature, "confirmed");
+      setCreationStep("Token created!");
 
       return {
-        ...data,
-        signature,
-        token: { ...data.token, signature },
+        token: data.token,
+        signature: "demo-" + data.token.mint.slice(0, 8),
       };
     },
     onSuccess: (data) => {
-      toast.success(`Token ${data.token.name} deployed on Pump.fun!`);
+      toast.success(`Token ${data.token.name} created in demo mode!`);
       setCreatedToken({ ...data.token, signature: data.signature });
       setCreationStep("");
     },

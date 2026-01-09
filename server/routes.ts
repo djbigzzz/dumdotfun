@@ -422,6 +422,75 @@ export async function registerRoutes(
     }
   });
 
+  // Demo mode token creation - saves directly to database without blockchain
+  app.post("/api/tokens/demo-create", async (req, res) => {
+    try {
+      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress } = req.body;
+
+      // Validate required fields
+      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
+        return res.status(400).json({ error: "Name is required (max 32 characters)" });
+      }
+
+      if (!symbol || typeof symbol !== "string" || symbol.trim().length === 0 || symbol.length > 10) {
+        return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
+      }
+
+      if (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0) {
+        return res.status(400).json({ error: "Creator wallet address is required" });
+      }
+
+      // Generate a demo mint address (random base58-like string)
+      const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+      let demoMint = "";
+      for (let i = 0; i < 44; i++) {
+        demoMint += chars.charAt(Math.floor(Math.random() * chars.length));
+      }
+
+      console.log(`[DEMO] Creating token: ${name} (${symbol}) for ${creatorAddress}, mint: ${demoMint}`);
+
+      // Save token to database
+      const token = await storage.createToken({
+        mint: demoMint,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description?.trim() || null,
+        imageUri: imageUri || null,
+        creatorAddress,
+        twitter: twitter?.trim() || null,
+        telegram: telegram?.trim() || null,
+        website: website?.trim() || null,
+      });
+
+      console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
+
+      // Auto-create a prediction market for the token
+      try {
+        await storage.createMarket({
+          question: `Will $${token.symbol} survive 7 days?`,
+          description: `Prediction on whether ${token.name} will still be trading in 7 days.`,
+          imageUri: token.imageUri,
+          creatorAddress,
+          predictionType: "survival",
+          tokenMint: demoMint,
+          resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+        console.log(`[DEMO] Auto-created prediction market for ${token.symbol}`);
+      } catch (marketError) {
+        console.error("[DEMO] Failed to create prediction market:", marketError);
+      }
+
+      return res.json({
+        success: true,
+        token,
+        message: "Token created in demo mode",
+      });
+    } catch (error: any) {
+      console.error("[DEMO] Error creating token:", error);
+      return res.status(500).json({ error: "Failed to create token" });
+    }
+  });
+
   // Token creation endpoint - now uses PumpPortal for real on-chain deployment
   app.post("/api/tokens/create", async (req, res) => {
     try {
