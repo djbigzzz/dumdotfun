@@ -181,21 +181,6 @@ export default function CreateToken() {
               </div>
             )}
             <div className="flex gap-3 justify-center flex-wrap">
-              <a 
-                href={`https://pump.fun/${createdToken.mint}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <motion.button
-                  whileHover={{ y: -2, x: -2 }}
-                  whileTap={{ y: 0, x: 0 }}
-                  className="px-6 py-3 bg-green-500 text-white font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2"
-                  data-testid="button-view-pumpfun"
-                >
-                  View on Pump.fun
-                  <ExternalLink className="w-4 h-4" />
-                </motion.button>
-              </a>
               <Link href={`/token/${createdToken.mint}`}>
                 <motion.button
                   whileHover={{ y: -2, x: -2 }}
@@ -367,12 +352,12 @@ export default function CreateToken() {
           </div>
 
           {/* Launch Cost Section */}
-          <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-4">
+          <div className="bg-green-50 border-2 border-green-400 rounded-lg p-4">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="text-yellow-700 font-bold text-sm">LAUNCH COST: ~0.02 SOL</p>
-                <p className="text-gray-600 text-xs mt-1">Paid to deploy on Solana blockchain</p>
+                <p className="text-green-700 font-bold text-sm">DEMO MODE: FREE</p>
+                <p className="text-gray-600 text-xs mt-1">Tokens are saved to demo database (no SOL required)</p>
               </div>
             </div>
           </div>
