@@ -109,7 +109,8 @@ export default function TokenPage() {
       return res.json();
     },
     onSuccess: (data) => {
-      toast.success(`Bet placed! You received ${data.position?.shares?.toFixed(4) || "some"} shares`);
+      const shares = data.position?.shares ? parseFloat(data.position.shares).toFixed(4) : "some";
+      toast.success(`Bet placed! You received ${shares} shares (Demo Mode)`);
       setActiveBet(null);
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
