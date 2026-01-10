@@ -56,17 +56,19 @@ export async function buildDevnetTokenTransaction(
     const transaction = new Transaction();
 
     // Add platform fee transfer as FIRST instruction
+    // Use exact lamport value to avoid floating point precision issues
+    // 0.05 SOL = 50,000,000 lamports
+    const FEE_LAMPORTS = 50_000_000; // Exactly 0.05 SOL
     try {
       const feeRecipient = getFeeRecipientWallet();
-      const feeLamports = Math.floor(PLATFORM_FEES.TOKEN_CREATION * LAMPORTS_PER_SOL);
       transaction.add(
         SystemProgram.transfer({
           fromPubkey: creator,
           toPubkey: feeRecipient,
-          lamports: feeLamports,
+          lamports: FEE_LAMPORTS,
         })
       );
-      console.log(`[Devnet Token] Fee transfer added: ${PLATFORM_FEES.TOKEN_CREATION} SOL to ${feeRecipient.toBase58()}`);
+      console.log(`[Devnet Token] Fee transfer added: ${FEE_LAMPORTS / LAMPORTS_PER_SOL} SOL (${FEE_LAMPORTS} lamports) to ${feeRecipient.toBase58()}`);
     } catch (feeError) {
       console.error("[Devnet Token] Failed to add fee transfer:", feeError);
       // Continue without fee if FEE_RECIPIENT_WALLET not set
