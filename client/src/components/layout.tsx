@@ -19,9 +19,9 @@ const Marquee = () => {
             <span className="text-pink-200">•</span>
             <span className="text-white font-black">REAL ON-CHAIN TOKENS</span>
             <span className="text-pink-200">•</span>
-            <span className="text-pink-100">SOLANA PRIVACY HACK 2026</span>
+            <span className="text-pink-100">DEPLOY YOUR MEME TOKEN</span>
             <span className="text-pink-200">•</span>
-            <span className="text-yellow-300 font-black">DEPLOY NOW</span>
+            <span className="text-yellow-300 font-black">BET ON PREDICTIONS</span>
             <span className="text-pink-200 mx-2">•</span>
           </div>
         ))}

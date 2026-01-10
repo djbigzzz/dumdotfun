@@ -119,7 +119,7 @@ export function PrivacyStatusPanel() {
         </div>
         <div>
           <h3 className="text-lg font-bold text-white">Privacy Stack Status</h3>
-          <p className="text-sm text-zinc-400">{privacyStatus.hackathon}</p>
+          <p className="text-sm text-zinc-400">Platform privacy features</p>
         </div>
       </div>
 

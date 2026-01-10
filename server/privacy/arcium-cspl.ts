@@ -104,7 +104,6 @@ export const ArciumStatus = {
   programId: ARCIUM_PROGRAM_ID.toBase58(),
   network: "devnet",
   description: "Arcium C-SPL for confidential token trading with encrypted balances",
-  bountyAmount: "$10,000",
   implementation: "planned",
   note: "C-SPL launching on Solana Devnet Phase 2 (2025), Mainnet Alpha Q4 2025",
 };

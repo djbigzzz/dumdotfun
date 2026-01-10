@@ -96,7 +96,6 @@ export const Token2022Status = {
   programId: TOKEN_2022_PROGRAM_ID.toBase58(),
   network: "devnet",
   description: "Token-2022 Confidential Transfers with ElGamal encryption",
-  bountyAmount: "$15,000 (Private Payments Track)",
   implementation: "planned",
   note: "ZK ElGamal Proof program currently in security audit",
 };

@@ -12,7 +12,6 @@ export interface PrivacyIntegration {
   programId: string;
   network: string;
   description: string;
-  bountyAmount: string;
   implementation: string;
   note?: string;
 }
@@ -46,10 +45,10 @@ export function getActivePrivacyFeatures(): string[] {
 
 export function getPlannedPrivacyFeatures(): string[] {
   return [
-    "Inco Lightning SDK ($2K bounty)",
-    "Token-2022 Confidential Transfers ($15K)",
-    "Arcium C-SPL ($10K bounty)",
-    "Noir ZK Proofs ($5K Aztec bounty)",
+    "Inco Lightning SDK",
+    "Token-2022 Confidential Transfers",
+    "Arcium C-SPL",
+    "Noir ZK Proofs",
   ];
 }
 
@@ -58,8 +57,5 @@ export function getPrivacySummary() {
     activeFeatures: getActivePrivacyFeatures(),
     plannedFeatures: getPlannedPrivacyFeatures(),
     integrations: getAllPrivacyIntegrations(),
-    totalBountyPotential: "$57,500",
-    hackathon: "Solana Privacy Hack 2026",
-    deadline: "January 30, 2026",
   };
 }

@@ -76,6 +76,5 @@ export const IncoLightningStatus = {
   programId: INCO_LIGHTNING_PROGRAM_ID.toBase58(),
   network: "devnet",
   description: "Inco Lightning SDK for confidential prediction market bets",
-  bountyAmount: "$2,000",
   implementation: "planned",
 };

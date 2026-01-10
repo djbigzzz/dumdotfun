@@ -5,60 +5,26 @@ import { PrivacyStatusPanel } from "@/components/privacy-badge";
 
 const sections = [
   {
-    id: "privacy-hackathon",
-    icon: Lock,
-    title: "Solana Privacy Hack 2026",
-    content: `**dum.fun is a submission for the Solana Privacy Hack 2026**
-
-We're building the first privacy-preserving token launchpad with confidential prediction markets on Solana.
-
-**Privacy Technologies Integrated:**
-- ✅ Helius RPC for secure, high-performance blockchain access
-- ✅ Devnet deployment for testing
-- ✅ Confidential betting (bets stored privately in database)
-- ✅ Anonymous token creation (demo mode)
-- 🔜 Token-2022 Confidential Transfers for private balances
-- 🔜 Inco Lightning SDK for confidential prediction markets
-- 🔜 Noir ZK proofs for private betting verification
-- 🔜 Arcium C-SPL for confidential token trading
-
-**Hackathon Tracks:**
-- Private Payments ($15K) - Confidential prediction market betting
-- Privacy Tooling ($15K) - Privacy-first token launchpad
-- Open Track ($18K) - Combined platform
-
-**Bounties:**
-- Helius ($5K) - Using Helius RPC infrastructure
-- Inco ($2K) - Confidential prediction markets
-- Aztec ($5K) - Noir ZK proofs integration
-- Arcium ($10K) - C-SPL confidential transfers
-
-Fee recipient wallet: G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM`
-  },
-  {
-    id: "demo-notice",
+    id: "devnet-status",
     icon: Shield,
-    title: "Demo Notice",
-    content: `**This is a working demo of dum.fun.**
+    title: "Platform Status",
+    content: `**dum.fun is live on Solana Devnet**
 
-The platform is currently running on Solana Devnet for the hackathon. Here's what works:
-- ✅ Connecting your Phantom wallet
-- ✅ Creating tokens (simulated on devnet)
-- ✅ Viewing token listings
-- ✅ Creating prediction markets
-- ✅ Placing bets on predictions
-- ✅ Viewing your profile
-- ✅ Privacy status API endpoint
+Deploy real SPL tokens on Solana devnet with integrated prediction markets.
 
-**Coming at full launch:**
-- Real Solana mainnet deployment
+**Current Features:**
+- ✅ Real on-chain token creation on Solana devnet
+- ✅ Phantom wallet connection and signing
+- ✅ Wallet balance display with airdrop
+- ✅ Token listings and details
+- ✅ Prediction markets on every token
+- ✅ Betting with virtual currency
+
+**Coming Soon:**
+- Solana mainnet deployment
 - Live bonding curve smart contract
 - Real SOL transactions
-- DFlow/Kalshi prediction market integration
-- Token graduation to Raydium
-- Full Token-2022 Confidential Transfers
-
-Join the waitlist to be notified when we go live!`
+- Token graduation to Raydium DEX`
   },
   {
     id: "what-is-dumfun",

@@ -2,10 +2,8 @@
 
 ## Overview
 
-Dum.fun is a Solana-based platform for the **Solana Privacy Hack 2026** hackathon, offering token launchpad and prediction market functionalities with a neo-brutalist aesthetic. The platform combines meme token launches with bonding curves and prediction markets, targeting multiple bounty tracks.
+Dum.fun is a Solana-based token launchpad with integrated prediction markets. The platform offers a neo-brutalist aesthetic and combines meme token launches with bonding curves and prediction markets.
 
-**Hackathon Submission:** Solana Privacy Hack 2026
-**Deadline:** Jan 30, 2026 (submissions Feb 1)
 **Fee Recipient Wallet:** G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM
 
 ## Platform Mode

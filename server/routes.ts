@@ -1305,37 +1305,23 @@ export async function registerRoutes(
     
     return res.json({
       platform: "dum.fun",
-      hackathon: "Solana Privacy Hack 2026",
       network,
       privacyFeatures: {
         heliusRpc: heliusActive,
         confidentialBetting: true,
-        anonymousTokenCreation: true,
+        anonymousTokenCreation: false,
         privateBalances: "planned",
         zkProofs: "planned",
       },
       rpcProvider: getRpcProvider(),
       rpcUrl: heliusActive ? "helius-rpc.com (API key hidden)" : getHeliusRpcUrl(),
-      tracks: [
-        "Private Payments ($15K) - Confidential prediction market betting",
-        "Privacy Tooling ($15K) - Privacy-first token launchpad",
-        "Open Track ($18K) - Private launchpad + prediction markets",
-      ],
-      bounties: [
-        "Helius ($5K) - Using Helius RPC",
-        "Inco ($2K) - Confidential prediction markets",
-        "Token-2022 ($15K) - Confidential Transfers",
-        "Arcium ($10K) - C-SPL Trading",
-      ],
       implementation: {
         heliusRpc: "All server-side Solana connections use centralized Helius RPC helper",
-        anonymousTokens: "Privacy mode allows token creation without wallet connection",
+        onChainTokens: "Real SPL token creation on Solana devnet",
         confidentialBets: "Prediction market bets stored in database without public disclosure",
       },
-      activeFeatures: privacySummary.activeFeatures,
-      plannedFeatures: privacySummary.plannedFeatures,
-      sdkIntegrations: integrations,
-      totalBountyPotential: "$57,500",
+      activeFeatures: ["Helius RPC Integration", "On-Chain Token Creation", "Confidential Betting"],
+      plannedFeatures: ["Token-2022 Confidential Transfers", "ZK Proofs", "Mainnet Deployment"],
     });
   });
 
