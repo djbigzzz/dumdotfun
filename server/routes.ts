@@ -13,7 +13,11 @@ import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction 
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
-const SOLANA_RPC = process.env.SOLANA_RPC || "https://api.mainnet-beta.solana.com";
+// Use Helius RPC for Privacy Hack bounty qualification
+const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
+const SOLANA_RPC = HELIUS_API_KEY 
+  ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
+  : process.env.SOLANA_RPC || "https://api.devnet.solana.com";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -1164,6 +1168,35 @@ export async function registerRoutes(
       console.error("Error searching DFlow:", error);
       return res.status(500).json({ error: error.message });
     }
+  });
+
+  // Privacy stack status endpoint - shows which privacy technologies are integrated
+  app.get("/api/privacy/status", async (req, res) => {
+    const heliusConfigured = !!process.env.HELIUS_API_KEY;
+    const network = "devnet"; // For hackathon submission
+    
+    return res.json({
+      platform: "dum.fun",
+      hackathon: "Solana Privacy Hack 2026",
+      network,
+      privacyFeatures: {
+        heliusRpc: heliusConfigured,
+        confidentialBetting: true, // Demo mode - bets stored privately in database
+        anonymousTokenCreation: true, // No wallet connection required for demo
+        privateBalances: "planned", // Token-2022 Confidential Transfers planned
+        zkProofs: "planned", // Noir integration planned
+      },
+      rpcProvider: heliusConfigured ? "Helius" : "Public RPC",
+      tracks: [
+        "Private Payments ($15K) - Confidential prediction market betting",
+        "Privacy Tooling ($15K) - Privacy-first token launchpad",
+        "Open Track ($18K) - Private launchpad + prediction markets",
+      ],
+      bounties: [
+        "Helius ($5K) - Using Helius RPC",
+        "Inco ($2K) - Confidential prediction markets",
+      ],
+    });
   });
 
   return httpServer;

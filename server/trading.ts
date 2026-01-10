@@ -25,8 +25,10 @@ export const TRADING_CONFIG = {
   // Program ID - placeholder until contract is deployed
   BONDING_CURVE_PROGRAM_ID: process.env.BONDING_CURVE_PROGRAM_ID || "11111111111111111111111111111111",
   
-  // RPC endpoint
-  RPC_ENDPOINT: process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com",
+  // RPC endpoint - Use Helius RPC for Privacy Hack bounty
+  RPC_ENDPOINT: process.env.HELIUS_API_KEY 
+    ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+    : process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
   
   // Fee recipient (platform wallet)
   FEE_RECIPIENT: process.env.FEE_RECIPIENT_WALLET || "",
