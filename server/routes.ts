@@ -14,6 +14,7 @@ import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fee
 import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
+import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -493,6 +494,127 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("[DEMO] Error creating token:", error);
       return res.status(500).json({ error: "Failed to create token" });
+    }
+  });
+
+  // DEVNET: Build real on-chain token creation transaction
+  app.post("/api/tokens/devnet-create", async (req, res) => {
+    try {
+      const { name, symbol, creatorAddress, description, imageUri } = req.body;
+
+      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
+        return res.status(400).json({ error: "Name is required (max 32 characters)" });
+      }
+
+      if (!symbol || typeof symbol !== "string" || symbol.trim().length === 0 || symbol.length > 10) {
+        return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
+      }
+
+      if (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length < 32) {
+        return res.status(400).json({ error: "Valid creator wallet address is required" });
+      }
+
+      console.log(`[DEVNET] Building token transaction: ${name} (${symbol}) for ${creatorAddress}`);
+
+      const result = await buildDevnetTokenTransaction({
+        creatorAddress,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        uri: imageUri || "",
+      });
+
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        mint: result.mint,
+        message: "Transaction built - sign with your wallet to deploy on devnet",
+      });
+    } catch (error: any) {
+      console.error("[DEVNET] Error building token transaction:", error);
+      return res.status(500).json({ error: error.message || "Failed to build token transaction" });
+    }
+  });
+
+  // DEVNET: Confirm token creation after user signs and submits
+  app.post("/api/tokens/devnet-confirm", async (req, res) => {
+    try {
+      const { mint, name, symbol, description, imageUri, creatorAddress, signature } = req.body;
+
+      if (!mint || !name || !symbol || !creatorAddress || !signature) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      console.log(`[DEVNET] Confirming token: ${name} (${symbol}), mint: ${mint}, sig: ${signature}`);
+
+      // Save token to database
+      const token = await storage.createToken({
+        mint,
+        name: name.trim(),
+        symbol: symbol.trim().toUpperCase(),
+        description: description?.trim() || null,
+        imageUri: imageUri || null,
+        creatorAddress,
+      });
+
+      // Auto-create prediction market
+      try {
+        await storage.createMarket({
+          question: `Will $${token.symbol} survive 7 days?`,
+          description: `Prediction on whether ${token.name} will still be trading in 7 days.`,
+          imageUri: token.imageUri,
+          creatorAddress,
+          predictionType: "survival",
+          tokenMint: mint,
+          resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        });
+        console.log(`[DEVNET] Auto-created prediction market for ${token.symbol}`);
+      } catch (marketError) {
+        console.error("[DEVNET] Failed to create prediction market:", marketError);
+      }
+
+      return res.json({
+        success: true,
+        token,
+        signature,
+        message: "Token deployed on Solana devnet!",
+      });
+    } catch (error: any) {
+      console.error("[DEVNET] Error confirming token:", error);
+      return res.status(500).json({ error: "Failed to confirm token" });
+    }
+  });
+
+  // DEVNET: Get wallet balance
+  app.get("/api/devnet/balance/:address", async (req, res) => {
+    try {
+      const { address } = req.params;
+      const balance = await getDevnetBalance(address);
+      return res.json({ address, balance, network: "devnet" });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  // DEVNET: Request airdrop
+  app.post("/api/devnet/airdrop", async (req, res) => {
+    try {
+      const { address } = req.body;
+      if (!address) {
+        return res.status(400).json({ error: "Address is required" });
+      }
+      
+      const result = await requestDevnetAirdrop(address);
+      if (!result.success) {
+        return res.status(400).json({ error: result.error });
+      }
+      
+      return res.json({ success: true, signature: result.signature });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
     }
   });
 

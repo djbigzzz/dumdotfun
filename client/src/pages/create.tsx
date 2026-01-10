@@ -1,7 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, Zap, Info, Loader2, CheckCircle, ExternalLink, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
@@ -38,51 +38,169 @@ export default function CreateToken() {
   const [fileName, setFileName] = useState<string | null>(null);
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
   const [privacyMode, setPrivacyMode] = useState(false);
+  const [useDevnet, setUseDevnet] = useState(true);
+  const [walletBalance, setWalletBalance] = useState<number | null>(null);
 
   const [creationStep, setCreationStep] = useState<string>("");
 
+  const fetchBalance = async () => {
+    if (connectedWallet) {
+      try {
+        const res = await fetch(`/api/devnet/balance/${connectedWallet}`);
+        const data = await res.json();
+        setWalletBalance(data.balance);
+      } catch (e) {
+        console.error("Failed to fetch balance:", e);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (connectedWallet && useDevnet) {
+      fetchBalance();
+    }
+  }, [connectedWallet, useDevnet]);
+
+  const requestAirdrop = async () => {
+    if (!connectedWallet) {
+      toast.error("Connect wallet first");
+      return;
+    }
+    
+    toast.info("Requesting devnet SOL airdrop...");
+    try {
+      const res = await fetch("/api/devnet/airdrop", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ address: connectedWallet }),
+      });
+      
+      if (res.ok) {
+        toast.success("Airdrop received! +1 SOL");
+        fetchBalance();
+      } else {
+        const data = await res.json();
+        toast.error(data.error || "Airdrop failed");
+      }
+    } catch (e) {
+      toast.error("Airdrop request failed");
+    }
+  };
+
   const createTokenMutation = useMutation({
     mutationFn: async () => {
-      setCreationStep(privacyMode ? "Creating token anonymously..." : "Creating token in demo mode...");
+      if (privacyMode || !useDevnet) {
+        setCreationStep(privacyMode ? "Creating token anonymously..." : "Creating token in demo mode...");
+        
+        const creatorAddr = privacyMode ? "anonymous" : (connectedWallet || "anonymous");
+        
+        const res = await fetch("/api/tokens/demo-create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: formData.name,
+            symbol: formData.symbol,
+            description: formData.description || null,
+            imageUri: imagePreview || null,
+            twitter: formData.twitter || null,
+            telegram: formData.telegram || null,
+            website: formData.website || null,
+            creatorAddress: creatorAddr,
+            privacyMode: privacyMode,
+          }),
+        });
+        
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || "Failed to create token");
+        }
+        
+        const data = await res.json();
+        setCreationStep("Token created!");
+        return { token: data.token, signature: "demo-" + data.token.mint.slice(0, 8) };
+      }
+
+      if (!connectedWallet) {
+        throw new Error("Connect wallet to deploy on devnet");
+      }
+
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom?.isPhantom) {
+        throw new Error("Phantom wallet required for devnet deployment");
+      }
+
+      setCreationStep("Building transaction...");
       
-      // Demo mode: save directly to database without blockchain transaction
-      // Privacy mode: hide creator wallet address, no wallet required
-      const creatorAddr = privacyMode ? "anonymous" : (connectedWallet || "anonymous");
-      
-      const res = await fetch("/api/tokens/demo-create", {
+      const buildRes = await fetch("/api/tokens/devnet-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: formData.name,
           symbol: formData.symbol,
+          creatorAddress: connectedWallet,
           description: formData.description || null,
           imageUri: imagePreview || null,
-          twitter: formData.twitter || null,
-          telegram: formData.telegram || null,
-          website: formData.website || null,
-          creatorAddress: creatorAddr,
-          privacyMode: privacyMode,
         }),
       });
-      
-      if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Failed to create token");
-      }
-      
-      const data = await res.json();
-      
-      setCreationStep("Token created!");
 
-      return {
-        token: data.token,
-        signature: "demo-" + data.token.mint.slice(0, 8),
-      };
+      if (!buildRes.ok) {
+        const error = await buildRes.json();
+        throw new Error(error.error || "Failed to build transaction");
+      }
+
+      const { transaction: txBase64, mint } = await buildRes.json();
+      
+      setCreationStep("Please sign the transaction in your wallet...");
+      
+      const txBytes = Uint8Array.from(atob(txBase64), c => c.charCodeAt(0));
+      const transaction = VersionedTransaction.deserialize(txBytes);
+      
+      const signedTx = await phantom.signTransaction(transaction);
+      
+      setCreationStep("Submitting to Solana devnet...");
+      
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+
+      setCreationStep("Confirming transaction...");
+      
+      await connection.confirmTransaction(signature, "confirmed");
+      
+      setCreationStep("Saving token to database...");
+      
+      const confirmRes = await fetch("/api/tokens/devnet-confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mint,
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description || null,
+          imageUri: imagePreview || null,
+          creatorAddress: connectedWallet,
+          signature,
+        }),
+      });
+
+      if (!confirmRes.ok) {
+        const error = await confirmRes.json();
+        throw new Error(error.error || "Failed to confirm token");
+      }
+
+      const { token } = await confirmRes.json();
+      setCreationStep("Token deployed on Solana devnet!");
+      
+      return { token, signature };
     },
     onSuccess: (data) => {
-      toast.success(`Token ${data.token.name} created in demo mode!`);
+      const mode = useDevnet && !privacyMode ? "devnet" : (privacyMode ? "privately" : "demo mode");
+      toast.success(`Token ${data.token.name} created on ${mode}!`);
       setCreatedToken({ ...data.token, signature: data.signature });
       setCreationStep("");
+      fetchBalance();
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -141,11 +259,74 @@ export default function CreateToken() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="bg-yellow-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-          <p className="text-sm font-bold text-yellow-800">
-            ⚠️ DEMO MODE: Tokens created here are saved to our demo database. Real mainnet deployment coming soon!
+        <div className={`border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${useDevnet && !privacyMode ? 'bg-green-100' : 'bg-yellow-100'}`}>
+          <p className={`text-sm font-bold ${useDevnet && !privacyMode ? 'text-green-800' : 'text-yellow-800'}`}>
+            {useDevnet && !privacyMode 
+              ? '🚀 DEVNET MODE: Tokens will be deployed to Solana devnet - real on-chain transactions!'
+              : privacyMode 
+                ? '🔒 PRIVACY MODE: Token created anonymously in demo database'
+                : '⚠️ DEMO MODE: Tokens created here are saved to our demo database only'}
           </p>
         </div>
+
+        {/* Devnet Controls */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+        >
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${useDevnet ? 'bg-purple-500' : 'bg-gray-200'}`}>
+                <Zap className={`w-5 h-5 ${useDevnet ? 'text-white' : 'text-gray-500'}`} />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Deploy to Devnet</p>
+                <p className="text-xs text-gray-600">
+                  {useDevnet ? 'Real Solana transactions on devnet' : 'Save to database only (demo)'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setUseDevnet(!useDevnet)}
+              disabled={privacyMode}
+              className={`px-4 py-2 font-bold rounded-lg border-2 border-black transition-all ${
+                useDevnet 
+                  ? 'bg-purple-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
+                  : 'bg-white text-gray-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              } ${privacyMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+              data-testid="button-toggle-devnet"
+            >
+              {useDevnet ? 'ON-CHAIN' : 'DEMO'}
+            </button>
+          </div>
+          
+          {useDevnet && connectedWallet && (
+            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+              <div>
+                <p className="text-xs text-gray-500">Devnet Balance</p>
+                <p className="font-bold text-gray-900">
+                  {walletBalance !== null ? `${walletBalance.toFixed(4)} SOL` : 'Loading...'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={requestAirdrop}
+                className="px-3 py-1 text-sm font-bold bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                data-testid="button-request-airdrop"
+              >
+                Request Airdrop
+              </button>
+            </div>
+          )}
+          
+          {privacyMode && (
+            <p className="text-xs text-gray-500 mt-2">
+              Devnet deployment disabled in Privacy Mode
+            </p>
+          )}
+        </motion.div>
 
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
