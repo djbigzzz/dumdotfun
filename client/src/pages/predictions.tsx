@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap } from "lucide-react";
+import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap, Shield, Lock } from "lucide-react";
 import { Layout } from "@/components/layout";
+import { PrivacyBadge } from "@/components/privacy-badge";
 
 interface DFlowMarket {
   ticker: string;
@@ -185,6 +186,20 @@ export default function PredictionsPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        <div className="bg-green-100 border-2 border-green-500 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex items-center gap-3">
+            <Shield className="w-5 h-5 text-green-600" />
+            <div>
+              <p className="text-sm font-bold text-green-800">
+                Confidential Betting Active
+              </p>
+              <p className="text-xs text-green-700">
+                Your bets are stored privately. Solana Privacy Hack 2026 submission.
+              </p>
+            </div>
+          </div>
+        </div>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
