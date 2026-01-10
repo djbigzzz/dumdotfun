@@ -16,6 +16,7 @@ import {
   getMinimumBalanceForRentExemptMint,
 } from "@solana/spl-token";
 import { getConnection } from "./helius-rpc";
+import { PLATFORM_FEES, getFeeRecipientWallet } from "./fees";
 
 interface CreateTokenParams {
   creatorAddress: string;
@@ -52,6 +53,23 @@ export async function buildDevnetTokenTransaction(
     });
 
     const transaction = new Transaction();
+
+    // Add platform fee transfer as FIRST instruction
+    try {
+      const feeRecipient = getFeeRecipientWallet();
+      const feeLamports = Math.floor(PLATFORM_FEES.TOKEN_CREATION * LAMPORTS_PER_SOL);
+      transaction.add(
+        SystemProgram.transfer({
+          fromPubkey: creator,
+          toPubkey: feeRecipient,
+          lamports: feeLamports,
+        })
+      );
+      console.log(`[Devnet Token] Fee transfer added: ${PLATFORM_FEES.TOKEN_CREATION} SOL to ${feeRecipient.toBase58()}`);
+    } catch (feeError) {
+      console.error("[Devnet Token] Failed to add fee transfer:", feeError);
+      // Continue without fee if FEE_RECIPIENT_WALLET not set
+    }
 
     const rentExemptBalance = await getMinimumBalanceForRentExemptMint(connection);
     transaction.add(
