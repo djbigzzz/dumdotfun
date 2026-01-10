@@ -1,54 +1,79 @@
-# Dum.fun - Solana Token Launchpad + Prediction Markets
+# Dum.fun - Privacy-First Solana Token Launchpad + Prediction Markets
 
 ## Overview
 
-Dum.fun is a Solana-based platform offering both token launchpad and prediction market functionalities with a neo-brutalist aesthetic. Its primary purpose is to allow users to launch meme tokens with bonding curves and create/bet on prediction markets for various outcomes, including token-specific events. The platform supports two token creation paths: integration with Pump.fun for quick launches and a custom bonding curve contract for greater control.
+Dum.fun is a Solana-based privacy-preserving platform for the **Solana Privacy Hack 2026** hackathon, offering token launchpad and prediction market functionalities with a neo-brutalist aesthetic. The platform combines meme token launches with bonding curves and confidential prediction markets, targeting multiple bounty tracks.
+
+**Hackathon Submission:** Solana Privacy Hack 2026
+**Deadline:** Jan 30, 2026 (submissions Feb 1)
+**Fee Recipient Wallet:** G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM
+
+## Privacy Features
+
+- **Helius RPC Integration** ($5K bounty) - All server-side Solana connections use Helius RPC
+- **Confidential Betting** - Bets stored privately in database (demo mode)
+- **Anonymous Token Creation** - Demo mode creates tokens without requiring wallet connection
+- **Devnet Deployment** - Running on Solana Devnet for hackathon testing
+
+### Planned Privacy Features
+- Token-2022 Confidential Transfers for private token balances
+- Inco Lightning SDK for confidential prediction markets ($2K bounty)
+- Noir ZK proofs for private betting verification ($5K Aztec bounty)
+- Arcium C-SPL for confidential token trading ($10K bounty)
 
 ## User Preferences
 
 - Preferred communication style: Simple, everyday language
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
-- Use free APIs only (Pump.fun API, Jupiter for pricing, public Solana RPC)
+- Demo mode clearly indicated with yellow banners
+- Platform running on Solana Devnet
 
 ## System Architecture
 
 ### Frontend Architecture
 
-The frontend is built with React 18 and TypeScript, using Vite for building and Wouter for routing. UI components leverage Shadcn/ui with Radix UI primitives, styled with Tailwind CSS v4, and animations handled by Framer Motion. The design follows a neo-brutalist theme using specific color palettes (zinc-950, red-500, yellow-500, green-500). Key pages include `/create` for token creation, `/tokens` for browsing, and `/profile` for user details.
+React 18 + TypeScript with Vite, Wouter routing, Shadcn/ui with Radix UI primitives, Tailwind CSS v4, Framer Motion animations. Neo-brutalist theme (zinc-950, red-500, yellow-500, green-500).
+
+Key pages:
+- `/` and `/tokens` - Token listings
+- `/create` - Token creation (demo mode)
+- `/predictions` - Prediction markets
+- `/docs` - Documentation with privacy features
+- `/profile` - User profile
 
 ### Backend Architecture
 
-The backend is an Express.js application with TypeScript, providing API endpoints for token management, user authentication, prediction markets, and trading. It integrates with Solana for on-chain interactions. All tokens created on the platform are stored in a PostgreSQL database. Real-time updates are handled via WebSocket integration, connecting to PumpPortal for live token creation and trade events.
-
-### Platform Features
-
-- **Token Launchpad**: Supports token creation via Pump.fun integration or a custom bonding curve contract, with metadata stored in PostgreSQL.
-- **Prediction Markets**: Users can create general or token-specific yes/no markets, with betting functionality and Constant Product Market Maker (CPMM) for odds.
-- **Referral System**: Generates unique referral codes and tracks referrals.
-- **Wallet Integration**: Phantom wallet integration for connection and message signing.
-- **Real-time Activity**: Live activity feed for new tokens, trades, and graduations via WebSockets.
+Express.js + TypeScript backend with:
+- Helius RPC for all Solana connections (devnet)
+- PostgreSQL database for tokens, markets, bets, users
+- WebSocket for real-time activity feed
+- Privacy status API endpoint (`/api/privacy/status`)
 
 ### Database Schema
 
-The PostgreSQL database includes tables for `users`, `tokens`, `prediction_markets`, `positions`, and `activity_feed` to manage user data, token metadata, market details, user bets, and platform activity respectively.
-
-### Technical Implementations
-
-- **Token Creation**: Utilizes PumpPortal API for real on-chain deployment to Pump.fun, including client-side mint keypair generation for security.
-- **Bonding Curve**: The custom contract (Anchor-based Solana program) implements a constant product (x*y=k) bonding curve with platform fees and a graduation threshold for DEX migration.
-- **Image Handling**: Client-side image compression using sharp for uploads.
-- **Price Fetching**: SOL price fetching uses Jupiter API with CoinGecko fallback and caching.
-- **Error Handling**: Focuses on robust error handling with no mock data, only real blockchain data or clear error messages.
+PostgreSQL tables:
+- `users` - Wallet addresses, profiles
+- `tokens` - Token metadata, bonding curve state
+- `prediction_markets` - Market questions, outcomes
+- `positions` - User bets on markets
+- `activity_feed` - Platform activity log
+- `waitlist` - Email signups
 
 ## External Dependencies
 
-- **Solana Blockchain**: Core blockchain for token operations and smart contracts.
-- **Phantom Wallet**: For user wallet connection and transaction signing.
-- **Pump.fun API**: For quick token launches and IPFS metadata uploads.
-- **PumpPortal API**: For building unsigned transactions for Pump.fun.
-- **Jupiter API**: Primary API for fetching SOL and token prices.
-- **CoinGecko API**: Fallback API for fetching SOL prices.
-- **Dexscreener API**: For live token data (free, no auth).
-- **Helius DAS API**: For on-chain token data.
-- **PostgreSQL**: Relational database for storing platform data.
-- **Sharp (Node.js library)**: For image compression and resizing.
+- **Helius RPC** - Primary Solana RPC (devnet.helius-rpc.com)
+- **Phantom Wallet** - Wallet connection and signing
+- **Jupiter API** - SOL pricing
+- **CoinGecko API** - Fallback pricing
+- **PostgreSQL** - Data persistence
+- **SendGrid** - Waitlist emails
+
+## Environment Variables
+
+Required secrets:
+- `HELIUS_API_KEY` - Helius RPC access
+- `DATABASE_URL` - PostgreSQL connection
+
+Auto-configured:
+- `VITE_SOLANA_RPC_URL` - Frontend RPC (public devnet)
+- `SOLANA_NETWORK` - Set to "devnet"
