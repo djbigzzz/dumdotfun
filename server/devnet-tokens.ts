@@ -123,7 +123,7 @@ export async function buildDevnetTokenTransaction(
 
 export async function getDevnetBalance(address: string): Promise<number> {
   try {
-    const connection = getConnection();
+    const connection = new Connection("https://api.devnet.solana.com", "confirmed");
     const pubkey = new PublicKey(address);
     const balance = await connection.getBalance(pubkey);
     return balance / LAMPORTS_PER_SOL;
@@ -135,7 +135,7 @@ export async function getDevnetBalance(address: string): Promise<number> {
 
 export async function requestDevnetAirdrop(address: string): Promise<{ success: boolean; signature?: string; error?: string }> {
   try {
-    const connection = getConnection();
+    const connection = new Connection("https://api.devnet.solana.com", "confirmed");
     const pubkey = new PublicKey(address);
     
     const signature = await connection.requestAirdrop(pubkey, 1 * LAMPORTS_PER_SOL);
