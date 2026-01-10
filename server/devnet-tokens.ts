@@ -15,8 +15,9 @@ import {
   MINT_SIZE,
   getMinimumBalanceForRentExemptMint,
 } from "@solana/spl-token";
-import { getConnection } from "./helius-rpc";
 import { PLATFORM_FEES, getFeeRecipientWallet } from "./fees";
+
+const DEVNET_RPC = "https://api.devnet.solana.com";
 
 interface CreateTokenParams {
   creatorAddress: string;
@@ -38,7 +39,7 @@ export async function buildDevnetTokenTransaction(
   params: CreateTokenParams
 ): Promise<CreateTokenResult> {
   try {
-    const connection = getConnection();
+    const connection = new Connection(DEVNET_RPC, "confirmed");
     const creator = new PublicKey(params.creatorAddress);
     const mintKeypair = Keypair.generate();
     const mint = mintKeypair.publicKey;
