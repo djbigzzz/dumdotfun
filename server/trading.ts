@@ -25,10 +25,11 @@ export const TRADING_CONFIG = {
   // Program ID - placeholder until contract is deployed
   BONDING_CURVE_PROGRAM_ID: process.env.BONDING_CURVE_PROGRAM_ID || "11111111111111111111111111111111",
   
-  // RPC endpoint - Use Helius RPC for Privacy Hack bounty
-  RPC_ENDPOINT: process.env.HELIUS_API_KEY 
-    ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
-    : process.env.SOLANA_RPC_URL || "https://api.devnet.solana.com",
+  // RPC endpoint - Use centralized Helius RPC helper
+  get RPC_ENDPOINT() {
+    const { getHeliusRpcUrl } = require("./helius-rpc");
+    return getHeliusRpcUrl();
+  },
   
   // Fee recipient (platform wallet)
   FEE_RECIPIENT: process.env.FEE_RECIPIENT_WALLET || "",
@@ -37,9 +38,11 @@ export const TRADING_CONFIG = {
   DEFAULT_SLIPPAGE_BPS: 500, // 5%
 };
 
-// Create Solana connection
+import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
+
+// Create Solana connection - uses centralized Helius RPC helper
 export function getConnection(): Connection {
-  return new Connection(TRADING_CONFIG.RPC_ENDPOINT, "confirmed");
+  return getHeliusConnection();
 }
 
 // Derive bonding curve PDA for a token mint

@@ -13,11 +13,7 @@ import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction 
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
-// Use Helius RPC for Privacy Hack bounty qualification
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-const SOLANA_RPC = HELIUS_API_KEY 
-  ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
-  : process.env.SOLANA_RPC || "https://api.devnet.solana.com";
+import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -429,7 +425,7 @@ export async function registerRoutes(
   // Demo mode token creation - saves directly to database without blockchain
   app.post("/api/tokens/demo-create", async (req, res) => {
     try {
-      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress } = req.body;
+      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, privacyMode } = req.body;
 
       // Validate required fields
       if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
@@ -440,9 +436,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
       }
 
-      if (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0) {
-        return res.status(400).json({ error: "Creator wallet address is required" });
+      // Privacy mode allows anonymous creator - no wallet required
+      const isAnonymous = privacyMode || creatorAddress === "anonymous";
+      if (!isAnonymous && (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0)) {
+        return res.status(400).json({ error: "Creator wallet address is required (or enable privacy mode)" });
       }
+      
+      // Handle privacy mode - use anonymous address for public display
+      const displayAddress = isAnonymous ? "anonymous" : creatorAddress;
 
       // Generate a demo mint address (random base58-like string)
       const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
@@ -451,22 +452,22 @@ export async function registerRoutes(
         demoMint += chars.charAt(Math.floor(Math.random() * chars.length));
       }
 
-      console.log(`[DEMO] Creating token: ${name} (${symbol}) for ${creatorAddress}, mint: ${demoMint}`);
+      console.log(`[DEMO] Creating token: ${name} (${symbol}) for ${displayAddress}${privacyMode ? ' (PRIVATE)' : ''}, mint: ${demoMint}`);
 
-      // Save token to database
+      // Save token to database with privacy-aware creator address
       const token = await storage.createToken({
         mint: demoMint,
         name: name.trim(),
         symbol: symbol.trim().toUpperCase(),
         description: description?.trim() || null,
         imageUri: imageUri || null,
-        creatorAddress,
+        creatorAddress: displayAddress,
         twitter: twitter?.trim() || null,
         telegram: telegram?.trim() || null,
         website: website?.trim() || null,
       });
 
-      console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
+      console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}${privacyMode ? ' [PRIVATE LAUNCH]' : ''}`);
 
       // Auto-create a prediction market for the token
       try {
@@ -474,7 +475,7 @@ export async function registerRoutes(
           question: `Will $${token.symbol} survive 7 days?`,
           description: `Prediction on whether ${token.name} will still be trading in 7 days.`,
           imageUri: token.imageUri,
-          creatorAddress,
+          creatorAddress: displayAddress,
           predictionType: "survival",
           tokenMint: demoMint,
           resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
@@ -585,7 +586,7 @@ export async function registerRoutes(
       // Build platform fee transaction (separate from pump.fun tx)
       let feeTransaction = null;
       try {
-        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const connection = getHeliusConnection();
         const { blockhash } = await connection.getLatestBlockhash();
         const feeRecipient = getFeeRecipientWallet();
         const feeLamports = Math.floor(PLATFORM_FEES.TOKEN_CREATION * LAMPORTS_PER_SOL);
@@ -763,7 +764,7 @@ export async function registerRoutes(
       // Build fee transaction for market creation
       let feeTransaction = null;
       try {
-        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const connection = getHeliusConnection();
         const { blockhash } = await connection.getLatestBlockhash();
         const feeRecipient = getFeeRecipientWallet();
         const feeLamports = Math.floor(CREATION_FEE * LAMPORTS_PER_SOL);
@@ -859,7 +860,7 @@ export async function registerRoutes(
       // Build fee transaction for betting
       let feeTransaction = null;
       try {
-        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const connection = getHeliusConnection();
         const { blockhash } = await connection.getLatestBlockhash();
         const feeRecipient = getFeeRecipientWallet();
         const feeLamports = Math.floor(fee * LAMPORTS_PER_SOL);
@@ -1172,21 +1173,23 @@ export async function registerRoutes(
 
   // Privacy stack status endpoint - shows which privacy technologies are integrated
   app.get("/api/privacy/status", async (req, res) => {
-    const heliusConfigured = !!process.env.HELIUS_API_KEY;
-    const network = "devnet"; // For hackathon submission
+    const { isHeliusConfigured, getRpcProvider, getHeliusRpcUrl } = await import("./helius-rpc");
+    const heliusActive = isHeliusConfigured();
+    const network = process.env.SOLANA_NETWORK || "devnet";
     
     return res.json({
       platform: "dum.fun",
       hackathon: "Solana Privacy Hack 2026",
       network,
       privacyFeatures: {
-        heliusRpc: heliusConfigured,
-        confidentialBetting: true, // Demo mode - bets stored privately in database
-        anonymousTokenCreation: true, // No wallet connection required for demo
-        privateBalances: "planned", // Token-2022 Confidential Transfers planned
-        zkProofs: "planned", // Noir integration planned
+        heliusRpc: heliusActive,
+        confidentialBetting: true,
+        anonymousTokenCreation: true,
+        privateBalances: "planned",
+        zkProofs: "planned",
       },
-      rpcProvider: heliusConfigured ? "Helius" : "Public RPC",
+      rpcProvider: getRpcProvider(),
+      rpcUrl: heliusActive ? "helius-rpc.com (API key hidden)" : getHeliusRpcUrl(),
       tracks: [
         "Private Payments ($15K) - Confidential prediction market betting",
         "Privacy Tooling ($15K) - Privacy-first token launchpad",
@@ -1196,6 +1199,11 @@ export async function registerRoutes(
         "Helius ($5K) - Using Helius RPC",
         "Inco ($2K) - Confidential prediction markets",
       ],
+      implementation: {
+        heliusRpc: "All server-side Solana connections use centralized Helius RPC helper",
+        anonymousTokens: "Privacy mode allows token creation without wallet connection",
+        confidentialBets: "Prediction market bets stored in database without public disclosure",
+      },
     });
   });
 

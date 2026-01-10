@@ -2,7 +2,7 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Upload, Zap, Info, Loader2, CheckCircle, ExternalLink } from "lucide-react";
+import { Upload, Zap, Info, Loader2, CheckCircle, ExternalLink, Shield, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -37,14 +37,18 @@ export default function CreateToken() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
+  const [privacyMode, setPrivacyMode] = useState(false);
 
   const [creationStep, setCreationStep] = useState<string>("");
 
   const createTokenMutation = useMutation({
     mutationFn: async () => {
-      setCreationStep("Creating token in demo mode...");
+      setCreationStep(privacyMode ? "Creating token anonymously..." : "Creating token in demo mode...");
       
       // Demo mode: save directly to database without blockchain transaction
+      // Privacy mode: hide creator wallet address, no wallet required
+      const creatorAddr = privacyMode ? "anonymous" : (connectedWallet || "anonymous");
+      
       const res = await fetch("/api/tokens/demo-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,7 +60,8 @@ export default function CreateToken() {
           twitter: formData.twitter || null,
           telegram: formData.telegram || null,
           website: formData.website || null,
-          creatorAddress: connectedWallet,
+          creatorAddress: creatorAddr,
+          privacyMode: privacyMode,
         }),
       });
       
@@ -105,8 +110,9 @@ export default function CreateToken() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!connectedWallet) {
-      toast.error("Please connect your wallet first");
+    // In privacy mode, wallet is not required
+    if (!privacyMode && !connectedWallet) {
+      toast.error("Please connect your wallet first, or enable Privacy Mode");
       return;
     }
 
@@ -140,6 +146,48 @@ export default function CreateToken() {
             ⚠️ DEMO MODE: Tokens created here are saved to our demo database. Real mainnet deployment coming soon!
           </p>
         </div>
+
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${privacyMode ? 'bg-green-100' : 'bg-white'}`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${privacyMode ? 'bg-green-500' : 'bg-gray-200'}`}>
+                <Shield className={`w-5 h-5 ${privacyMode ? 'text-white' : 'text-gray-500'}`} />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900">Privacy Mode</p>
+                <p className="text-xs text-gray-600">
+                  {privacyMode ? 'Your wallet address will be hidden' : 'Enable to hide your wallet address'}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPrivacyMode(!privacyMode)}
+              className={`px-4 py-2 font-bold rounded-lg border-2 border-black transition-all ${
+                privacyMode 
+                  ? 'bg-green-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
+                  : 'bg-white text-gray-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
+              }`}
+              data-testid="button-toggle-privacy"
+            >
+              <span className="flex items-center gap-2">
+                {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {privacyMode ? 'PRIVATE' : 'PUBLIC'}
+              </span>
+            </button>
+          </div>
+          {privacyMode && (
+            <div className="mt-3 p-2 bg-green-200 rounded-lg">
+              <p className="text-xs text-green-800 font-medium">
+                Solana Privacy Hack 2026 Feature: Anonymous token creation hides your wallet from other users.
+              </p>
+            </div>
+          )}
+        </motion.div>
 
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-gray-900">Launch New Token</h1>

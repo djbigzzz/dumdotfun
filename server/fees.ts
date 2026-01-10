@@ -1,10 +1,5 @@
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL, VersionedTransaction, TransactionMessage, TransactionInstruction } from "@solana/web3.js";
-
-// Use Helius RPC for Privacy Hack bounty qualification
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-const SOLANA_RPC = HELIUS_API_KEY 
-  ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
-  : process.env.SOLANA_RPC || "https://api.devnet.solana.com";
+import { getConnection, getHeliusRpcUrl } from "./helius-rpc";
 
 export const PLATFORM_FEES = {
   TOKEN_CREATION: 0.05,
@@ -40,7 +35,7 @@ export async function prependFeeToTransaction(
   payerPublicKey: string,
   feeSol: number
 ): Promise<string> {
-  const connection = new Connection(SOLANA_RPC, "confirmed");
+  const connection = getConnection();
   
   const originalTxBuffer = Buffer.from(base64Transaction, "base64");
   let originalTx: VersionedTransaction;

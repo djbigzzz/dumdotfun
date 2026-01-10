@@ -1,11 +1,7 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL, ParsedTransactionWithMeta, ConfirmedSignatureInfo } from "@solana/web3.js";
+import { getConnection as getHeliusConnection } from "./helius-rpc";
 
-// Use Helius RPC for Privacy Hack bounty qualification
-const HELIUS_API_KEY = process.env.HELIUS_API_KEY;
-const SOLANA_RPC = HELIUS_API_KEY 
-  ? `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`
-  : process.env.SOLANA_RPC || "https://api.devnet.solana.com";
-const connection = new Connection(SOLANA_RPC, "confirmed");
+const connection = getHeliusConnection();
 
 const JUPITER_PRICE_API = "https://price.jup.ag/v6/price";
 const DEXSCREENER_API = "https://api.dexscreener.com/latest/dex/tokens";
