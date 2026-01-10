@@ -2,13 +2,12 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Upload, Zap, Info, Loader2, CheckCircle, ExternalLink, Shield, Eye, EyeOff } from "lucide-react";
+import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Buffer } from "buffer";
-import { Connection, Transaction, Keypair } from "@solana/web3.js";
-import bs58 from "bs58";
+import { Connection, Transaction } from "@solana/web3.js";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
@@ -37,29 +36,30 @@ export default function CreateToken() {
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
-  const [privacyMode, setPrivacyMode] = useState(false);
-  const [useDevnet, setUseDevnet] = useState(true);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
-
   const [creationStep, setCreationStep] = useState<string>("");
+  const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const fetchBalance = async () => {
     if (connectedWallet) {
+      setIsLoadingBalance(true);
       try {
         const res = await fetch(`/api/devnet/balance/${connectedWallet}`);
         const data = await res.json();
         setWalletBalance(data.balance);
       } catch (e) {
         console.error("Failed to fetch balance:", e);
+      } finally {
+        setIsLoadingBalance(false);
       }
     }
   };
 
   useEffect(() => {
-    if (connectedWallet && useDevnet) {
+    if (connectedWallet) {
       fetchBalance();
     }
-  }, [connectedWallet, useDevnet]);
+  }, [connectedWallet]);
 
   const requestAirdrop = async () => {
     if (!connectedWallet) {
@@ -89,37 +89,6 @@ export default function CreateToken() {
 
   const createTokenMutation = useMutation({
     mutationFn: async () => {
-      if (privacyMode || !useDevnet) {
-        setCreationStep(privacyMode ? "Creating token anonymously..." : "Creating token in demo mode...");
-        
-        const creatorAddr = privacyMode ? "anonymous" : (connectedWallet || "anonymous");
-        
-        const res = await fetch("/api/tokens/demo-create", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: formData.name,
-            symbol: formData.symbol,
-            description: formData.description || null,
-            imageUri: imagePreview || null,
-            twitter: formData.twitter || null,
-            telegram: formData.telegram || null,
-            website: formData.website || null,
-            creatorAddress: creatorAddr,
-            privacyMode: privacyMode,
-          }),
-        });
-        
-        if (!res.ok) {
-          const error = await res.json();
-          throw new Error(error.error || "Failed to create token");
-        }
-        
-        const data = await res.json();
-        setCreationStep("Token created!");
-        return { token: data.token, signature: "demo-" + data.token.mint.slice(0, 8) };
-      }
-
       if (!connectedWallet) {
         throw new Error("Connect wallet to deploy on devnet");
       }
@@ -196,8 +165,7 @@ export default function CreateToken() {
       return { token, signature };
     },
     onSuccess: (data) => {
-      const mode = useDevnet && !privacyMode ? "devnet" : (privacyMode ? "privately" : "demo mode");
-      toast.success(`Token ${data.token.name} created on ${mode}!`);
+      toast.success(`Token ${data.token.name} deployed on Solana devnet!`);
       setCreatedToken({ ...data.token, signature: data.signature });
       setCreationStep("");
       fetchBalance();
@@ -228,9 +196,8 @@ export default function CreateToken() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // In privacy mode, wallet is not required
-    if (!privacyMode && !connectedWallet) {
-      toast.error("Please connect your wallet first, or enable Privacy Mode");
+    if (!connectedWallet) {
+      toast.error("Please connect your wallet first");
       return;
     }
 
@@ -259,113 +226,93 @@ export default function CreateToken() {
   return (
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className={`border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${useDevnet && !privacyMode ? 'bg-green-100' : 'bg-yellow-100'}`}>
-          <p className={`text-sm font-bold ${useDevnet && !privacyMode ? 'text-green-800' : 'text-yellow-800'}`}>
-            {useDevnet && !privacyMode 
-              ? '🚀 DEVNET MODE: Tokens will be deployed to Solana devnet - real on-chain transactions!'
-              : privacyMode 
-                ? '🔒 PRIVACY MODE: Token created anonymously in demo database'
-                : '⚠️ DEMO MODE: Tokens created here are saved to our demo database only'}
-          </p>
+        {/* Devnet Banner */}
+        <div className="bg-purple-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+          <div className="flex items-center gap-2">
+            <Zap className="w-5 h-5 text-purple-700" />
+            <p className="text-sm font-bold text-purple-800">
+              SOLANA DEVNET - All tokens are deployed on-chain to Solana devnet
+            </p>
+          </div>
         </div>
 
-        {/* Devnet Controls */}
+        {/* Wallet & Balance Section */}
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           className="bg-white border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
         >
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${useDevnet ? 'bg-purple-500' : 'bg-gray-200'}`}>
-                <Zap className={`w-5 h-5 ${useDevnet ? 'text-white' : 'text-gray-500'}`} />
+          {connectedWallet ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-green-500">
+                    <Wallet className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900">Wallet Connected</p>
+                    <p className="text-xs text-gray-500 font-mono">
+                      {connectedWallet.slice(0, 4)}...{connectedWallet.slice(-4)}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-gray-500">Devnet Balance</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-xl text-gray-900">
+                      {walletBalance !== null ? `${walletBalance.toFixed(4)} SOL` : '---'}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={fetchBalance}
+                      disabled={isLoadingBalance}
+                      className="p-1 hover:bg-gray-100 rounded"
+                      data-testid="button-refresh-balance"
+                    >
+                      <RefreshCw className={`w-4 h-4 text-gray-500 ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div>
-                <p className="font-bold text-gray-900">Deploy to Devnet</p>
-                <p className="text-xs text-gray-600">
-                  {useDevnet ? 'Real Solana transactions on devnet' : 'Save to database only (demo)'}
-                </p>
-              </div>
+              
+              {walletBalance !== null && walletBalance < 0.1 && (
+                <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-sm text-yellow-800">
+                    Low balance! You need SOL to deploy tokens.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={requestAirdrop}
+                    className="px-4 py-2 text-sm font-bold bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    data-testid="button-request-airdrop"
+                  >
+                    Get Free SOL
+                  </button>
+                </div>
+              )}
+              
+              {walletBalance !== null && walletBalance >= 0.1 && (
+                <button
+                  type="button"
+                  onClick={requestAirdrop}
+                  className="w-full py-2 text-sm font-bold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  data-testid="button-request-airdrop-secondary"
+                >
+                  Request More Devnet SOL
+                </button>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => setUseDevnet(!useDevnet)}
-              disabled={privacyMode}
-              className={`px-4 py-2 font-bold rounded-lg border-2 border-black transition-all ${
-                useDevnet 
-                  ? 'bg-purple-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
-                  : 'bg-white text-gray-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              } ${privacyMode ? 'opacity-50 cursor-not-allowed' : ''}`}
-              data-testid="button-toggle-devnet"
-            >
-              {useDevnet ? 'ON-CHAIN' : 'DEMO'}
-            </button>
-          </div>
-          
-          {useDevnet && connectedWallet && (
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <div>
-                <p className="text-xs text-gray-500">Devnet Balance</p>
-                <p className="font-bold text-gray-900">
-                  {walletBalance !== null ? `${walletBalance.toFixed(4)} SOL` : 'Loading...'}
-                </p>
-              </div>
+          ) : (
+            <div className="text-center py-4">
+              <Wallet className="w-12 h-12 mx-auto text-gray-300 mb-3" />
+              <p className="text-gray-600 mb-3">Connect your wallet to deploy tokens on Solana devnet</p>
               <button
-                type="button"
-                onClick={requestAirdrop}
-                className="px-3 py-1 text-sm font-bold bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
-                data-testid="button-request-airdrop"
+                onClick={() => connectWallet()}
+                className="px-6 py-3 bg-red-500 text-white font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+                data-testid="button-connect-wallet"
               >
-                Request Airdrop
+                Connect Phantom Wallet
               </button>
-            </div>
-          )}
-          
-          {privacyMode && (
-            <p className="text-xs text-gray-500 mt-2">
-              Devnet deployment disabled in Privacy Mode
-            </p>
-          )}
-        </motion.div>
-
-        <motion.div 
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${privacyMode ? 'bg-green-100' : 'bg-white'}`}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${privacyMode ? 'bg-green-500' : 'bg-gray-200'}`}>
-                <Shield className={`w-5 h-5 ${privacyMode ? 'text-white' : 'text-gray-500'}`} />
-              </div>
-              <div>
-                <p className="font-bold text-gray-900">Privacy Mode</p>
-                <p className="text-xs text-gray-600">
-                  {privacyMode ? 'Your wallet address will be hidden' : 'Enable to hide your wallet address'}
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => setPrivacyMode(!privacyMode)}
-              className={`px-4 py-2 font-bold rounded-lg border-2 border-black transition-all ${
-                privacyMode 
-                  ? 'bg-green-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]' 
-                  : 'bg-white text-gray-700 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]'
-              }`}
-              data-testid="button-toggle-privacy"
-            >
-              <span className="flex items-center gap-2">
-                {privacyMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                {privacyMode ? 'PRIVATE' : 'PUBLIC'}
-              </span>
-            </button>
-          </div>
-          {privacyMode && (
-            <div className="mt-3 p-2 bg-green-200 rounded-lg">
-              <p className="text-xs text-green-800 font-medium">
-                Solana Privacy Hack 2026 Feature: Anonymous token creation hides your wallet from other users.
-              </p>
             </div>
           )}
         </motion.div>
@@ -373,7 +320,7 @@ export default function CreateToken() {
         <div>
           <h1 className="text-3xl md:text-4xl font-black text-gray-900">Launch New Token</h1>
           <p className="text-gray-500 mt-1">
-            Fields marked with * cannot be changed once created
+            Deploy your token directly to Solana devnet
           </p>
         </div>
 
@@ -387,7 +334,7 @@ export default function CreateToken() {
             <div>
               <h2 className="text-2xl font-black text-green-700">TOKEN DEPLOYED!</h2>
               <p className="text-gray-600 text-sm mt-2">
-                Your token <span className="text-gray-900 font-bold">{createdToken.name}</span> ({createdToken.symbol}) is now live on Pump.fun!
+                Your token <span className="text-gray-900 font-bold">{createdToken.name}</span> ({createdToken.symbol}) is now live on Solana devnet!
               </p>
             </div>
             <div className="bg-white border-2 border-black rounded-lg p-3">
@@ -398,7 +345,7 @@ export default function CreateToken() {
               <div className="bg-white border-2 border-black rounded-lg p-3">
                 <p className="text-xs text-gray-500 mb-1 font-bold">Transaction Signature</p>
                 <a 
-                  href={`https://solscan.io/tx/${createdToken.signature}`}
+                  href={`https://explorer.solana.com/tx/${createdToken.signature}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-600 font-mono text-sm break-all hover:underline flex items-center justify-center gap-1"
@@ -547,12 +494,12 @@ export default function CreateToken() {
                 <label className="cursor-pointer block">
                   <div className="space-y-2">
                     <Upload className="w-8 h-8 mx-auto text-gray-400" />
-                    <p className="text-gray-600 text-sm font-medium">Select video or image to upload</p>
+                    <p className="text-gray-600 text-sm font-medium">Select image to upload</p>
                     <p className="text-gray-400 text-xs">or drag and drop here</p>
                   </div>
                   <input
                     type="file"
-                    accept="image/*,video/*"
+                    accept="image/*"
                     onChange={handleImageChange}
                     className="hidden"
                     data-testid="input-token-image"
@@ -560,69 +507,42 @@ export default function CreateToken() {
                 </label>
               )}
             </div>
-
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-700 font-bold mb-1">File size and type</p>
-                <ul className="text-xs text-gray-500 space-y-0.5">
-                  <li>• Image: <span className="text-gray-600">2mb</span></li>
-                  <li>• Video: <span className="text-gray-600">2mb</span></li>
-                  <li>• Format: <span className="text-gray-600">JPG, PNG or MP4</span></li>
-                </ul>
-              </div>
-              <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-                <p className="text-xs text-gray-700 font-bold mb-1">Resolution and aspect ratio</p>
-                <ul className="text-xs text-gray-500 space-y-0.5">
-                  <li>• Image: <span className="text-gray-600">1000x1000px</span></li>
-                  <li>• Video: <span className="text-gray-600">16:9, 1080x600px</span></li>
-                </ul>
-              </div>
-            </div>
           </div>
 
-          {/* Launch Cost Section */}
-          <div className="bg-green-50 border-2 border-green-400 rounded-lg p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-green-700 font-bold text-sm">DEMO MODE: FREE</p>
-                <p className="text-gray-600 text-xs mt-1">Tokens are saved to demo database (no SOL required)</p>
+          {/* Creation Step Display */}
+          {creationStep && (
+            <div className="bg-blue-50 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-3">
+                <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                <p className="text-sm font-bold text-blue-800">{creationStep}</p>
               </div>
             </div>
-          </div>
-
-          {connectedWallet ? (
-            <motion.button
-              type="submit"
-              disabled={createTokenMutation.isPending}
-              whileHover={{ y: createTokenMutation.isPending ? 0 : -2, x: createTokenMutation.isPending ? 0 : -2 }}
-              whileTap={{ y: 0, x: 0 }}
-              className={`w-full bg-green-500 hover:bg-green-600 text-white font-black py-4 rounded-lg uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] flex items-center justify-center gap-2 ${createTokenMutation.isPending ? "opacity-70 cursor-not-allowed" : ""}`}
-              data-testid="button-create-token"
-            >
-              {createTokenMutation.isPending ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  {creationStep || "CREATING..."}
-                </>
-              ) : (
-                <>
-                  <Zap className="w-5 h-5" />
-                  CREATE COIN
-                </>
-              )}
-            </motion.button>
-          ) : (
-            <motion.button
-              type="button"
-              onClick={() => connectWallet()}
-              whileHover={{ y: -2, x: -2 }}
-              whileTap={{ y: 0, x: 0 }}
-              className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-lg uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-            >
-              Connect Wallet to Create
-            </motion.button>
           )}
+
+          {/* Submit Button */}
+          <motion.button
+            type="submit"
+            disabled={createTokenMutation.isPending || !connectedWallet}
+            whileHover={{ y: createTokenMutation.isPending || !connectedWallet ? 0 : -2, x: createTokenMutation.isPending || !connectedWallet ? 0 : -2 }}
+            whileTap={{ y: 0, x: 0 }}
+            className={`w-full py-4 font-black text-lg rounded-lg border-2 border-black transition-all ${
+              createTokenMutation.isPending || !connectedWallet
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]'
+                : 'bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]'
+            }`}
+            data-testid="button-create-token"
+          >
+            {createTokenMutation.isPending ? (
+              <span className="flex items-center justify-center gap-2">
+                <Loader2 className="w-5 h-5 animate-spin" />
+                Deploying to Devnet...
+              </span>
+            ) : !connectedWallet ? (
+              'Connect Wallet to Deploy'
+            ) : (
+              'Deploy Token on Devnet'
+            )}
+          </motion.button>
         </form>
         )}
       </div>

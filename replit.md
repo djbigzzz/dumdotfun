@@ -1,19 +1,28 @@
-# Dum.fun - Privacy-First Solana Token Launchpad + Prediction Markets
+# Dum.fun - Solana Token Launchpad + Prediction Markets
 
 ## Overview
 
-Dum.fun is a Solana-based privacy-preserving platform for the **Solana Privacy Hack 2026** hackathon, offering token launchpad and prediction market functionalities with a neo-brutalist aesthetic. The platform combines meme token launches with bonding curves and confidential prediction markets, targeting multiple bounty tracks.
+Dum.fun is a Solana-based platform for the **Solana Privacy Hack 2026** hackathon, offering token launchpad and prediction market functionalities with a neo-brutalist aesthetic. The platform combines meme token launches with bonding curves and prediction markets, targeting multiple bounty tracks.
 
 **Hackathon Submission:** Solana Privacy Hack 2026
 **Deadline:** Jan 30, 2026 (submissions Feb 1)
 **Fee Recipient Wallet:** G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM
 
-## Privacy Features
+## Platform Mode
 
+**DEVNET ONLY** - All tokens are deployed on-chain to Solana devnet. No demo mode.
+
+- Real SPL token creation via Phantom wallet signing
+- Wallet balance display with airdrop functionality
+- All transactions are real on-chain transactions
+- Tokens saved to database after successful on-chain deployment
+
+## Features
+
+- **Real On-Chain Token Creation** - SPL tokens deployed to Solana devnet
 - **Helius RPC Integration** ($5K bounty) - All server-side Solana connections use Helius RPC
-- **Confidential Betting** - Bets stored privately in database (demo mode)
-- **Anonymous Token Creation** - Demo mode creates tokens without requiring wallet connection
-- **Devnet Deployment** - Running on Solana Devnet for hackathon testing
+- **Wallet Balance Display** - Shows devnet SOL balance with airdrop button
+- **Prediction Markets** - Bet on token survival
 
 ### Privacy SDK Stubs (Ready for Integration)
 
@@ -31,8 +40,7 @@ Located in `server/privacy/`:
 
 - Preferred communication style: Simple, everyday language
 - NO fake/mock data - only real blockchain data or clear errors when APIs fail
-- Demo mode clearly indicated with yellow banners
-- Platform running on Solana Devnet
+- Platform running on Solana Devnet only (no demo mode)
 
 ## System Architecture
 
@@ -42,7 +50,7 @@ React 18 + TypeScript with Vite, Wouter routing, Shadcn/ui with Radix UI primiti
 
 Key pages:
 - `/` and `/tokens` - Token listings
-- `/create` - Token creation (demo mode)
+- `/create` - Token creation (devnet on-chain)
 - `/predictions` - Prediction markets
 - `/docs` - Documentation with privacy features
 - `/profile` - User profile
