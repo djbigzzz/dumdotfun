@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
 import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye } from "lucide-react";
+import { PrivacyStatusPanel } from "@/components/privacy-badge";
 
 const sections = [
   {
@@ -244,6 +245,14 @@ export default function DocsPage() {
             </a>
           </div>
         </nav>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <PrivacyStatusPanel />
+        </motion.div>
 
         <div className="space-y-6">
           {sections.map((section, index) => (
