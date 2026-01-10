@@ -15,13 +15,13 @@ const Marquee = () => {
       <div className="flex items-center justify-center gap-2 animate-marquee whitespace-nowrap font-mono text-sm">
         {[...Array(3)].map((_, i) => (
           <div key={i} className="flex items-center gap-2">
-            <span className="text-yellow-300 font-black">⚠️ DEMO MODE</span>
+            <span className="text-yellow-300 font-black">🚀 SOLANA DEVNET</span>
             <span className="text-pink-200">•</span>
-            <span className="text-white font-black">🧪 TESTNET PREVIEW</span>
+            <span className="text-white font-black">REAL ON-CHAIN TOKENS</span>
             <span className="text-pink-200">•</span>
-            <span className="text-pink-100">FULL LAUNCH COMING SOON</span>
+            <span className="text-pink-100">SOLANA PRIVACY HACK 2026</span>
             <span className="text-pink-200">•</span>
-            <span className="text-yellow-300 font-black">JOIN WAITLIST</span>
+            <span className="text-yellow-300 font-black">DEPLOY NOW</span>
             <span className="text-pink-200 mx-2">•</span>
           </div>
         ))}
@@ -106,6 +106,18 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const { connectedWallet, connectWallet: contextConnect } = useWallet();
   const [showWalletModal, setShowWalletModal] = useState(false);
   const [showRefundJoke, setShowRefundJoke] = useState(false);
+  const [solBalance, setSolBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (connectedWallet) {
+      fetch(`/api/devnet/balance/${connectedWallet}`)
+        .then(res => res.json())
+        .then(data => setSolBalance(data.balance))
+        .catch(() => setSolBalance(null));
+    } else {
+      setSolBalance(null);
+    }
+  }, [connectedWallet]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white">
@@ -136,14 +148,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         
         <div className="flex items-center gap-3">
           {connectedWallet ? (
-            <Link href="/profile">
-              <button 
-                className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                data-testid="button-profile"
-              >
-                Profile
-              </button>
-            </Link>
+            <>
+              <div className="hidden sm:flex items-center gap-2 bg-purple-100 border-2 border-black px-3 py-2 font-mono text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-purple-700 font-bold">
+                  {solBalance !== null ? `${solBalance.toFixed(2)} SOL` : '---'}
+                </span>
+                <span className="text-purple-500 text-xs">(devnet)</span>
+              </div>
+              <Link href="/profile">
+                <button 
+                  className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  data-testid="button-profile"
+                >
+                  Profile
+                </button>
+              </Link>
+            </>
           ) : (
             <button 
               onClick={() => setShowWalletModal(true)}
