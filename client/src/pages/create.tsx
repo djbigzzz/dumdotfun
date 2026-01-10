@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Buffer } from "buffer";
-import { Connection, VersionedTransaction, Keypair } from "@solana/web3.js";
+import { Connection, Transaction, Keypair } from "@solana/web3.js";
 import bs58 from "bs58";
 
 if (typeof window !== "undefined") {
@@ -152,8 +152,8 @@ export default function CreateToken() {
       
       setCreationStep("Please sign the transaction in your wallet...");
       
-      const txBytes = Uint8Array.from(atob(txBase64), c => c.charCodeAt(0));
-      const transaction = VersionedTransaction.deserialize(txBytes);
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
       
       const signedTx = await phantom.signTransaction(transaction);
       
