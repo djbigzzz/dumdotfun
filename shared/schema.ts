@@ -21,12 +21,17 @@ export const tokens = pgTable("tokens", {
   creatorAddress: text("creator_address").notNull(),
   bondingCurveProgress: real("bonding_curve_progress").notNull().default(0),
   marketCapSol: real("market_cap_sol").notNull().default(0),
-  priceInSol: real("price_in_sol").notNull().default(0),
+  priceInSol: real("price_in_sol").notNull().default(0.000001),
   isGraduated: boolean("is_graduated").notNull().default(false),
   deploymentStatus: text("deployment_status").notNull().default("pending"),
   twitter: text("twitter"),
   telegram: text("telegram"),
   website: text("website"),
+  virtualSolReserves: text("virtual_sol_reserves").notNull().default("30"),
+  virtualTokenReserves: text("virtual_token_reserves").notNull().default("800000000"),
+  realSolReserves: text("real_sol_reserves").notNull().default("0"),
+  realTokenReserves: text("real_token_reserves").notNull().default("800000000"),
+  totalSupply: text("total_supply").notNull().default("1000000000"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -88,6 +93,27 @@ export const activityFeed = pgTable("activity_feed", {
   amount: decimal("amount", { precision: 20, scale: 9 }),
   side: text("side"),
   metadata: text("metadata"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const tokenHoldings = pgTable("token_holdings", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  tokenMint: text("token_mint").notNull(),
+  balance: decimal("balance", { precision: 20, scale: 9 }).notNull().default("0"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const trades = pgTable("trades", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  tokenMint: text("token_mint").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  tradeType: text("trade_type").notNull(),
+  solAmount: decimal("sol_amount", { precision: 20, scale: 9 }).notNull(),
+  tokenAmount: decimal("token_amount", { precision: 20, scale: 9 }).notNull(),
+  pricePerToken: decimal("price_per_token", { precision: 20, scale: 12 }).notNull(),
+  feeAmount: decimal("fee_amount", { precision: 20, scale: 9 }).notNull(),
+  txSignature: text("tx_signature"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
