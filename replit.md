@@ -15,11 +15,17 @@ Dum.fun is a Solana-based privacy-preserving platform for the **Solana Privacy H
 - **Anonymous Token Creation** - Demo mode creates tokens without requiring wallet connection
 - **Devnet Deployment** - Running on Solana Devnet for hackathon testing
 
+### Privacy SDK Stubs (Ready for Integration)
+
+Located in `server/privacy/`:
+- **Inco Lightning SDK** (`inco-lightning.ts`) - Confidential prediction market bets ($2K bounty)
+- **Token-2022 Confidential Transfers** (`token2022-confidential.ts`) - Private token balances ($15K)
+- **Arcium C-SPL** (`arcium-cspl.ts`) - Confidential token trading ($10K bounty)
+- **Privacy Index** (`index.ts`) - Exports all integrations with status functions
+
 ### Planned Privacy Features
-- Token-2022 Confidential Transfers for private token balances
-- Inco Lightning SDK for confidential prediction markets ($2K bounty)
 - Noir ZK proofs for private betting verification ($5K Aztec bounty)
-- Arcium C-SPL for confidential token trading ($10K bounty)
+- Full on-chain integration when SDKs are released on devnet
 
 ## User Preferences
 
