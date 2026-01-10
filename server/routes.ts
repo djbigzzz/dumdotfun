@@ -1174,8 +1174,12 @@ export async function registerRoutes(
   // Privacy stack status endpoint - shows which privacy technologies are integrated
   app.get("/api/privacy/status", async (req, res) => {
     const { isHeliusConfigured, getRpcProvider, getHeliusRpcUrl } = await import("./helius-rpc");
+    const { getPrivacySummary, getAllPrivacyIntegrations } = await import("./privacy");
+    
     const heliusActive = isHeliusConfigured();
     const network = process.env.SOLANA_NETWORK || "devnet";
+    const privacySummary = getPrivacySummary();
+    const integrations = getAllPrivacyIntegrations();
     
     return res.json({
       platform: "dum.fun",
@@ -1198,12 +1202,18 @@ export async function registerRoutes(
       bounties: [
         "Helius ($5K) - Using Helius RPC",
         "Inco ($2K) - Confidential prediction markets",
+        "Token-2022 ($15K) - Confidential Transfers",
+        "Arcium ($10K) - C-SPL Trading",
       ],
       implementation: {
         heliusRpc: "All server-side Solana connections use centralized Helius RPC helper",
         anonymousTokens: "Privacy mode allows token creation without wallet connection",
         confidentialBets: "Prediction market bets stored in database without public disclosure",
       },
+      activeFeatures: privacySummary.activeFeatures,
+      plannedFeatures: privacySummary.plannedFeatures,
+      sdkIntegrations: integrations,
+      totalBountyPotential: "$57,500",
     });
   });
 
