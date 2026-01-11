@@ -280,26 +280,28 @@ export default function CreateToken() {
                   <p className="text-sm text-yellow-800">
                     Low balance! You need SOL to deploy tokens.
                   </p>
-                  <button
-                    type="button"
-                    onClick={requestAirdrop}
+                  <a
+                    href="https://faucet.solana.com/"
+                    target="_blank"
+                    rel="noopener noreferrer"
                     className="px-4 py-2 text-sm font-bold bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                     data-testid="button-request-airdrop"
                   >
                     Get Free SOL
-                  </button>
+                  </a>
                 </div>
               )}
               
               {walletBalance !== null && walletBalance >= 0.1 && (
-                <button
-                  type="button"
-                  onClick={requestAirdrop}
-                  className="w-full py-2 text-sm font-bold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                <a
+                  href="https://faucet.solana.com/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2 text-sm font-bold bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-center block"
                   data-testid="button-request-airdrop-secondary"
                 >
                   Request More Devnet SOL
-                </button>
+                </a>
               )}
             </div>
           ) : (
