@@ -804,6 +804,30 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/bonding-curve/confirm-trade", async (req, res) => {
+    try {
+      const { walletAddress, tokenMint, side, amount, signature } = req.body;
+      
+      if (!walletAddress || !tokenMint || !side || !amount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      await storage.addActivity({
+        activityType: side,
+        walletAddress,
+        tokenMint,
+        amount: String(amount),
+        side,
+        metadata: JSON.stringify({ signature }),
+      });
+
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error logging trade activity:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/bonding-curve/quote/:mint", async (req, res) => {
     try {
       const { mint } = req.params;

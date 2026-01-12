@@ -176,8 +176,25 @@ export default function TokenPage() {
       
       return { signature, type, amount };
     },
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       toast.success(`${data.type === "buy" ? "Bought" : "Sold"} successfully! TX: ${data.signature.slice(0, 8)}...`);
+      
+      try {
+        await fetch("/api/bonding-curve/confirm-trade", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: connectedWallet,
+            tokenMint: mint,
+            side: data.type,
+            amount: data.amount,
+            signature: data.signature,
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to log trade activity:", e);
+      }
+      
       setTradeAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
       queryClient.invalidateQueries({ queryKey: ["token-activity", mint] });
