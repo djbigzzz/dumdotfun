@@ -108,12 +108,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [showRefundJoke, setShowRefundJoke] = useState(false);
   const [solBalance, setSolBalance] = useState<number | null>(null);
 
-  useEffect(() => {
+  const fetchBalance = () => {
     if (connectedWallet) {
       fetch(`/api/devnet/balance/${connectedWallet}`)
         .then(res => res.json())
         .then(data => setSolBalance(data.balance))
         .catch(() => setSolBalance(null));
+    }
+  };
+
+  useEffect(() => {
+    if (connectedWallet) {
+      fetchBalance();
+      const interval = setInterval(fetchBalance, 10000);
+      return () => clearInterval(interval);
     } else {
       setSolBalance(null);
     }
