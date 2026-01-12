@@ -281,6 +281,18 @@ export default function TokenPage() {
     refetchInterval: 30000,
   });
 
+  const { data: tradeQuote } = useQuery<{ outputAmount: number; currentPrice: number } | null>({
+    queryKey: ["trade-quote", mint, tradeType, tradeAmount],
+    queryFn: async () => {
+      if (!tradeAmount || Number(tradeAmount) <= 0) return null;
+      const res = await fetch(`/api/bonding-curve/quote/${mint}?action=${tradeType}&amount=${tradeAmount}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!mint && !!tradeAmount && Number(tradeAmount) > 0,
+    staleTime: 5000,
+  });
+
   if (isLoading) {
     return (
       <Layout>
@@ -791,6 +803,19 @@ export default function TokenPage() {
                         <span className="text-gray-600">USD value:</span>
                         <span className="font-mono text-gray-400 italic">
                           unavailable
+                        </span>
+                      </div>
+                    )}
+                    {tradeQuote && tradeQuote.outputAmount > 0 && (
+                      <div className="flex justify-between text-xs mt-2 pt-2 border-t border-gray-200">
+                        <span className="text-gray-600 font-bold">
+                          {tradeType === "buy" ? "You receive:" : "You get:"}
+                        </span>
+                        <span className="font-mono text-green-600 font-bold">
+                          {tradeType === "buy" 
+                            ? `~${tradeQuote.outputAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${token.symbol}`
+                            : `~${tradeQuote.outputAmount.toFixed(6)} SOL`
+                          }
                         </span>
                       </div>
                     )}

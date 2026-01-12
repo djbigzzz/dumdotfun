@@ -104,23 +104,64 @@ export async function registerRoutes(
         };
       });
 
+      let priceInSol = Number(token.priceInSol) || 0.000001;
+      let marketCapSol = Number(token.marketCapSol) || 0;
+      let bondingCurveProgress = Number(token.bondingCurveProgress) || 0;
+      let isGraduated = token.isGraduated;
+      let serializedCurveData = null;
+      try {
+        const mintPubkey = new PublicKey(mint);
+        const rawCurveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
+        if (rawCurveData) {
+          priceInSol = bondingCurve.calculatePrice(rawCurveData.virtualSolReserves, rawCurveData.virtualTokenReserves);
+          const bnToNum = (val: any) => typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
+          const totalSupplyRaw = bnToNum(rawCurveData.tokenTotalSupply);
+          const tokensInCurveRaw = bnToNum(rawCurveData.realTokenReserves);
+          const realSolReservesNum = bnToNum(rawCurveData.realSolReserves);
+          const virtualSolReservesNum = bnToNum(rawCurveData.virtualSolReserves);
+          const virtualTokenReservesNum = bnToNum(rawCurveData.virtualTokenReserves);
+          const totalSupply = totalSupplyRaw / 1_000_000;
+          const tokensInCurve = tokensInCurveRaw / 1_000_000;
+          const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
+          marketCapSol = priceInSol * circulatingSupply;
+          const graduationThreshold = 85 * LAMPORTS_PER_SOL;
+          bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThreshold) * 100);
+          isGraduated = rawCurveData.isGraduated;
+          serializedCurveData = {
+            virtualTokenReserves: virtualTokenReservesNum,
+            virtualSolReserves: virtualSolReservesNum,
+            realTokenReserves: tokensInCurveRaw,
+            realSolReserves: realSolReservesNum,
+            tokenTotalSupply: totalSupplyRaw,
+            isGraduated: rawCurveData.isGraduated,
+            creator: rawCurveData.creator,
+          };
+        }
+      } catch (curveError) {
+        console.log("Could not fetch live bonding curve data:", curveError);
+      }
+
       return res.json({
         mint: token.mint,
         name: token.name,
         symbol: token.symbol,
         description: token.description || "",
         imageUri: token.imageUri,
-        bondingCurveProgress: Number(token.bondingCurveProgress) || 0,
-        marketCapSol: Number(token.marketCapSol) || 0,
-        priceInSol: Number(token.priceInSol) || 0,
+        bondingCurveProgress,
+        marketCapSol,
+        priceInSol,
         creatorAddress: token.creatorAddress,
         twitter: token.twitter,
         telegram: token.telegram,
         website: token.website,
         createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
-        isGraduated: token.isGraduated,
+        isGraduated,
         source: "dum.fun",
         predictions,
+        curveData: serializedCurveData,
+        virtualSolReserves: serializedCurveData?.virtualSolReserves ?? 0,
+        virtualTokenReserves: serializedCurveData?.virtualTokenReserves ?? 0,
+        totalSupply: serializedCurveData?.tokenTotalSupply ? serializedCurveData.tokenTotalSupply / 1_000_000 : 1_000_000_000,
       });
     } catch (error: any) {
       console.error("Error fetching token:", error);
@@ -1291,53 +1332,55 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Token not found" });
       }
 
-      // Get trading activity for this token to build price history
-      const activity = await storage.getActivityByToken(mint, 100);
+      let currentPrice = Number(token.priceInSol) || 0.000001;
       
-      // Build price history from activity or generate from bonding curve
+      try {
+        const mintPubkey = new PublicKey(mint);
+        const curveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
+        if (curveData) {
+          currentPrice = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+        }
+      } catch (e) {
+        console.log("Could not fetch live price for chart:", e);
+      }
+
+      const activity = await storage.getActivityByToken(mint, 100);
       const now = Date.now();
       const priceHistory: { time: number; price: number; volume: number }[] = [];
       
       if (activity.length > 0) {
-        // Group activity by time intervals and calculate prices
         const trades = activity.filter(a => a.activityType === 'buy' || a.activityType === 'sell');
-        trades.reverse().forEach((trade, i) => {
+        trades.reverse().forEach((trade) => {
           const tradeTime = new Date(trade.createdAt).getTime();
           const amount = parseFloat(trade.amount || "0");
           priceHistory.push({
             time: tradeTime,
-            price: Number(token.priceInSol) * (1 + (Math.random() - 0.5) * 0.1), // Slight variation
+            price: currentPrice,
             volume: amount
           });
         });
       }
       
-      // If no trade history, generate synthetic data based on bonding curve
-      if (priceHistory.length < 10) {
-        const basePrice = Number(token.priceInSol) || 0.000001;
-        const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 24 * 60 * 60 * 1000;
-        const timeSpan = now - createdAt;
-        const interval = Math.max(timeSpan / 24, 60000); // At least 1 minute intervals
+      if (priceHistory.length < 5) {
+        const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 60 * 60 * 1000;
+        const timeSpan = Math.max(now - createdAt, 60 * 60 * 1000);
+        const interval = timeSpan / 10;
         
-        for (let i = 0; i < 24; i++) {
+        for (let i = 0; i <= 10; i++) {
           const time = createdAt + (i * interval);
-          const progress = i / 24;
-          // Simulate price growth based on bonding curve progress
-          const priceMultiplier = 1 + (progress * Number(token.bondingCurveProgress) / 100);
-          const noise = 1 + (Math.random() - 0.5) * 0.2;
           priceHistory.push({
             time,
-            price: basePrice * priceMultiplier * noise,
-            volume: Math.random() * 10
+            price: currentPrice,
+            volume: 0
           });
         }
-        // Add current price as last point
-        priceHistory.push({
-          time: now,
-          price: basePrice,
-          volume: 0
-        });
       }
+
+      priceHistory.push({
+        time: now,
+        price: currentPrice,
+        volume: 0
+      });
 
       return res.json(priceHistory.sort((a, b) => a.time - b.time));
     } catch (error: any) {
