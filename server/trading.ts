@@ -20,10 +20,10 @@ import {
   BONDING_CURVE_CONSTANTS 
 } from "./bonding-curve";
 
-// Configuration - will be set when contract is deployed
+// Configuration - deployed contract on devnet
 export const TRADING_CONFIG = {
-  // Program ID - placeholder until contract is deployed
-  BONDING_CURVE_PROGRAM_ID: process.env.BONDING_CURVE_PROGRAM_ID || "11111111111111111111111111111111",
+  // Program ID - deployed bonding curve contract
+  BONDING_CURVE_PROGRAM_ID: process.env.BONDING_CURVE_PROGRAM_ID || "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh",
   
   // RPC endpoint - Use centralized Helius RPC helper
   get RPC_ENDPOINT() {

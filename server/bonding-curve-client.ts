@@ -15,7 +15,7 @@ import {
 } from "@solana/spl-token";
 import BN from "bn.js";
 
-const PROGRAM_ID = new PublicKey(process.env.BONDING_CURVE_PROGRAM_ID || "CwiY1Z7YJ6pCUaJmmEniL8ZwimBGjGsdAUg5mcM7ntRw");
+const PROGRAM_ID = new PublicKey(process.env.BONDING_CURVE_PROGRAM_ID || "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh");
 const FEE_RECIPIENT = new PublicKey(process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM");
 
 const DEVNET_RPC = "https://api.devnet.solana.com";

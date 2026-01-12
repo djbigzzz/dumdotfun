@@ -4,7 +4,17 @@
 
 Dum.fun is a Solana-based token launchpad with integrated prediction markets. The platform offers a neo-brutalist aesthetic and combines meme token launches with bonding curves and prediction markets.
 
-**Fee Recipient Wallet:** G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM
+## Deployed Contract (Devnet)
+
+| Item | Value |
+|------|-------|
+| **Program ID** | `6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh` |
+| **Authority** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` |
+| **Fee Recipient** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` |
+| **Platform Config PDA** | `Eh2U3Es7rHzMx62GFRoGQWfGXXrakd3A3rx5Tk1iAzDB` |
+| **Fee** | 1% |
+| **Graduation Threshold** | 85 SOL |
+| **Network** | Devnet |
 
 ## Platform Mode
 
