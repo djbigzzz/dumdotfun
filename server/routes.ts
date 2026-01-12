@@ -15,6 +15,7 @@ import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetc
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
+import * as bondingCurve from "./bonding-curve-client";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -613,6 +614,204 @@ export async function registerRoutes(
       }
       
       return res.json({ success: true, signature: result.signature });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Bonding Curve API Routes
+  app.get("/api/bonding-curve/status", async (req, res) => {
+    try {
+      const initialized = await bondingCurve.checkPlatformInitialized();
+      return res.json({
+        programId: bondingCurve.PROGRAM_ID.toBase58(),
+        feeRecipient: bondingCurve.FEE_RECIPIENT.toBase58(),
+        platformInitialized: initialized,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/bonding-curve/initialize", async (req, res) => {
+    try {
+      const { authority } = req.body;
+      if (!authority) {
+        return res.status(400).json({ error: "Authority wallet address is required" });
+      }
+
+      const alreadyInitialized = await bondingCurve.checkPlatformInitialized();
+      if (alreadyInitialized) {
+        return res.status(400).json({ error: "Platform is already initialized" });
+      }
+
+      const result = await bondingCurve.buildInitializePlatformTransaction(
+        new PublicKey(authority)
+      );
+
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        platformConfig: result.platformConfig,
+        message: "Sign this transaction to initialize the platform with your fee wallet",
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/bonding-curve/create-token", async (req, res) => {
+    try {
+      const { creator, name, symbol, uri } = req.body;
+      
+      if (!creator || !name || !symbol) {
+        return res.status(400).json({ error: "Creator, name, and symbol are required" });
+      }
+
+      const initialized = await bondingCurve.checkPlatformInitialized();
+      if (!initialized) {
+        return res.status(400).json({ 
+          error: "Platform not initialized. Initialize the platform first.",
+          needsInit: true
+        });
+      }
+
+      const result = await bondingCurve.buildCreateTokenTransaction(
+        new PublicKey(creator),
+        name,
+        symbol,
+        uri || ""
+      );
+
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        mint: result.mint,
+        message: "Sign this transaction to create your token on the bonding curve",
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/bonding-curve/buy", async (req, res) => {
+    try {
+      const { buyer, mint, solAmount, minTokensOut } = req.body;
+      
+      if (!buyer || !mint || !solAmount) {
+        return res.status(400).json({ error: "Buyer, mint, and solAmount are required" });
+      }
+
+      const result = await bondingCurve.buildBuyTransaction(
+        new PublicKey(buyer),
+        new PublicKey(mint),
+        parseFloat(solAmount),
+        parseFloat(minTokensOut || "0")
+      );
+
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        message: "Sign this transaction to buy tokens",
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/bonding-curve/sell", async (req, res) => {
+    try {
+      const { seller, mint, tokenAmount, minSolOut } = req.body;
+      
+      if (!seller || !mint || !tokenAmount) {
+        return res.status(400).json({ error: "Seller, mint, and tokenAmount are required" });
+      }
+
+      const result = await bondingCurve.buildSellTransaction(
+        new PublicKey(seller),
+        new PublicKey(mint),
+        parseFloat(tokenAmount),
+        parseFloat(minSolOut || "0")
+      );
+
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        message: "Sign this transaction to sell tokens",
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/bonding-curve/quote/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const { action, amount } = req.query;
+
+      const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
+      if (!curveData) {
+        return res.status(404).json({ error: "Bonding curve not found for this token" });
+      }
+
+      const amountNum = parseFloat(amount as string || "0");
+      let quote = 0;
+
+      if (action === "buy") {
+        quote = bondingCurve.calculateBuyQuote(
+          amountNum,
+          curveData.virtualSolReserves,
+          curveData.virtualTokenReserves
+        );
+      } else if (action === "sell") {
+        quote = bondingCurve.calculateSellQuote(
+          amountNum,
+          curveData.virtualSolReserves,
+          curveData.virtualTokenReserves
+        );
+      }
+
+      const price = bondingCurve.calculatePrice(
+        curveData.virtualSolReserves,
+        curveData.virtualTokenReserves
+      );
+
+      return res.json({
+        action,
+        inputAmount: amountNum,
+        outputAmount: quote,
+        currentPrice: price,
+        virtualSolReserves: curveData.virtualSolReserves,
+        virtualTokenReserves: curveData.virtualTokenReserves,
+        realSolReserves: curveData.realSolReserves,
+        realTokenReserves: curveData.realTokenReserves,
+        isGraduated: curveData.isGraduated,
+        creator: curveData.creator,
+      });
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/bonding-curve/curve/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
+      
+      if (!curveData) {
+        return res.status(404).json({ error: "Bonding curve not found" });
+      }
+
+      const price = bondingCurve.calculatePrice(
+        curveData.virtualSolReserves,
+        curveData.virtualTokenReserves
+      );
+
+      return res.json({
+        ...curveData,
+        currentPrice: price,
+        progressToGraduation: (curveData.realSolReserves / (85 * LAMPORTS_PER_SOL)) * 100,
+      });
     } catch (error: any) {
       return res.status(500).json({ error: error.message });
     }

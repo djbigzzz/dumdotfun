@@ -1,0 +1,124 @@
+{
+  "version": "0.1.0",
+  "name": "bonding_curve",
+  "instructions": [
+    {
+      "name": "initializePlatform",
+      "accounts": [
+        { "name": "authority", "isMut": true, "isSigner": true },
+        { "name": "feeRecipient", "isMut": false, "isSigner": false },
+        { "name": "platformConfig", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": []
+    },
+    {
+      "name": "updateFeeRecipient",
+      "accounts": [
+        { "name": "authority", "isMut": false, "isSigner": true },
+        { "name": "platformConfig", "isMut": true, "isSigner": false }
+      ],
+      "args": [
+        { "name": "newRecipient", "type": "publicKey" }
+      ]
+    },
+    {
+      "name": "createToken",
+      "accounts": [
+        { "name": "creator", "isMut": true, "isSigner": true },
+        { "name": "mint", "isMut": true, "isSigner": true },
+        { "name": "bondingCurve", "isMut": true, "isSigner": false },
+        { "name": "curveSolVault", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "rent", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "name", "type": "string" },
+        { "name": "symbol", "type": "string" },
+        { "name": "uri", "type": "string" }
+      ]
+    },
+    {
+      "name": "buy",
+      "accounts": [
+        { "name": "buyer", "isMut": true, "isSigner": true },
+        { "name": "mint", "isMut": true, "isSigner": false },
+        { "name": "bondingCurve", "isMut": true, "isSigner": false },
+        { "name": "curveSolVault", "isMut": true, "isSigner": false },
+        { "name": "platformConfig", "isMut": true, "isSigner": false },
+        { "name": "feeRecipient", "isMut": true, "isSigner": false },
+        { "name": "buyerTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false },
+        { "name": "associatedTokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "solAmount", "type": "u64" },
+        { "name": "minTokensOut", "type": "u64" }
+      ]
+    },
+    {
+      "name": "sell",
+      "accounts": [
+        { "name": "seller", "isMut": true, "isSigner": true },
+        { "name": "mint", "isMut": true, "isSigner": false },
+        { "name": "bondingCurve", "isMut": true, "isSigner": false },
+        { "name": "curveSolVault", "isMut": true, "isSigner": false },
+        { "name": "platformConfig", "isMut": true, "isSigner": false },
+        { "name": "feeRecipient", "isMut": true, "isSigner": false },
+        { "name": "sellerTokenAccount", "isMut": true, "isSigner": false },
+        { "name": "systemProgram", "isMut": false, "isSigner": false },
+        { "name": "tokenProgram", "isMut": false, "isSigner": false }
+      ],
+      "args": [
+        { "name": "tokenAmount", "type": "u64" },
+        { "name": "minSolOut", "type": "u64" }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "PlatformConfig",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "authority", "type": "publicKey" },
+          { "name": "feeRecipient", "type": "publicKey" },
+          { "name": "totalFeesCollected", "type": "u64" },
+          { "name": "bump", "type": "u8" }
+        ]
+      }
+    },
+    {
+      "name": "BondingCurve",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          { "name": "mint", "type": "publicKey" },
+          { "name": "creator", "type": "publicKey" },
+          { "name": "virtualSolReserves", "type": "u64" },
+          { "name": "virtualTokenReserves", "type": "u64" },
+          { "name": "realSolReserves", "type": "u64" },
+          { "name": "realTokenReserves", "type": "u64" },
+          { "name": "totalSupply", "type": "u64" },
+          { "name": "isGraduated", "type": "bool" },
+          { "name": "createdAt", "type": "i64" },
+          { "name": "name", "type": "string" },
+          { "name": "symbol", "type": "string" },
+          { "name": "uri", "type": "string" },
+          { "name": "bump", "type": "u8" },
+          { "name": "vaultBump", "type": "u8" }
+        ]
+      }
+    }
+  ],
+  "errors": [
+    { "code": 6000, "name": "AlreadyGraduated", "msg": "Token has already graduated to DEX" },
+    { "code": 6001, "name": "InvalidAmount", "msg": "Invalid amount" },
+    { "code": 6002, "name": "SlippageExceeded", "msg": "Slippage exceeded" },
+    { "code": 6003, "name": "InsufficientLiquidity", "msg": "Insufficient liquidity" },
+    { "code": 6004, "name": "Unauthorized", "msg": "Unauthorized" },
+    { "code": 6005, "name": "InvalidFeeRecipient", "msg": "Invalid fee recipient" }
+  ]
+}
