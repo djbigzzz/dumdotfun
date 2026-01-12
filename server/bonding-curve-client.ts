@@ -305,6 +305,7 @@ export async function fetchBondingCurveData(mint: PublicKey): Promise<{
   virtualTokenReserves: number;
   realSolReserves: number;
   realTokenReserves: number;
+  tokenTotalSupply: number;
   isGraduated: boolean;
   creator: string;
 } | null> {
@@ -324,7 +325,7 @@ export async function fetchBondingCurveData(mint: PublicKey): Promise<{
     const virtualTokenReserves = new BN(data.slice(offset + 72, offset + 80), "le").toNumber();
     const realSolReserves = new BN(data.slice(offset + 80, offset + 88), "le").toNumber();
     const realTokenReserves = new BN(data.slice(offset + 88, offset + 96), "le").toNumber();
-    const totalSupply = new BN(data.slice(offset + 96, offset + 104), "le").toNumber();
+    const tokenTotalSupply = new BN(data.slice(offset + 96, offset + 104), "le").toNumber();
     const isGraduated = data[offset + 104] === 1;
 
     return {
@@ -332,6 +333,7 @@ export async function fetchBondingCurveData(mint: PublicKey): Promise<{
       virtualTokenReserves,
       realSolReserves,
       realTokenReserves,
+      tokenTotalSupply,
       isGraduated,
       creator: creator.toBase58(),
     };

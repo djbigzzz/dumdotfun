@@ -387,7 +387,7 @@ export default function TokenPage() {
               <div className="flex items-center justify-between mb-2">
                 <h2 className="text-sm font-bold text-white">PRICE CHART</h2>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400 font-mono">{token.priceInSol.toFixed(8)} SOL</span>
+                  <span className="text-xs text-green-400 font-mono">{(token.priceInSol ?? 0).toFixed(8)} SOL</span>
                 </div>
               </div>
               
@@ -451,7 +451,7 @@ export default function TokenPage() {
               <div className="space-y-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Progress to Raydium</span>
-                  <span className="font-mono text-yellow-600 font-bold">{token.bondingCurveProgress.toFixed(2)}%</span>
+                  <span className="font-mono text-yellow-600 font-bold">{(token.bondingCurveProgress ?? 0).toFixed(2)}%</span>
                 </div>
                 
                 <div className="h-4 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
@@ -472,11 +472,11 @@ export default function TokenPage() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <p className="text-xs text-gray-500 mb-1 font-bold">MARKET CAP</p>
-                <p className="text-lg font-mono text-green-600 font-bold">{token.marketCapSol.toFixed(2)} SOL</p>
+                <p className="text-lg font-mono text-green-600 font-bold">{(token.marketCapSol ?? 0).toFixed(2)} SOL</p>
               </div>
               <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <p className="text-xs text-gray-500 mb-1 font-bold">PRICE</p>
-                <p className="text-lg font-mono text-yellow-600 font-bold">{token.priceInSol.toFixed(8)} SOL</p>
+                <p className="text-lg font-mono text-yellow-600 font-bold">{(token.priceInSol ?? 0).toFixed(8)} SOL</p>
               </div>
               <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <p className="text-xs text-gray-500 mb-1 font-bold">CREATOR</p>

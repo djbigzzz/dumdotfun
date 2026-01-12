@@ -114,8 +114,11 @@ export async function registerRoutes(
         const rawCurveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
         if (rawCurveData) {
           priceInSol = bondingCurve.calculatePrice(rawCurveData.virtualSolReserves, rawCurveData.virtualTokenReserves);
-          const bnToNum = (val: any) => typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
-          const totalSupplyRaw = bnToNum(rawCurveData.tokenTotalSupply);
+          const bnToNum = (val: any) => {
+            if (val == null) return 0;
+            return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
+          };
+          const totalSupplyRaw = rawCurveData.tokenTotalSupply != null ? bnToNum(rawCurveData.tokenTotalSupply) : 1_000_000_000_000_000;
           const tokensInCurveRaw = bnToNum(rawCurveData.realTokenReserves);
           const realSolReservesNum = bnToNum(rawCurveData.realSolReserves);
           const virtualSolReservesNum = bnToNum(rawCurveData.virtualSolReserves);
@@ -123,7 +126,7 @@ export async function registerRoutes(
           const totalSupply = totalSupplyRaw / 1_000_000;
           const tokensInCurve = tokensInCurveRaw / 1_000_000;
           const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
-          marketCapSol = priceInSol * circulatingSupply;
+          marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
           const graduationThreshold = 85 * LAMPORTS_PER_SOL;
           bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThreshold) * 100);
           isGraduated = rawCurveData.isGraduated;
