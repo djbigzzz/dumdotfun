@@ -306,14 +306,30 @@ export async function registerRoutes(
 
   // Trading endpoints
   app.get("/api/trading/status", async (req, res) => {
-    const isReady = isTradingEnabled();
-    return res.json({
-      tradingEnabled: isReady,
-      message: isReady 
-        ? "Trading is available" 
-        : "Trading coming soon - bonding curve contract not yet deployed",
-      programId: isReady ? TRADING_CONFIG.BONDING_CURVE_PROGRAM_ID : null,
-    });
+    try {
+      const programId = bondingCurve.PROGRAM_ID.toBase58();
+      const isValidProgram = programId !== "11111111111111111111111111111111";
+      const platformInitialized = await bondingCurve.checkPlatformInitialized();
+      const isReady = isValidProgram && platformInitialized;
+      
+      return res.json({
+        tradingEnabled: isReady,
+        message: isReady 
+          ? "Trading is available on devnet bonding curve" 
+          : !isValidProgram
+            ? "Bonding curve contract not deployed"
+            : "Platform not initialized - contact admin",
+        programId: isValidProgram ? programId : null,
+        platformInitialized,
+      });
+    } catch (error: any) {
+      return res.json({
+        tradingEnabled: false,
+        message: "Trading status check failed",
+        programId: null,
+        platformInitialized: false,
+      });
+    }
   });
 
   app.post("/api/trading/quote", async (req, res) => {

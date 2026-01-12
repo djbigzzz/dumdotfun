@@ -7,6 +7,14 @@ import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCirc
 import { useState } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { Buffer } from "buffer";
+import { Connection, Transaction } from "@solana/web3.js";
+
+if (typeof window !== "undefined") {
+  (window as any).Buffer = Buffer;
+}
+
+const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 interface TokenPrediction {
   id: string;
@@ -119,6 +127,77 @@ export default function TokenPage() {
       toast.error(error.message);
     },
   });
+
+  const [isTrading, setIsTrading] = useState(false);
+
+  const tradeMutation = useMutation({
+    mutationFn: async ({ type, amount }: { type: "buy" | "sell"; amount: number }) => {
+      if (!connectedWallet || !mint) {
+        throw new Error("Wallet not connected");
+      }
+
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom?.isPhantom) {
+        throw new Error("Phantom wallet required");
+      }
+
+      setIsTrading(true);
+
+      const endpoint = type === "buy" ? "/api/bonding-curve/buy" : "/api/bonding-curve/sell";
+      const body = type === "buy" 
+        ? { buyer: connectedWallet, mint, solAmount: amount, minTokensOut: 0 }
+        : { seller: connectedWallet, mint, tokenAmount: amount, minSolOut: 0 };
+
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to build transaction");
+      }
+
+      const { transaction: txBase64 } = await res.json();
+      
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      
+      const signedTx = await phantom.signTransaction(transaction);
+      
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+
+      await connection.confirmTransaction(signature, "confirmed");
+      
+      return { signature, type, amount };
+    },
+    onSuccess: (data) => {
+      toast.success(`${data.type === "buy" ? "Bought" : "Sold"} successfully! TX: ${data.signature.slice(0, 8)}...`);
+      setTradeAmount("");
+      queryClient.invalidateQueries({ queryKey: ["token", mint] });
+      queryClient.invalidateQueries({ queryKey: ["token-activity", mint] });
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+    onSettled: () => {
+      setIsTrading(false);
+    },
+  });
+
+  const handleTrade = () => {
+    const amount = parseFloat(tradeAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    tradeMutation.mutate({ type: tradeType, amount });
+  };
 
   const handleBetClick = (predictionId: string, side: "yes" | "no", e: React.MouseEvent) => {
     e.preventDefault();
@@ -733,15 +812,23 @@ export default function TokenPage() {
                   <motion.button
                     whileHover={{ y: -2, x: -2 }}
                     whileTap={{ y: 0, x: 0 }}
-                    disabled={!tradeAmount || Number(tradeAmount) <= 0}
+                    onClick={handleTrade}
+                    disabled={!tradeAmount || Number(tradeAmount) <= 0 || isTrading}
                     className={`w-full py-3 rounded-lg font-black uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
                       tradeType === "buy" 
                         ? "bg-green-500 hover:bg-green-600" 
                         : "bg-red-500 hover:bg-red-600"
-                    } text-white disabled:opacity-50 disabled:cursor-not-allowed`}
+                    } text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
                     data-testid={`button-${tradeType}-token`}
                   >
-                    {tradeType === "buy" ? "BUY" : "SELL"} {token.symbol}
+                    {isTrading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        SIGNING...
+                      </>
+                    ) : (
+                      <>{tradeType === "buy" ? "BUY" : "SELL"} {token.symbol}</>
+                    )}
                   </motion.button>
                 ) : (
                   <motion.button

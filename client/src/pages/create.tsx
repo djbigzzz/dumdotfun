@@ -98,22 +98,24 @@ export default function CreateToken() {
         throw new Error("Phantom wallet required for devnet deployment");
       }
 
-      setCreationStep("Building transaction...");
+      setCreationStep("Building bonding curve transaction...");
       
-      const buildRes = await fetch("/api/tokens/devnet-create", {
+      const buildRes = await fetch("/api/bonding-curve/create-token", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          creator: connectedWallet,
           name: formData.name,
           symbol: formData.symbol,
-          creatorAddress: connectedWallet,
-          description: formData.description || null,
-          imageUri: imagePreview || null,
+          uri: imagePreview || "",
         }),
       });
 
       if (!buildRes.ok) {
         const error = await buildRes.json();
+        if (error.needsInit) {
+          throw new Error("Platform not initialized. Contact platform admin to initialize the bonding curve.");
+        }
         throw new Error(error.error || "Failed to build transaction");
       }
 
@@ -126,7 +128,7 @@ export default function CreateToken() {
       
       const signedTx = await phantom.signTransaction(transaction);
       
-      setCreationStep("Submitting to Solana devnet...");
+      setCreationStep("Submitting to Solana devnet bonding curve...");
       
       const connection = new Connection(SOLANA_RPC, "confirmed");
       const signature = await connection.sendRawTransaction(signedTx.serialize(), {
@@ -160,7 +162,7 @@ export default function CreateToken() {
       }
 
       const { token } = await confirmRes.json();
-      setCreationStep("Token deployed on Solana devnet!");
+      setCreationStep("Token deployed on bonding curve!");
       
       return { token, signature };
     },
