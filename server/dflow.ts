@@ -77,18 +77,41 @@ function getApiKey(): string | null {
 }
 
 function getHeaders(): Record<string, string> {
-  const apiKey = getApiKey();
-  if (!apiKey) {
-    throw new Error("DFLOW_API_KEY is not configured");
-  }
-  return {
-    "x-api-key": apiKey,
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
+  
+  const apiKey = getApiKey();
+  if (apiKey) {
+    headers["x-api-key"] = apiKey;
+  }
+  
+  return headers;
 }
 
 export function isDFlowConfigured(): boolean {
   return !!getApiKey();
+}
+
+export function hasDFlowApiKey(): boolean {
+  return !!getApiKey();
+}
+
+export function getDFlowStatus() {
+  return {
+    configured: isDFlowConfigured(),
+    hasApiKey: hasDFlowApiKey(),
+    metadataApi: DFLOW_API_BASE,
+    tradeApi: "https://quote-api.dflow.net",
+    features: [
+      "Tokenized Prediction Markets (Kalshi on Solana)",
+      "SPL Token Trading",
+      "Real-time Orderbook Data",
+      "Market Search",
+    ],
+    obtainKeyFrom: "hello@dflow.net",
+    docs: "https://pond.dflow.net/quickstart/api-keys",
+  };
 }
 
 export async function fetchEvents(options: {
@@ -100,9 +123,10 @@ export async function fetchEvents(options: {
   seriesTickers?: string[];
 }): Promise<{ events: DFlowEvent[]; cursor: number | null }> {
   if (!isDFlowConfigured()) {
+    console.log("[DFlow] API key not configured - contact hello@dflow.net for access");
     return { events: [], cursor: null };
   }
-
+  
   const params = new URLSearchParams();
   if (options.limit) params.set("limit", options.limit.toString());
   if (options.cursor) params.set("cursor", options.cursor.toString());
@@ -136,7 +160,7 @@ export async function fetchMarkets(options: {
   if (!isDFlowConfigured()) {
     return { markets: [], cursor: null };
   }
-
+  
   const params = new URLSearchParams();
   if (options.limit) params.set("limit", options.limit.toString());
   if (options.cursor) params.set("cursor", options.cursor.toString());
@@ -159,7 +183,7 @@ export async function fetchMarketByTicker(ticker: string): Promise<DFlowMarket |
   if (!isDFlowConfigured()) {
     return null;
   }
-
+  
   try {
     const response = await axios.get(`${DFLOW_API_BASE}/markets/${encodeURIComponent(ticker)}`, {
       headers: getHeaders(),
@@ -179,7 +203,7 @@ export async function fetchOrderbook(ticker: string): Promise<DFlowOrderbook | n
   if (!isDFlowConfigured()) {
     return null;
   }
-
+  
   try {
     const response = await axios.get(
       `${DFLOW_API_BASE}/orderbook/${encodeURIComponent(ticker)}`,
@@ -202,7 +226,7 @@ export async function fetchTrades(
   if (!isDFlowConfigured()) {
     return { trades: [], cursor: null };
   }
-
+  
   const params = new URLSearchParams();
   params.set("ticker", ticker);
   if (options?.limit) params.set("limit", options.limit.toString());
@@ -224,7 +248,7 @@ export async function searchEvents(query: string): Promise<DFlowEvent[]> {
   if (!isDFlowConfigured()) {
     return [];
   }
-
+  
   try {
     const response = await axios.get(
       `${DFLOW_API_BASE}/search?q=${encodeURIComponent(query)}&withNestedMarkets=true`,

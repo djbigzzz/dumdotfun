@@ -102,6 +102,11 @@ PostgreSQL tables:
 ## External Dependencies
 
 - **Helius RPC** - Primary Solana RPC (devnet.helius-rpc.com)
+- **DFlow API** - Tokenized prediction markets (Kalshi on Solana)
+  - Metadata API: `https://prediction-markets-api.dflow.net`
+  - Trade API: `https://quote-api.dflow.net`
+  - Requires API key from hello@dflow.net
+  - Docs: https://pond.dflow.net/quickstart/api-keys
 - **Phantom Wallet** - Wallet connection and signing
 - **Jupiter API** - SOL pricing
 - **CoinGecko API** - Fallback pricing
@@ -113,6 +118,7 @@ PostgreSQL tables:
 Required secrets:
 - `HELIUS_API_KEY` - Helius RPC access
 - `DATABASE_URL` - PostgreSQL connection
+- `DFLOW_API_KEY` - DFlow prediction markets API (optional, get from hello@dflow.net)
 
 Auto-configured:
 - `VITE_SOLANA_RPC_URL` - Frontend RPC (public devnet)

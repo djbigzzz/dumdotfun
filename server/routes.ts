@@ -11,7 +11,7 @@ import { db } from "./db";
 import { eq } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
-import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
+import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
@@ -1581,14 +1581,11 @@ export async function registerRoutes(
 
   // DFlow Prediction Markets API
   app.get("/api/dflow/status", async (req, res) => {
-    return res.json({ configured: isDFlowConfigured() });
+    return res.json(getDFlowStatus());
   });
 
   app.get("/api/dflow/events", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.json({ events: [], cursor: null, configured: false });
-      }
 
       const { limit, cursor, status, sort } = req.query;
       const result = await fetchEvents({
@@ -1612,9 +1609,6 @@ export async function registerRoutes(
 
   app.get("/api/dflow/markets", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.json({ markets: [], cursor: null, configured: false });
-      }
 
       const { limit, cursor, status, sort } = req.query;
       const result = await fetchMarkets({
@@ -1637,9 +1631,6 @@ export async function registerRoutes(
 
   app.get("/api/dflow/markets/:ticker", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.status(503).json({ error: "DFlow not configured" });
-      }
 
       const market = await fetchMarketByTicker(req.params.ticker);
       if (!market) {
@@ -1655,9 +1646,6 @@ export async function registerRoutes(
 
   app.get("/api/dflow/orderbook/:ticker", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.status(503).json({ error: "DFlow not configured" });
-      }
 
       const orderbook = await fetchOrderbook(req.params.ticker);
       if (!orderbook) {
@@ -1673,9 +1661,6 @@ export async function registerRoutes(
 
   app.get("/api/dflow/trades/:ticker", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.json({ trades: [], cursor: null });
-      }
 
       const { limit, cursor } = req.query;
       const result = await fetchTrades(req.params.ticker, {
@@ -1692,9 +1677,6 @@ export async function registerRoutes(
 
   app.get("/api/dflow/search", async (req, res) => {
     try {
-      if (!isDFlowConfigured()) {
-        return res.json({ events: [] });
-      }
 
       const { q } = req.query;
       if (!q || typeof q !== "string") {
