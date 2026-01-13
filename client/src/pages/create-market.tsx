@@ -71,7 +71,8 @@ export default function CreateMarket() {
 
   const createMarketMutation = useMutation({
     mutationFn: async (data: MarketFormData) => {
-      const response = await fetch("/api/markets/create", {
+      // Step 1: Prepare market creation (get transaction to sign)
+      const prepareResponse = await fetch("/api/markets/prepare-create", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -85,12 +86,58 @@ export default function CreateMarket() {
         }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to create market");
+      if (!prepareResponse.ok) {
+        const errorData = await prepareResponse.json();
+        throw new Error(errorData.error || "Failed to prepare market creation");
       }
       
-      return response.json();
+      const prepareData = await prepareResponse.json();
+      const { pendingMarketId, transaction, totalCost: cost } = prepareData;
+
+      // Step 2: Sign transaction with Phantom wallet
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom) {
+        throw new Error("Phantom wallet not found");
+      }
+
+      const { Transaction } = await import("@solana/web3.js");
+      const txBuffer = Buffer.from(transaction, "base64");
+      const tx = Transaction.from(txBuffer);
+      
+      let signedTx;
+      try {
+        signedTx = await phantom.signTransaction(tx);
+      } catch (signError: any) {
+        if (signError.message?.includes("User rejected")) {
+          throw new Error("Transaction cancelled by user");
+        }
+        throw new Error("Failed to sign transaction: " + signError.message);
+      }
+
+      // Step 3: Send signed transaction
+      const { Connection } = await import("@solana/web3.js");
+      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      
+      // Wait for confirmation
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Step 4: Confirm market creation with server
+      const confirmResponse = await fetch("/api/markets/confirm-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pendingMarketId,
+          signature,
+        }),
+      });
+      
+      if (!confirmResponse.ok) {
+        const errorData = await confirmResponse.json();
+        throw new Error(errorData.error || "Failed to confirm market creation");
+      }
+      
+      return confirmResponse.json();
     },
     onSuccess: (data) => {
       setLocation(`/market/${data.market.id}`);
@@ -149,9 +196,9 @@ export default function CreateMarket() {
           </Link>
         )}
         
-        <div className="bg-yellow-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] mb-4">
-          <p className="text-sm font-bold text-yellow-800">
-            ⚠️ DEMO MODE: Markets created here are saved to our demo database. Real mainnet betting coming soon!
+        <div className="bg-purple-100 border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] mb-4">
+          <p className="text-sm font-bold text-purple-800">
+            DEVNET: Creating a market requires {totalCost.toFixed(2)} SOL from your wallet (Phantom signing required).
           </p>
         </div>
 
