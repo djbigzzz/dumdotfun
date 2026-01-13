@@ -53,7 +53,13 @@ export interface IStorage {
     amount: string,
     shares: string,
     newYesPool: string,
-    newNoPool: string
+    newNoPool: string,
+    confidentialData?: {
+      isConfidential: boolean;
+      encryptedAmount?: string;
+      commitment?: string;
+      nonce?: string;
+    }
   ): Promise<Position>;
 
   createMarketWithInitialBet(
@@ -278,7 +284,13 @@ export class DatabaseStorage implements IStorage {
     amount: string,
     shares: string,
     newYesPool: string,
-    newNoPool: string
+    newNoPool: string,
+    confidentialData?: {
+      isConfidential: boolean;
+      encryptedAmount?: string;
+      commitment?: string;
+      nonce?: string;
+    }
   ): Promise<Position> {
     return await db.transaction(async (tx) => {
       await tx.update(predictionMarkets)
@@ -289,21 +301,36 @@ export class DatabaseStorage implements IStorage {
         })
         .where(eq(predictionMarkets.id, marketId));
 
-      const [position] = await tx.insert(positions).values({
+      const positionData: any = {
         marketId,
         walletAddress,
         side,
         amount,
         shares,
-      }).returning();
+      };
+
+      if (confidentialData?.isConfidential) {
+        positionData.isConfidential = true;
+        positionData.encryptedAmount = confidentialData.encryptedAmount || null;
+        positionData.commitment = confidentialData.commitment || null;
+        positionData.nonce = confidentialData.nonce || null;
+      }
+
+      const [position] = await tx.insert(positions).values(positionData).returning();
+
+      const activityMetadata: any = { shares };
+      if (confidentialData?.isConfidential) {
+        activityMetadata.isConfidential = true;
+        activityMetadata.commitment = confidentialData.commitment;
+      }
 
       await tx.insert(activityFeed).values({
-        activityType: "bet_placed",
+        activityType: confidentialData?.isConfidential ? "confidential_bet_placed" : "bet_placed",
         walletAddress,
         marketId,
-        amount,
+        amount: confidentialData?.isConfidential ? "0" : amount,
         side,
-        metadata: JSON.stringify({ shares }),
+        metadata: JSON.stringify(activityMetadata),
       });
 
       return position;

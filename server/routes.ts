@@ -1328,6 +1328,123 @@ export async function registerRoutes(
     }
   });
 
+  // Place CONFIDENTIAL bet on market using Inco Lightning
+  app.post("/api/markets/:id/confidential-bet", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { walletAddress, side, amount, encryptedAmount, commitment, nonce, isConfidential } = req.body;
+
+      if (!walletAddress || typeof walletAddress !== "string") {
+        return res.status(400).json({ error: "Wallet address is required" });
+      }
+
+      if (!side || (side !== "yes" && side !== "no")) {
+        return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
+      }
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+
+      if (!isConfidential || !commitment) {
+        return res.status(400).json({ error: "Confidential bet requires commitment and encryption" });
+      }
+
+      const market = await storage.getMarket(id);
+      if (!market) {
+        return res.status(404).json({ error: "Market not found" });
+      }
+
+      if (market.status !== "open") {
+        return res.status(400).json({ error: "Market is closed for betting" });
+      }
+
+      if (new Date(market.resolutionDate) <= new Date()) {
+        return res.status(400).json({ error: "Market has expired" });
+      }
+
+      const amountNum = Number(amount);
+      const { netAmount, fee } = calculateBettingFee(amountNum);
+      
+      const currentYes = Number(market.yesPool);
+      const currentNo = Number(market.noPool);
+
+      let newYes = currentYes;
+      let newNo = currentNo;
+      let shares: number;
+
+      if (side === "yes") {
+        newYes = currentYes + netAmount;
+        shares = netAmount * (currentNo + 1) / (currentYes + 1);
+      } else {
+        newNo = currentNo + netAmount;
+        shares = netAmount * (currentYes + 1) / (currentNo + 1);
+      }
+
+      // Build fee transaction
+      let feeTransaction = null;
+      try {
+        const connection = getHeliusConnection();
+        const { blockhash } = await connection.getLatestBlockhash();
+        const feeRecipient = getFeeRecipientWallet();
+        const feeLamports = Math.floor(fee * LAMPORTS_PER_SOL);
+        
+        const feeTx = new Transaction();
+        feeTx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(walletAddress),
+          toPubkey: feeRecipient,
+          lamports: feeLamports,
+        }));
+        feeTx.recentBlockhash = blockhash;
+        feeTx.feePayer = new PublicKey(walletAddress);
+        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
+      } catch (feeError) {
+        console.error("Failed to build confidential betting fee transaction:", feeError);
+      }
+
+      // Execute confidential bet with encrypted data
+      const position = await storage.placeBetTransaction(
+        id,
+        walletAddress,
+        side,
+        netAmount.toString(),
+        shares.toString(),
+        newYes.toString(),
+        newNo.toString(),
+        {
+          isConfidential: true,
+          encryptedAmount: encryptedAmount || null,
+          commitment,
+          nonce: nonce || null,
+        }
+      );
+
+      console.log(`[INCO] Confidential bet placed: commitment=${commitment.slice(0, 16)}... on ${side} for market ${id}`);
+
+      return res.json({
+        success: true,
+        position: {
+          ...position,
+          amount: "🔒 Hidden",
+        },
+        isConfidential: true,
+        commitment,
+        feeTransaction,
+        platformFee: fee,
+        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
+        newOdds: {
+          yes: calculateOdds(newYes, newNo, "yes"),
+          no: calculateOdds(newYes, newNo, "no"),
+        },
+        privacyProvider: "Inco Lightning",
+        programId: "5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj",
+      });
+    } catch (error: any) {
+      console.error("Error placing confidential bet:", error);
+      return res.status(500).json({ error: "Failed to place confidential bet" });
+    }
+  });
+
   // Get positions by wallet
   app.get("/api/positions/wallet/:address", async (req, res) => {
     try {

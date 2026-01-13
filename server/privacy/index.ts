@@ -2,7 +2,7 @@ export * from "./inco-lightning";
 export * from "./token2022-confidential";
 export * from "./arcium-cspl";
 
-import { IncoLightningStatus } from "./inco-lightning";
+import { IncoLightningStatus, isIncoAvailable } from "./inco-lightning";
 import { Token2022Status } from "./token2022-confidential";
 import { ArciumStatus } from "./arcium-cspl";
 
@@ -13,6 +13,9 @@ export interface PrivacyIntegration {
   network: string;
   description: string;
   implementation: string;
+  version?: string;
+  features?: string[];
+  bounty?: string;
   note?: string;
 }
 
@@ -37,18 +40,23 @@ export function getActivePrivacyFeatures(): string[] {
   const features: string[] = [
     "Helius RPC Integration",
     "Anonymous Token Creation",
-    "Confidential Betting (Database)",
   ];
+  
+  if (isIncoAvailable()) {
+    features.push("Inco Lightning Confidential Betting");
+    features.push("Encrypted Prediction Market Bets");
+    features.push("Commitment-Based Privacy");
+  }
   
   return features;
 }
 
 export function getPlannedPrivacyFeatures(): string[] {
   return [
-    "Inco Lightning SDK",
     "Token-2022 Confidential Transfers",
-    "Arcium C-SPL",
-    "Noir ZK Proofs",
+    "Arcium C-SPL Private Trading",
+    "Noir ZK Proofs (Aztec)",
+    "On-chain Attested Decrypt",
   ];
 }
 
@@ -57,5 +65,6 @@ export function getPrivacySummary() {
     activeFeatures: getActivePrivacyFeatures(),
     plannedFeatures: getPlannedPrivacyFeatures(),
     integrations: getAllPrivacyIntegrations(),
+    incoEnabled: isIncoAvailable(),
   };
 }

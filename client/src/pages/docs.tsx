@@ -126,6 +126,37 @@ Dum.fun is a platform for meme tokens and prediction markets. All tokens are lau
 - Real-time bonding curve tracking
 - Transparent token supply data
 - Verified creator wallet display`
+  },
+  {
+    id: "privacy",
+    icon: Lock,
+    title: "Privacy Features (Inco Lightning)",
+    content: `**Solana Privacy Hackathon Submission**
+
+dum.fun integrates Inco Lightning SDK for confidential prediction market betting - a real privacy integration for the Solana Privacy Hackathon (Feb 1, 2025).
+
+**Inco Lightning Integration:**
+- 🔒 Confidential bet amounts using encryption
+- 📝 Commitment-based privacy scheme
+- ⚡ Inco Lightning Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
+- 🌐 Network: Solana Devnet
+
+**How It Works:**
+1. Enable "Private Mode" toggle in the header
+2. Place a bet on any prediction market
+3. Your bet amount is encrypted client-side
+4. Only a cryptographic commitment is stored on-chain
+5. Other users cannot see your bet size
+
+**Bounty Target:**
+- Inco Lightning: $2K (Consumer, Gaming, Prediction Markets category)
+- Also competing for: Helius ($5K), Anoncoin ($10K), Track 03 Open ($18K)
+
+**Privacy Mode Toggle:**
+Click the 👁 icon in the navigation bar to enable privacy mode. When active:
+- Your bet amounts are encrypted with Inco Lightning
+- UI switches to cypherpunk aesthetic (Matrix green theme)
+- All transactions use confidential betting API`
   }
 ];
 

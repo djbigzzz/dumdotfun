@@ -1,9 +1,11 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
+import { usePrivacy } from "@/lib/privacy-context";
+import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity } from "lucide-react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity, Lock, Shield } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -93,6 +95,8 @@ function getTimeAgo(date: Date): string {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const { connectedWallet, connectWallet } = useWallet();
+  const { privateMode } = usePrivacy();
+  const { shouldEncryptBets, incoStatus } = useIncoPrivacy();
   const queryClient = useQueryClient();
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
@@ -101,6 +105,32 @@ export default function TokenPage() {
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
+      if (!connectedWallet) {
+        throw new Error("Wallet not connected");
+      }
+
+      if (shouldEncryptBets) {
+        console.log("[Inco] Placing confidential bet using Inco Lightning SDK");
+        const encryptedPayload = await encryptBetForInco(amount, side, connectedWallet);
+        
+        const res = await fetch(`/api/markets/${marketId}/confidential-bet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: connectedWallet,
+            side,
+            amount,
+            ...encryptedPayload,
+          }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.error || "Failed to place confidential bet");
+        }
+        const result = await res.json();
+        return { ...result, isConfidential: true };
+      }
+
       const res = await fetch(`/api/markets/${marketId}/bet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,8 +147,12 @@ export default function TokenPage() {
       return res.json();
     },
     onSuccess: (data) => {
-      const shares = data.position?.shares ? parseFloat(data.position.shares).toFixed(4) : "some";
-      toast.success(`Bet placed! You received ${shares} shares (Demo Mode)`);
+      if (data.isConfidential) {
+        toast.success(`🔒 Confidential bet placed! Your amount is encrypted with Inco Lightning.`);
+      } else {
+        const shares = data.position?.shares ? parseFloat(data.position.shares).toFixed(4) : "some";
+        toast.success(`Bet placed! You received ${shares} shares`);
+      }
       setActiveBet(null);
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
@@ -654,16 +688,31 @@ export default function TokenPage() {
                             initial={{ opacity: 0, height: 0 }}
                             animate={{ opacity: 1, height: "auto" }}
                             exit={{ opacity: 0, height: 0 }}
-                            className="mb-3 p-3 bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg"
+                            className={`mb-3 p-3 border-2 border-dashed rounded-lg ${
+                              shouldEncryptBets 
+                                ? "bg-zinc-900 border-green-500" 
+                                : "bg-gray-50 border-gray-300"
+                            }`}
                           >
+                            {shouldEncryptBets && (
+                              <div className="flex items-center gap-2 mb-2 text-green-400 text-xs font-mono">
+                                <Shield className="w-3 h-3" />
+                                <span>INCO LIGHTNING CONFIDENTIAL</span>
+                                <Lock className="w-3 h-3" />
+                              </div>
+                            )}
                             <div className="flex gap-2">
                               <div className="flex-1">
                                 <input
                                   type="number"
                                   value={betAmount}
                                   onChange={(e) => setBetAmount(e.target.value)}
-                                  placeholder="Amount in SOL"
-                                  className="w-full px-3 py-2 text-sm border-2 border-black rounded-lg font-mono focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                                  placeholder={shouldEncryptBets ? "🔒 Amount (encrypted)" : "Amount in SOL"}
+                                  className={`w-full px-3 py-2 text-sm border-2 rounded-lg font-mono focus:ring-2 focus:outline-none ${
+                                    shouldEncryptBets 
+                                      ? "bg-zinc-800 border-green-500 text-green-400 placeholder-green-600 focus:ring-green-500" 
+                                      : "border-black focus:ring-yellow-400"
+                                  }`}
                                   onClick={(e) => e.stopPropagation()}
                                   data-testid={`input-bet-amount-${prediction.id}`}
                                 />
@@ -674,21 +723,30 @@ export default function TokenPage() {
                                 onClick={handlePlaceBet}
                                 disabled={placeBetMutation.isPending || !betAmount}
                                 className={`px-4 py-2 rounded-lg font-bold text-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                                  activeBet?.side === "yes" 
-                                    ? "bg-green-500 text-white hover:bg-green-600" 
-                                    : "bg-red-500 text-white hover:bg-red-600"
+                                  shouldEncryptBets
+                                    ? "bg-green-500 text-black hover:bg-green-400"
+                                    : activeBet?.side === "yes" 
+                                      ? "bg-green-500 text-white hover:bg-green-600" 
+                                      : "bg-red-500 text-white hover:bg-red-600"
                                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                                 data-testid={`button-confirm-bet-${prediction.id}`}
                               >
                                 {placeBetMutation.isPending ? (
                                   <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : shouldEncryptBets ? (
+                                  <span className="flex items-center gap-1">
+                                    <Lock className="w-3 h-3" />
+                                    PRIVATE
+                                  </span>
                                 ) : (
                                   `BET ${activeBet?.side?.toUpperCase()}`
                                 )}
                               </motion.button>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2 text-center">
-                              Click to bet on {activeBet?.side?.toUpperCase()} outcome
+                            <p className={`text-xs mt-2 text-center ${shouldEncryptBets ? "text-green-500" : "text-gray-500"}`}>
+                              {shouldEncryptBets 
+                                ? "Your bet amount will be encrypted on-chain" 
+                                : `Click to bet on ${activeBet?.side?.toUpperCase()} outcome`}
                             </p>
                           </motion.div>
                         )}

@@ -81,6 +81,10 @@ export const positions = pgTable("positions", {
   side: text("side").notNull(),
   amount: decimal("amount", { precision: 20, scale: 9 }).notNull(),
   shares: decimal("shares", { precision: 20, scale: 9 }).notNull(),
+  isConfidential: boolean("is_confidential").notNull().default(false),
+  encryptedAmount: text("encrypted_amount"),
+  commitment: text("commitment"),
+  nonce: text("nonce"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
@@ -170,6 +174,11 @@ export const insertMarketSchema = createInsertSchema(predictionMarkets).omit({
 export const insertPositionSchema = createInsertSchema(positions).omit({
   id: true,
   createdAt: true,
+}).partial({
+  isConfidential: true,
+  encryptedAmount: true,
+  commitment: true,
+  nonce: true,
 });
 
 export const insertActivitySchema = createInsertSchema(activityFeed).omit({

@@ -4,6 +4,14 @@
 
 Dum.fun is a Solana-based token launchpad with integrated prediction markets. The platform offers a neo-brutalist aesthetic and combines meme token launches with bonding curves and prediction markets.
 
+## Recent Changes (January 2026)
+
+- **Inco Lightning Integration** - Implemented real confidential betting with Inco Lightning SDK
+- **Schema Updates** - Added `is_confidential`, `encrypted_amount`, `commitment`, `nonce` columns to positions table
+- **Privacy API** - Updated `/api/privacy/status` to report active Inco integration
+- **Confidential Betting UI** - Privacy mode toggle enables encrypted betting with visual feedback
+- **Docs Update** - Added privacy documentation section explaining Inco integration
+
 ## Deployed Contract (Devnet)
 
 | Item | Value |
@@ -32,17 +40,27 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 - **Wallet Balance Display** - Shows devnet SOL balance with airdrop button
 - **Prediction Markets** - Bet on token survival
 
-### Privacy SDK Stubs (Ready for Integration)
+### Privacy Integrations (Solana Privacy Hackathon)
 
-Located in `server/privacy/`:
-- **Inco Lightning SDK** (`inco-lightning.ts`) - Confidential prediction market bets ($2K bounty)
-- **Token-2022 Confidential Transfers** (`token2022-confidential.ts`) - Private token balances ($15K)
-- **Arcium C-SPL** (`arcium-cspl.ts`) - Confidential token trading ($10K bounty)
-- **Privacy Index** (`index.ts`) - Exports all integrations with status functions
+**Active Integrations:**
+- **Inco Lightning SDK** (`server/privacy/inco-lightning.ts`) - ✅ WORKING
+  - Program ID: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
+  - Confidential prediction market bets with encrypted amounts
+  - Commitment-based privacy scheme
+  - Client: `client/src/lib/inco-client.ts`
+  - API: `/api/markets/:id/confidential-bet`
+  - Bounty target: $2K (Consumer, Gaming, Prediction Markets)
 
-### Planned Privacy Features
-- Noir ZK proofs for private betting verification ($5K Aztec bounty)
-- Full on-chain integration when SDKs are released on devnet
+**Pending Integrations:**
+- **Token-2022 Confidential Transfers** (`token2022-confidential.ts`) - Planned ($15K)
+- **Arcium C-SPL** (`arcium-cspl.ts`) - Planned ($10K bounty)
+- **Noir ZK proofs** - Planned ($5K Aztec bounty)
+
+### Privacy Mode UI
+- Toggle with 👁 icon in header
+- When enabled: Matrix green cypherpunk aesthetic
+- Bets are encrypted with Inco Lightning SDK
+- Background: zinc-900/50 for visibility
 
 ## User Preferences
 
@@ -77,7 +95,7 @@ PostgreSQL tables:
 - `users` - Wallet addresses, profiles
 - `tokens` - Token metadata, bonding curve state
 - `prediction_markets` - Market questions, outcomes
-- `positions` - User bets on markets
+- `positions` - User bets on markets (with confidential betting fields: is_confidential, encrypted_amount, commitment, nonce)
 - `activity_feed` - Platform activity log
 - `waitlist` - Email signups
 
