@@ -52,6 +52,8 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
   - Bounty target: $2K (Consumer, Gaming, Prediction Markets)
 
 **Pending Integrations:**
+- **DFlow API** - Tokenized Kalshi prediction markets (awaiting API key)
+- **PNP Exchange** - Decentralized prediction market protocol (SDK coming soon)
 - **Token-2022 Confidential Transfers** (`token2022-confidential.ts`) - Planned ($15K)
 - **Arcium C-SPL** (`arcium-cspl.ts`) - Planned ($10K bounty)
 - **Noir ZK proofs** - Planned ($5K Aztec bounty)

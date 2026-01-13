@@ -136,27 +136,71 @@ Dum.fun is a platform for meme tokens and prediction markets. All tokens are lau
 dum.fun integrates Inco Lightning SDK for confidential prediction market betting - a real privacy integration for the Solana Privacy Hackathon (Feb 1, 2025).
 
 **Inco Lightning Integration:**
-- 🔒 Confidential bet amounts using encryption
-- 📝 Commitment-based privacy scheme
+- 🔒 Confidential bet amounts using SHA-256 commitment scheme
+- 📝 Deterministic cryptographic commitments verifiable on-chain
 - ⚡ Inco Lightning Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
 - 🌐 Network: Solana Devnet
 
+**Technical Implementation:**
+- Client-side encryption using @inco/solana-sdk
+- Commitment format: SHA-256(inco_bet:amount:side:nonce:userAddress)
+- Encrypted bet data stored in positions table
+- Server-side verification of commitments
+
 **How It Works:**
-1. Enable "Private Mode" toggle in the header
+1. Enable "Private Mode" toggle (👁 icon in header)
 2. Place a bet on any prediction market
 3. Your bet amount is encrypted client-side
-4. Only a cryptographic commitment is stored on-chain
+4. Only a cryptographic commitment is stored
 5. Other users cannot see your bet size
 
-**Bounty Target:**
-- Inco Lightning: $2K (Consumer, Gaming, Prediction Markets category)
-- Also competing for: Helius ($5K), Anoncoin ($10K), Track 03 Open ($18K)
+**Hackathon Bounties:**
+- Inco Lightning: $2K (Consumer, Gaming, Prediction Markets)
+- Helius RPC: $5K (Infrastructure integration)
+- Anoncoin: $10K (Privacy-preserving applications)
+- Track 03 Open: $18K (General privacy innovation)
 
-**Privacy Mode Toggle:**
-Click the 👁 icon in the navigation bar to enable privacy mode. When active:
-- Your bet amounts are encrypted with Inco Lightning
-- UI switches to cypherpunk aesthetic (Matrix green theme)
-- All transactions use confidential betting API`
+**Privacy Mode UI:**
+When privacy mode is active:
+- Bet amounts encrypted with Inco Lightning SDK
+- Cypherpunk aesthetic (Matrix green #39FF14 theme)
+- All transactions use /api/markets/:id/confidential-bet endpoint`
+  },
+  {
+    id: "integrations",
+    icon: Cpu,
+    title: "Platform Integrations",
+    content: `**Active Integrations:**
+
+**Helius RPC** - All Solana connections use Helius infrastructure
+- Reliable devnet RPC endpoint
+- Real-time transaction processing
+- Balance queries and airdrops
+
+**Inco Lightning SDK** - Confidential prediction betting
+- Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
+- SHA-256 commitment scheme for bet privacy
+- Client and server-side encryption
+
+**Planned Integrations:**
+
+**DFlow API** - Tokenized Kalshi prediction markets
+- Access to CFTC-regulated prediction markets on Solana
+- Real SPL token positions
+- Awaiting API key access
+
+**PNP Exchange** - Decentralized prediction market protocol
+- Bonding curve-based prediction markets
+- LLM oracle settlement
+- SDK coming soon
+
+**Token-2022 Confidential Transfers** - Private token balances
+- ElGamal encryption for transfer amounts
+- Pending ZK ElGamal security audit
+
+**Arcium C-SPL** - Confidential token trading
+- Encrypted order matching
+- Coming Q4 2025`
   }
 ];
 
