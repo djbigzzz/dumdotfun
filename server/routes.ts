@@ -1362,109 +1362,14 @@ export async function registerRoutes(
     }
   });
 
-  // Place bet on market
+  // DEPRECATED: Old insecure betting endpoint removed - use prepare-bet + confirm-bet instead
   app.post("/api/markets/:id/bet", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { walletAddress, side, amount } = req.body;
-
-      if (!walletAddress || typeof walletAddress !== "string") {
-        return res.status(400).json({ error: "Wallet address is required" });
-      }
-
-      if (!side || (side !== "yes" && side !== "no")) {
-        return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
-      }
-
-      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        return res.status(400).json({ error: "Amount must be a positive number" });
-      }
-
-      const market = await storage.getMarket(id);
-      if (!market) {
-        return res.status(404).json({ error: "Market not found" });
-      }
-
-      if (market.status !== "open") {
-        return res.status(400).json({ error: "Market is closed for betting" });
-      }
-
-      if (new Date(market.resolutionDate) <= new Date()) {
-        return res.status(400).json({ error: "Market has expired" });
-      }
-
-      const amountNum = Number(amount);
-      
-      // Calculate platform fee (2% of bet amount)
-      const { netAmount, fee } = calculateBettingFee(amountNum);
-      
-      const currentYes = Number(market.yesPool);
-      const currentNo = Number(market.noPool);
-
-      // Calculate shares using CPMM formula (net amount after fees goes to pool)
-      let newYes = currentYes;
-      let newNo = currentNo;
-      let shares: number;
-
-      if (side === "yes") {
-        newYes = currentYes + netAmount;
-        shares = netAmount * (currentNo + 1) / (currentYes + 1);
-      } else {
-        newNo = currentNo + netAmount;
-        shares = netAmount * (currentYes + 1) / (currentNo + 1);
-      }
-
-      // Build fee transaction for betting
-      let feeTransaction = null;
-      try {
-        const connection = getHeliusConnection();
-        const { blockhash } = await connection.getLatestBlockhash();
-        const feeRecipient = getFeeRecipientWallet();
-        const feeLamports = Math.floor(fee * LAMPORTS_PER_SOL);
-        
-        const feeTx = new Transaction();
-        feeTx.add(SystemProgram.transfer({
-          fromPubkey: new PublicKey(walletAddress),
-          toPubkey: feeRecipient,
-          lamports: feeLamports,
-        }));
-        feeTx.recentBlockhash = blockhash;
-        feeTx.feePayer = new PublicKey(walletAddress);
-        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
-      } catch (feeError) {
-        console.error("Failed to build betting fee transaction:", feeError);
-      }
-
-      // Execute bet as single atomic transaction
-      const position = await storage.placeBetTransaction(
-        id,
-        walletAddress,
-        side,
-        netAmount.toString(),
-        shares.toString(),
-        newYes.toString(),
-        newNo.toString()
-      );
-
-      console.log(`Bet placed: ${amountNum} SOL (${netAmount} net, ${fee} fee) on ${side} for market ${id}`);
-
-      return res.json({
-        success: true,
-        position,
-        feeTransaction,
-        platformFee: fee,
-        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
-        netBetAmount: netAmount,
-        newOdds: {
-          yes: calculateOdds(newYes, newNo, "yes"),
-          no: calculateOdds(newYes, newNo, "no"),
-        },
-      });
-    } catch (error: any) {
-      console.error("Error placing bet:", error);
-      return res.status(500).json({ error: "Failed to place bet" });
-    }
+    return res.status(410).json({ 
+      error: "This endpoint is deprecated. Please use the two-step betting flow: prepare-bet then confirm-bet",
+      message: "Betting now requires wallet signing for security"
+    });
   });
+
 
   // In-memory storage for pending bets (would use Redis in production)
   const pendingBets = new Map<string, {

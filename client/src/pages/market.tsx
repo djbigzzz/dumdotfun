@@ -6,6 +6,9 @@ import { useState } from "react";
 import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
+import { Transaction, Connection } from "@solana/web3.js";
+
+const SOLANA_RPC = "https://api.devnet.solana.com";
 
 interface Market {
   id: string;
@@ -48,7 +51,13 @@ export default function MarketDetail() {
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount }: { side: "yes" | "no"; amount: number }) => {
-      const response = await fetch(`/api/markets/${id}/bet`, {
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom) {
+        throw new Error("Phantom wallet not found");
+      }
+
+      // Step 1: Prepare bet (get transaction to sign)
+      const prepareRes = await fetch(`/api/markets/${id}/prepare-bet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -58,12 +67,48 @@ export default function MarketDetail() {
         }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to place bet");
+      if (!prepareRes.ok) {
+        const errorData = await prepareRes.json();
+        throw new Error(errorData.error || "Failed to prepare bet");
       }
       
-      return response.json();
+      const { transaction: txBase64, betId } = await prepareRes.json();
+
+      // Step 2: Sign transaction with Phantom
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      
+      let signedTx;
+      try {
+        signedTx = await phantom.signTransaction(transaction);
+      } catch (signError: any) {
+        if (signError.message?.includes("User rejected")) {
+          throw new Error("Transaction cancelled by user");
+        }
+        throw new Error("Failed to sign transaction: " + signError.message);
+      }
+
+      // Step 3: Send signed transaction
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Step 4: Confirm bet with server
+      const confirmRes = await fetch(`/api/markets/${id}/confirm-bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ betId, signature }),
+      });
+      
+      if (!confirmRes.ok) {
+        const errorData = await confirmRes.json();
+        throw new Error(errorData.error || "Failed to confirm bet");
+      }
+      
+      return confirmRes.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["market", id] });
@@ -278,7 +323,7 @@ export default function MarketDetail() {
                   <div className="flex items-end">
                     {!connected ? (
                       <motion.button
-                        onClick={connectWallet}
+                        onClick={() => connectWallet()}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
