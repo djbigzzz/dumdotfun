@@ -1227,6 +1227,12 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Pending market ID and signature are required" });
       }
 
+      // Check for signature replay attack
+      if (usedSignatures.has(signature)) {
+        console.log(`[Market Creation] REJECTED: Signature ${signature.slice(0, 20)}... already used (replay attack)`);
+        return res.status(400).json({ error: "This transaction signature has already been used" });
+      }
+
       const pendingMarket = pendingMarkets.get(pendingMarketId);
       if (!pendingMarket) {
         return res.status(404).json({ error: "Pending market not found or expired" });
@@ -1254,6 +1260,51 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Transaction failed on chain" });
       }
 
+      // Validate the transaction: check sender, recipient, and amount
+      const feeRecipient = getFeeRecipientWallet();
+      const expectedLamports = Math.floor(pendingMarket.totalCost * LAMPORTS_PER_SOL);
+      
+      // Get account keys from the transaction
+      const accountKeys = txInfo.transaction.message.getAccountKeys();
+      const staticKeys = accountKeys.staticAccountKeys || accountKeys.keySegments?.()[0] || [];
+      
+      // First account is typically the fee payer (sender)
+      const senderKey = staticKeys[0]?.toBase58();
+      if (senderKey !== pendingMarket.creatorAddress) {
+        console.log(`[Market Creation] REJECTED: Sender ${senderKey} doesn't match expected ${pendingMarket.creatorAddress}`);
+        return res.status(400).json({ error: "Transaction sender does not match expected creator" });
+      }
+      
+      // Verify amount transferred by checking balance changes
+      const preBalances = txInfo.meta?.preBalances || [];
+      const postBalances = txInfo.meta?.postBalances || [];
+      
+      // Find the fee recipient's account index
+      let recipientIndex = -1;
+      for (let i = 0; i < staticKeys.length; i++) {
+        if (staticKeys[i]?.toBase58() === feeRecipient.toBase58()) {
+          recipientIndex = i;
+          break;
+        }
+      }
+      
+      if (recipientIndex === -1) {
+        console.log(`[Market Creation] REJECTED: Fee recipient ${feeRecipient.toBase58()} not found in transaction`);
+        return res.status(400).json({ error: "Transaction does not pay to platform wallet" });
+      }
+      
+      // Check the amount received by the fee recipient
+      const amountReceived = (postBalances[recipientIndex] || 0) - (preBalances[recipientIndex] || 0);
+      
+      // Allow some tolerance for rounding (0.1% tolerance)
+      const tolerance = expectedLamports * 0.001;
+      if (amountReceived < expectedLamports - tolerance) {
+        console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
+        return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
+      }
+      
+      console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
         {
@@ -1270,6 +1321,9 @@ export async function registerRoutes(
         PLATFORM_FEES.MARKET_CREATION
       );
 
+      // Mark signature as used to prevent replay attacks
+      usedSignatures.add(signature);
+      
       // Remove from pending
       pendingMarkets.delete(pendingMarketId);
 
@@ -1439,6 +1493,15 @@ export async function registerRoutes(
     totalCost: number;
     createdAt: number;
   }>();
+
+  // Track used signatures to prevent replay attacks
+  const usedSignatures = new Set<string>();
+  
+  // Cleanup old signatures periodically (keep for 24 hours)
+  setInterval(() => {
+    // In production, this would be persisted to database
+    // For now, we keep all signatures in memory (acceptable for devnet)
+  }, 60 * 60 * 1000);
 
   // Cleanup expired pending markets every minute
   setInterval(() => {
