@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Shield, Check, Clock, AlertCircle, Ghost, Lock, Eye } from "lucide-react";
+import { motion } from "framer-motion";
+import { X, Shield, Check, Clock, AlertCircle, Terminal, Lock, Cpu } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 
 interface PrivacyIntegration {
@@ -48,7 +48,7 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/80 backdrop-blur-sm"
+        className={`absolute inset-0 backdrop-blur-sm ${privateMode ? "bg-black/90" : "bg-black/80"}`}
         onClick={onClose}
       />
       
@@ -57,71 +57,81 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
         animate={{ x: 0 }}
         exit={{ x: "100%" }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
-        className={`absolute right-0 top-0 h-full w-full max-w-md ${
-          privateMode ? "bg-zinc-900" : "bg-white"
-        } border-l-2 border-black shadow-xl overflow-y-auto`}
+        className={`absolute right-0 top-0 h-full w-full max-w-md shadow-xl overflow-y-auto ${
+          privateMode 
+            ? "bg-black border-l border-[#39FF14]/30" 
+            : "bg-white border-l-2 border-black"
+        }`}
       >
-        <div className="p-6">
+        {privateMode && (
+          <div className="absolute inset-0 pointer-events-none opacity-[0.02]" style={{
+            backgroundImage: `repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(57,255,20,0.3) 2px, rgba(57,255,20,0.3) 4px)`
+          }} />
+        )}
+        
+        <div className="p-6 relative">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${privateMode ? "bg-violet-600" : "bg-gray-100"}`}>
-                <Ghost className={`w-6 h-6 ${privateMode ? "text-white" : "text-gray-700"}`} />
+              <div className={`p-2 ${privateMode ? "border border-[#39FF14]/50" : "bg-gray-100 rounded-lg"}`}>
+                <Terminal className={`w-6 h-6 ${privateMode ? "text-[#39FF14]" : "text-gray-700"}`} />
               </div>
               <div>
-                <h2 className={`text-xl font-black ${privateMode ? "text-violet-400" : "text-gray-900"}`}>
-                  Privacy Mode
+                <h2 className={`text-xl font-black font-mono ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
+                  {privateMode ? "// ENCRYPTION" : "Privacy Mode"}
                 </h2>
-                <p className={`text-sm ${privateMode ? "text-gray-400" : "text-gray-500"}`}>
-                  {privateMode ? "Stealth trading enabled" : "Trading publicly"}
+                <p className={`text-sm font-mono ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
+                  {privateMode ? "[ SECURE CHANNEL ACTIVE ]" : "Trading publicly"}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className={`p-2 rounded-lg ${privateMode ? "hover:bg-zinc-800" : "hover:bg-gray-100"}`}
+              className={`p-2 transition-colors ${privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "hover:bg-gray-100 rounded-lg text-gray-600"}`}
             >
-              <X className={`w-5 h-5 ${privateMode ? "text-gray-400" : "text-gray-600"}`} />
+              <X className="w-5 h-5" />
             </button>
           </div>
 
           <button
             onClick={togglePrivateMode}
-            className={`w-full py-4 px-6 font-black text-lg border-2 border-black rounded-lg mb-8 transition-all shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${
+            className={`w-full py-4 px-6 font-black font-mono text-lg border-2 mb-8 transition-all ${
               privateMode
-                ? "bg-violet-600 text-white"
-                : "bg-gray-100 text-gray-900 hover:bg-gray-200"
+                ? "bg-black border-[#39FF14] text-[#39FF14] hover:shadow-[0_0_20px_rgba(57,255,20,0.3)]"
+                : "bg-gray-100 border-black text-gray-900 hover:bg-gray-200 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             }`}
             data-testid="button-toggle-privacy-full"
           >
-            {privateMode ? "DISABLE STEALTH MODE" : "ENABLE STEALTH MODE"}
+            {privateMode ? "> TERMINATE_ENCRYPTION" : "ENABLE STEALTH MODE"}
           </button>
 
           {loading ? (
             <div className="flex items-center justify-center py-8">
-              <div className="animate-spin w-8 h-8 border-2 border-violet-500 border-t-transparent rounded-full" />
+              <div className={`animate-spin w-8 h-8 border-2 rounded-full ${
+                privateMode ? "border-[#39FF14] border-t-transparent" : "border-violet-500 border-t-transparent"
+              }`} />
             </div>
           ) : status ? (
             <div className="space-y-6">
               <div>
-                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 ${
-                  privateMode ? "text-green-400" : "text-green-600"
+                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 font-mono ${
+                  privateMode ? "text-[#39FF14]" : "text-green-600"
                 }`}>
-                  <Check className="w-4 h-4" /> Active Features
+                  <Check className="w-4 h-4" /> {privateMode ? "// ACTIVE_PROTOCOLS" : "Active Features"}
                 </h3>
                 <div className="space-y-2">
                   {status.activeFeatures.map((feature, i) => (
                     <div
                       key={i}
-                      className={`p-3 rounded-lg border ${
+                      className={`p-3 border ${
                         privateMode
-                          ? "bg-zinc-800 border-zinc-700"
-                          : "bg-green-50 border-green-200"
+                          ? "bg-black border-[#39FF14]/30"
+                          : "bg-green-50 border-green-200 rounded-lg"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Shield className={`w-4 h-4 ${privateMode ? "text-green-400" : "text-green-600"}`} />
-                        <span className={`font-bold ${privateMode ? "text-gray-200" : "text-gray-800"}`}>
-                          {feature}
+                        <Shield className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-green-600"}`} />
+                        <span className={`font-bold font-mono ${privateMode ? "text-[#39FF14]/80" : "text-gray-800"}`}>
+                          {privateMode ? `> ${feature.toUpperCase().replace(/ /g, '_')}` : feature}
                         </span>
                       </div>
                     </div>
@@ -130,25 +140,25 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
               </div>
 
               <div>
-                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 ${
-                  privateMode ? "text-yellow-400" : "text-yellow-600"
+                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 font-mono ${
+                  privateMode ? "text-[#F6C90E]" : "text-yellow-600"
                 }`}>
-                  <Clock className="w-4 h-4" /> Coming Soon
+                  <Clock className="w-4 h-4" /> {privateMode ? "// PENDING_MODULES" : "Coming Soon"}
                 </h3>
                 <div className="space-y-2">
                   {status.plannedFeatures.map((feature, i) => (
                     <div
                       key={i}
-                      className={`p-3 rounded-lg border ${
+                      className={`p-3 border ${
                         privateMode
-                          ? "bg-zinc-800/50 border-zinc-700"
-                          : "bg-yellow-50 border-yellow-200"
+                          ? "bg-black/50 border-[#F6C90E]/20"
+                          : "bg-yellow-50 border-yellow-200 rounded-lg"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Lock className={`w-4 h-4 ${privateMode ? "text-yellow-400" : "text-yellow-600"}`} />
-                        <span className={`font-medium ${privateMode ? "text-gray-400" : "text-gray-600"}`}>
-                          {feature}
+                        <Lock className={`w-4 h-4 ${privateMode ? "text-[#F6C90E]/70" : "text-yellow-600"}`} />
+                        <span className={`font-medium font-mono ${privateMode ? "text-[#F6C90E]/50" : "text-gray-600"}`}>
+                          {privateMode ? `// ${feature.toUpperCase().replace(/ /g, '_')}` : feature}
                         </span>
                       </div>
                     </div>
@@ -157,55 +167,71 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
               </div>
 
               <div>
-                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 ${
-                  privateMode ? "text-cyan-400" : "text-blue-600"
+                <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 font-mono ${
+                  privateMode ? "text-[#00FFF0]" : "text-blue-600"
                 }`}>
-                  <Eye className="w-4 h-4" /> SDK Integrations
+                  <Cpu className="w-4 h-4" /> {privateMode ? "// SDK_MODULES" : "SDK Integrations"}
                 </h3>
                 <div className="space-y-3">
                   {status.integrations.map((integration, i) => (
                     <div
                       key={i}
-                      className={`p-4 rounded-lg border ${
+                      className={`p-4 border ${
                         privateMode
-                          ? "bg-zinc-800 border-zinc-700"
-                          : "bg-gray-50 border-gray-200"
+                          ? "bg-black border-[#00FFF0]/20"
+                          : "bg-gray-50 border-gray-200 rounded-lg"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className={`font-bold ${privateMode ? "text-gray-200" : "text-gray-800"}`}>
-                          {integration.name}
+                        <span className={`font-bold font-mono ${privateMode ? "text-[#00FFF0]/80" : "text-gray-800"}`}>
+                          {privateMode ? `> ${integration.name.split(' ')[0].toUpperCase()}` : integration.name}
                         </span>
-                        <span className={`text-xs px-2 py-1 rounded font-mono ${
+                        <span className={`text-xs px-2 py-1 font-mono ${
                           integration.available
-                            ? privateMode ? "bg-green-900 text-green-400" : "bg-green-100 text-green-700"
-                            : privateMode ? "bg-yellow-900 text-yellow-400" : "bg-yellow-100 text-yellow-700"
+                            ? privateMode ? "bg-[#39FF14]/10 text-[#39FF14] border border-[#39FF14]/30" : "bg-green-100 text-green-700 rounded"
+                            : privateMode ? "bg-[#F6C90E]/10 text-[#F6C90E] border border-[#F6C90E]/30" : "bg-yellow-100 text-yellow-700 rounded"
                         }`}>
-                          {integration.available ? "READY" : "PENDING"}
+                          {integration.available ? (privateMode ? "ONLINE" : "READY") : (privateMode ? "OFFLINE" : "PENDING")}
                         </span>
                       </div>
-                      <p className={`text-sm mb-2 ${privateMode ? "text-gray-400" : "text-gray-600"}`}>
+                      <p className={`text-sm mb-2 font-mono ${privateMode ? "text-[#00FFF0]/40" : "text-gray-600"}`}>
                         {integration.description}
                       </p>
-                      <div className={`text-xs font-mono ${privateMode ? "text-gray-500" : "text-gray-400"}`}>
-                        {integration.network} • {integration.implementation}
+                      <div className={`text-xs font-mono ${privateMode ? "text-[#00FFF0]/30" : "text-gray-400"}`}>
+                        {privateMode ? `[${integration.network.toUpperCase()}] :: ${integration.implementation}` : `${integration.network} • ${integration.implementation}`}
                       </div>
                       {integration.note && (
-                        <div className={`mt-2 text-xs flex items-start gap-1 ${
-                          privateMode ? "text-orange-400" : "text-orange-600"
+                        <div className={`mt-2 text-xs flex items-start gap-1 font-mono ${
+                          privateMode ? "text-[#FF1744]/70" : "text-orange-600"
                         }`}>
                           <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-                          {integration.note}
+                          {privateMode ? `! ${integration.note}` : integration.note}
                         </div>
                       )}
                     </div>
                   ))}
                 </div>
               </div>
+
+              {privateMode && (
+                <div className="mt-8 pt-6 border-t border-[#39FF14]/20">
+                  <div className="font-mono text-xs text-[#39FF14]/30 space-y-1">
+                    <p>// ENCRYPTION: AES-256-GCM</p>
+                    <p>// NETWORK: SOLANA_DEVNET</p>
+                    <p>// STATUS: ALL_SYSTEMS_NOMINAL</p>
+                    <motion.p
+                      animate={{ opacity: [0.3, 0.6, 0.3] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    >
+                      █ SECURE CONNECTION ESTABLISHED
+                    </motion.p>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <div className={`text-center py-8 ${privateMode ? "text-gray-500" : "text-gray-400"}`}>
-              Failed to load privacy status
+            <div className={`text-center py-8 font-mono ${privateMode ? "text-[#FF1744]" : "text-gray-400"}`}>
+              {privateMode ? "! CONNECTION_FAILED" : "Failed to load privacy status"}
             </div>
           )}
         </div>
