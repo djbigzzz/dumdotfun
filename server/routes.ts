@@ -16,6 +16,7 @@ import { isDFlowConfigured, fetchEvents, fetchMarkets, fetchMarketByTicker, fetc
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 import * as bondingCurve from "./bonding-curve-client";
+import { getPrivacySummary } from "./privacy";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -28,6 +29,19 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.get("/api/privacy/status", async (_req, res) => {
+    try {
+      const summary = getPrivacySummary();
+      res.json({
+        success: true,
+        ...summary,
+      });
+    } catch (error) {
+      console.error("Error fetching privacy status:", error);
+      res.status(500).json({ success: false, error: "Failed to fetch privacy status" });
+    }
+  });
+
   app.get("/api/tokens", async (req, res) => {
     try {
       const dbTokens = await db.select().from(tokensTable).limit(24);

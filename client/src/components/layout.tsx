@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
-import { motion } from "framer-motion";
-import { X } from "lucide-react";
+import { usePrivacy, obfuscateWallet } from "@/lib/privacy-context";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, EyeOff, Eye, Shield, Ghost, Info } from "lucide-react";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
+import { PrivacyDrawer } from "./privacy-drawer";
 
 const Marquee = () => {
   return (
@@ -102,9 +104,63 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
   );
 };
 
+const PrivacyToggle = ({ onOpenDrawer }: { onOpenDrawer: () => void }) => {
+  const { privateMode, togglePrivateMode } = usePrivacy();
+  
+  return (
+    <motion.button
+      onClick={() => {
+        togglePrivateMode();
+        toast.success(privateMode ? "Privacy mode disabled" : "Privacy mode enabled - you are now anonymous");
+      }}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        onOpenDrawer();
+      }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className={`relative flex items-center gap-2 px-3 py-2 font-mono font-bold text-sm border-2 border-black transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+        privateMode 
+          ? "bg-violet-600 text-white" 
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+      }`}
+      data-testid="button-privacy-toggle"
+      title={privateMode ? "Disable privacy mode" : "Enable privacy mode"}
+    >
+      <AnimatePresence mode="wait">
+        {privateMode ? (
+          <motion.div
+            key="private"
+            initial={{ opacity: 0, rotate: -90 }}
+            animate={{ opacity: 1, rotate: 0 }}
+            exit={{ opacity: 0, rotate: 90 }}
+            className="flex items-center gap-2"
+          >
+            <Ghost className="w-4 h-4" />
+            <span className="hidden sm:inline">STEALTH</span>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="public"
+            initial={{ opacity: 0, rotate: 90 }}
+            animate={{ opacity: 1, rotate: 0 }}
+            exit={{ opacity: 0, rotate: -90 }}
+            className="flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            <span className="hidden sm:inline">PUBLIC</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.button>
+  );
+};
+
 export function Layout({ children }: { children: React.ReactNode }) {
   const { connectedWallet, connectWallet: contextConnect } = useWallet();
+  const { privateMode } = usePrivacy();
   const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showPrivacyDrawer, setShowPrivacyDrawer] = useState(false);
   const [showRefundJoke, setShowRefundJoke] = useState(false);
   const [solBalance, setSolBalance] = useState<number | null>(null);
 
@@ -128,54 +184,90 @@ export function Layout({ children }: { children: React.ReactNode }) {
   }, [connectedWallet]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white">
+    <div className={`min-h-screen flex flex-col selection:bg-red-500 selection:text-white transition-colors duration-300 ${
+      privateMode 
+        ? "bg-zinc-950 text-gray-100" 
+        : "bg-gray-50 text-gray-900"
+    }`}>
+      {privateMode && (
+        <div className="fixed inset-0 pointer-events-none z-0 opacity-20">
+          <div className="absolute inset-0 bg-gradient-to-br from-violet-900/30 via-transparent to-cyan-900/30" />
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+            opacity: 0.15
+          }} />
+        </div>
+      )}
       <Marquee />
-      <header className="p-4 border-b-2 border-black flex justify-between items-center bg-white">
+      <header className={`p-4 border-b-2 border-black flex justify-between items-center transition-colors duration-300 ${
+        privateMode ? "bg-zinc-900" : "bg-white"
+      }`}>
         <div className="flex items-center gap-6">
           <Link href="/">
             <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
               <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
-              <h1 className="text-xl md:text-3xl font-black text-red-500 tracking-tighter uppercase hidden sm:block" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
-                DUM.FUN
+              <h1 className={`text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
+                  privateMode ? "text-violet-400" : "text-red-500"
+                }`} style={{ textShadow: privateMode ? "2px 2px 0px hsl(280 100% 30%)" : "2px 2px 0px hsl(60 100% 50%)" }}>
+                {privateMode ? "GHOST.FUN" : "DUM.FUN"}
               </h1>
             </div>
           </Link>
           
           <nav className="hidden md:flex items-center gap-4">
             <Link href="/tokens">
-              <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Tokens</span>
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-gray-300 hover:text-violet-400" : "text-gray-700 hover:text-red-500"}`}>Tokens</span>
             </Link>
             <Link href="/create">
-              <span className="font-bold text-gray-700 hover:text-red-500 transition-colors cursor-pointer">Launch</span>
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-gray-300 hover:text-violet-400" : "text-gray-700 hover:text-red-500"}`}>Launch</span>
             </Link>
             <Link href="/docs">
-              <span className="font-bold text-gray-700 hover:text-blue-500 transition-colors cursor-pointer">Docs</span>
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-gray-300 hover:text-cyan-400" : "text-gray-700 hover:text-blue-500"}`}>Docs</span>
             </Link>
           </nav>
         </div>
         
         <div className="flex items-center gap-3">
+          <div className="flex items-center">
+            <PrivacyToggle onOpenDrawer={() => setShowPrivacyDrawer(true)} />
+            <button
+              onClick={() => setShowPrivacyDrawer(true)}
+              className={`p-2 -ml-1 transition-colors ${
+                privateMode ? "text-violet-400 hover:text-violet-300" : "text-gray-400 hover:text-gray-600"
+              }`}
+              title="View privacy features"
+              data-testid="button-privacy-info"
+            >
+              <Info className="w-4 h-4" />
+            </button>
+          </div>
           {connectedWallet ? (
             <>
-              <div className="hidden sm:flex items-center gap-2 bg-purple-100 border-2 border-black px-3 py-2 font-mono text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <span className="text-purple-700 font-bold">
+              <div className={`hidden sm:flex items-center gap-2 border-2 border-black px-3 py-2 font-mono text-sm shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                privateMode ? "bg-zinc-800" : "bg-purple-100"
+              }`}>
+                <span className={`font-bold ${privateMode ? "text-violet-400" : "text-purple-700"}`}>
                   {solBalance !== null ? `${solBalance.toFixed(2)} SOL` : '---'}
                 </span>
-                <span className="text-purple-500 text-xs">(devnet)</span>
+                <span className={`text-xs ${privateMode ? "text-gray-500" : "text-purple-500"}`}>(devnet)</span>
               </div>
               <Link href="/profile">
                 <button 
-                  className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  className={`font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                    privateMode ? "bg-violet-600 text-white" : "bg-red-500 text-white"
+                  }`}
                   data-testid="button-profile"
                 >
-                  Profile
+                  {privateMode ? obfuscateWallet(connectedWallet) : "Profile"}
                 </button>
               </Link>
             </>
           ) : (
             <button 
               onClick={() => setShowWalletModal(true)}
-              className="font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 bg-white text-red-500 hover:bg-red-50 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+              className={`font-mono font-bold border-2 border-black px-3 md:px-4 py-2 uppercase text-sm transition-all hover:translate-x-1 hover:translate-y-1 active:translate-x-0 active:translate-y-0 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
+                privateMode ? "bg-zinc-800 text-violet-400 hover:bg-zinc-700" : "bg-white text-red-500 hover:bg-red-50"
+              }`}
               data-testid="button-login"
             >
               LOG IN
@@ -190,13 +282,20 @@ export function Layout({ children }: { children: React.ReactNode }) {
         onConnect={contextConnect}
       />
 
+      <PrivacyDrawer
+        isOpen={showPrivacyDrawer}
+        onClose={() => setShowPrivacyDrawer(false)}
+      />
+
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
         <div className="relative z-10">
           {children}
         </div>
       </main>
 
-      <footer className="p-8 border-t-2 border-black bg-white text-center font-mono text-sm text-gray-500">
+      <footer className={`p-8 border-t-2 border-black text-center font-mono text-sm transition-colors duration-300 ${
+        privateMode ? "bg-zinc-900 text-gray-500" : "bg-white text-gray-500"
+      }`}>
         <div className="flex items-center justify-center gap-4 mb-4">
           <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="hover:text-black transition-colors">@dumdotfun</a>
         </div>

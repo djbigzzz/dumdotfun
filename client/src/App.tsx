@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/lib/wallet-context";
+import { PrivacyProvider } from "@/lib/privacy-context";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import TokensPage from "@/pages/tokens";
@@ -41,11 +42,13 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <WalletProvider>
-          <Router />
-          <Toaster />
-          <SonnerToaster position="top-right" theme="dark" />
-        </WalletProvider>
+        <PrivacyProvider>
+          <WalletProvider>
+            <Router />
+            <Toaster />
+            <SonnerToaster position="top-right" theme="dark" />
+          </WalletProvider>
+        </PrivacyProvider>
       </TooltipProvider>
     </QueryClientProvider>
   );
