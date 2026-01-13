@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { Plus, Loader2, AlertCircle, Rocket, Search, Mail, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
+import { usePrivacy } from "@/lib/privacy-context";
 
 interface TokenPrediction {
   id: string;
@@ -31,6 +32,7 @@ interface Token {
 }
 
 export default function TokensPage() {
+  const { privateMode } = usePrivacy();
   const [searchQuery, setSearchQuery] = useState("");
   const [email, setEmail] = useState("");
   const [waitlistJoined, setWaitlistJoined] = useState(false);
@@ -138,33 +140,43 @@ export default function TokensPage() {
 
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-3xl md:text-4xl font-black text-gray-900">
-              Token Feed
+            <h1 className={`text-3xl md:text-4xl font-black ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
+              {privateMode ? "> TOKEN_FEED" : "Token Feed"}
             </h1>
-            <p className="text-gray-500 mt-1">Browse tokens and bet on predictions</p>
+            <p className={`mt-1 ${privateMode ? "text-[#39FF14]/70 font-mono" : "text-gray-500"}`}>
+              {privateMode ? "// SCANNING_FOR_ALPHA" : "Browse tokens and bet on predictions"}
+            </p>
           </div>
           
           <Link href="/create">
             <motion.button
               whileHover={{ y: -2, x: -2 }}
               whileTap={{ y: 0, x: 0 }}
-              className="flex items-center gap-2 bg-red-500 text-white font-bold px-6 py-3 border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+              className={`flex items-center gap-2 font-bold px-6 py-3 border-2 rounded-lg transition-all ${
+                privateMode 
+                  ? "bg-black border-[#39FF14] text-[#39FF14] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)] font-mono" 
+                  : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
+              }`}
               data-testid="button-create-token"
             >
               <Plus className="w-5 h-5" />
-              Launch Token
+              {privateMode ? "INITIALIZE_LAUNCH" : "Launch Token"}
             </motion.button>
           </Link>
         </div>
 
         <div className="relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Search className={`absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search tokens..."
-            className="w-full pl-12 pr-4 py-3 bg-white border-2 border-black rounded-lg font-mono focus:outline-none focus:ring-2 focus:ring-red-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            placeholder={privateMode ? "> SEARCH_TOKENS..." : "Search tokens..."}
+            className={`w-full pl-12 pr-4 py-3 border-2 font-mono focus:outline-none transition-all ${
+              privateMode 
+                ? "bg-black border-[#39FF14]/30 text-[#39FF14] placeholder-[#39FF14]/30 focus:border-[#39FF14] focus:shadow-[0_0_10px_rgba(57,255,20,0.2)]" 
+                : "bg-white border-black rounded-lg focus:ring-2 focus:ring-red-500 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+            }`}
             data-testid="input-search-tokens"
           />
         </div>
