@@ -193,7 +193,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
       privateMode 
-        ? "bg-black text-[#39FF14] selection:bg-[#39FF14] selection:text-black" 
+        ? "bg-black text-gray-100 selection:bg-[#39FF14] selection:text-black" 
         : "bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white"
     }`}>
       {privateMode && (
@@ -235,11 +235,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex items-center gap-6">
           <Link href="/">
             <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
-              <img src={pillLogo} alt="DUM.FUN" className={`h-10 md:h-12 w-auto ${privateMode ? "opacity-80 hue-rotate-90 saturate-200" : ""}`} />
+              <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
               <h1 className={`text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
                   privateMode ? "text-[#39FF14] font-mono" : "text-red-500"
-                }`} style={{ textShadow: privateMode ? "0 0 10px rgba(57,255,20,0.5), 0 0 20px rgba(57,255,20,0.3)" : "2px 2px 0px hsl(60 100% 50%)" }}>
-                {privateMode ? "D/\\EMON" : "DUM.FUN"}
+                }`} style={{ textShadow: privateMode ? "0 0 8px rgba(57,255,20,0.4)" : "2px 2px 0px hsl(60 100% 50%)" }}>
+                DUM.FUN
               </h1>
             </div>
           </Link>
