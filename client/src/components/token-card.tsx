@@ -39,9 +39,9 @@ export function TokenCard({ token }: TokenCardProps) {
       <motion.div
         whileHover={{ y: -2, x: -2 }}
         whileTap={{ y: 0, x: 0 }}
-        className={`relative p-4 border-2 transition-all cursor-pointer group overflow-hidden ${
+        className={`relative p-5 border-2 transition-all cursor-pointer group overflow-hidden ${
           privateMode 
-            ? "bg-black border-[#39FF14]/30 hover:border-[#39FF14] hover:shadow-[0_0_20px_rgba(57,255,20,0.2)]" 
+            ? "bg-black border-[#39FF14] hover:shadow-[0_0_30px_rgba(57,255,20,0.3)]" 
             : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
         }`}
         data-testid={`token-card-${token.mint}`}
@@ -77,9 +77,9 @@ export function TokenCard({ token }: TokenCardProps) {
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <h3 className={`text-lg font-black uppercase truncate transition-colors ${
+              <h3 className={`text-xl font-black uppercase truncate transition-colors ${
                 privateMode 
-                  ? "text-[#39FF14]/90 font-mono group-hover:text-[#39FF14]" 
+                  ? "text-[#39FF14] font-mono group-hover:text-white" 
                   : "text-gray-900 group-hover:text-red-500"
               }`}>
                 {token.name}
@@ -95,16 +95,16 @@ export function TokenCard({ token }: TokenCardProps) {
             
             <div className="grid grid-cols-2 gap-2 text-xs font-mono mb-2">
               <div>
-                <span className={privateMode ? "text-[#39FF14]/40" : "text-gray-500"}>Cap: </span>
-                <span className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-green-600"}`}>
+                <span className={privateMode ? "text-[#39FF14]/80" : "text-gray-500"}>Cap: </span>
+                <span className={`font-bold ${privateMode ? "text-white" : "text-green-600"}`}>
                   {privateMode ? "◈ " : ""}{token.marketCapSol.toFixed(2)} SOL
                 </span>
               </div>
               <div>
-                <span className={privateMode ? "text-[#39FF14]/40" : "text-gray-500"}>Progress: </span>
+                <span className={privateMode ? "text-[#39FF14]/80" : "text-gray-500"}>Progress: </span>
                 <span className={`font-bold ${
                   privateMode 
-                    ? "text-[#39FF14]" 
+                    ? "text-white" 
                     : token.bondingCurveProgress > 80 ? "text-green-600" : token.bondingCurveProgress > 50 ? "text-yellow-600" : "text-red-500"
                 }`}>
                   {token.bondingCurveProgress.toFixed(0)}%
@@ -138,7 +138,7 @@ export function TokenCard({ token }: TokenCardProps) {
               </span>
             </div>
             
-            <p className={`text-xs font-bold mb-2 line-clamp-1 ${privateMode ? "text-[#39FF14]/80 font-mono" : "text-gray-700"}`}>
+            <p className={`text-sm font-bold mb-2 line-clamp-1 ${privateMode ? "text-white font-mono" : "text-gray-700"}`}>
               {privateMode ? `> ${topPrediction.question.toUpperCase()}` : topPrediction.question}
             </p>
             
@@ -167,10 +167,10 @@ export function TokenCard({ token }: TokenCardProps) {
               </button>
             </div>
             
-            <div className={`flex items-center justify-between mt-2 text-[10px] font-mono ${privateMode ? "text-[#39FF14]/30" : "text-gray-500"}`}>
+            <div className={`flex items-center justify-between mt-2 text-[10px] font-mono ${privateMode ? "text-[#39FF14]/80" : "text-gray-500"}`}>
               <span>{topPrediction.totalVolume.toFixed(2)} SOL VOL</span>
               {token.predictions && token.predictions.length > 1 && (
-                <span className={privateMode ? "text-[#39FF14]/50" : "text-pink-500"}>
+                <span className={privateMode ? "text-white" : "text-pink-500"}>
                   {privateMode ? `+${token.predictions.length - 1}_MODULES` : `+${token.predictions.length - 1} more`}
                 </span>
               )}
