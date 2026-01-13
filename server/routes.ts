@@ -1239,18 +1239,23 @@ export async function registerRoutes(
       }
 
       // Verify the transaction was confirmed on-chain
-      let connection;
+      // Try Helius first, fall back to public RPC
+      let txInfo;
       try {
-        connection = getHeliusConnection();
-      } catch (e) {
+        const connection = getHeliusConnection();
+        txInfo = await connection.getTransaction(signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        });
+      } catch (heliusError) {
+        console.log("[Market Creation] Helius failed for verification, falling back to public RPC:", heliusError);
         const { getPublicConnection } = await import("./helius-rpc");
-        connection = getPublicConnection();
+        const publicConnection = getPublicConnection();
+        txInfo = await publicConnection.getTransaction(signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        });
       }
-      
-      const txInfo = await connection.getTransaction(signature, {
-        commitment: "confirmed",
-        maxSupportedTransactionVersion: 0,
-      });
 
       if (!txInfo) {
         return res.status(400).json({ error: "Transaction not found on chain. Please wait and try again." });
@@ -1660,11 +1665,23 @@ export async function registerRoutes(
       }
 
       // Verify the transaction was confirmed on-chain
-      const connection = getHeliusConnection();
-      const txInfo = await connection.getTransaction(signature, {
-        commitment: "confirmed",
-        maxSupportedTransactionVersion: 0,
-      });
+      // Try Helius first, fall back to public RPC
+      let txInfo;
+      try {
+        const connection = getHeliusConnection();
+        txInfo = await connection.getTransaction(signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        });
+      } catch (heliusError) {
+        console.log("[Betting] Helius failed for verification, falling back to public RPC:", heliusError);
+        const { getPublicConnection } = await import("./helius-rpc");
+        const publicConnection = getPublicConnection();
+        txInfo = await publicConnection.getTransaction(signature, {
+          commitment: "confirmed",
+          maxSupportedTransactionVersion: 0,
+        });
+      }
 
       if (!txInfo) {
         return res.status(400).json({ error: "Transaction not found on chain" });
