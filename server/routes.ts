@@ -1407,8 +1407,19 @@ export async function registerRoutes(
       }
 
       // Build transaction for the full bet amount (goes to platform)
-      const connection = getHeliusConnection();
-      const { blockhash } = await connection.getLatestBlockhash();
+      // Try Helius first, fall back to public RPC
+      let blockhash: string;
+      try {
+        const connection = getHeliusConnection();
+        const result = await connection.getLatestBlockhash();
+        blockhash = result.blockhash;
+      } catch (heliusError) {
+        console.log("[Betting] Helius failed, falling back to public RPC:", heliusError);
+        const { getPublicConnection } = await import("./helius-rpc");
+        const publicConnection = getPublicConnection();
+        const result = await publicConnection.getLatestBlockhash();
+        blockhash = result.blockhash;
+      }
       const feeRecipient = getFeeRecipientWallet();
       const betLamports = Math.floor(amountNum * LAMPORTS_PER_SOL);
       
