@@ -1,0 +1,133 @@
+Hackathon Tracks
+Compete in one of three categories.
+
+Track 01
+Private payments
+Build innovative solutions for confidential or private transfers on Solana.
+
+$15,000prize
+Track 02
+Privacy tooling
+Develop tools and infrastructure that make it easier for developers to build with privacy on Solana.
+
+$15,000prize
+Track 03
+Open track - Pool
+Build whatever you want with privacy on Solana. Supported by Light Protocol. POOL PRIZE — Judged by Solana Foundation &
+
+$18,000prize
+Sponsor Bounties
+Additional prizes from our ecosystem partners
+
+Sponsors are responsible for prize distribution. These bounties are offered independently by ecosystem partners.
+
+⭐ Privacy Cash
+Build with Privacy Cash
+Use Privacy Cash SDK to build privacy-enabled apps on Solana. Ideas include private lending, whale wallets, private bridging, games, and more.
+
+Best Overall App: $6k
+Best Integration to Existing App: $6k
+Honorable Mentions: $3k in total
+
+$15,000prize
+Learn more about Privacy Cash
+⭐ Radr Labs
+Private Transfers with ShadowWire
+ShadowWire lets you make private transfers on Solana. You can hide transaction amounts using Bulletproofs (zero-knowledge proofs) while keeping everything on-chain and verifiable.
+
+Grand Prize: $10k
+Best integration of USD1: $2.5k
+Best integration to existing app: $2.5k
+
+$15,000prize
+Learn more about Radr Labs
+Anoncoin
+Privacy Tooling for Launching Tokens
+Build confidential token creation infra for dynamic bonding, private swaps, dark liquidity pools. A seamless solution built to provide confidentiality to memecoin launches and make trading fun with privacy.
+
+Best overall: $5k
+Best integration into Anoncoin: $2.5k
+Most creative: $2.5k
+
+$10,000prize
+Learn more about Anoncoin
+Arcium
+End-to-End Private DeFi
+Build fully confidential DeFi using Arcium, enabling encrypted shared state and use cases like private swaps, lending, borrowing and much more.
+
+Best overall app: $5k
+Best integration into an existing app: $3k
+Most <encrypted> potential: 2 x $1k
+
+$10,000prize
+Learn more about Arcium
+Aztec
+ZK with Noir
+Easily build ZK applications using Noir, now possible on Solana.
+
+Best overall: $5k
+Best non-financial use: $2.5k
+Most creative: $2.5k
+
+$10,000prize
+Learn more about Aztec
+Inco
+Best Confidential Apps with Inco
+Build any confidential application across payments, DeFi, gaming, and more using Inco Lightning, a seamless solution built to provide confidentiality at the native speed of your app.
+
+DeFi: $2k
+Consumer, Gaming, Prediction Markets: $2k
+Payments: $2k
+
+$6,000prize
+Learn more about Inco
+Helius
+Best Privacy Project with Helius
+Best privacy project that leverages Helius' RPCs and developer tooling
+
+$5,000prize
+Learn more about Helius
+MagicBlock
+Real-time Privacy with MagicBlock
+Build real-time, fully confidential applications using MagicBlock's Private Ephemeral Rollups on Solana. Combine confidential state, real-time execution, and compliance-first approach.
+
+Best Private App: $2.5k
+Second Place: $1.5k
+Third Place: $1k
+
+$5,000prize
+Learn more about MagicBlock
+Quicknode
+Public Benefit Prize
+Most impactful open-source privacy tooling/repo using Quicknode's RPC
+
+$3,000prize
+Learn more about Quicknode
+PNP Exchange
+Private & Agent-Based Prediction Markets
+Build AI agents that create prediction markets using privacy-focused tokens as collateral, or design private prediction market infrastructure using the PNP SDK.
+
+$1k each for 2 winning projects
++$500 bonus prize
+
+$2,500prize
+Learn more about PNP Exchange
+Range
+Compliant Privacy
+Build private and confidential applications that are compliant and safe. Use Range's tools for pre-screening and selective disclosure to ensure your privacy-preserving project meets compliance requirements.
+
+$1,500 + free API credits for 2 months for all participating teams
+
+$1,500+prize
+Learn more about Range
+Encrypt.trade
+Educate about Privacy
+Help users understand crypto surveillance and why privacy matters.
+
+Educate users about wallet surveillance: $500
+Explain privacy without jargon: $500
+
+View full details
+
+$1,000prize
+Learn more about Encrypt.trade
