@@ -231,7 +231,7 @@ export default function CreateToken() {
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Devnet Banner */}
-        <div className={`${privateMode ? "bg-black border-[#39FF14] text-[#39FF14]" : "bg-purple-100 border-black text-purple-800"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}>
+        <div className={`${privateMode ? "bg-zinc-900/50 border-[#39FF14]/50 text-[#39FF14]" : "bg-purple-100 border-black text-purple-800"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}>
           <div className="flex items-center gap-2">
             <Zap className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-purple-700"}`} />
             <p className={`text-sm font-bold ${privateMode ? "font-mono" : ""}`}>
@@ -244,7 +244,7 @@ export default function CreateToken() {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`${privateMode ? "bg-black border-[#39FF14] text-[#39FF14]" : "bg-white border-black text-gray-900"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}
+          className={`${privateMode ? "bg-zinc-900/50 border-[#39FF14]/50 text-[#39FF14]" : "bg-white border-black text-gray-900"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}
         >
           {connectedWallet ? (
             <div className="space-y-3">
@@ -415,7 +415,7 @@ export default function CreateToken() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Coin Details Section */}
-          <div className={`${privateMode ? "bg-black border-[#39FF14]" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
             <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#39FF14] font-mono" : "text-red-500"}`}>
               {privateMode ? "// ASSET_METADATA" : "COIN DETAILS"}
             </h2>
@@ -480,7 +480,7 @@ export default function CreateToken() {
           </div>
 
           {/* Social Links Section */}
-          <div className={`${privateMode ? "bg-black border-[#39FF14]" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
             <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-700"}`}>
               {privateMode ? "// COMMS_PROTOCOLS" : "+ SOCIAL LINKS (OPTIONAL)"}
             </h2>
@@ -535,7 +535,7 @@ export default function CreateToken() {
           </div>
 
           {/* Image Upload Section */}
-          <div className={`${privateMode ? "bg-black border-[#39FF14]" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
             <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#39FF14] font-mono" : "text-red-500"}`}>
               {privateMode ? "// VISUAL_ID" : "COIN IMAGE"}
             </h2>

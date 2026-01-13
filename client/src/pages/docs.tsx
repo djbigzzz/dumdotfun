@@ -186,7 +186,7 @@ export default function DocsPage() {
         </motion.div>
 
         <nav className={`border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-          privateMode ? "bg-black border-[#39FF14]" : "bg-white"
+          privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white"
         }`}>
           <h2 className={`font-bold mb-3 ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
             {privateMode ? "> NAV_LINKS" : "Quick Links"}
@@ -228,7 +228,7 @@ export default function DocsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-black border-[#39FF14]" : "bg-white"
+                privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white"
               }`}
             >
               <div className="flex items-center gap-3 mb-4">
@@ -288,7 +288,7 @@ export default function DocsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-            privateMode ? "bg-black border-[#39FF14]" : "bg-white"
+            privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white"
           }`}
         >
           <div className="flex items-center gap-3 mb-6">

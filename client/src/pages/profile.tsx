@@ -117,7 +117,7 @@ export default function Profile() {
             </div>
 
             <div className={`border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-black border-[#39FF14]" : "bg-white shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]"
+              privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]"
             }`}>
               <div className="flex items-center gap-2">
                 <Wallet className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-red-500"}`} />
@@ -207,7 +207,7 @@ export default function Profile() {
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-black border-[#39FF14]" : "bg-yellow-300"
+                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-yellow-300"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
@@ -224,7 +224,7 @@ export default function Profile() {
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-black border-[#39FF14]" : "bg-green-400"
+                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-green-400"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
@@ -241,7 +241,7 @@ export default function Profile() {
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-black border-[#39FF14]" : "bg-pink-300"
+                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-pink-300"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
