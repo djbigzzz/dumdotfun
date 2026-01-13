@@ -116,25 +116,15 @@ All fees go to the platform treasury to fund development and liquidity.`
   {
     id: "safety",
     icon: Shield,
-    title: "Safety & Risks",
-    content: `**This is crypto. Expect to lose money.**
+    title: "Safety & Trading",
+    content: `**Trading involves significant risk. Always DYOR.**
 
-dum.fun is a platform for meme tokens and prediction markets. Most tokens will go to zero. Most bets will lose.
+Dum.fun is a platform for meme tokens and prediction markets. All tokens are launched on Solana Devnet.
 
-**Risks:**
-- Tokens can rug (dev sells everything)
-- Bonding curves can dump hard
-- Prediction markets can be wrong
-- Smart contract bugs can occur
-- This is not financial advice
-
-**Safety tips:**
-- Only invest what you can afford to lose
-- DYOR (Do Your Own Research)
-- Be skeptical of everything
-- The dev can rug. They probably will.
-
-We don't endorse any specific token. We just provide the tools.`
+**Safety Features:**
+- Real-time bonding curve tracking
+- Transparent token supply data
+- Verified creator wallet display`
   }
 ];
 
@@ -169,7 +159,7 @@ const faqs = [
   },
   {
     q: "Is dum.fun safe?",
-    a: "No. This is experimental software for meme tokens. Assume you will lose everything you put in. Not financial advice."
+    a: "Trading experimental meme tokens involves high risk. This platform is for testing on Solana Devnet. Never trade more than you can afford to lose."
   }
 ];
 

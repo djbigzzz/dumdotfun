@@ -63,22 +63,22 @@ export async function sendWaitlistConfirmation(email: string) {
       subject: "Welcome to Dum.fun Waitlist 🔥",
       html: `
         <div style="font-family: Arial, sans-serif; background-color: #000000; color: #E5E5E5; padding: 20px; max-width: 600px; margin: 0 auto; border: 2px solid #FF4444;">
-          <h1 style="color: #FF4444; font-size: 32px; margin: 0 0 20px 0;">🔥 WELCOME</h1>
+          <h1 style="color: #39FF14; font-size: 32px; margin: 0 0 20px 0;">◈ WELCOME</h1>
           
           <p style="font-size: 16px; line-height: 1.6;">
             You're now on the Dum.fun waitlist! 
           </p>
           
           <p style="font-size: 14px; line-height: 1.6; color: #CCCCCC;">
-            Get ready for the anti-launchpad where tokens launch EXPENSIVE and crash IMMEDIATELY.
+            Get ready for the premier launchpad where tokens launch with real bonding curves and integrated markets.
           </p>
           
-          <div style="background-color: #1a1a1a; border: 1px solid #FF4444; padding: 15px; margin: 20px 0;">
-            <p style="margin: 0; font-size: 14px; color: #FFFF00;">
-              ⚠️ WARNING: YOU WILL LOSE MONEY
+          <div style="background-color: #1a1a1a; border: 1px solid #39FF14; padding: 15px; margin: 20px 0;">
+            <p style="margin: 0; font-size: 14px; color: #39FF14;">
+              ✅ SECURE LAUNCHPAD ACTIVE
             </p>
             <p style="margin: 10px 0 0 0; font-size: 12px; color: #AAAAAA;">
-              Dum.fun is a satirical design concept showcasing the absurdity of crypto meme coin platforms.
+              Dum.fun is a functional Solana Devnet launchpad for meme tokens and prediction markets.
             </p>
           </div>
           
