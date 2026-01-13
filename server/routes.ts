@@ -1328,6 +1328,216 @@ export async function registerRoutes(
     }
   });
 
+  // In-memory storage for pending bets (would use Redis in production)
+  const pendingBets = new Map<string, {
+    marketId: string;
+    walletAddress: string;
+    side: "yes" | "no";
+    amount: number;
+    netAmount: number;
+    fee: number;
+    shares: number;
+    newYes: number;
+    newNo: number;
+    encryptedAmount?: string;
+    commitment?: string;
+    nonce?: string;
+    isConfidential?: boolean;
+    createdAt: number;
+  }>();
+
+  // Cleanup old pending bets (expire after 5 minutes)
+  setInterval(() => {
+    const now = Date.now();
+    const entries = Array.from(pendingBets.entries());
+    for (const [betId, bet] of entries) {
+      if (now - bet.createdAt > 5 * 60 * 1000) {
+        pendingBets.delete(betId);
+      }
+    }
+  }, 60 * 1000);
+
+  // Step 1: Prepare bet - builds transaction, returns betId
+  app.post("/api/markets/:id/prepare-bet", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { walletAddress, side, amount, encryptedAmount, commitment, nonce, isConfidential } = req.body;
+
+      if (!walletAddress || typeof walletAddress !== "string") {
+        return res.status(400).json({ error: "Wallet address is required" });
+      }
+
+      if (!side || (side !== "yes" && side !== "no")) {
+        return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
+      }
+
+      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+
+      const market = await storage.getMarket(id);
+      if (!market) {
+        return res.status(404).json({ error: "Market not found" });
+      }
+
+      if (market.status !== "open") {
+        return res.status(400).json({ error: "Market is closed for betting" });
+      }
+
+      if (new Date(market.resolutionDate) <= new Date()) {
+        return res.status(400).json({ error: "Market has expired" });
+      }
+
+      const amountNum = Number(amount);
+      const { netAmount, fee } = calculateBettingFee(amountNum);
+      
+      const currentYes = Number(market.yesPool);
+      const currentNo = Number(market.noPool);
+
+      let newYes = currentYes;
+      let newNo = currentNo;
+      let shares: number;
+
+      if (side === "yes") {
+        newYes = currentYes + netAmount;
+        shares = netAmount * (currentNo + 1) / (currentYes + 1);
+      } else {
+        newNo = currentNo + netAmount;
+        shares = netAmount * (currentYes + 1) / (currentNo + 1);
+      }
+
+      // Build transaction for the full bet amount (goes to platform)
+      const connection = getHeliusConnection();
+      const { blockhash } = await connection.getLatestBlockhash();
+      const feeRecipient = getFeeRecipientWallet();
+      const betLamports = Math.floor(amountNum * LAMPORTS_PER_SOL);
+      
+      const betTx = new Transaction();
+      betTx.add(SystemProgram.transfer({
+        fromPubkey: new PublicKey(walletAddress),
+        toPubkey: feeRecipient,
+        lamports: betLamports,
+      }));
+      betTx.recentBlockhash = blockhash;
+      betTx.feePayer = new PublicKey(walletAddress);
+      
+      const transaction = betTx.serialize({ requireAllSignatures: false }).toString("base64");
+
+      // Generate unique bet ID
+      const betId = `bet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store pending bet
+      pendingBets.set(betId, {
+        marketId: id,
+        walletAddress,
+        side: side as "yes" | "no",
+        amount: amountNum,
+        netAmount,
+        fee,
+        shares,
+        newYes,
+        newNo,
+        encryptedAmount,
+        commitment,
+        nonce,
+        isConfidential: !!isConfidential,
+        createdAt: Date.now(),
+      });
+
+      console.log(`Prepared bet ${betId}: ${amountNum} SOL on ${side} for market ${id}`);
+
+      return res.json({
+        success: true,
+        betId,
+        transaction,
+        platformFee: fee,
+        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
+        netBetAmount: netAmount,
+        expectedShares: shares,
+      });
+    } catch (error: any) {
+      console.error("Error preparing bet:", error);
+      return res.status(500).json({ error: "Failed to prepare bet" });
+    }
+  });
+
+  // Step 2: Confirm bet - verifies transaction, records bet in database
+  app.post("/api/markets/:id/confirm-bet", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { betId, signature, encryptedAmount, commitment, nonce, isConfidential } = req.body;
+
+      if (!betId || !signature) {
+        return res.status(400).json({ error: "Bet ID and signature are required" });
+      }
+
+      const pendingBet = pendingBets.get(betId);
+      if (!pendingBet) {
+        return res.status(404).json({ error: "Pending bet not found or expired" });
+      }
+
+      if (pendingBet.marketId !== id) {
+        return res.status(400).json({ error: "Market ID mismatch" });
+      }
+
+      // Verify the transaction was confirmed on-chain
+      const connection = getHeliusConnection();
+      const txInfo = await connection.getTransaction(signature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+
+      if (!txInfo) {
+        return res.status(400).json({ error: "Transaction not found on chain" });
+      }
+
+      if (txInfo.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      // Record the bet in database
+      const isConfidentialBet = isConfidential || pendingBet.isConfidential;
+      const confidentialData = isConfidentialBet ? {
+        isConfidential: true,
+        encryptedAmount: encryptedAmount || pendingBet.encryptedAmount,
+        commitment: commitment || pendingBet.commitment,
+        nonce: nonce || pendingBet.nonce,
+      } : undefined;
+
+      const position = await storage.placeBetTransaction(
+        id,
+        pendingBet.walletAddress,
+        pendingBet.side,
+        pendingBet.netAmount.toString(),
+        pendingBet.shares.toString(),
+        pendingBet.newYes.toString(),
+        pendingBet.newNo.toString(),
+        confidentialData
+      );
+
+      // Remove from pending
+      pendingBets.delete(betId);
+
+      console.log(`Bet confirmed: ${pendingBet.amount} SOL on ${pendingBet.side} for market ${id} (tx: ${signature})`);
+
+      return res.json({
+        success: true,
+        position,
+        signature,
+        platformFee: pendingBet.fee,
+        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
+        netBetAmount: pendingBet.netAmount,
+        newOdds: {
+          yes: calculateOdds(pendingBet.newYes, pendingBet.newNo, "yes"),
+          no: calculateOdds(pendingBet.newYes, pendingBet.newNo, "no"),
+        },
+      });
+    } catch (error: any) {
+      console.error("Error confirming bet:", error);
+      return res.status(500).json({ error: "Failed to confirm bet" });
+    }
+  });
+
   // Place CONFIDENTIAL bet on market using Inco Lightning
   app.post("/api/markets/:id/confidential-bet", async (req, res) => {
     try {

@@ -109,11 +109,16 @@ export default function TokenPage() {
         throw new Error("Wallet not connected");
       }
 
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom?.isPhantom) {
+        throw new Error("Phantom wallet required");
+      }
+
       if (shouldEncryptBets) {
         console.log("[Inco] Placing confidential bet using Inco Lightning SDK");
         const encryptedPayload = await encryptBetForInco(amount, side, connectedWallet);
         
-        const res = await fetch(`/api/markets/${marketId}/confidential-bet`, {
+        const prepareRes = await fetch(`/api/markets/${marketId}/prepare-bet`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -123,15 +128,37 @@ export default function TokenPage() {
             ...encryptedPayload,
           }),
         });
-        if (!res.ok) {
-          const data = await res.json();
-          throw new Error(data.error || "Failed to place confidential bet");
+        if (!prepareRes.ok) {
+          const data = await prepareRes.json();
+          throw new Error(data.error || "Failed to prepare confidential bet");
         }
-        const result = await res.json();
-        return { ...result, isConfidential: true };
+        const { transaction: txBase64, betId } = await prepareRes.json();
+        
+        const txBytes = Buffer.from(txBase64, "base64");
+        const transaction = Transaction.from(txBytes);
+        const signedTx = await phantom.signTransaction(transaction);
+        
+        const connection = new Connection(SOLANA_RPC, "confirmed");
+        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        });
+        await connection.confirmTransaction(signature, "confirmed");
+        
+        const confirmRes = await fetch(`/api/markets/${marketId}/confirm-bet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ betId, signature, ...encryptedPayload }),
+        });
+        if (!confirmRes.ok) {
+          const data = await confirmRes.json();
+          throw new Error(data.error || "Failed to confirm bet");
+        }
+        const result = await confirmRes.json();
+        return { ...result, isConfidential: true, signature };
       }
 
-      const res = await fetch(`/api/markets/${marketId}/bet`, {
+      const prepareRes = await fetch(`/api/markets/${marketId}/prepare-bet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -140,11 +167,33 @@ export default function TokenPage() {
           amount,
         }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to place bet");
+      if (!prepareRes.ok) {
+        const data = await prepareRes.json();
+        throw new Error(data.error || "Failed to prepare bet");
       }
-      return res.json();
+      const { transaction: txBase64, betId } = await prepareRes.json();
+      
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      const signedTx = await phantom.signTransaction(transaction);
+      
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+      await connection.confirmTransaction(signature, "confirmed");
+      
+      const confirmRes = await fetch(`/api/markets/${marketId}/confirm-bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ betId, signature }),
+      });
+      if (!confirmRes.ok) {
+        const data = await confirmRes.json();
+        throw new Error(data.error || "Failed to confirm bet");
+      }
+      return confirmRes.json();
     },
     onSuccess: (data) => {
       if (data.isConfidential) {
