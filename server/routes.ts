@@ -1109,9 +1109,8 @@ export async function registerRoutes(
     }
   });
 
-  // Create prediction market (always linked to a token)
-  // Requires creation fee + minimum initial bet (0.5 SOL)
-  app.post("/api/markets/create", async (req, res) => {
+  // Step 1: Prepare market creation - builds transaction, returns pendingMarketId
+  app.post("/api/markets/prepare-create", async (req, res) => {
     try {
       const { 
         question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate,
@@ -1154,53 +1153,134 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Resolution date must be in the future" });
       }
 
-      // Create market with initial bet atomically in a single transaction
+      const totalCost = CREATION_FEE + betAmount;
+
+      // Build transaction for the total cost (creation fee + initial bet)
+      let blockhash: string;
+      try {
+        const connection = getHeliusConnection();
+        const result = await connection.getLatestBlockhash();
+        blockhash = result.blockhash;
+      } catch (heliusError) {
+        console.log("[Market Creation] Helius failed, falling back to public RPC:", heliusError);
+        const { getPublicConnection } = await import("./helius-rpc");
+        const publicConnection = getPublicConnection();
+        const result = await publicConnection.getLatestBlockhash();
+        blockhash = result.blockhash;
+      }
+      
+      const feeRecipient = getFeeRecipientWallet();
+      const totalLamports = Math.floor(totalCost * LAMPORTS_PER_SOL);
+      
+      const tx = new Transaction();
+      tx.add(SystemProgram.transfer({
+        fromPubkey: new PublicKey(creatorAddress),
+        toPubkey: feeRecipient,
+        lamports: totalLamports,
+      }));
+      tx.recentBlockhash = blockhash;
+      tx.feePayer = new PublicKey(creatorAddress);
+      
+      const transaction = tx.serialize({ requireAllSignatures: false }).toString("base64");
+
+      // Generate unique pending market ID
+      const pendingMarketId = `market_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Store pending market creation
+      pendingMarkets.set(pendingMarketId, {
+        question: question.trim(),
+        description: description?.trim() || null,
+        imageUri: imageUri || null,
+        creatorAddress,
+        predictionType: predictionType || "custom",
+        tokenMint,
+        resolutionDate: resolutionTimestamp,
+        initialBetSide,
+        initialBetAmount: betAmount,
+        totalCost,
+        createdAt: Date.now(),
+      });
+
+      console.log(`[Market Creation] Prepared: "${question.trim()}" - waiting for signature (${totalCost} SOL)`);
+
+      return res.json({
+        success: true,
+        pendingMarketId,
+        transaction,
+        totalCost,
+        creationFee: CREATION_FEE,
+        initialBetAmount: betAmount,
+        feeRecipient: feeRecipient.toString(),
+      });
+    } catch (error: any) {
+      console.error("Error preparing market:", error);
+      return res.status(500).json({ error: "Failed to prepare market creation" });
+    }
+  });
+
+  // Step 2: Confirm market creation - verifies signature on-chain and creates market
+  app.post("/api/markets/confirm-create", async (req, res) => {
+    try {
+      const { pendingMarketId, signature } = req.body;
+
+      if (!pendingMarketId || !signature) {
+        return res.status(400).json({ error: "Pending market ID and signature are required" });
+      }
+
+      const pendingMarket = pendingMarkets.get(pendingMarketId);
+      if (!pendingMarket) {
+        return res.status(404).json({ error: "Pending market not found or expired" });
+      }
+
+      // Verify the transaction was confirmed on-chain
+      let connection;
+      try {
+        connection = getHeliusConnection();
+      } catch (e) {
+        const { getPublicConnection } = await import("./helius-rpc");
+        connection = getPublicConnection();
+      }
+      
+      const txInfo = await connection.getTransaction(signature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0,
+      });
+
+      if (!txInfo) {
+        return res.status(400).json({ error: "Transaction not found on chain. Please wait and try again." });
+      }
+
+      if (txInfo.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
         {
-          question: question.trim(),
-          description: description?.trim() || null,
-          imageUri: imageUri || null,
-          creatorAddress,
-          predictionType: predictionType || "custom",
-          tokenMint,
-          resolutionDate: resolutionTimestamp,
+          question: pendingMarket.question,
+          description: pendingMarket.description,
+          imageUri: pendingMarket.imageUri,
+          creatorAddress: pendingMarket.creatorAddress,
+          predictionType: pendingMarket.predictionType,
+          tokenMint: pendingMarket.tokenMint,
+          resolutionDate: pendingMarket.resolutionDate,
         },
-        initialBetSide,
-        betAmount.toString(),
-        CREATION_FEE
+        pendingMarket.initialBetSide,
+        pendingMarket.initialBetAmount.toString(),
+        PLATFORM_FEES.MARKET_CREATION
       );
 
-      console.log(`Market created: "${market.question}" by ${creatorAddress} with ${betAmount} SOL on ${initialBetSide.toUpperCase()}`);
+      // Remove from pending
+      pendingMarkets.delete(pendingMarketId);
+
+      console.log(`[Market Creation] Confirmed: "${market.question}" by ${pendingMarket.creatorAddress} (tx: ${signature})`);
 
       // Use actual pool values from the created market
       const actualYesPool = Number(market.yesPool);
       const actualNoPool = Number(market.noPool);
       
-      // Calculate odds from actual pools (with fallback for single-sided initial bet)
       const yesOdds = calculateOdds(actualYesPool, actualNoPool, "yes");
       const noOdds = calculateOdds(actualYesPool, actualNoPool, "no");
-
-      // Build fee transaction for market creation
-      let feeTransaction = null;
-      try {
-        const connection = getHeliusConnection();
-        const { blockhash } = await connection.getLatestBlockhash();
-        const feeRecipient = getFeeRecipientWallet();
-        const feeLamports = Math.floor(CREATION_FEE * LAMPORTS_PER_SOL);
-        
-        const feeTx = new Transaction();
-        feeTx.add(SystemProgram.transfer({
-          fromPubkey: new PublicKey(creatorAddress),
-          toPubkey: feeRecipient,
-          lamports: feeLamports,
-        }));
-        feeTx.recentBlockhash = blockhash;
-        feeTx.feePayer = new PublicKey(creatorAddress);
-        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
-        console.log(`Market creation fee tx built: ${CREATION_FEE} SOL`);
-      } catch (feeError) {
-        console.error("Failed to build market fee transaction:", feeError);
-      }
 
       return res.json({
         success: true,
@@ -1208,19 +1288,18 @@ export async function registerRoutes(
           ...market,
           yesPool: actualYesPool,
           noPool: actualNoPool,
-          totalVolume: betAmount,
+          totalVolume: pendingMarket.initialBetAmount,
           yesOdds,
           noOdds,
         },
-        feeTransaction,
-        platformFee: CREATION_FEE,
-        feeRecipient: getFeeRecipientWallet().toString(),
-        initialBet: { side: initialBetSide, amount: betAmount },
-        totalCost: CREATION_FEE + betAmount,
+        signature,
+        totalCost: pendingMarket.totalCost,
+        creationFee: PLATFORM_FEES.MARKET_CREATION,
+        initialBet: { side: pendingMarket.initialBetSide, amount: pendingMarket.initialBetAmount },
       });
     } catch (error: any) {
-      console.error("Error creating market:", error);
-      return res.status(500).json({ error: "Failed to create market" });
+      console.error("Error confirming market:", error);
+      return res.status(500).json({ error: "Failed to confirm market creation" });
     }
   });
 
@@ -1345,6 +1424,32 @@ export async function registerRoutes(
     isConfidential?: boolean;
     createdAt: number;
   }>();
+
+  // In-memory storage for pending market creation
+  const pendingMarkets = new Map<string, {
+    question: string;
+    description: string | null;
+    imageUri: string | null;
+    creatorAddress: string;
+    predictionType: string;
+    tokenMint: string;
+    resolutionDate: Date;
+    initialBetSide: "yes" | "no";
+    initialBetAmount: number;
+    totalCost: number;
+    createdAt: number;
+  }>();
+
+  // Cleanup expired pending markets every minute
+  setInterval(() => {
+    const now = Date.now();
+    const entries = Array.from(pendingMarkets.entries());
+    for (const [marketId, market] of entries) {
+      if (now - market.createdAt > 5 * 60 * 1000) {
+        pendingMarkets.delete(marketId);
+      }
+    }
+  }, 60 * 1000);
 
   // Cleanup old pending bets (expire after 5 minutes)
   setInterval(() => {
