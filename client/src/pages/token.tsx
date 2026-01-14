@@ -10,6 +10,7 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Buffer } from "buffer";
+import defaultAvatar from "@assets/generated_images/derpy_raccoon_crypto_mascot.png";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
@@ -541,7 +542,12 @@ export default function TokenPage() {
                         
                         return (
                           <tr key={activity.id} className={`border-b ${privateMode ? "border-[#39FF14]/20" : "border-gray-100"}`}>
-                            <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>{activity.walletAddress?.slice(0, 6)}...</td>
+                            <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
+                              <div className="flex items-center gap-2">
+                                <img src={defaultAvatar} alt="" className="w-6 h-6 rounded-full border border-gray-300" />
+                                <span>{activity.walletAddress?.slice(0, 6)}...</span>
+                              </div>
+                            </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{amount.toFixed(4)} SOL</td>
                             <td className={`py-2 text-right ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>{displayTime}</td>

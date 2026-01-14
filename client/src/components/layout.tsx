@@ -7,7 +7,6 @@ import { X, Terminal, Lock, Unlock, Info } from "lucide-react";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
-import raccoonMascot from "@assets/generated_images/derpy_raccoon_crypto_mascot.png";
 import { PrivacyDrawer } from "./privacy-drawer";
 
 const Marquee = () => {
@@ -235,8 +234,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       } ${privateMode ? "scanline-effect" : ""}`}>
         <div className="flex items-center gap-6">
           <Link href="/">
-            <div className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform">
-              <img src={raccoonMascot} alt="DUM.FUN Mascot" className="h-10 md:h-12 w-auto rounded-full border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" />
+            <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
+              <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
               <h1 className={`text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
                   privateMode ? "text-[#39FF14] font-mono" : "text-red-500"
                 }`} style={{ textShadow: privateMode ? "0 0 8px rgba(57,255,20,0.4)" : "2px 2px 0px hsl(60 100% 50%)" }}>
