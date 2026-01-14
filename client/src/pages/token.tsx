@@ -3,10 +3,10 @@ import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity, Lock, Shield } from "lucide-react";
-import { useState } from "react";
+import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, AlertCircle, Target, Clock, Users, Plus, X, Activity, Lock, Shield, ChevronDown, ArrowUpDown, Heart } from "lucide-react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Buffer } from "buffer";
@@ -81,6 +81,16 @@ interface PricePoint {
   volume: number;
 }
 
+interface TokenListItem {
+  mint: string;
+  name: string;
+  symbol: string;
+  imageUri: string | null;
+  marketCapSol: number;
+  priceInSol: number;
+  bondingCurveProgress: number;
+}
+
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
@@ -90,6 +100,29 @@ function getTimeAgo(date: Date): string {
   if (hours < 24) return `${hours}h ago`;
   const days = Math.floor(hours / 24);
   return `${days}d ago`;
+}
+
+function formatPrice(price: number): string {
+  if (price < 0.000001) {
+    const str = price.toFixed(12);
+    const match = str.match(/0\.(0+)(\d+)/);
+    if (match) {
+      const zeros = match[1].length;
+      const digits = match[2].slice(0, 6);
+      return `0.0₍${zeros}₎${digits}`;
+    }
+  }
+  return price.toFixed(8);
+}
+
+function formatMarketCap(mcSol: number, solPrice: number | null): string {
+  const usdValue = solPrice ? mcSol * solPrice : null;
+  if (usdValue && usdValue >= 1000) {
+    return `$${(usdValue / 1000).toFixed(1)}K`;
+  } else if (usdValue) {
+    return `$${usdValue.toFixed(0)}`;
+  }
+  return `${mcSol.toFixed(2)} SOL`;
 }
 
 export default function TokenPage() {
@@ -102,6 +135,8 @@ export default function TokenPage() {
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [activeBet, setActiveBet] = useState<{ predictionId: string; side: "yes" | "no" } | null>(null);
   const [betAmount, setBetAmount] = useState("");
+  const [chartInterval, setChartInterval] = useState<"tick" | "1m" | "5m" | "all">("all");
+  const [showAbout, setShowAbout] = useState(false);
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
@@ -299,6 +334,15 @@ export default function TokenPage() {
     tradeMutation.mutate({ type: tradeType, amount });
   };
 
+  const handleQuickBuy = (amount: number) => {
+    if (!connectedWallet) {
+      connectWallet();
+      return;
+    }
+    setTradeAmount(amount.toString());
+    setTradeType("buy");
+  };
+
   const handleBetClick = (predictionId: string, side: "yes" | "no", e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -367,7 +411,7 @@ export default function TokenPage() {
       return res.json();
     },
     enabled: !!mint,
-    refetchInterval: 5000,
+    refetchInterval: 3000,
   });
 
   const { data: priceHistory } = useQuery<PricePoint[]>({
@@ -378,7 +422,18 @@ export default function TokenPage() {
       return res.json();
     },
     enabled: !!mint,
-    refetchInterval: 30000,
+    refetchInterval: 10000,
+  });
+
+  const { data: otherTokens } = useQuery<TokenListItem[]>({
+    queryKey: ["other-tokens", mint],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens?limit=5`);
+      if (!res.ok) return [];
+      const tokens = await res.json();
+      return tokens.filter((t: TokenListItem) => t.mint !== mint).slice(0, 3);
+    },
+    enabled: !!mint,
   });
 
   const { data: tradeQuote } = useQuery<{ outputAmount: number; currentPrice: number } | null>({
@@ -393,10 +448,30 @@ export default function TokenPage() {
     staleTime: 5000,
   });
 
+  const filteredPriceHistory = useMemo(() => {
+    if (!priceHistory) return [];
+    const now = Date.now();
+    switch (chartInterval) {
+      case "1m":
+        return priceHistory.filter(p => now - p.time < 60000);
+      case "5m":
+        return priceHistory.filter(p => now - p.time < 300000);
+      case "tick":
+        return priceHistory.slice(-20);
+      default:
+        return priceHistory;
+    }
+  }, [priceHistory, chartInterval]);
+
+  const marketCapUsd = useMemo(() => {
+    if (!token || !solPrice) return null;
+    return token.marketCapSol * solPrice.price;
+  }, [token, solPrice]);
+
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
+        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-zinc-950">
           <div className="animate-pulse text-gray-500 font-mono">Loading token...</div>
         </div>
       </Layout>
@@ -406,10 +481,10 @@ export default function TokenPage() {
   if (error || !token) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-4">
+        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-4 bg-zinc-950">
           <p className="text-red-500 font-mono">Token not found</p>
           <Link href="/tokens">
-            <button className="text-gray-500 hover:text-gray-900 flex items-center gap-2">
+            <button className="text-gray-500 hover:text-gray-300 flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               Back to tokens
             </button>
@@ -419,609 +494,515 @@ export default function TokenPage() {
     );
   }
 
-  const progressColor = token.bondingCurveProgress > 80 
-    ? "bg-green-500" 
-    : token.bondingCurveProgress > 50 
-    ? "bg-yellow-500" 
-    : "bg-red-500";
-
   return (
-    <Layout>
-      <div className="space-y-6">
+    <div className="min-h-screen bg-zinc-950 text-white pb-24 lg:pb-0">
+      <div className="max-w-2xl mx-auto px-4 py-4">
         <Link href="/tokens">
-          <button className="text-gray-500 hover:text-gray-900 flex items-center gap-2 text-sm font-mono">
+          <button className="text-gray-400 hover:text-white flex items-center gap-2 text-sm mb-4" data-testid="button-back">
             <ArrowLeft className="w-4 h-4" />
-            Back to tokens
           </button>
         </Link>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex items-start gap-4">
-                <div className="w-20 h-20 rounded-lg bg-gray-100 border-2 border-black overflow-hidden flex-shrink-0">
-                  {token.imageUri ? (
-                    <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center text-red-500 font-black text-2xl bg-gray-50">
-                      {token.symbol[0]}
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <h1 className="text-2xl font-black text-gray-900">{token.name}</h1>
-                    <span className="text-gray-500 font-mono bg-gray-100 px-2 py-0.5 rounded border border-gray-200">${token.symbol}</span>
-                    {token.isGraduated && (
-                      <span className="bg-green-100 border-2 border-green-500 px-2 py-0.5 rounded text-xs font-bold text-green-700">
-                        GRADUATED
-                      </span>
-                    )}
-                  </div>
-                  
-                  <p className="text-gray-600 text-sm mt-2 max-w-lg">{token.description || "No description"}</p>
-                  
-                  <div className="flex gap-3 mt-4">
-                    {token.twitter && (
-                      <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
-                        <Twitter className="w-5 h-5" />
-                      </a>
-                    )}
-                    {token.telegram && (
-                      <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
-                        <MessageCircle className="w-5 h-5" />
-                      </a>
-                    )}
-                    {token.website && (
-                      <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-500">
-                        <Globe className="w-5 h-5" />
-                      </a>
-                    )}
-                  </div>
-                </div>
+        <div className="flex items-start gap-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
+            {token.imageUri ? (
+              <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-green-400 font-black text-lg bg-zinc-800">
+                {token.symbol[0]}
               </div>
-            </div>
-
-            <div className="bg-zinc-950 border-2 border-black rounded-lg p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex items-center justify-between mb-2">
-                <h2 className="text-sm font-bold text-white">PRICE CHART</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-green-400 font-mono">{(token.priceInSol ?? 0).toFixed(8)} SOL</span>
-                </div>
-              </div>
-              
-              <div className="h-48">
-                {priceHistory && priceHistory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={priceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.4} />
-                          <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis 
-                        dataKey="time" 
-                        tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        stroke="#666"
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        domain={['auto', 'auto']}
-                        tickFormatter={(v) => v.toExponential(1)}
-                        stroke="#666"
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                        width={50}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: '#18181b', 
-                          border: '2px solid #333',
-                          borderRadius: '8px',
-                          fontSize: '12px'
-                        }}
-                        labelFormatter={(t) => new Date(t).toLocaleString()}
-                        formatter={(value: number) => [value.toFixed(10) + ' SOL', 'Price']}
-                      />
-                      <Area 
-                        type="monotone" 
-                        dataKey="price" 
-                        stroke="#22c55e" 
-                        strokeWidth={2}
-                        fill="url(#priceGradient)" 
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-                    Loading chart...
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <h2 className="text-lg font-black text-red-500 mb-4">BONDING CURVE PROGRESS</h2>
-              
-              <div className="space-y-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Progress to Raydium</span>
-                  <span className="font-mono text-yellow-600 font-bold">{(token.bondingCurveProgress ?? 0).toFixed(2)}%</span>
-                </div>
-                
-                <div className="h-4 bg-gray-200 rounded-full overflow-hidden border-2 border-black">
-                  <motion.div 
-                    initial={{ width: 0 }}
-                    animate={{ width: `${token.bondingCurveProgress}%` }}
-                    transition={{ duration: 1 }}
-                    className={`h-full ${progressColor} rounded-full`}
-                  />
-                </div>
-                
-                <p className="text-xs text-gray-500 font-mono">
-                  When the bonding curve reaches 100%, liquidity is deployed to Raydium DEX and LP tokens are burned.
-                </p>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-xs text-gray-500 mb-1 font-bold">MARKET CAP</p>
-                <p className="text-lg font-mono text-green-600 font-bold">{(token.marketCapSol ?? 0).toFixed(2)} SOL</p>
-              </div>
-              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-xs text-gray-500 mb-1 font-bold">PRICE</p>
-                <p className="text-lg font-mono text-yellow-600 font-bold">{(token.priceInSol ?? 0).toFixed(8)} SOL</p>
-              </div>
-              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-xs text-gray-500 mb-1 font-bold">CREATOR</p>
-                <p className="text-sm font-mono text-gray-700 truncate">
-                  {token.creatorAddress.slice(0, 6)}...{token.creatorAddress.slice(-4)}
-                </p>
-              </div>
-              <div className="bg-white border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-                <p className="text-xs text-gray-500 mb-1 font-bold">CREATED</p>
-                <p className="text-sm font-mono text-gray-700">
-                  {new Date(token.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-            </div>
-
-            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-5 h-5 text-red-500" />
-                <h2 className="text-lg font-black text-gray-900">LIVE TRADES</h2>
-                <span className="ml-auto flex items-center gap-1">
-                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                  <span className="text-xs text-gray-500 font-mono">LIVE</span>
-                </span>
-              </div>
-              
-              {tokenActivity && tokenActivity.length > 0 ? (
-                <div className="space-y-2 max-h-64 overflow-y-auto">
-                  {tokenActivity.map((activity) => {
-                    const isBuy = activity.side === "buy" || activity.activityType === "buy";
-                    const amount = activity.amount ? parseFloat(activity.amount) : 0;
-                    const timeAgo = getTimeAgo(new Date(activity.createdAt));
-                    
-                    return (
-                      <motion.div
-                        key={activity.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className={`flex items-center justify-between p-3 rounded-lg border-2 ${
-                          isBuy 
-                            ? "bg-green-50 border-green-300" 
-                            : "bg-red-50 border-red-300"
-                        }`}
-                        data-testid={`trade-${activity.id}`}
-                      >
-                        <div className="flex items-center gap-3">
-                          {isBuy ? (
-                            <TrendingUp className="w-4 h-4 text-green-600" />
-                          ) : (
-                            <TrendingDown className="w-4 h-4 text-red-600" />
-                          )}
-                          <div>
-                            <p className={`font-bold text-sm ${isBuy ? "text-green-700" : "text-red-700"}`}>
-                              {isBuy ? "BUY" : "SELL"}
-                            </p>
-                            <p className="text-xs text-gray-500 font-mono">
-                              {activity.walletAddress?.slice(0, 4)}...{activity.walletAddress?.slice(-4)}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className={`font-mono font-bold ${isBuy ? "text-green-600" : "text-red-600"}`}>
-                            {amount.toFixed(4)} SOL
-                          </p>
-                          <p className="text-xs text-gray-400">{timeAgo}</p>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-400">
-                  <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                  <p className="text-sm font-mono">No trades yet</p>
-                  <p className="text-xs">Be the first to trade!</p>
-                </div>
+            )}
+          </div>
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-gray-400 text-sm">{token.name}</span>
+              <span className="text-white font-medium">${token.symbol}</span>
+              {token.twitter && (
+                <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
+                  <Twitter className="w-4 h-4" />
+                </a>
               )}
-            </div>
-
-            <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Target className="w-5 h-5 text-yellow-600" />
-                  <h2 className="text-lg font-black text-yellow-700">PREDICTION MARKETS</h2>
-                </div>
-                <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
-                  <motion.button 
-                    whileHover={{ y: -1, x: -1 }}
-                    className="flex items-center gap-1 text-xs text-yellow-700 font-bold bg-white px-3 py-1.5 rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                  >
-                    <Plus className="w-3 h-3" />
-                    CREATE
-                  </motion.button>
-                </Link>
-              </div>
-              
-              {token.predictions && token.predictions.length > 0 ? (
-                <div className="space-y-3">
-                  {token.predictions.map((prediction) => {
-                    const timeLeft = new Date(prediction.resolutionDate).getTime() - Date.now();
-                    const daysLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
-                    const hoursLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
-                    const isExpired = timeLeft <= 0;
-                    const isBettingActive = activeBet?.predictionId === prediction.id;
-                    const canBet = prediction.status === "open" && !isExpired;
-                    
-                    return (
-                      <div 
-                        key={prediction.id}
-                        className="bg-white border-2 border-black rounded-lg p-4 hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all"
-                        data-testid={`prediction-${prediction.id}`}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <Link href={`/market/${prediction.id}`}>
-                            <p className="font-bold text-gray-900 text-sm hover:text-yellow-700 cursor-pointer">{prediction.question}</p>
-                          </Link>
-                          {isBettingActive && (
-                            <button 
-                              onClick={(e) => { e.preventDefault(); setActiveBet(null); setBetAmount(""); }}
-                              className="text-gray-400 hover:text-gray-600"
-                              data-testid={`button-close-bet-${prediction.id}`}
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                        
-                        <div className="grid grid-cols-2 gap-2 mb-3">
-                          <button
-                            className={`border-2 rounded-lg py-2 px-3 text-center transition-all ${
-                              isBettingActive && activeBet?.side === "yes"
-                                ? "bg-green-500 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                                : "bg-green-100 border-green-500 hover:bg-green-200"
-                            } ${!canBet ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                            onClick={(e) => canBet && handleBetClick(prediction.id, "yes", e)}
-                            disabled={!canBet}
-                            data-testid={`button-bet-yes-${prediction.id}`}
-                          >
-                            <span className={`block font-black text-lg ${isBettingActive && activeBet?.side === "yes" ? "text-white" : "text-green-700"}`}>{prediction.yesOdds}%</span>
-                            <span className={`block text-xs font-bold ${isBettingActive && activeBet?.side === "yes" ? "text-green-100" : "text-gray-600"}`}>YES</span>
-                          </button>
-                          <button
-                            className={`border-2 rounded-lg py-2 px-3 text-center transition-all ${
-                              isBettingActive && activeBet?.side === "no"
-                                ? "bg-red-500 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                                : "bg-red-100 border-red-500 hover:bg-red-200"
-                            } ${!canBet ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                            onClick={(e) => canBet && handleBetClick(prediction.id, "no", e)}
-                            disabled={!canBet}
-                            data-testid={`button-bet-no-${prediction.id}`}
-                          >
-                            <span className={`block font-black text-lg ${isBettingActive && activeBet?.side === "no" ? "text-white" : "text-red-700"}`}>{prediction.noOdds}%</span>
-                            <span className={`block text-xs font-bold ${isBettingActive && activeBet?.side === "no" ? "text-red-100" : "text-gray-600"}`}>NO</span>
-                          </button>
-                        </div>
-
-                        {isBettingActive && (
-                          <motion.div
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: "auto" }}
-                            exit={{ opacity: 0, height: 0 }}
-                            className={`mb-3 p-3 border-2 border-dashed rounded-lg ${
-                              shouldEncryptBets 
-                                ? "bg-zinc-900 border-green-500" 
-                                : "bg-gray-50 border-gray-300"
-                            }`}
-                          >
-                            {shouldEncryptBets && (
-                              <div className="flex items-center gap-2 mb-2 text-green-400 text-xs font-mono">
-                                <Shield className="w-3 h-3" />
-                                <span>INCO LIGHTNING CONFIDENTIAL</span>
-                                <Lock className="w-3 h-3" />
-                              </div>
-                            )}
-                            <div className="flex gap-2">
-                              <div className="flex-1">
-                                <input
-                                  type="number"
-                                  value={betAmount}
-                                  onChange={(e) => setBetAmount(e.target.value)}
-                                  placeholder={shouldEncryptBets ? "🔒 Amount (encrypted)" : "Amount in SOL"}
-                                  className={`w-full px-3 py-2 text-sm border-2 rounded-lg font-mono focus:ring-2 focus:outline-none ${
-                                    shouldEncryptBets 
-                                      ? "bg-zinc-800 border-green-500 text-green-400 placeholder-green-600 focus:ring-green-500" 
-                                      : "border-black focus:ring-yellow-400"
-                                  }`}
-                                  onClick={(e) => e.stopPropagation()}
-                                  data-testid={`input-bet-amount-${prediction.id}`}
-                                />
-                              </div>
-                              <motion.button
-                                whileHover={{ y: -1, x: -1 }}
-                                whileTap={{ scale: 0.98 }}
-                                onClick={handlePlaceBet}
-                                disabled={placeBetMutation.isPending || !betAmount}
-                                className={`px-4 py-2 rounded-lg font-bold text-sm border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                                  shouldEncryptBets
-                                    ? "bg-green-500 text-black hover:bg-green-400"
-                                    : activeBet?.side === "yes" 
-                                      ? "bg-green-500 text-white hover:bg-green-600" 
-                                      : "bg-red-500 text-white hover:bg-red-600"
-                                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                                data-testid={`button-confirm-bet-${prediction.id}`}
-                              >
-                                {placeBetMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 animate-spin" />
-                                ) : shouldEncryptBets ? (
-                                  <span className="flex items-center gap-1">
-                                    <Lock className="w-3 h-3" />
-                                    PRIVATE
-                                  </span>
-                                ) : (
-                                  `BET ${activeBet?.side?.toUpperCase()}`
-                                )}
-                              </motion.button>
-                            </div>
-                            <p className={`text-xs mt-2 text-center ${shouldEncryptBets ? "text-green-500" : "text-gray-500"}`}>
-                              {shouldEncryptBets 
-                                ? "Your bet amount will be encrypted on-chain" 
-                                : `Click to bet on ${activeBet?.side?.toUpperCase()} outcome`}
-                            </p>
-                          </motion.div>
-                        )}
-                        
-                        <div className="flex items-center justify-between text-xs text-gray-500">
-                          <span className="flex items-center gap-1">
-                            <Users className="w-3 h-3" />
-                            {prediction.totalVolume.toFixed(2)} SOL volume
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            {prediction.status === "resolved" ? (
-                              "RESOLVED"
-                            ) : isExpired ? (
-                              <span className="text-yellow-600 font-bold">PENDING</span>
-                            ) : daysLeft > 0 ? (
-                              `${daysLeft}d ${hoursLeft}h`
-                            ) : (
-                              `${hoursLeft}h left`
-                            )}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-center py-6">
-                  <Target className="w-10 h-10 text-yellow-400 mx-auto mb-2" />
-                  <p className="text-gray-600 text-sm font-medium">No prediction markets for this token yet</p>
-                  <p className="text-gray-500 text-xs mt-1">Be the first to create one!</p>
-                </div>
+              {token.telegram && (
+                <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
+                  <MessageCircle className="w-4 h-4" />
+                </a>
+              )}
+              {token.website && (
+                <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
+                  <Globe className="w-4 h-4" />
+                </a>
               )}
             </div>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <h2 className="text-lg font-black text-green-600 mb-4">TRADE</h2>
-              
-              <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setTradeType("buy")}
-                  data-testid="button-trade-buy"
-                  className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all border-2 ${
-                    tradeType === "buy" 
-                      ? "bg-green-500 text-white border-black" 
-                      : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
-                  }`}
-                >
-                  <TrendingUp className="w-4 h-4 inline mr-1" />
-                  BUY
-                </button>
-                <button
-                  onClick={() => setTradeType("sell")}
-                  data-testid="button-trade-sell"
-                  className={`flex-1 py-2 px-4 rounded-lg font-bold text-sm transition-all border-2 ${
-                    tradeType === "sell" 
-                      ? "bg-red-500 text-white border-black" 
-                      : "bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200"
-                  }`}
-                >
-                  <TrendingDown className="w-4 h-4 inline mr-1" />
-                  SELL
-                </button>
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <label className="text-xs text-gray-600 block mb-1 font-bold">
-                    Amount ({tradeType === "buy" ? "SOL" : token.symbol})
-                  </label>
-                  <input
-                    type="number"
-                    value={tradeAmount}
-                    onChange={(e) => setTradeAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full bg-gray-50 border-2 border-black rounded-lg px-3 py-2 font-mono text-gray-900 focus:ring-2 focus:ring-green-500 focus:outline-none"
-                    data-testid="input-trade-amount"
-                  />
-                </div>
-                
-                <div className="flex gap-2">
-                  {["0.1", "0.5", "1", "5"].map((amount) => (
-                    <button
-                      key={amount}
-                      onClick={() => setTradeAmount(amount)}
-                      className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs py-1.5 rounded-lg font-mono border border-gray-300"
-                    >
-                      {amount}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Trading status message */}
-                {!tradingStatus?.tradingEnabled && (
-                  <div className="bg-yellow-50 border-2 border-yellow-400 rounded-lg p-3 mb-3">
-                    <div className="flex items-center gap-2 justify-center">
-                      <AlertCircle className="w-4 h-4 text-yellow-600" />
-                      <p className="text-yellow-700 text-xs font-bold">TRADING COMING SOON</p>
-                    </div>
-                    <p className="text-gray-600 text-xs text-center mt-1">
-                      {tradingStatus?.message || "Deploy bonding curve contract to enable trading"}
-                    </p>
-                  </div>
-                )}
-
-                {/* Estimated value display */}
-                {tradeAmount && Number(tradeAmount) > 0 && (
-                  <div className="bg-gray-100 border border-gray-200 rounded-lg p-3 mb-3">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-600">
-                        {tradeType === "buy" ? "You pay:" : "You sell:"}
-                      </span>
-                      <span className="font-mono text-gray-900 font-bold">
-                        {tradeAmount} {tradeType === "buy" ? "SOL" : token.symbol}
-                      </span>
-                    </div>
-                    {tradeType === "buy" && solPrice && solPrice.price > 0 && (
-                      <div className="flex justify-between text-xs mt-1">
-                        <span className="text-gray-600">USD value:</span>
-                        <span className="font-mono text-gray-700">
-                          ${(Number(tradeAmount) * solPrice.price).toFixed(2)}
-                        </span>
-                      </div>
-                    )}
-                    {tradeType === "buy" && (!solPrice || solPriceError) && (
-                      <div className="flex justify-between text-xs mt-1">
-                        <span className="text-gray-600">USD value:</span>
-                        <span className="font-mono text-gray-400 italic">
-                          unavailable
-                        </span>
-                      </div>
-                    )}
-                    {tradeQuote && tradeQuote.outputAmount > 0 && (
-                      <div className="flex justify-between text-xs mt-2 pt-2 border-t border-gray-200">
-                        <span className="text-gray-600 font-bold">
-                          {tradeType === "buy" ? "You receive:" : "You get:"}
-                        </span>
-                        <span className="font-mono text-green-600 font-bold">
-                          {tradeType === "buy" 
-                            ? `~${tradeQuote.outputAmount.toLocaleString(undefined, { maximumFractionDigits: 2 })} ${token.symbol}`
-                            : `~${tradeQuote.outputAmount.toFixed(6)} SOL`
-                          }
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Connect wallet or trade buttons */}
-                {!connectedWallet ? (
-                  <motion.button
-                    whileHover={{ y: -2, x: -2 }}
-                    whileTap={{ y: 0, x: 0 }}
-                    onClick={() => connectWallet()}
-                    className="w-full py-3 rounded-lg font-black uppercase transition-all bg-red-500 hover:bg-red-600 text-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-                    data-testid="button-connect-wallet-trade"
-                  >
-                    CONNECT WALLET TO TRADE
-                  </motion.button>
-                ) : tradingStatus?.tradingEnabled ? (
-                  <motion.button
-                    whileHover={{ y: -2, x: -2 }}
-                    whileTap={{ y: 0, x: 0 }}
-                    onClick={handleTrade}
-                    disabled={!tradeAmount || Number(tradeAmount) <= 0 || isTrading}
-                    className={`w-full py-3 rounded-lg font-black uppercase transition-all border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                      tradeType === "buy" 
-                        ? "bg-green-500 hover:bg-green-600" 
-                        : "bg-red-500 hover:bg-red-600"
-                    } text-white disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
-                    data-testid={`button-${tradeType}-token`}
-                  >
-                    {isTrading ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        SIGNING...
-                      </>
-                    ) : (
-                      <>{tradeType === "buy" ? "BUY" : "SELL"} {token.symbol}</>
-                    )}
-                  </motion.button>
-                ) : (
-                  <motion.button
-                    disabled
-                    className="w-full py-3 rounded-lg font-black uppercase transition-all bg-gray-400 text-white flex items-center justify-center gap-2 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] cursor-not-allowed opacity-70"
-                    data-testid="button-trading-coming-soon"
-                  >
-                    TRADING COMING SOON
-                  </motion.button>
-                )}
-              </div>
+          <div className="text-right">
+            <div className="text-xl font-bold text-white">
+              {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+              <span className="text-xs text-gray-500 ml-1">MC</span>
             </div>
-
-            <div className="bg-white border-2 border-black rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-              <h2 className="text-lg font-black text-red-500 mb-4">TOKEN INFO</h2>
-              
-              <div className="space-y-3 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Contract</span>
-                  <a 
-                    href={`https://solscan.io/token/${token.mint}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="font-mono text-blue-500 hover:text-blue-600 flex items-center gap-1"
-                  >
-                    {token.mint.slice(0, 6)}...{token.mint.slice(-4)}
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Total Supply</span>
-                  <span className="font-mono text-gray-900">1B</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Status</span>
-                  <span className={`font-mono font-bold ${token.isGraduated ? "text-green-600" : "text-yellow-600"}`}>
-                    {token.isGraduated ? "Graduated" : "Bonding"}
-                  </span>
-                </div>
-              </div>
+            <div className="text-xs text-green-400">
+              ● {token.bondingCurveProgress.toFixed(1)}% curve
             </div>
           </div>
         </div>
+
+        <div className="mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs text-gray-500">
+              {formatMarketCap(token.marketCapSol, solPrice?.price || null)} ATH ≋
+            </span>
+          </div>
+          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
+            <div 
+              className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
+              style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="bg-zinc-900 rounded-xl p-4 mb-4">
+          <div className="h-48 relative">
+            {filteredPriceHistory && filteredPriceHistory.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={filteredPriceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+                  <defs>
+                    <linearGradient id="priceGradientPump" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <XAxis 
+                    dataKey="time" 
+                    tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    stroke="#444"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis 
+                    domain={['auto', 'auto']}
+                    tickFormatter={(v) => `$${(v * (solPrice?.price || 200)).toFixed(0)}`}
+                    stroke="#444"
+                    fontSize={10}
+                    tickLine={false}
+                    axisLine={false}
+                    width={40}
+                    orientation="right"
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#18181b', 
+                      border: '1px solid #333',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                    labelFormatter={(t) => new Date(t).toLocaleString()}
+                    formatter={(value: number) => [`${value.toFixed(10)} SOL`, 'Price']}
+                  />
+                  <Area 
+                    type="monotone" 
+                    dataKey="price" 
+                    stroke="#22c55e" 
+                    strokeWidth={2}
+                    fill="url(#priceGradientPump)" 
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                <div className="w-full h-24 flex items-end justify-around px-4">
+                  {[20, 35, 25, 45, 30, 50, 40, 55, 45, 60].map((h, i) => (
+                    <div key={i} className="w-2 bg-green-500/30 rounded-t" style={{ height: `${h}%` }} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 mt-3 text-xs">
+            <span className="text-gray-500">● {formatPrice(token.priceInSol)}</span>
+            <span className="text-gray-500">● {token.marketCapSol.toFixed(3)} SOL</span>
+          </div>
+
+          <div className="flex items-center gap-2 mt-3">
+            {["Tick", "1m", "5m", "All"].map((interval) => (
+              <button
+                key={interval}
+                onClick={() => setChartInterval(interval.toLowerCase() as any)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  chartInterval === interval.toLowerCase()
+                    ? "bg-zinc-700 text-white"
+                    : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                }`}
+                data-testid={`button-interval-${interval.toLowerCase()}`}
+              >
+                {interval}
+              </button>
+            ))}
+            <div className="ml-auto flex items-center gap-2">
+              <button className="text-gray-500 hover:text-white">
+                <TrendingUp className="w-4 h-4" />
+              </button>
+              <button className="text-gray-500 hover:text-white">
+                <ArrowUpDown className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex gap-2 mb-4">
+          {[0.05, 0.1, 0.2].map((amount) => (
+            <button
+              key={amount}
+              onClick={() => handleQuickBuy(amount)}
+              className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-all"
+              data-testid={`button-quick-buy-${amount}`}
+            >
+              {amount} ◎
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center gap-2 mb-4 text-sm">
+          <div className="flex-1 flex items-center gap-2 bg-zinc-900 rounded-lg px-3 py-2">
+            <span className="text-white font-medium">{tradeQuote ? `$${(Number(tradeAmount) * (solPrice?.price || 200)).toFixed(2)}` : "$0.00"}</span>
+            <span className="text-gray-500">≈ {tradeAmount || "0"} SOL</span>
+          </div>
+        </div>
+
+        <motion.div
+          initial={false}
+          animate={{ height: showAbout ? "auto" : "auto" }}
+          className="bg-zinc-900/50 rounded-xl p-4 mb-4"
+        >
+          <button 
+            onClick={() => setShowAbout(!showAbout)}
+            className="flex items-center gap-2 w-full text-left"
+            data-testid="button-toggle-about"
+          >
+            <span className="text-white font-medium">ⓘ About</span>
+            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showAbout ? "rotate-180" : ""}`} />
+          </button>
+          
+          <AnimatePresence>
+            {showAbout && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="mt-4 space-y-4"
+              >
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-zinc-800/50 rounded-lg p-3">
+                    <div className="text-lg font-mono text-white">{formatPrice(token.priceInSol)}</div>
+                    <div className="text-xs text-gray-500">Price</div>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded-lg p-3">
+                    <div className="text-lg font-mono text-white">
+                      {marketCapUsd ? `$${(marketCapUsd / 1000).toFixed(1)}K` : `${token.marketCapSol.toFixed(1)} SOL`}
+                    </div>
+                    <div className="text-xs text-gray-500">Market Cap</div>
+                  </div>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-green-400">●</span>
+                    <span className="text-lg font-mono text-white">{token.bondingCurveProgress.toFixed(1)}%</span>
+                  </div>
+                  <div className="text-xs text-gray-500">Bonding Curve</div>
+                </div>
+                {token.description && (
+                  <p className="text-gray-400 text-sm">{token.description}</p>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+
+        <div className="bg-zinc-900/50 rounded-xl p-4 mb-4">
+          <h3 className="flex items-center gap-2 text-white font-medium mb-3">
+            <Users className="w-4 h-4" />
+            Token Info
+          </h3>
+          <div className="grid grid-cols-2 gap-2 text-center mb-4">
+            <div className="bg-zinc-800/50 rounded-lg p-3">
+              <div className="text-sm font-mono text-white truncate">{token.creatorAddress.slice(0, 6)}...{token.creatorAddress.slice(-4)}</div>
+              <div className="text-[10px] text-gray-500">👤 Creator</div>
+            </div>
+            <div className="bg-zinc-800/50 rounded-lg p-3">
+              <div className="text-sm font-mono text-white">{new Date(token.createdAt).toLocaleDateString()}</div>
+              <div className="text-[10px] text-gray-500">📅 Created</div>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <div className="bg-zinc-800/50 rounded-lg p-3">
+              <div className="text-sm font-mono text-white">{token.isGraduated ? "Graduated" : "Bonding"}</div>
+              <div className="text-[10px] text-gray-500">📊 Status</div>
+            </div>
+            <div className="bg-zinc-800/50 rounded-lg p-3">
+              <a 
+                href={`https://solscan.io/token/${token.mint}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-mono text-blue-400 hover:text-blue-300 flex items-center justify-center gap-1"
+              >
+                View <ExternalLink className="w-3 h-3" />
+              </a>
+              <div className="text-[10px] text-gray-500">🔗 Solscan</div>
+            </div>
+          </div>
+        </div>
+
+        {token.predictions && token.predictions.length > 0 && (
+          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="flex items-center gap-2 text-yellow-400 font-medium">
+                <Target className="w-4 h-4" />
+                Predictions
+              </h3>
+              <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
+                <button className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-2 py-1 rounded" data-testid="button-create-market">
+                  <Plus className="w-3 h-3 inline" /> Create
+                </button>
+              </Link>
+            </div>
+            {token.predictions.slice(0, 2).map((prediction) => {
+              const isBettingActive = activeBet?.predictionId === prediction.id;
+              return (
+                <div key={prediction.id} className="bg-zinc-900/50 rounded-lg p-3 mb-2" data-testid={`prediction-${prediction.id}`}>
+                  <Link href={`/market/${prediction.id}`}>
+                    <p className="text-white text-sm mb-2 hover:text-yellow-400">{prediction.question}</p>
+                  </Link>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={(e) => handleBetClick(prediction.id, "yes", e)}
+                      className={`py-2 rounded-lg text-center transition-all ${
+                        isBettingActive && activeBet?.side === "yes"
+                          ? "bg-green-500 text-white"
+                          : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                      }`}
+                      data-testid={`button-bet-yes-${prediction.id}`}
+                    >
+                      <span className="block font-bold">{prediction.yesOdds}%</span>
+                      <span className="text-xs">YES</span>
+                    </button>
+                    <button
+                      onClick={(e) => handleBetClick(prediction.id, "no", e)}
+                      className={`py-2 rounded-lg text-center transition-all ${
+                        isBettingActive && activeBet?.side === "no"
+                          ? "bg-red-500 text-white"
+                          : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                      }`}
+                      data-testid={`button-bet-no-${prediction.id}`}
+                    >
+                      <span className="block font-bold">{prediction.noOdds}%</span>
+                      <span className="text-xs">NO</span>
+                    </button>
+                  </div>
+                  {isBettingActive && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      className="mt-2 flex gap-2"
+                    >
+                      <input
+                        type="number"
+                        value={betAmount}
+                        onChange={(e) => setBetAmount(e.target.value)}
+                        placeholder="SOL amount"
+                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
+                        onClick={(e) => e.stopPropagation()}
+                        data-testid={`input-bet-amount-${prediction.id}`}
+                      />
+                      <button
+                        onClick={handlePlaceBet}
+                        disabled={placeBetMutation.isPending}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm ${
+                          activeBet?.side === "yes" ? "bg-green-500" : "bg-red-500"
+                        } text-white`}
+                        data-testid={`button-confirm-bet-${prediction.id}`}
+                      >
+                        {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "BET"}
+                      </button>
+                    </motion.div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="bg-zinc-900/50 rounded-xl p-4 mb-4">
+          <h3 className="flex items-center gap-2 text-white font-medium mb-3">
+            <Activity className="w-4 h-4" />
+            Activity
+            <span className="ml-auto flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-xs text-gray-500">LIVE</span>
+            </span>
+          </h3>
+          
+          {tokenActivity && tokenActivity.length > 0 ? (
+            <div className="space-y-2 max-h-64 overflow-y-auto">
+              {tokenActivity.slice(0, 5).map((activity) => {
+                const isBuy = activity.side === "buy" || activity.activityType === "buy";
+                const amount = activity.amount ? parseFloat(activity.amount) : 0;
+                const timeAgo = getTimeAgo(new Date(activity.createdAt));
+                
+                return (
+                  <motion.div
+                    key={activity.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30"
+                    data-testid={`activity-${activity.id}`}
+                  >
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${isBuy ? "bg-green-500/20" : "bg-red-500/20"}`}>
+                      {isBuy ? <Plus className="w-4 h-4 text-green-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white text-sm">
+                        {activity.walletAddress?.slice(0, 6)} {isBuy ? "acquired" : "sold"}
+                      </div>
+                      <div className="text-gray-500 text-xs">{timeAgo} ↗</div>
+                    </div>
+                    <div className="text-right">
+                      <div className={`text-sm ${isBuy ? "text-green-400" : "text-red-400"}`}>
+                        {isBuy ? "+" : "-"}{amount.toFixed(4)} SOL
+                      </div>
+                      <div className="text-gray-500 text-xs">{isBuy ? "bought" : "sold"}</div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center py-6 text-gray-500">
+              <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
+              <p className="text-sm">No trades yet</p>
+            </div>
+          )}
+          
+          {tokenActivity && tokenActivity.length > 5 && (
+            <button className="w-full text-center text-gray-500 text-sm py-2 hover:text-white" data-testid="button-see-all-activity">
+              ⬇ See all
+            </button>
+          )}
+        </div>
+
+        {otherTokens && otherTokens.length > 0 && (
+          <div className="mb-4">
+            <h3 className="text-gray-400 text-sm mb-3">Explore more coins</h3>
+            <div className="space-y-2">
+              {otherTokens.map((t) => (
+                <Link key={t.mint} href={`/token/${t.mint}`}>
+                  <div className="flex items-center gap-3 bg-zinc-900/50 rounded-xl p-3 hover:bg-zinc-800/50 transition-all" data-testid={`explore-token-${t.mint}`}>
+                    <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden">
+                      {t.imageUri ? (
+                        <img src={t.imageUri} alt={t.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-green-400 font-bold">
+                          {t.symbol[0]}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="text-white font-medium">{t.name}</div>
+                      <div className="text-gray-500 text-xs">{t.symbol}</div>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {t.bondingCurveProgress.toFixed(0)}% curve
+                    </div>
+                    <div className="text-right">
+                      <div className="text-white font-medium">
+                        {formatMarketCap(t.marketCapSol, solPrice?.price || null)}
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-    </Layout>
+
+      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-4 lg:hidden">
+        <div className="max-w-2xl mx-auto flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2 flex-1">
+            <button 
+              onClick={() => setTradeType("buy")}
+              className={`text-xs font-medium px-2 py-1 rounded ${tradeType === "buy" ? "bg-green-500 text-white" : "text-gray-400"}`}
+            >
+              Support
+            </button>
+            <span className="text-gray-600">—</span>
+            <button 
+              onClick={() => setTradeType("sell")}
+              className={`text-xs font-medium px-2 py-1 rounded ${tradeType === "sell" ? "bg-red-500 text-white" : "text-gray-400"}`}
+            >
+              Auto
+            </button>
+          </div>
+          <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
+            <span className="text-white">◎</span>
+            <span className="text-gray-400">SOL</span>
+            <span className="text-gray-600">→</span>
+            <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
+              {token.symbol[0]}
+            </div>
+            <span className="text-white">{token.symbol}</span>
+          </div>
+        </div>
+        
+        <div className="max-w-2xl mx-auto mt-3">
+          <div className="text-center text-2xl font-bold text-white mb-2">
+            {tradeAmount || "0"} SOL
+          </div>
+          <div className="text-center text-gray-500 text-sm mb-3">
+            ≈ {tradeQuote ? tradeQuote.outputAmount.toLocaleString() : "0.00"} {token.symbol}
+          </div>
+          
+          <div className="flex gap-2 mb-3">
+            {["0.01", "0.1", "0.5", "Max"].map((amt) => (
+              <button
+                key={amt}
+                onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)}
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-sm py-2 rounded-lg"
+              >
+                {amt === "Max" ? amt : `${amt} SOL`}
+              </button>
+            ))}
+          </div>
+          
+          <div className="text-center text-gray-500 text-xs mb-3">
+            Balance: {connectedWallet ? "0.015486035 SOL" : "Connect wallet"}
+          </div>
+          
+          {!connectedWallet ? (
+            <button
+              onClick={() => connectWallet()}
+              className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-4 rounded-xl transition-all"
+              data-testid="button-connect-wallet-mobile"
+            >
+              Connect Wallet
+            </button>
+          ) : (
+            <button
+              onClick={handleTrade}
+              disabled={!tradeAmount || Number(tradeAmount) <= 0 || isTrading}
+              className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50"
+              data-testid="button-submit-trade-mobile"
+            >
+              {isTrading ? (
+                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+              ) : (
+                `⇌ ${token.symbol}`
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
