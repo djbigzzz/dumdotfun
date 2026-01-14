@@ -124,12 +124,19 @@ export default function TokenPage() {
         const lamports = Math.floor(amount * 1e9);
         const res = await fetch(`/api/trade/quote?tokenMint=${mint}&amount=${lamports}&isBuy=${tradeType === "buy"}`);
         const data = await res.json();
-        if (data.success) {
-          setTradeQuote(data.quote);
+        if (data.success && data.quote?.quote) {
+          const innerQuote = data.quote.quote;
+          setTradeQuote({
+            amountOut: innerQuote.outputAmount || "0",
+            priceImpact: innerQuote.priceImpact || 0,
+          });
         } else {
           setTradeQuote(null);
         }
         return data;
+      } catch (err) {
+        setTradeQuote(null);
+        return null;
       } finally {
         setIsQuoting(false);
       }
@@ -657,8 +664,8 @@ export default function TokenPage() {
                     </div>
                     <div className="flex justify-between">
                       <span className={privateMode ? "text-[#39FF14]/70" : "text-gray-500"}>Price Impact:</span>
-                      <span className={tradeQuote.priceImpact > 5 ? "text-red-500" : (privateMode ? "text-[#39FF14]" : "text-green-600")}>
-                        {tradeQuote.priceImpact.toFixed(2)}%
+                      <span className={(tradeQuote.priceImpact || 0) > 5 ? "text-red-500" : (privateMode ? "text-[#39FF14]" : "text-green-600")}>
+                        {(tradeQuote.priceImpact || 0).toFixed(2)}%
                       </span>
                     </div>
                   </motion.div>
