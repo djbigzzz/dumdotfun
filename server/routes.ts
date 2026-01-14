@@ -680,6 +680,21 @@ export async function registerRoutes(
         console.error("[DEMO] Failed to create prediction market:", marketError);
       }
 
+      // Record token creation activity
+      try {
+        await storage.addActivity({
+          activityType: "token_created",
+          walletAddress: displayAddress,
+          tokenMint: demoMint,
+          amount: "0",
+          side: null,
+          metadata: JSON.stringify({ name: token.name, symbol: token.symbol }),
+        });
+        console.log(`[DEMO] Recorded token creation activity for ${token.symbol}`);
+      } catch (activityError) {
+        console.error("[DEMO] Failed to record creation activity:", activityError);
+      }
+
       return res.json({
         success: true,
         token,
@@ -1921,12 +1936,17 @@ export async function registerRoutes(
       }
 
       let currentPrice = Number(token.priceInSol) || 0.000001;
+      let bondingProgress = Number(token.bondingCurveProgress) || 0;
       
       try {
         const mintPubkey = new PublicKey(mint);
         const curveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
         if (curveData) {
           currentPrice = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+          const realSolReserves = typeof curveData.realSolReserves === 'object' && (curveData.realSolReserves as any).toNumber 
+            ? (curveData.realSolReserves as any).toNumber() 
+            : Number(curveData.realSolReserves);
+          bondingProgress = Math.min(100, (realSolReserves / (85 * LAMPORTS_PER_SOL)) * 100);
         }
       } catch (e) {
         console.log("Could not fetch live price for chart:", e);
@@ -1936,6 +1956,7 @@ export async function registerRoutes(
       const now = Date.now();
       const priceHistory: { time: number; price: number; volume: number }[] = [];
       
+      // If we have real activity, use it
       if (activity.length > 0) {
         const trades = activity.filter(a => a.activityType === 'buy' || a.activityType === 'sell');
         trades.reverse().forEach((trade) => {
@@ -1949,21 +1970,44 @@ export async function registerRoutes(
         });
       }
       
+      // Generate realistic price movement based on bonding curve progress
       if (priceHistory.length < 5) {
-        const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 60 * 60 * 1000;
+        const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 24 * 60 * 60 * 1000;
         const timeSpan = Math.max(now - createdAt, 60 * 60 * 1000);
-        const interval = timeSpan / 10;
+        const numPoints = 24;
+        const interval = timeSpan / numPoints;
         
-        for (let i = 0; i <= 10; i++) {
+        // Initial price based on bonding curve (lower at start)
+        const initialPrice = 0.000001;
+        // Price progression factor based on bonding progress
+        const priceFactor = 1 + (bondingProgress / 100) * 0.5;
+        
+        // Generate price points with realistic movement
+        // Use seeded random based on mint to ensure consistency
+        const seedValue = mint.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+        
+        for (let i = 0; i <= numPoints; i++) {
           const time = createdAt + (i * interval);
+          const progress = i / numPoints;
+          
+          // Base price progression from initial to current
+          const basePrice = initialPrice + (currentPrice - initialPrice) * progress;
+          
+          // Add some variation using deterministic "randomness" based on mint and index
+          const variationSeed = (seedValue * (i + 1) * 17) % 1000;
+          const variation = 1 + ((variationSeed / 1000) - 0.5) * 0.15; // ±7.5% variation
+          
+          const price = Math.max(0.0000001, basePrice * variation);
+          
           priceHistory.push({
             time,
-            price: currentPrice,
-            volume: 0
+            price,
+            volume: Math.random() * 0.5
           });
         }
       }
 
+      // Ensure current price is at the end
       priceHistory.push({
         time: now,
         price: currentPrice,
@@ -1974,6 +2018,56 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching price history:", error);
       return res.status(500).json({ error: "Failed to fetch price history" });
+    }
+  });
+
+  // Seed activity for existing tokens (admin endpoint)
+  app.post("/api/admin/seed-activity", async (req, res) => {
+    try {
+      const allTokens = await db.select().from(tokensTable);
+      let seeded = 0;
+      
+      for (const token of allTokens) {
+        // Check if token already has activity
+        const existing = await storage.getActivityByToken(token.mint, 1);
+        if (existing.length === 0) {
+          // Add creation activity
+          await storage.addActivity({
+            activityType: "token_created",
+            walletAddress: token.creatorAddress,
+            tokenMint: token.mint,
+            amount: "0",
+            side: null,
+            metadata: JSON.stringify({ name: token.name, symbol: token.symbol }),
+          });
+          
+          // Add some simulated trades for chart data
+          const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : Date.now() - 24 * 60 * 60 * 1000;
+          const now = Date.now();
+          const tradeCount = 3 + Math.floor(Math.random() * 5);
+          
+          for (let i = 0; i < tradeCount; i++) {
+            const tradeTime = new Date(createdAt + ((now - createdAt) * (i + 1)) / (tradeCount + 1));
+            const isBuy = Math.random() > 0.3;
+            const amount = (0.1 + Math.random() * 0.5).toFixed(4);
+            
+            await storage.addActivity({
+              activityType: isBuy ? "buy" : "sell",
+              walletAddress: token.creatorAddress,
+              tokenMint: token.mint,
+              amount,
+              side: isBuy ? "buy" : "sell",
+              metadata: JSON.stringify({ simulated: true }),
+            });
+          }
+          seeded++;
+        }
+      }
+      
+      return res.json({ success: true, seeded, total: allTokens.length });
+    } catch (error: any) {
+      console.error("Error seeding activity:", error);
+      return res.status(500).json({ error: "Failed to seed activity" });
     }
   });
 
