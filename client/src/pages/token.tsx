@@ -395,18 +395,50 @@ export default function TokenPage() {
                         <th className="text-left py-2">Type</th>
                         <th className="text-right py-2">Amount</th>
                         <th className="text-right py-2">Time</th>
+                        <th className="text-right py-2">Txn</th>
                       </tr>
                     </thead>
                     <tbody>
                       {tokenActivity.slice(0, 8).map((activity) => {
                         const isBuy = activity.side === "buy" || activity.activityType === "buy";
                         const amount = activity.amount ? parseFloat(activity.amount) : 0;
+                        
+                        // Parse metadata for real blockchain data
+                        let blockTime: number | null = null;
+                        let signature: string | null = null;
+                        try {
+                          if (activity.metadata) {
+                            const meta = JSON.parse(activity.metadata);
+                            if (meta.blockTime) blockTime = meta.blockTime;
+                            if (meta.signature) signature = meta.signature;
+                          }
+                        } catch {}
+                        
+                        // Use blockchain timestamp if available, otherwise use createdAt
+                        const displayTime = blockTime 
+                          ? getTimeAgo(new Date(blockTime * 1000))
+                          : getTimeAgo(new Date(activity.createdAt));
+                        
                         return (
                           <tr key={activity.id} className={`border-b ${privateMode ? "border-[#39FF14]/20" : "border-gray-100"}`}>
                             <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>{activity.walletAddress?.slice(0, 6)}...</td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{amount.toFixed(4)} SOL</td>
-                            <td className={`py-2 text-right ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>{getTimeAgo(new Date(activity.createdAt))}</td>
+                            <td className={`py-2 text-right ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>{displayTime}</td>
+                            <td className="py-2 text-right">
+                              {signature ? (
+                                <a 
+                                  href={`https://solscan.io/tx/${signature}?cluster=devnet`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className={`text-xs ${privateMode ? "text-[#39FF14] hover:underline" : "text-blue-500 hover:underline"}`}
+                                >
+                                  {signature.slice(0, 6)}...
+                                </a>
+                              ) : (
+                                <span className={`text-xs ${privateMode ? "text-[#39FF14]/30" : "text-gray-300"}`}>-</span>
+                              )}
+                            </td>
                           </tr>
                         );
                       })}
