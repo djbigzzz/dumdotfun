@@ -226,7 +226,89 @@ export default function TokenPage() {
       toast.error("Please connect wallet and enter amount");
       return;
     }
-    toast.info(`${tradeType === "buy" ? "Buying" : "Selling"} ${tradeAmount} SOL worth of ${token.symbol}...`);
+    
+    const amount = parseFloat(tradeAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    
+    const isBuy = tradeType === "buy";
+    toast.info(`${isBuy ? "Buying" : "Selling"} ${tradeAmount} SOL worth of ${token.symbol}...`);
+    
+    try {
+      // Convert SOL to lamports for buy, or use token base units for sell
+      const lamports = Math.floor(amount * 1e9);
+      
+      // Build the transaction on the server
+      const buildResponse = await fetch("/api/trade/build", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userWallet: connectedWallet,
+          tokenMint: token.mint,
+          amount: lamports.toString(),
+          isBuy,
+          slippageBps: 500, // 5% slippage
+        }),
+      });
+      
+      const buildResult = await buildResponse.json();
+      
+      if (!buildResult.success || !buildResult.transaction) {
+        toast.error(buildResult.error || "Failed to build transaction");
+        return;
+      }
+      
+      // Deserialize the transaction
+      const transactionBytes = Uint8Array.from(atob(buildResult.transaction), c => c.charCodeAt(0));
+      
+      // Get Phantom wallet provider
+      const provider = (window as any).solana;
+      if (!provider || !provider.isPhantom) {
+        toast.error("Please install Phantom wallet");
+        return;
+      }
+      
+      // Sign and send the transaction
+      toast.info("Please approve the transaction in your wallet...");
+      
+      const { Connection, Transaction } = await import("@solana/web3.js");
+      const transaction = Transaction.from(transactionBytes);
+      
+      // Sign and send with Phantom
+      const { signature } = await provider.signAndSendTransaction(transaction);
+      
+      toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
+      
+      // Record the trade in our database
+      await fetch("/api/trade/record", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          tokenMint: token.mint,
+          amount: tradeAmount,
+          side: isBuy ? "buy" : "sell",
+          signature,
+        }),
+      });
+      
+      // Refresh data
+      queryClient.invalidateQueries({ queryKey: ["token", mint] });
+      queryClient.invalidateQueries({ queryKey: ["tokenActivity", mint] });
+      queryClient.invalidateQueries({ queryKey: ["devnetBalance", connectedWallet] });
+      
+      setTradeAmount("");
+      
+    } catch (error: any) {
+      console.error("Trade error:", error);
+      if (error.message?.includes("User rejected")) {
+        toast.error("Transaction cancelled");
+      } else {
+        toast.error(error.message || "Trade failed");
+      }
+    }
   };
 
   const marketCapUsd = useMemo(() => {

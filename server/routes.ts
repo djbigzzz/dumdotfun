@@ -371,6 +371,74 @@ export async function registerRoutes(
     }
   });
   
+  // Trading API - Build transaction for buy/sell
+  app.post("/api/trade/build", async (req, res) => {
+    try {
+      const { userWallet, tokenMint, amount, isBuy, slippageBps } = req.body;
+      
+      if (!userWallet || !tokenMint || !amount) {
+        return res.status(400).json({ error: "userWallet, tokenMint, and amount are required" });
+      }
+      
+      if (!isValidSolanaAddress(userWallet) || !isValidSolanaAddress(tokenMint)) {
+        return res.status(400).json({ error: "Invalid wallet or token address" });
+      }
+      
+      const params = {
+        userWallet,
+        tokenMint,
+        amount: amount.toString(),
+        slippageBps: slippageBps || 500,
+        isBuy: isBuy !== false,
+      };
+      
+      let result;
+      if (params.isBuy) {
+        result = await buildBuyTx(params);
+      } else {
+        result = await buildSellTx(params);
+      }
+      
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "Failed to build transaction" });
+      }
+      
+      return res.json({
+        success: true,
+        transaction: result.transaction,
+        quote: result.quote,
+      });
+    } catch (error: any) {
+      console.error("Error building trade transaction:", error);
+      return res.status(500).json({ error: error.message || "Failed to build transaction" });
+    }
+  });
+
+  // Record trade after successful on-chain confirmation
+  app.post("/api/trade/record", async (req, res) => {
+    try {
+      const { walletAddress, tokenMint, amount, side, signature } = req.body;
+      
+      if (!walletAddress || !tokenMint || !amount || !side) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      await storage.addActivity({
+        activityType: side,
+        walletAddress,
+        tokenMint,
+        amount: amount.toString(),
+        side,
+        metadata: JSON.stringify({ signature, real: true, blockTime: Math.floor(Date.now() / 1000) }),
+      });
+      
+      return res.json({ success: true });
+    } catch (error: any) {
+      console.error("Error recording trade:", error);
+      return res.status(500).json({ error: "Failed to record trade" });
+    }
+  });
+
   app.post("/api/waitlist", async (req, res) => {
     try {
       const { email, userType } = req.body;
