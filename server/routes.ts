@@ -414,6 +414,29 @@ export async function registerRoutes(
     }
   });
 
+  // Get trade quote without building transaction
+  app.get("/api/trade/quote", async (req, res) => {
+    try {
+      const { tokenMint, amount, isBuy } = req.query;
+      
+      if (!tokenMint || !amount) {
+        return res.status(400).json({ error: "tokenMint and amount are required" });
+      }
+      
+      const quote = await getTradeQuote({
+        userWallet: "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM", // Dummy for quote
+        tokenMint: tokenMint as string,
+        amount: amount as string,
+        isBuy: isBuy === "true",
+      });
+      
+      return res.json({ success: true, quote });
+    } catch (error: any) {
+      console.error("Error getting trade quote:", error);
+      return res.status(500).json({ error: error.message || "Failed to get quote" });
+    }
+  });
+
   // Record trade after successful on-chain confirmation
   app.post("/api/trade/record", async (req, res) => {
     try {

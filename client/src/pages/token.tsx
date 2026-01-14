@@ -106,6 +106,37 @@ export default function TokenPage() {
   const queryClient = useQueryClient();
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [tradeQuote, setTradeQuote] = useState<{ amountOut: string; priceImpact: number } | null>(null);
+  const [isQuoting, setIsQuoting] = useState(false);
+
+  // Fetch quote when amount or type changes
+  useQuery({
+    queryKey: ["trade-quote", mint, tradeAmount, tradeType],
+    queryFn: async () => {
+      const amount = parseFloat(tradeAmount);
+      if (isNaN(amount) || amount <= 0) {
+        setTradeQuote(null);
+        return null;
+      }
+      
+      setIsQuoting(true);
+      try {
+        const lamports = Math.floor(amount * 1e9);
+        const res = await fetch(`/api/trade/quote?tokenMint=${mint}&amount=${lamports}&isBuy=${tradeType === "buy"}`);
+        const data = await res.json();
+        if (data.success) {
+          setTradeQuote(data.quote);
+        } else {
+          setTradeQuote(null);
+        }
+        return data;
+      } finally {
+        setIsQuoting(false);
+      }
+    },
+    enabled: !!mint && !!tradeAmount && parseFloat(tradeAmount) > 0,
+    refetchInterval: 5000,
+  });
   const [activeBet, setActiveBet] = useState<{ predictionId: string; side: "yes" | "no" } | null>(null);
   const [betAmount, setBetAmount] = useState("");
   const [chartInterval, setChartInterval] = useState<"1m" | "5m" | "1h" | "all">("all");
@@ -594,7 +625,7 @@ export default function TokenPage() {
               {/* Amount Input */}
               <div className="relative mb-3">
                 <input type="number" value={tradeAmount} onChange={(e) => setTradeAmount(e.target.value)} placeholder="0.00" className={`w-full px-4 py-3 text-lg font-mono ${inputStyle}`} />
-                <span className={`absolute right-4 top-1/2 -translate-y-1/2 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>SOL</span>
+                <span className={`absolute right-4 top-1/2 -translate-y-1/2 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>{tradeType === "buy" ? "SOL" : token.symbol}</span>
               </div>
 
               {/* Quick Amount Buttons */}
@@ -606,14 +637,42 @@ export default function TokenPage() {
                 ))}
               </div>
 
+              {/* Quote Display */}
+              <AnimatePresence>
+                {tradeQuote && tradeAmount && parseFloat(tradeAmount) > 0 && (
+                  <motion.div 
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className={`p-3 mb-4 rounded border-2 font-mono text-xs space-y-1 ${privateMode ? "border-[#39FF14]/30 bg-[#39FF14]/5" : "border-black/5 bg-gray-50"}`}
+                  >
+                    <div className="flex justify-between">
+                      <span className={privateMode ? "text-[#39FF14]/70" : "text-gray-500"}>You receive:</span>
+                      <span className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-black"}`}>
+                        {tradeType === "buy" 
+                          ? `${(parseFloat(tradeQuote.amountOut) / 1e6).toLocaleString()} ${token.symbol}`
+                          : `${(parseFloat(tradeQuote.amountOut) / 1e9).toFixed(4)} SOL`
+                        }
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className={privateMode ? "text-[#39FF14]/70" : "text-gray-500"}>Price Impact:</span>
+                      <span className={tradeQuote.priceImpact > 5 ? "text-red-500" : (privateMode ? "text-[#39FF14]" : "text-green-600")}>
+                        {tradeQuote.priceImpact.toFixed(2)}%
+                      </span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Action Button */}
               {!connectedWallet ? (
                 <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={() => connectWallet()} className={`w-full font-bold py-3 border-2 transition-all ${privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-connect-wallet">
                   Connect Wallet
                 </motion.button>
               ) : (
-                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 ${tradeType === "buy" ? privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
-                  {tradeType === "buy" ? "Buy" : "Sell"} {token.symbol}
+                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0 || isQuoting} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 ${tradeType === "buy" ? privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
+                  {isQuoting ? "Quoting..." : `${tradeType === "buy" ? "Buy" : "Sell"} ${token.symbol}`}
                 </motion.button>
               )}
             </div>
