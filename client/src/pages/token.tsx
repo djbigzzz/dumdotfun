@@ -681,13 +681,13 @@ export default function TokenPage() {
             <div className={`${cardStyle} p-4`}>
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-sm ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Bonding Curve</span>
-                <span className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{token.bondingCurveProgress?.toFixed(1) || "0.0"}%</span>
+                <span className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{token?.bondingCurveProgress ? token.bondingCurveProgress.toFixed(1) : "0.0"}%</span>
               </div>
               <div className={`h-3 rounded-full overflow-hidden border ${privateMode ? "bg-black border-[#39FF14]/30" : "bg-gray-200 border-gray-300"}`}>
-                <div className={`h-full transition-all ${privateMode ? "bg-[#39FF14]" : (token.bondingCurveProgress || 0) > 80 ? "bg-green-500" : (token.bondingCurveProgress || 0) > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token.bondingCurveProgress || 0, 100)}%` }} />
+                <div className={`h-full transition-all ${privateMode ? "bg-[#39FF14]" : (token?.bondingCurveProgress || 0) > 80 ? "bg-green-500" : (token?.bondingCurveProgress || 0) > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token?.bondingCurveProgress || 0, 100)}%` }} />
               </div>
               <div className={`flex justify-between text-xs mt-2 ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
-                <span>{token.virtualSolReserves ? (token.virtualSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
+                <span>{token?.virtualSolReserves ? (token.virtualSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
                 <span>85 SOL to graduate</span>
               </div>
             </div>
