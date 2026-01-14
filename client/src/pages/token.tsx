@@ -471,8 +471,10 @@ export default function TokenPage() {
   if (isLoading) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center bg-zinc-950">
-          <div className="animate-pulse text-gray-500 font-mono">Loading token...</div>
+        <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
+          <div className={`animate-pulse font-mono ${privateMode ? "text-[#39FF14]" : "text-gray-500"}`}>
+            {privateMode ? "> LOADING_TOKEN..." : "Loading token..."}
+          </div>
         </div>
       </Layout>
     );
@@ -481,10 +483,12 @@ export default function TokenPage() {
   if (error || !token) {
     return (
       <Layout>
-        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-4 bg-zinc-950">
-          <p className="text-red-500 font-mono">Token not found</p>
+        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-4">
+          <p className={`font-mono ${privateMode ? "text-[#39FF14]" : "text-red-500"}`}>
+            {privateMode ? "> TOKEN_NOT_FOUND" : "Token not found"}
+          </p>
           <Link href="/tokens">
-            <button className="text-gray-500 hover:text-gray-300 flex items-center gap-2">
+            <button className={`flex items-center gap-2 ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14]" : "text-gray-500 hover:text-gray-700"}`}>
               <ArrowLeft className="w-4 h-4" />
               Back to tokens
             </button>
@@ -495,87 +499,117 @@ export default function TokenPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white pb-24 lg:pb-0">
-      <div className="max-w-2xl mx-auto px-4 py-4">
+    <Layout>
+      <div className="space-y-6 pb-24 lg:pb-0">
         <Link href="/tokens">
-          <button className="text-gray-400 hover:text-white flex items-center gap-2 text-sm mb-4" data-testid="button-back">
+          <button className={`flex items-center gap-2 text-sm mb-4 ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14]" : "text-gray-500 hover:text-gray-700"}`} data-testid="button-back">
             <ArrowLeft className="w-4 h-4" />
+            Back to tokens
           </button>
         </Link>
 
-        <div className="flex items-start gap-3 mb-4">
-          <div className="w-12 h-12 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 border border-zinc-700">
-            {token.imageUri ? (
-              <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-green-400 font-black text-lg bg-zinc-800">
-                {token.symbol[0]}
+        {/* Token Header Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`p-5 border-2 ${
+            privateMode 
+              ? "bg-black border-[#39FF14]" 
+              : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+          }`}
+        >
+          <div className="flex items-start gap-4">
+            <div className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border-2 ${
+              privateMode ? "bg-black border-[#39FF14]/30" : "bg-gray-100 border-black"
+            }`}>
+              {token.imageUri ? (
+                <img src={token.imageUri} alt={token.name} className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
+              ) : (
+                <div className={`w-full h-full flex items-center justify-center font-black text-xl ${
+                  privateMode ? "bg-black text-[#39FF14]" : "bg-gray-50 text-red-500"
+                }`}>
+                  {token.symbol[0]}
+                </div>
+              )}
+            </div>
+            
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h1 className={`text-2xl font-black uppercase ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
+                  {token.name}
+                </h1>
+                <span className={`text-sm font-mono px-2 py-0.5 rounded border ${
+                  privateMode ? "bg-black text-[#39FF14]/50 border-[#39FF14]/20" : "bg-gray-100 text-gray-500 border-gray-200"
+                }`}>
+                  ${token.symbol}
+                </span>
               </div>
-            )}
-          </div>
-          
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-gray-400 text-sm">{token.name}</span>
-              <span className="text-white font-medium">${token.symbol}</span>
-              {token.twitter && (
-                <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
-                  <Twitter className="w-4 h-4" />
-                </a>
-              )}
-              {token.telegram && (
-                <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
-                  <MessageCircle className="w-4 h-4" />
-                </a>
-              )}
-              {token.website && (
-                <a href={token.website} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-white">
-                  <Globe className="w-4 h-4" />
-                </a>
-              )}
+              <div className="flex items-center gap-3">
+                {token.twitter && (
+                  <a href={token.twitter} target="_blank" rel="noopener noreferrer" className={privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "text-gray-400 hover:text-gray-600"}>
+                    <Twitter className="w-4 h-4" />
+                  </a>
+                )}
+                {token.telegram && (
+                  <a href={token.telegram} target="_blank" rel="noopener noreferrer" className={privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "text-gray-400 hover:text-gray-600"}>
+                    <MessageCircle className="w-4 h-4" />
+                  </a>
+                )}
+                {token.website && (
+                  <a href={token.website} target="_blank" rel="noopener noreferrer" className={privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "text-gray-400 hover:text-gray-600"}>
+                    <Globe className="w-4 h-4" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="text-right">
+              <div className={`text-2xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+                {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+              </div>
+              <div className={`text-xs font-mono ${privateMode ? "text-[#39FF14]" : "text-green-600"}`}>
+                {token.bondingCurveProgress.toFixed(1)}% bonded
+              </div>
             </div>
           </div>
 
-          <div className="text-right">
-            <div className="text-xl font-bold text-white">
-              {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
-              <span className="text-xs text-gray-500 ml-1">MC</span>
+          {/* Bonding Curve Progress */}
+          <div className="mt-4">
+            <div className={`h-2 rounded-full overflow-hidden border ${
+              privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-200 border-gray-300"
+            }`}>
+              <div 
+                className={`h-full transition-all ${
+                  privateMode 
+                    ? "bg-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.5)]" 
+                    : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"
+                }`}
+                style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }}
+              />
             </div>
-            <div className="text-xs text-green-400">
-              ● {token.bondingCurveProgress.toFixed(1)}% curve
-            </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-xs text-gray-500">
-              {formatMarketCap(token.marketCapSol, solPrice?.price || null)} ATH ≋
-            </span>
-          </div>
-          <div className="h-1 bg-zinc-800 rounded-full overflow-hidden">
-            <div 
-              className="h-full bg-gradient-to-r from-green-500 to-green-400 rounded-full"
-              style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }}
-            />
-          </div>
-        </div>
-
-        <div className="bg-zinc-900 rounded-xl p-4 mb-4">
+        {/* Price Chart Card */}
+        <div className={`p-4 border-2 ${
+          privateMode 
+            ? "bg-black border-[#39FF14]" 
+            : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        }`}>
           <div className="h-48 relative">
             {filteredPriceHistory && filteredPriceHistory.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={filteredPriceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                   <defs>
                     <linearGradient id="priceGradientPump" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                      <stop offset="0%" stopColor={privateMode ? "#39FF14" : "#22c55e"} stopOpacity={0.3} />
+                      <stop offset="100%" stopColor={privateMode ? "#39FF14" : "#22c55e"} stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <XAxis 
                     dataKey="time" 
                     tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    stroke="#444"
+                    stroke={privateMode ? "#39FF14" : "#888"}
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
@@ -583,7 +617,7 @@ export default function TokenPage() {
                   <YAxis 
                     domain={['auto', 'auto']}
                     tickFormatter={(v) => `$${(v * (solPrice?.price || 200)).toFixed(0)}`}
-                    stroke="#444"
+                    stroke={privateMode ? "#39FF14" : "#888"}
                     fontSize={10}
                     tickLine={false}
                     axisLine={false}
@@ -592,10 +626,11 @@ export default function TokenPage() {
                   />
                   <Tooltip 
                     contentStyle={{ 
-                      backgroundColor: '#18181b', 
-                      border: '1px solid #333',
-                      borderRadius: '8px',
-                      fontSize: '12px'
+                      backgroundColor: privateMode ? '#000' : '#fff', 
+                      border: privateMode ? '1px solid #39FF14' : '2px solid #000',
+                      borderRadius: '4px',
+                      fontSize: '12px',
+                      color: privateMode ? '#39FF14' : '#000'
                     }}
                     labelFormatter={(t) => new Date(t).toLocaleString()}
                     formatter={(value: number) => [`${value.toFixed(10)} SOL`, 'Price']}
@@ -603,26 +638,23 @@ export default function TokenPage() {
                   <Area 
                     type="monotone" 
                     dataKey="price" 
-                    stroke="#22c55e" 
+                    stroke={privateMode ? "#39FF14" : "#22c55e"}
                     strokeWidth={2}
                     fill="url(#priceGradientPump)" 
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-gray-500 text-sm">
-                <div className="w-full h-24 flex items-end justify-around px-4">
-                  {[20, 35, 25, 45, 30, 50, 40, 55, 45, 60].map((h, i) => (
-                    <div key={i} className="w-2 bg-green-500/30 rounded-t" style={{ height: `${h}%` }} />
-                  ))}
-                </div>
+              <div className={`h-full flex items-center justify-center text-sm ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>
+                No price history yet
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2 mt-3 text-xs">
-            <span className="text-gray-500">● {formatPrice(token.priceInSol)}</span>
-            <span className="text-gray-500">● {token.marketCapSol.toFixed(3)} SOL</span>
+          <div className={`flex items-center gap-3 mt-3 text-xs font-mono ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
+            <span>Price: {formatPrice(token.priceInSol)}</span>
+            <span>•</span>
+            <span>Cap: {token.marketCapSol.toFixed(3)} SOL</span>
           </div>
 
           <div className="flex items-center gap-2 mt-3">
@@ -630,59 +662,72 @@ export default function TokenPage() {
               <button
                 key={interval}
                 onClick={() => setChartInterval(interval.toLowerCase() as any)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 text-sm font-bold transition-all border ${
                   chartInterval === interval.toLowerCase()
-                    ? "bg-zinc-700 text-white"
-                    : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                    ? privateMode 
+                      ? "bg-[#39FF14] text-black border-[#39FF14]"
+                      : "bg-black text-white border-black"
+                    : privateMode
+                      ? "bg-black text-[#39FF14]/70 border-[#39FF14]/30 hover:border-[#39FF14]"
+                      : "bg-white text-gray-500 border-gray-300 hover:border-black"
                 }`}
                 data-testid={`button-interval-${interval.toLowerCase()}`}
               >
                 {interval}
               </button>
             ))}
-            <div className="ml-auto flex items-center gap-2">
-              <button className="text-gray-500 hover:text-white">
-                <TrendingUp className="w-4 h-4" />
-              </button>
-              <button className="text-gray-500 hover:text-white">
-                <ArrowUpDown className="w-4 h-4" />
-              </button>
-            </div>
           </div>
         </div>
 
-        <div className="flex gap-2 mb-4">
+        {/* Quick Buy Buttons */}
+        <div className="flex gap-3">
           {[0.05, 0.1, 0.2].map((amount) => (
-            <button
+            <motion.button
               key={amount}
+              whileHover={{ y: -2, x: -2 }}
+              whileTap={{ y: 0, x: 0 }}
               onClick={() => handleQuickBuy(amount)}
-              className="flex-1 bg-green-600 hover:bg-green-500 text-white font-bold py-3 rounded-xl transition-all"
+              className={`flex-1 font-bold py-3 border-2 transition-all ${
+                privateMode
+                  ? "bg-black border-[#39FF14] text-[#39FF14] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                  : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] rounded-lg"
+              }`}
               data-testid={`button-quick-buy-${amount}`}
             >
-              {amount} ◎
-            </button>
+              {privateMode ? `◈ ${amount}` : `${amount} ◎`}
+            </motion.button>
           ))}
         </div>
 
-        <div className="flex items-center gap-2 mb-4 text-sm">
-          <div className="flex-1 flex items-center gap-2 bg-zinc-900 rounded-lg px-3 py-2">
-            <span className="text-white font-medium">{tradeQuote ? `$${(Number(tradeAmount) * (solPrice?.price || 200)).toFixed(2)}` : "$0.00"}</span>
-            <span className="text-gray-500">≈ {tradeAmount || "0"} SOL</span>
-          </div>
+        {/* Trade Display */}
+        <div className={`flex items-center justify-between p-3 border-2 ${
+          privateMode 
+            ? "bg-black border-[#39FF14]/30 text-[#39FF14]" 
+            : "bg-gray-50 border-gray-200 rounded-lg"
+        }`}>
+          <span className={`font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
+            {tradeQuote ? `$${(Number(tradeAmount) * (solPrice?.price || 200)).toFixed(2)}` : "$0.00"}
+          </span>
+          <span className={`font-mono text-sm ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
+            ≈ {tradeAmount || "0"} SOL
+          </span>
         </div>
 
-        <motion.div
-          initial={false}
-          animate={{ height: showAbout ? "auto" : "auto" }}
-          className="bg-zinc-900/50 rounded-xl p-4 mb-4"
-        >
+        {/* About Section */}
+        <div className={`p-4 border-2 ${
+          privateMode 
+            ? "bg-black border-[#39FF14]/50" 
+            : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        }`}>
           <button 
             onClick={() => setShowAbout(!showAbout)}
             className="flex items-center gap-2 w-full text-left"
             data-testid="button-toggle-about"
           >
-            <span className="text-white font-medium">ⓘ About</span>
-            <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showAbout ? "rotate-180" : ""}`} />
+            <span className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
+              {privateMode ? "> ABOUT" : "About"}
+            </span>
+            <ChevronDown className={`w-4 h-4 transition-transform ${privateMode ? "text-[#39FF14]" : "text-gray-500"} ${showAbout ? "rotate-180" : ""}`} />
           </button>
           
           <AnimatePresence>
@@ -691,78 +736,91 @@ export default function TokenPage() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="mt-4 space-y-4"
+                className="mt-4 space-y-3"
               >
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <div className="text-lg font-mono text-white">{formatPrice(token.priceInSol)}</div>
-                    <div className="text-xs text-gray-500">Price</div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
+                    <div className={`text-lg font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>{formatPrice(token.priceInSol)}</div>
+                    <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Price</div>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3">
-                    <div className="text-lg font-mono text-white">
+                  <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
+                    <div className={`text-lg font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
                       {marketCapUsd ? `$${(marketCapUsd / 1000).toFixed(1)}K` : `${token.marketCapSol.toFixed(1)} SOL`}
                     </div>
-                    <div className="text-xs text-gray-500">Market Cap</div>
+                    <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Market Cap</div>
                   </div>
-                </div>
-                <div className="bg-zinc-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-2">
-                    <span className="text-green-400">●</span>
-                    <span className="text-lg font-mono text-white">{token.bondingCurveProgress.toFixed(1)}%</span>
-                  </div>
-                  <div className="text-xs text-gray-500">Bonding Curve</div>
                 </div>
                 {token.description && (
-                  <p className="text-gray-400 text-sm">{token.description}</p>
+                  <p className={`text-sm ${privateMode ? "text-[#39FF14]/80" : "text-gray-600"}`}>{token.description}</p>
                 )}
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
-        <div className="bg-zinc-900/50 rounded-xl p-4 mb-4">
-          <h3 className="flex items-center gap-2 text-white font-medium mb-3">
+        {/* Token Info Card */}
+        <div className={`p-4 border-2 ${
+          privateMode 
+            ? "bg-black border-[#39FF14]/50" 
+            : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        }`}>
+          <h3 className={`flex items-center gap-2 font-bold mb-3 ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
             <Users className="w-4 h-4" />
-            Token Info
+            {privateMode ? "> TOKEN_INFO" : "Token Info"}
           </h3>
-          <div className="grid grid-cols-2 gap-2 text-center mb-4">
-            <div className="bg-zinc-800/50 rounded-lg p-3">
-              <div className="text-sm font-mono text-white truncate">{token.creatorAddress.slice(0, 6)}...{token.creatorAddress.slice(-4)}</div>
-              <div className="text-[10px] text-gray-500">👤 Creator</div>
+          <div className="grid grid-cols-2 gap-3 text-center">
+            <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
+              <div className={`text-sm font-mono truncate ${privateMode ? "text-white" : "text-gray-900"}`}>
+                {token.creatorAddress.slice(0, 6)}...{token.creatorAddress.slice(-4)}
+              </div>
+              <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Creator</div>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3">
-              <div className="text-sm font-mono text-white">{new Date(token.createdAt).toLocaleDateString()}</div>
-              <div className="text-[10px] text-gray-500">📅 Created</div>
+            <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
+              <div className={`text-sm font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
+                {new Date(token.createdAt).toLocaleDateString()}
+              </div>
+              <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Created</div>
             </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-center">
-            <div className="bg-zinc-800/50 rounded-lg p-3">
-              <div className="text-sm font-mono text-white">{token.isGraduated ? "Graduated" : "Bonding"}</div>
-              <div className="text-[10px] text-gray-500">📊 Status</div>
+            <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
+              <div className={`text-sm font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
+                {token.isGraduated ? "Graduated" : "Bonding"}
+              </div>
+              <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Status</div>
             </div>
-            <div className="bg-zinc-800/50 rounded-lg p-3">
+            <div className={`p-3 border ${privateMode ? "bg-black border-[#39FF14]/20" : "bg-gray-50 border-gray-200 rounded"}`}>
               <a 
                 href={`https://solscan.io/token/${token.mint}?cluster=devnet`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-mono text-blue-400 hover:text-blue-300 flex items-center justify-center gap-1"
+                className={`text-sm font-mono flex items-center justify-center gap-1 ${
+                  privateMode ? "text-[#39FF14] hover:text-white" : "text-red-500 hover:text-red-600"
+                }`}
               >
-                View <ExternalLink className="w-3 h-3" />
+                Solscan <ExternalLink className="w-3 h-3" />
               </a>
-              <div className="text-[10px] text-gray-500">🔗 Solscan</div>
+              <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Explorer</div>
             </div>
           </div>
         </div>
 
+        {/* Predictions Section */}
         {token.predictions && token.predictions.length > 0 && (
-          <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-xl p-4 mb-4">
+          <div className={`p-4 border-2 ${
+            privateMode 
+              ? "bg-black border-yellow-500" 
+              : "bg-yellow-50 border-yellow-500 rounded-lg shadow-[4px_4px_0px_0px_rgba(234,179,8,1)]"
+          }`}>
             <div className="flex items-center justify-between mb-3">
-              <h3 className="flex items-center gap-2 text-yellow-400 font-medium">
+              <h3 className={`flex items-center gap-2 font-bold ${privateMode ? "text-yellow-400" : "text-yellow-700"}`}>
                 <Target className="w-4 h-4" />
-                Predictions
+                {privateMode ? "> PREDICTIONS" : "Predictions"}
               </h3>
               <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
-                <button className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400 px-2 py-1 rounded" data-testid="button-create-market">
+                <button className={`text-xs px-2 py-1 border font-bold ${
+                  privateMode 
+                    ? "bg-black border-yellow-500 text-yellow-400 hover:bg-yellow-500/20"
+                    : "bg-yellow-500 border-black text-black hover:bg-yellow-400"
+                }`} data-testid="button-create-market">
                   <Plus className="w-3 h-3 inline" /> Create
                 </button>
               </Link>
@@ -770,17 +828,23 @@ export default function TokenPage() {
             {token.predictions.slice(0, 2).map((prediction) => {
               const isBettingActive = activeBet?.predictionId === prediction.id;
               return (
-                <div key={prediction.id} className="bg-zinc-900/50 rounded-lg p-3 mb-2" data-testid={`prediction-${prediction.id}`}>
+                <div key={prediction.id} className={`p-3 mb-2 border ${
+                  privateMode ? "bg-black border-yellow-500/30" : "bg-white border-gray-200 rounded"
+                }`} data-testid={`prediction-${prediction.id}`}>
                   <Link href={`/market/${prediction.id}`}>
-                    <p className="text-white text-sm mb-2 hover:text-yellow-400">{prediction.question}</p>
+                    <p className={`text-sm mb-2 ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}>
+                      {prediction.question}
+                    </p>
                   </Link>
                   <div className="grid grid-cols-2 gap-2">
                     <button
                       onClick={(e) => handleBetClick(prediction.id, "yes", e)}
-                      className={`py-2 rounded-lg text-center transition-all ${
+                      className={`py-2 text-center transition-all border font-bold ${
                         isBettingActive && activeBet?.side === "yes"
-                          ? "bg-green-500 text-white"
-                          : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                          ? "bg-green-500 text-white border-green-500"
+                          : privateMode 
+                            ? "bg-black border-green-500/50 text-green-400 hover:border-green-500"
+                            : "bg-green-100 border-green-500 text-green-700 hover:bg-green-200"
                       }`}
                       data-testid={`button-bet-yes-${prediction.id}`}
                     >
@@ -789,10 +853,12 @@ export default function TokenPage() {
                     </button>
                     <button
                       onClick={(e) => handleBetClick(prediction.id, "no", e)}
-                      className={`py-2 rounded-lg text-center transition-all ${
+                      className={`py-2 text-center transition-all border font-bold ${
                         isBettingActive && activeBet?.side === "no"
-                          ? "bg-red-500 text-white"
-                          : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                          ? "bg-red-500 text-white border-red-500"
+                          : privateMode 
+                            ? "bg-black border-red-500/50 text-red-400 hover:border-red-500"
+                            : "bg-red-100 border-red-500 text-red-700 hover:bg-red-200"
                       }`}
                       data-testid={`button-bet-no-${prediction.id}`}
                     >
@@ -811,16 +877,22 @@ export default function TokenPage() {
                         value={betAmount}
                         onChange={(e) => setBetAmount(e.target.value)}
                         placeholder="SOL amount"
-                        className="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white"
+                        className={`flex-1 px-3 py-2 text-sm border-2 ${
+                          privateMode 
+                            ? "bg-black border-[#39FF14]/50 text-[#39FF14]" 
+                            : "bg-white border-black"
+                        }`}
                         onClick={(e) => e.stopPropagation()}
                         data-testid={`input-bet-amount-${prediction.id}`}
                       />
                       <button
                         onClick={handlePlaceBet}
                         disabled={placeBetMutation.isPending}
-                        className={`px-4 py-2 rounded-lg font-bold text-sm ${
-                          activeBet?.side === "yes" ? "bg-green-500" : "bg-red-500"
-                        } text-white`}
+                        className={`px-4 py-2 font-bold text-sm border-2 ${
+                          activeBet?.side === "yes" 
+                            ? "bg-green-500 border-green-600 text-white" 
+                            : "bg-red-500 border-red-600 text-white"
+                        }`}
                         data-testid={`button-confirm-bet-${prediction.id}`}
                       >
                         {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "BET"}
@@ -833,13 +905,18 @@ export default function TokenPage() {
           </div>
         )}
 
-        <div className="bg-zinc-900/50 rounded-xl p-4 mb-4">
-          <h3 className="flex items-center gap-2 text-white font-medium mb-3">
+        {/* Activity Section */}
+        <div className={`p-4 border-2 ${
+          privateMode 
+            ? "bg-black border-[#39FF14]/50" 
+            : "bg-white border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        }`}>
+          <h3 className={`flex items-center gap-2 font-bold mb-3 ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
             <Activity className="w-4 h-4" />
-            Activity
+            {privateMode ? "> ACTIVITY" : "Activity"}
             <span className="ml-auto flex items-center gap-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-              <span className="text-xs text-gray-500">LIVE</span>
+              <span className={`w-2 h-2 rounded-full animate-pulse ${privateMode ? "bg-[#39FF14]" : "bg-green-500"}`}></span>
+              <span className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>LIVE</span>
             </span>
           </h3>
           
@@ -855,154 +932,91 @@ export default function TokenPage() {
                     key={activity.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center gap-3 p-2 rounded-lg hover:bg-zinc-800/30"
+                    className={`flex items-center gap-3 p-2 border ${
+                      privateMode ? "border-[#39FF14]/20 hover:border-[#39FF14]/50" : "border-gray-200 hover:border-gray-400 rounded"
+                    }`}
                     data-testid={`activity-${activity.id}`}
                   >
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${isBuy ? "bg-green-500/20" : "bg-red-500/20"}`}>
-                      {isBuy ? <Plus className="w-4 h-4 text-green-400" /> : <TrendingDown className="w-4 h-4 text-red-400" />}
+                    <div className={`w-8 h-8 flex items-center justify-center text-xs border ${
+                      isBuy 
+                        ? privateMode ? "border-green-500 text-green-400" : "border-green-500 text-green-600 bg-green-50"
+                        : privateMode ? "border-red-500 text-red-400" : "border-red-500 text-red-600 bg-red-50"
+                    }`}>
+                      {isBuy ? <Plus className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
                     </div>
                     <div className="flex-1">
-                      <div className="text-white text-sm">
-                        {activity.walletAddress?.slice(0, 6)} {isBuy ? "acquired" : "sold"}
+                      <div className={`text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>
+                        {activity.walletAddress?.slice(0, 6)} {isBuy ? "bought" : "sold"}
                       </div>
-                      <div className="text-gray-500 text-xs">{timeAgo} ↗</div>
+                      <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>{timeAgo}</div>
                     </div>
                     <div className="text-right">
-                      <div className={`text-sm ${isBuy ? "text-green-400" : "text-red-400"}`}>
+                      <div className={`text-sm font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>
                         {isBuy ? "+" : "-"}{amount.toFixed(4)} SOL
                       </div>
-                      <div className="text-gray-500 text-xs">{isBuy ? "bought" : "sold"}</div>
                     </div>
                   </motion.div>
                 );
               })}
             </div>
           ) : (
-            <div className="text-center py-6 text-gray-500">
+            <div className={`text-center py-6 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>
               <Activity className="w-8 h-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">No trades yet</p>
             </div>
           )}
-          
-          {tokenActivity && tokenActivity.length > 5 && (
-            <button className="w-full text-center text-gray-500 text-sm py-2 hover:text-white" data-testid="button-see-all-activity">
-              ⬇ See all
-            </button>
-          )}
         </div>
 
+        {/* Explore More Tokens */}
         {otherTokens && otherTokens.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-gray-400 text-sm mb-3">Explore more coins</h3>
+          <div>
+            <h3 className={`text-sm mb-3 ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
+              {privateMode ? "> EXPLORE_MORE" : "Explore more tokens"}
+            </h3>
             <div className="space-y-2">
               {otherTokens.map((t) => (
                 <Link key={t.mint} href={`/token/${t.mint}`}>
-                  <div className="flex items-center gap-3 bg-zinc-900/50 rounded-xl p-3 hover:bg-zinc-800/50 transition-all" data-testid={`explore-token-${t.mint}`}>
-                    <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden">
+                  <motion.div 
+                    whileHover={{ y: -2, x: -2 }}
+                    className={`flex items-center gap-3 p-3 border-2 transition-all ${
+                      privateMode 
+                        ? "bg-black border-[#39FF14]/30 hover:border-[#39FF14]"
+                        : "bg-white border-black rounded shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                    }`} 
+                    data-testid={`explore-token-${t.mint}`}
+                  >
+                    <div className={`w-10 h-10 overflow-hidden border ${
+                      privateMode ? "bg-black border-[#39FF14]/30" : "bg-gray-100 border-black rounded"
+                    }`}>
                       {t.imageUri ? (
-                        <img src={t.imageUri} alt={t.name} className="w-full h-full object-cover" />
+                        <img src={t.imageUri} alt={t.name} className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center text-green-400 font-bold">
+                        <div className={`w-full h-full flex items-center justify-center font-bold ${
+                          privateMode ? "text-[#39FF14]" : "text-red-500"
+                        }`}>
                           {t.symbol[0]}
                         </div>
                       )}
                     </div>
                     <div className="flex-1">
-                      <div className="text-white font-medium">{t.name}</div>
-                      <div className="text-gray-500 text-xs">{t.symbol}</div>
+                      <div className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>{t.name}</div>
+                      <div className={`text-xs ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>${t.symbol}</div>
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {t.bondingCurveProgress.toFixed(0)}% curve
+                    <div className={`text-xs font-mono ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
+                      {t.bondingCurveProgress.toFixed(0)}%
                     </div>
                     <div className="text-right">
-                      <div className="text-white font-medium">
+                      <div className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>
                         {formatMarketCap(t.marketCapSol, solPrice?.price || null)}
                       </div>
                     </div>
-                  </div>
+                  </motion.div>
                 </Link>
               ))}
             </div>
           </div>
         )}
       </div>
-
-      <div className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-4 lg:hidden">
-        <div className="max-w-2xl mx-auto flex items-center gap-3">
-          <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2 flex-1">
-            <button 
-              onClick={() => setTradeType("buy")}
-              className={`text-xs font-medium px-2 py-1 rounded ${tradeType === "buy" ? "bg-green-500 text-white" : "text-gray-400"}`}
-            >
-              Support
-            </button>
-            <span className="text-gray-600">—</span>
-            <button 
-              onClick={() => setTradeType("sell")}
-              className={`text-xs font-medium px-2 py-1 rounded ${tradeType === "sell" ? "bg-red-500 text-white" : "text-gray-400"}`}
-            >
-              Auto
-            </button>
-          </div>
-          <div className="flex items-center gap-2 bg-zinc-800 rounded-lg px-3 py-2">
-            <span className="text-white">◎</span>
-            <span className="text-gray-400">SOL</span>
-            <span className="text-gray-600">→</span>
-            <div className="w-6 h-6 rounded-full bg-zinc-700 flex items-center justify-center text-xs">
-              {token.symbol[0]}
-            </div>
-            <span className="text-white">{token.symbol}</span>
-          </div>
-        </div>
-        
-        <div className="max-w-2xl mx-auto mt-3">
-          <div className="text-center text-2xl font-bold text-white mb-2">
-            {tradeAmount || "0"} SOL
-          </div>
-          <div className="text-center text-gray-500 text-sm mb-3">
-            ≈ {tradeQuote ? tradeQuote.outputAmount.toLocaleString() : "0.00"} {token.symbol}
-          </div>
-          
-          <div className="flex gap-2 mb-3">
-            {["0.01", "0.1", "0.5", "Max"].map((amt) => (
-              <button
-                key={amt}
-                onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)}
-                className="flex-1 bg-zinc-800 hover:bg-zinc-700 text-white text-sm py-2 rounded-lg"
-              >
-                {amt === "Max" ? amt : `${amt} SOL`}
-              </button>
-            ))}
-          </div>
-          
-          <div className="text-center text-gray-500 text-xs mb-3">
-            Balance: {connectedWallet ? "0.015486035 SOL" : "Connect wallet"}
-          </div>
-          
-          {!connectedWallet ? (
-            <button
-              onClick={() => connectWallet()}
-              className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-4 rounded-xl transition-all"
-              data-testid="button-connect-wallet-mobile"
-            >
-              Connect Wallet
-            </button>
-          ) : (
-            <button
-              onClick={handleTrade}
-              disabled={!tradeAmount || Number(tradeAmount) <= 0 || isTrading}
-              className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-4 rounded-xl transition-all disabled:opacity-50"
-              data-testid="button-submit-trade-mobile"
-            >
-              {isTrading ? (
-                <Loader2 className="w-5 h-5 animate-spin mx-auto" />
-              ) : (
-                `⇌ ${token.symbol}`
-              )}
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
+    </Layout>
   );
 }
