@@ -10,7 +10,7 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Buffer } from "buffer";
-import defaultAvatar from "@assets/generated_images/derpy_raccoon_crypto_mascot.png";
+import defaultAvatar from "@assets/generated_images/derpy_blob_meme_mascot.png";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
