@@ -1,21 +1,19 @@
+import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, TrendingUp, TrendingDown, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check } from "lucide-react";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Buffer } from "buffer";
-import { Connection, Transaction } from "@solana/web3.js";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
 }
-
-const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 interface TokenPrediction {
   id: string;
@@ -87,24 +85,16 @@ function getTimeAgo(date: Date): string {
 
 function formatPrice(price: number): string {
   if (price === 0) return "$0.00";
-  if (price < 0.00000001) {
-    return `$${price.toExponential(2)}`;
-  }
-  if (price < 0.0001) {
-    return `$${price.toFixed(8)}`;
-  }
+  if (price < 0.00000001) return `$${price.toExponential(2)}`;
+  if (price < 0.0001) return `$${price.toFixed(8)}`;
   return `$${price.toFixed(6)}`;
 }
 
 function formatMarketCap(mcSol: number, solPrice: number | null): string {
   const usdValue = solPrice ? mcSol * solPrice : null;
-  if (usdValue && usdValue >= 1000000) {
-    return `$${(usdValue / 1000000).toFixed(2)}M`;
-  } else if (usdValue && usdValue >= 1000) {
-    return `$${(usdValue / 1000).toFixed(1)}K`;
-  } else if (usdValue) {
-    return `$${usdValue.toFixed(0)}`;
-  }
+  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
+  if (usdValue) return `$${usdValue.toFixed(0)}`;
   return `${mcSol.toFixed(2)} SOL`;
 }
 
@@ -184,9 +174,7 @@ export default function TokenPage() {
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
     },
-    onError: (error: Error) => {
-      toast.error(error.message);
-    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const filteredPriceHistory = useMemo(() => {
@@ -248,32 +236,44 @@ export default function TokenPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-green-500" />
-      </div>
+      <Layout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <Loader2 className={`w-8 h-8 animate-spin ${privateMode ? "text-[#39FF14]" : "text-red-500"}`} />
+        </div>
+      </Layout>
     );
   }
 
   if (error || !token) {
     return (
-      <div className="min-h-screen bg-[#0d0d0d] flex flex-col items-center justify-center gap-4">
-        <p className="text-red-500">Token not found</p>
-        <Link href="/tokens">
-          <button className="text-gray-400 hover:text-white flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> Back to tokens
-          </button>
-        </Link>
-      </div>
+      <Layout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
+          <p className={`font-mono ${privateMode ? "text-[#39FF14]" : "text-red-500"}`}>Token not found</p>
+          <Link href="/tokens">
+            <button className={`flex items-center gap-2 ${privateMode ? "text-[#39FF14]" : "text-gray-500 hover:text-gray-700"}`}>
+              <ArrowLeft className="w-4 h-4" /> Back to tokens
+            </button>
+          </Link>
+        </div>
+      </Layout>
     );
   }
 
+  const cardStyle = privateMode 
+    ? "bg-black border-2 border-[#39FF14]" 
+    : "bg-white border-2 border-black rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
+
+  const inputStyle = privateMode
+    ? "bg-black border-2 border-[#39FF14]/50 text-[#39FF14] focus:border-[#39FF14]"
+    : "bg-white border-2 border-black focus:ring-2 focus:ring-red-500";
+
   return (
-    <div className="min-h-screen bg-[#0d0d0d] text-white">
-      <div className="max-w-7xl mx-auto px-4 py-4">
+    <Layout>
+      <div className="space-y-4">
         {/* Back Button */}
         <Link href="/tokens">
-          <button className="text-gray-400 hover:text-white flex items-center gap-2 text-sm mb-4" data-testid="button-back">
-            <ArrowLeft className="w-4 h-4" /> Back
+          <button className={`flex items-center gap-2 text-sm ${privateMode ? "text-[#39FF14]" : "text-gray-500 hover:text-gray-700"}`} data-testid="button-back">
+            <ArrowLeft className="w-4 h-4" /> Back to tokens
           </button>
         </Link>
 
@@ -281,117 +281,84 @@ export default function TokenPage() {
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-4">
             {/* Token Header */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
+            <div className={`${cardStyle} p-4`}>
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-lg bg-[#2a2a2a] overflow-hidden flex-shrink-0">
+                <div className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 ${privateMode ? "border-[#39FF14]/30 bg-black" : "border-black bg-gray-100"}`}>
                   {token.imageUri ? (
-                    <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                    <img src={token.imageUri} alt={token.name} className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-green-400 font-bold text-lg">
+                    <div className={`w-full h-full flex items-center justify-center font-black text-xl ${privateMode ? "text-[#39FF14]" : "text-red-500"}`}>
                       {token.symbol[0]}
                     </div>
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white font-bold text-lg">{token.name}</span>
-                    <span className="text-gray-500 text-sm bg-[#2a2a2a] px-2 py-0.5 rounded">${token.symbol}</span>
-                    <button 
-                      onClick={handleCopyAddress}
-                      className="text-gray-500 hover:text-white text-xs flex items-center gap-1"
-                    >
+                    <span className={`font-black text-xl ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>{token.name}</span>
+                    <span className={`text-sm font-mono px-2 py-0.5 rounded ${privateMode ? "bg-black text-[#39FF14]/70 border border-[#39FF14]/30" : "bg-gray-100 text-gray-500 border border-gray-200"}`}>
+                      ${token.symbol}
+                    </span>
+                    <button onClick={handleCopyAddress} className={`text-xs flex items-center gap-1 ${privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "text-gray-400 hover:text-gray-600"}`}>
                       {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                       {token.mint.slice(0, 6)}...
                     </button>
                   </div>
-                  <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                  <div className={`flex items-center gap-3 mt-1 text-xs ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
                     <span>by {token.creatorAddress.slice(0, 6)}</span>
                     <span>{getTimeAgo(new Date(token.createdAt))} ago</span>
                     <div className="flex items-center gap-2">
-                      {token.twitter && (
-                        <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                          <Twitter className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {token.telegram && (
-                        <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                          <MessageCircle className="w-3.5 h-3.5" />
-                        </a>
-                      )}
-                      {token.website && (
-                        <a href={token.website} target="_blank" rel="noopener noreferrer" className="hover:text-white">
-                          <Globe className="w-3.5 h-3.5" />
-                        </a>
-                      )}
+                      {token.twitter && <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Twitter className="w-3.5 h-3.5" /></a>}
+                      {token.telegram && <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><MessageCircle className="w-3.5 h-3.5" /></a>}
+                      {token.website && <a href={token.website} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Globe className="w-3.5 h-3.5" /></a>}
                     </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className={`text-2xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
+                    {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+                  </div>
+                  <div className={`text-xs font-mono ${privateMode ? "text-[#39FF14]" : "text-green-600"}`}>
+                    {token.bondingCurveProgress.toFixed(1)}% bonded
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Market Cap Display */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
-              <div className="text-gray-500 text-xs mb-1">Market Cap</div>
-              <div className="text-3xl font-bold text-white">
-                {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
-              </div>
-            </div>
-
             {/* Chart */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
-              <div className="h-64">
+            <div className={`${cardStyle} p-4`}>
+              <div className="h-56">
                 {filteredPriceHistory && filteredPriceHistory.length > 0 ? (
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={filteredPriceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                       <defs>
                         <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#22c55e" stopOpacity={0.3} />
-                          <stop offset="100%" stopColor="#22c55e" stopOpacity={0} />
+                          <stop offset="0%" stopColor={privateMode ? "#39FF14" : "#ef4444"} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={privateMode ? "#39FF14" : "#ef4444"} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis 
-                        dataKey="time" 
-                        tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        stroke="#444"
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                      />
-                      <YAxis 
-                        domain={['auto', 'auto']}
-                        tickFormatter={(v) => formatPrice(v * (solPrice?.price || 200))}
-                        stroke="#444"
-                        fontSize={10}
-                        tickLine={false}
-                        axisLine={false}
-                        width={60}
-                        orientation="right"
-                      />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333', borderRadius: '8px', fontSize: '12px' }}
-                        labelFormatter={(t) => new Date(t).toLocaleString()}
-                        formatter={(value: number) => [formatPrice(value * (solPrice?.price || 200)), 'Price']}
-                      />
-                      <Area type="monotone" dataKey="price" stroke="#22c55e" strokeWidth={2} fill="url(#chartGradient)" />
+                      <XAxis dataKey="time" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} stroke={privateMode ? "#39FF14" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
+                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || 200))} stroke={privateMode ? "#39FF14" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
+                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #39FF14' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || 200)), 'Price']} />
+                      <Area type="monotone" dataKey="price" stroke={privateMode ? "#39FF14" : "#ef4444"} strokeWidth={2} fill="url(#chartGradient)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-gray-500 text-sm">
+                  <div className={`h-full flex items-center justify-center text-sm ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>
                     No price data yet
                   </div>
                 )}
               </div>
               
-              {/* Chart Interval Buttons */}
+              {/* Chart Intervals */}
               <div className="flex items-center gap-2 mt-3">
                 {(["1m", "5m", "1h", "all"] as const).map((interval) => (
                   <button
                     key={interval}
                     onClick={() => setChartInterval(interval)}
-                    className={`px-3 py-1 rounded text-xs font-medium transition-all ${
+                    className={`px-3 py-1 text-xs font-bold border-2 transition-all ${
                       chartInterval === interval
-                        ? "bg-white text-black"
-                        : "bg-[#2a2a2a] text-gray-400 hover:text-white"
+                        ? privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-black text-white border-black"
+                        : privateMode ? "bg-black text-[#39FF14]/70 border-[#39FF14]/30 hover:border-[#39FF14]" : "bg-white text-gray-500 border-gray-300 hover:border-black"
                     }`}
                     data-testid={`button-interval-${interval}`}
                   >
@@ -403,50 +370,43 @@ export default function TokenPage() {
 
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-2">
-              <div className="bg-[#1a1a1a] rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-xs">Price</div>
-                <div className="text-white font-mono text-sm">{formatPrice(token.priceInSol * (solPrice?.price || 200))}</div>
-              </div>
-              <div className="bg-[#1a1a1a] rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-xs">Vol 24h</div>
-                <div className="text-white font-mono text-sm">{token.marketCapSol.toFixed(1)} SOL</div>
-              </div>
-              <div className="bg-[#1a1a1a] rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-xs">Holders</div>
-                <div className="text-white font-mono text-sm">-</div>
-              </div>
-              <div className="bg-[#1a1a1a] rounded-lg p-3 text-center">
-                <div className="text-gray-500 text-xs">Txns</div>
-                <div className="text-white font-mono text-sm">{tokenActivity?.length || 0}</div>
-              </div>
+              {[
+                { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || 200)) },
+                { label: "Market Cap", value: formatMarketCap(token.marketCapSol, solPrice?.price || null) },
+                { label: "Holders", value: "-" },
+                { label: "Txns", value: tokenActivity?.length || 0 },
+              ].map(({ label, value }) => (
+                <div key={label} className={`${cardStyle} p-3 text-center`}>
+                  <div className={`text-xs ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>{label}</div>
+                  <div className={`font-mono text-sm font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{value}</div>
+                </div>
+              ))}
             </div>
 
             {/* Trades */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
-              <div className="text-white font-medium mb-3">Trades</div>
+            <div className={`${cardStyle} p-4`}>
+              <div className={`font-bold mb-3 ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>Recent Trades</div>
               {tokenActivity && tokenActivity.length > 0 ? (
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="text-gray-500 text-xs border-b border-[#2a2a2a]">
+                      <tr className={`text-xs border-b-2 ${privateMode ? "text-[#39FF14]/70 border-[#39FF14]/30" : "text-gray-500 border-gray-200"}`}>
                         <th className="text-left py-2">Account</th>
                         <th className="text-left py-2">Type</th>
-                        <th className="text-right py-2">Amount (SOL)</th>
+                        <th className="text-right py-2">Amount</th>
                         <th className="text-right py-2">Time</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tokenActivity.slice(0, 10).map((activity) => {
+                      {tokenActivity.slice(0, 8).map((activity) => {
                         const isBuy = activity.side === "buy" || activity.activityType === "buy";
                         const amount = activity.amount ? parseFloat(activity.amount) : 0;
                         return (
-                          <tr key={activity.id} className="border-b border-[#2a2a2a] hover:bg-[#2a2a2a]/50">
-                            <td className="py-2 text-gray-400">{activity.walletAddress?.slice(0, 6)}...</td>
-                            <td className={`py-2 ${isBuy ? "text-green-500" : "text-red-500"}`}>
-                              {isBuy ? "Buy" : "Sell"}
-                            </td>
-                            <td className="py-2 text-right text-white">{amount.toFixed(4)}</td>
-                            <td className="py-2 text-right text-gray-500">{getTimeAgo(new Date(activity.createdAt))}</td>
+                          <tr key={activity.id} className={`border-b ${privateMode ? "border-[#39FF14]/20" : "border-gray-100"}`}>
+                            <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>{activity.walletAddress?.slice(0, 6)}...</td>
+                            <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
+                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{amount.toFixed(4)} SOL</td>
+                            <td className={`py-2 text-right ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>{getTimeAgo(new Date(activity.createdAt))}</td>
                           </tr>
                         );
                       })}
@@ -454,80 +414,44 @@ export default function TokenPage() {
                   </table>
                 </div>
               ) : (
-                <div className="text-center py-8 text-gray-500">No trades yet</div>
+                <div className={`text-center py-6 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>No trades yet</div>
               )}
             </div>
 
-            {/* Predictions Section */}
+            {/* Predictions */}
             {token.predictions && token.predictions.length > 0 && (
-              <div className="bg-[#1a1a1a] rounded-lg p-4 border border-yellow-500/30">
+              <div className={`${cardStyle} p-4 ${privateMode ? "border-yellow-500" : "border-yellow-500"}`} style={{ boxShadow: privateMode ? "none" : "4px 4px 0px 0px rgba(234,179,8,1)" }}>
                 <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2 text-yellow-500 font-medium">
-                    <Target className="w-4 h-4" />
-                    Prediction Markets
+                  <div className={`flex items-center gap-2 font-bold ${privateMode ? "text-yellow-400" : "text-yellow-700"}`}>
+                    <Target className="w-4 h-4" /> Prediction Markets
                   </div>
                   <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
-                    <button className="text-xs bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-500 px-2 py-1 rounded" data-testid="button-create-market">
+                    <button className={`text-xs px-2 py-1 font-bold border ${privateMode ? "bg-black border-yellow-500 text-yellow-400" : "bg-yellow-500 border-black text-black"}`} data-testid="button-create-market">
                       <Plus className="w-3 h-3 inline" /> Create
                     </button>
                   </Link>
                 </div>
-                {token.predictions.slice(0, 3).map((prediction) => {
+                {token.predictions.slice(0, 2).map((prediction) => {
                   const isBettingActive = activeBet?.predictionId === prediction.id;
                   return (
-                    <div key={prediction.id} className="bg-[#0d0d0d] rounded p-3 mb-2" data-testid={`prediction-${prediction.id}`}>
+                    <div key={prediction.id} className={`p-3 mb-2 border ${privateMode ? "bg-black border-yellow-500/30" : "bg-yellow-50 border-gray-200 rounded"}`} data-testid={`prediction-${prediction.id}`}>
                       <Link href={`/market/${prediction.id}`}>
-                        <p className="text-white text-sm mb-2 hover:text-yellow-500">{prediction.question}</p>
+                        <p className={`text-sm mb-2 font-medium ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}>{prediction.question}</p>
                       </Link>
                       <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={(e) => handleBetClick(prediction.id, "yes", e)}
-                          className={`py-2 rounded text-center transition-all ${
-                            isBettingActive && activeBet?.side === "yes"
-                              ? "bg-green-500 text-white"
-                              : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                          }`}
-                          data-testid={`button-bet-yes-${prediction.id}`}
-                        >
+                        <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
                           <span className="block font-bold">{prediction.yesOdds}%</span>
                           <span className="text-xs">YES</span>
                         </button>
-                        <button
-                          onClick={(e) => handleBetClick(prediction.id, "no", e)}
-                          className={`py-2 rounded text-center transition-all ${
-                            isBettingActive && activeBet?.side === "no"
-                              ? "bg-red-500 text-white"
-                              : "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                          }`}
-                          data-testid={`button-bet-no-${prediction.id}`}
-                        >
+                        <button onClick={(e) => handleBetClick(prediction.id, "no", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
                           <span className="block font-bold">{prediction.noOdds}%</span>
                           <span className="text-xs">NO</span>
                         </button>
                       </div>
                       {isBettingActive && (
-                        <motion.div
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: "auto" }}
-                          className="mt-2 flex gap-2"
-                        >
-                          <input
-                            type="number"
-                            value={betAmount}
-                            onChange={(e) => setBetAmount(e.target.value)}
-                            placeholder="SOL amount"
-                            className="flex-1 bg-[#2a2a2a] border border-[#3a3a3a] rounded px-3 py-2 text-sm text-white"
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`input-bet-amount-${prediction.id}`}
-                          />
-                          <button
-                            onClick={handlePlaceBet}
-                            disabled={placeBetMutation.isPending}
-                            className={`px-4 py-2 rounded font-bold text-sm ${
-                              activeBet?.side === "yes" ? "bg-green-500" : "bg-red-500"
-                            } text-white`}
-                            data-testid={`button-confirm-bet-${prediction.id}`}
-                          >
+                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
+                          <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
+                          <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white`} data-testid={`button-confirm-bet-${prediction.id}`}>
                             {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "BET"}
                           </button>
                         </motion.div>
@@ -542,124 +466,74 @@ export default function TokenPage() {
           {/* Right Column - Trade Panel */}
           <div className="space-y-4">
             {/* Buy/Sell Panel */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4 sticky top-4">
+            <div className={`${cardStyle} p-4 sticky top-4`}>
               {/* Buy/Sell Toggle */}
               <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => setTradeType("buy")}
-                  className={`flex-1 py-2 rounded font-bold transition-all ${
-                    tradeType === "buy"
-                      ? "bg-green-500 text-white"
-                      : "bg-[#2a2a2a] text-gray-400 hover:text-white"
-                  }`}
-                >
+                <button onClick={() => setTradeType("buy")} className={`flex-1 py-2 font-bold border-2 transition-all ${tradeType === "buy" ? privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-green-500 text-white border-green-500" : privateMode ? "bg-black text-[#39FF14]/50 border-[#39FF14]/30" : "bg-gray-100 text-gray-500 border-gray-300"}`}>
                   Buy
                 </button>
-                <button
-                  onClick={() => setTradeType("sell")}
-                  className={`flex-1 py-2 rounded font-bold transition-all ${
-                    tradeType === "sell"
-                      ? "bg-red-500 text-white"
-                      : "bg-[#2a2a2a] text-gray-400 hover:text-white"
-                  }`}
-                >
+                <button onClick={() => setTradeType("sell")} className={`flex-1 py-2 font-bold border-2 transition-all ${tradeType === "sell" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black text-[#39FF14]/50 border-[#39FF14]/30" : "bg-gray-100 text-gray-500 border-gray-300"}`}>
                   Sell
                 </button>
               </div>
 
               {/* Amount Input */}
               <div className="relative mb-3">
-                <input
-                  type="number"
-                  value={tradeAmount}
-                  onChange={(e) => setTradeAmount(e.target.value)}
-                  placeholder="0.00"
-                  className="w-full bg-[#2a2a2a] border border-[#3a3a3a] rounded-lg px-4 py-3 text-white text-lg font-mono focus:outline-none focus:border-green-500"
-                />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400">SOL</span>
+                <input type="number" value={tradeAmount} onChange={(e) => setTradeAmount(e.target.value)} placeholder="0.00" className={`w-full px-4 py-3 text-lg font-mono ${inputStyle}`} />
+                <span className={`absolute right-4 top-1/2 -translate-y-1/2 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>SOL</span>
               </div>
 
               {/* Quick Amount Buttons */}
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {["0.1", "0.5", "1", "Max"].map((amt) => (
-                  <button
-                    key={amt}
-                    onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)}
-                    className="bg-[#2a2a2a] hover:bg-[#3a3a3a] text-gray-400 hover:text-white text-xs py-2 rounded transition-all"
-                  >
-                    {amt === "Max" ? amt : `${amt} SOL`}
+                  <button key={amt} onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#39FF14]/30 text-[#39FF14]/70 hover:border-[#39FF14]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                    {amt === "Max" ? amt : `${amt}`}
                   </button>
                 ))}
               </div>
 
               {/* Action Button */}
               {!connectedWallet ? (
-                <button
-                  onClick={() => connectWallet()}
-                  className="w-full bg-green-500 hover:bg-green-400 text-black font-bold py-3 rounded-lg transition-all"
-                  data-testid="button-connect-wallet"
-                >
+                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={() => connectWallet()} className={`w-full font-bold py-3 border-2 transition-all ${privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-connect-wallet">
                   Connect Wallet
-                </button>
+                </motion.button>
               ) : (
-                <button
-                  onClick={handleTrade}
-                  disabled={!tradeAmount || Number(tradeAmount) <= 0}
-                  className={`w-full font-bold py-3 rounded-lg transition-all disabled:opacity-50 ${
-                    tradeType === "buy"
-                      ? "bg-green-500 hover:bg-green-400 text-black"
-                      : "bg-red-500 hover:bg-red-400 text-white"
-                  }`}
-                  data-testid="button-trade"
-                >
+                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 ${tradeType === "buy" ? privateMode ? "bg-[#39FF14] text-black border-[#39FF14]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
                   {tradeType === "buy" ? "Buy" : "Sell"} {token.symbol}
-                </button>
+                </motion.button>
               )}
             </div>
 
             {/* Bonding Curve Progress */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
+            <div className={`${cardStyle} p-4`}>
               <div className="flex items-center justify-between mb-2">
-                <span className="text-gray-400 text-sm">Bonding Curve Progress</span>
-                <span className="text-white font-bold">{token.bondingCurveProgress.toFixed(1)}%</span>
+                <span className={`text-sm ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>Bonding Curve</span>
+                <span className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{token.bondingCurveProgress.toFixed(1)}%</span>
               </div>
-              <div className="h-2 bg-[#2a2a2a] rounded-full overflow-hidden mb-2">
-                <div 
-                  className="h-full bg-green-500 rounded-full transition-all"
-                  style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }}
-                />
+              <div className={`h-3 rounded-full overflow-hidden border ${privateMode ? "bg-black border-[#39FF14]/30" : "bg-gray-200 border-gray-300"}`}>
+                <div className={`h-full transition-all ${privateMode ? "bg-[#39FF14]" : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }} />
               </div>
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>{token.virtualSolReserves?.toFixed(2) || 0} SOL in curve</span>
+              <div className={`flex justify-between text-xs mt-2 ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
+                <span>{token.virtualSolReserves?.toFixed(2) || 0} SOL</span>
                 <span>85 SOL to graduate</span>
               </div>
             </div>
 
-            {/* Token Description */}
+            {/* Description */}
             {token.description && (
-              <div className="bg-[#1a1a1a] rounded-lg p-4">
-                <div className="text-gray-400 text-sm mb-2">About</div>
-                <p className="text-gray-300 text-sm">{token.description}</p>
+              <div className={`${cardStyle} p-4`}>
+                <div className={`text-sm font-bold mb-2 ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>About</div>
+                <p className={`text-sm ${privateMode ? "text-[#39FF14]/70" : "text-gray-600"}`}>{token.description}</p>
               </div>
             )}
 
             {/* Links */}
-            <div className="bg-[#1a1a1a] rounded-lg p-4">
-              <a 
-                href={`https://solscan.io/token/${token.mint}?cluster=devnet`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between text-sm text-gray-400 hover:text-white py-2 border-b border-[#2a2a2a]"
-              >
+            <div className={`${cardStyle} p-4`}>
+              <a href={`https://solscan.io/token/${token.mint}?cluster=devnet`} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between text-sm py-2 border-b ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14] border-[#39FF14]/20" : "text-gray-500 hover:text-gray-700 border-gray-200"}`}>
                 <span>View on Solscan</span>
                 <ExternalLink className="w-4 h-4" />
               </a>
-              <a 
-                href={`https://birdeye.so/token/${token.mint}?chain=solana`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-between text-sm text-gray-400 hover:text-white py-2"
-              >
+              <a href={`https://birdeye.so/token/${token.mint}?chain=solana`} target="_blank" rel="noopener noreferrer" className={`flex items-center justify-between text-sm py-2 ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14]" : "text-gray-500 hover:text-gray-700"}`}>
                 <span>View on Birdeye</span>
                 <ExternalLink className="w-4 h-4" />
               </a>
@@ -667,6 +541,6 @@ export default function TokenPage() {
           </div>
         </div>
       </div>
-    </div>
+    </Layout>
   );
 }
