@@ -138,6 +138,7 @@ export async function aggregateEncryptedPool(
 
 export async function revealBetAmount(
   encryptedAmount: string,
+  userAddress: string,
   userSignMessage: (message: Uint8Array) => Promise<Uint8Array>
 ): Promise<number | null> {
   console.log("[Inco Lightning] Attempting to reveal encrypted amount");
@@ -146,6 +147,7 @@ export async function revealBetAmount(
     const { decrypt } = await import("@inco/solana-sdk/attested-decrypt");
     
     const result = await decrypt([encryptedAmount], {
+      address: userAddress,
       signMessage: userSignMessage,
     });
     
