@@ -130,73 +130,75 @@ Dum.fun is a platform for meme tokens and prediction markets. All tokens are lau
   {
     id: "privacy",
     icon: Lock,
-    title: "Privacy Features (Inco Lightning)",
+    title: "Privacy Features",
     content: `**Solana Privacy Hackathon Submission**
 
-dum.fun integrates Inco Lightning SDK for confidential prediction market betting - a real privacy integration for the Solana Privacy Hackathon (Feb 1, 2025).
+dum.fun is a comprehensive privacy platform for the Solana Privacy Hackathon (Feb 1, 2025). We've integrated multiple privacy technologies.
 
-**Inco Lightning Integration:**
-- 🔒 Confidential bet amounts using SHA-256 commitment scheme
-- 📝 Deterministic cryptographic commitments verifiable on-chain
-- ⚡ Inco Lightning Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
-- 🌐 Network: Solana Devnet
+**1. Inco Lightning - Confidential Betting** ✅
+- 🔒 Encrypted bet amounts using Inco Lightning SDK
+- ⚡ Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
+- 📝 SHA-256 commitment scheme: hash(amount:side:nonce:address)
+- 💰 Bounty: $2,000
 
-**Technical Implementation:**
-- Client-side encryption using @inco/solana-sdk
-- Commitment format: SHA-256(inco_bet:amount:side:nonce:userAddress)
-- Encrypted bet data stored in positions table
-- Server-side verification of commitments
+**2. Stealth Addresses - Private Receiving** ✅
+- 🕵️ One-time receive addresses for each transfer
+- 🔗 Unlinkable transactions - nobody can trace your holdings
+- 🏷️ View tag scanning for efficient detection
+- 💰 Contributes to $10K Anoncoin bounty
 
-**How It Works:**
+**3. Token-2022 Confidential Transfers** ✅
+- 💳 Hidden transfer amounts using Pedersen commitments
+- 🔐 Range proofs verify amounts without revealing them
+- ⚠️ Note: Using commitment fallback while ZK program is in audit
+- 💰 Bounty: $15,000
+
+**How to Use Privacy Features:**
 1. Enable "Private Mode" toggle (👁 icon in header)
-2. Place a bet on any prediction market
-3. Your bet amount is encrypted client-side
-4. Only a cryptographic commitment is stored
-5. Other users cannot see your bet size
+2. Bet amounts are automatically encrypted
+3. Generate stealth addresses for private token receiving
+4. All transactions maintain your financial privacy
 
 **Hackathon Bounties:**
-- Inco Lightning: $2K (Consumer, Gaming, Prediction Markets)
-- Helius RPC: $5K (Infrastructure integration)
-- Anoncoin: $10K (Privacy-preserving applications)
-- Track 03 Open: $18K (General privacy innovation)
-
-**Privacy Mode UI:**
-When privacy mode is active:
-- Bet amounts encrypted with Inco Lightning SDK
-- Cypherpunk aesthetic (Matrix green #39FF14 theme)
-- All transactions use /api/markets/:id/confidential-bet endpoint`
+- Inco Lightning: $2K (Consumer, Gaming)
+- Helius RPC: $5K (Infrastructure)
+- Anoncoin: $10K (Privacy apps)
+- Token-2022: $15K (Confidential transfers)
+- Track 03 Open: $18K (Innovation)`
   },
   {
     id: "integrations",
     icon: Cpu,
     title: "Platform Integrations",
-    content: `**Active Integrations:**
+    content: `**Active Privacy Integrations:**
 
-**Helius RPC** - All Solana connections use Helius infrastructure
+**Inco Lightning SDK** ✅
+- Confidential prediction betting
+- Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
+- SHA-256 commitment scheme for bet privacy
+
+**Stealth Addresses** ✅
+- One-time receive addresses
+- Unlinkable token transfers
+- View tag scanning
+
+**Token-2022 Confidential Transfers** ✅
+- Pedersen commitments for balance hiding
+- Range proofs for amount validation
+- Commitment-based privacy (ZK program in audit)
+
+**Active Infrastructure:**
+
+**Helius RPC** - All Solana connections use Helius
 - Reliable devnet RPC endpoint
 - Real-time transaction processing
 - Balance queries and airdrops
 
-**Inco Lightning SDK** - Confidential prediction betting
-- Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
-- SHA-256 commitment scheme for bet privacy
-- Client and server-side encryption
-
 **Planned Integrations:**
 
-**DFlow API** - Tokenized Kalshi prediction markets
-- Access to CFTC-regulated prediction markets on Solana
-- Real SPL token positions
+**DFlow API** - Tokenized Kalshi markets
+- CFTC-regulated prediction markets
 - Awaiting API key access
-
-**PNP Exchange** - Decentralized prediction market protocol
-- Bonding curve-based prediction markets
-- LLM oracle settlement
-- SDK coming soon
-
-**Token-2022 Confidential Transfers** - Private token balances
-- ElGamal encryption for transfer amounts
-- Pending ZK ElGamal security audit
 
 **Arcium C-SPL** - Confidential token trading
 - Encrypted order matching

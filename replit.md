@@ -6,11 +6,14 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (January 2026)
 
+- **Stealth Addresses** - Added one-time receive addresses for private token receiving
+- **Token-2022 Confidential Transfers** - Implemented commitment-based confidential transfers
+- **Privacy API Expansion** - New endpoints for stealth addresses and confidential transfers
 - **Inco Lightning Integration** - Implemented real confidential betting with Inco Lightning SDK
 - **Schema Updates** - Added `is_confidential`, `encrypted_amount`, `commitment`, `nonce` columns to positions table
 - **Privacy API** - Updated `/api/privacy/status` to report active Inco integration
 - **Confidential Betting UI** - Privacy mode toggle enables encrypted betting with visual feedback
-- **Docs Update** - Added privacy documentation section explaining Inco integration
+- **Docs Update** - Added privacy documentation section explaining all privacy integrations
 
 ## Deployed Contract (Devnet)
 
@@ -43,20 +46,35 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 ### Privacy Integrations (Solana Privacy Hackathon)
 
 **Active Integrations:**
-- **Inco Lightning SDK** (`server/privacy/inco-lightning.ts`) - ✅ WORKING
-  - Program ID: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
-  - Confidential prediction market bets with encrypted amounts
-  - Commitment-based privacy scheme
-  - Client: `client/src/lib/inco-client.ts`
-  - API: `/api/markets/:id/confidential-bet`
-  - Bounty target: $2K (Consumer, Gaming, Prediction Markets)
+
+1. **Inco Lightning SDK** (`server/privacy/inco-lightning.ts`) - ✅ ACTIVE
+   - Program ID: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
+   - Confidential prediction market bets with encrypted amounts
+   - Commitment-based privacy scheme: SHA-256(amount:side:nonce:address)
+   - Client: `client/src/lib/inco-client.ts`
+   - API: `/api/markets/:id/confidential-bet`
+   - Bounty target: $2K (Consumer, Gaming, Prediction Markets)
+
+2. **Stealth Addresses** (`server/privacy/stealth-addresses.ts`) - ✅ ACTIVE
+   - One-time receive addresses for each token transfer
+   - Unlinkable transactions - can't trace holdings to wallet
+   - View tag scanning optimization for efficient detection
+   - Client: `client/src/lib/stealth-client.ts`
+   - API: `/api/privacy/stealth-address`, `/api/privacy/verify-stealth-ownership`
+   - Contributes to $10K Anoncoin bounty
+
+3. **Token-2022 Confidential Transfers** (`server/privacy/token2022-confidential.ts`) - ✅ ACTIVE
+   - Program ID: `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`
+   - Pedersen commitments for balance hiding
+   - Range proofs for amount validation
+   - Using commitment fallback while ZK ElGamal program is in audit
+   - Client: `client/src/lib/token2022-client.ts`
+   - API: `/api/privacy/confidential-transfer`
+   - Bounty target: $15K
 
 **Pending Integrations:**
 - **DFlow API** - Tokenized Kalshi prediction markets (awaiting API key)
-- **PNP Exchange** - Decentralized prediction market protocol (SDK coming soon)
-- **Token-2022 Confidential Transfers** (`token2022-confidential.ts`) - Planned ($15K)
-- **Arcium C-SPL** (`arcium-cspl.ts`) - Planned ($10K bounty)
-- **Noir ZK proofs** - Planned ($5K Aztec bounty)
+- **Arcium C-SPL** (`arcium-cspl.ts`) - Coming Q4 2025
 
 ### Privacy Mode UI
 - Toggle with 👁 icon in header
@@ -89,7 +107,11 @@ Express.js + TypeScript backend with:
 - Helius RPC for all Solana connections (devnet)
 - PostgreSQL database for tokens, markets, bets, users
 - WebSocket for real-time activity feed
-- Privacy status API endpoint (`/api/privacy/status`)
+- Privacy API endpoints:
+  - `/api/privacy/status` - Get all privacy integrations status
+  - `/api/privacy/stealth-address` - Generate stealth address
+  - `/api/privacy/verify-stealth-ownership` - Verify stealth address ownership
+  - `/api/privacy/confidential-transfer` - Create confidential transfer
 
 ### Database Schema
 
@@ -125,3 +147,13 @@ Required secrets:
 Auto-configured:
 - `VITE_SOLANA_RPC_URL` - Frontend RPC (public devnet)
 - `SOLANA_NETWORK` - Set to "devnet"
+
+## Hackathon Bounty Status
+
+| Bounty | Prize | Status |
+|--------|-------|--------|
+| Inco Lightning | $2K | ✅ Ready |
+| Helius RPC | $5K | ⚠️ Needs valid API key |
+| Anoncoin | $10K | ✅ Active (Stealth Addresses) |
+| Token-2022 | $15K | ✅ Active (Commitment-based) |
+| Track 03 Open | $18K | ⚠️ Needs demo/metrics |

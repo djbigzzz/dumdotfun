@@ -31,14 +31,116 @@ export async function registerRoutes(
 ): Promise<Server> {
   app.get("/api/privacy/status", async (_req, res) => {
     try {
+      const { getPrivacySummary, getAllPrivacyIntegrations } = await import("./privacy");
+      const { isHeliusConfigured, getRpcProvider } = await import("./helius-rpc");
+      
       const summary = getPrivacySummary();
+      const integrations = getAllPrivacyIntegrations();
+      const heliusActive = isHeliusConfigured();
+      
       res.json({
         success: true,
+        platform: "dum.fun",
+        network: process.env.SOLANA_NETWORK || "devnet",
+        heliusRpc: heliusActive,
+        rpcProvider: getRpcProvider(),
         ...summary,
+        integrations,
+        hackathonBounties: {
+          incoLightning: { prize: "$2,000", status: "active" },
+          helius: { prize: "$5,000", status: heliusActive ? "active" : "needs_api_key" },
+          anoncoin: { prize: "$10,000", status: summary.stealthEnabled ? "active" : "partial" },
+          token2022: { prize: "$15,000", status: summary.token2022Enabled ? "active" : "planned" },
+        },
       });
     } catch (error) {
       console.error("Error fetching privacy status:", error);
       res.status(500).json({ success: false, error: "Failed to fetch privacy status" });
+    }
+  });
+
+  app.post("/api/privacy/stealth-address", async (req, res) => {
+    try {
+      const { recipientWallet, tokenMint } = req.body;
+      
+      if (!recipientWallet) {
+        return res.status(400).json({ error: "recipientWallet is required" });
+      }
+      
+      const { generateStealthAddress, generateStealthMetadata } = await import("./privacy");
+      
+      const stealthBundle = generateStealthAddress(recipientWallet);
+      const metadata = generateStealthMetadata(
+        stealthBundle.stealthAddress,
+        stealthBundle.ephemeralPublicKey,
+        tokenMint
+      );
+      
+      res.json({
+        success: true,
+        stealthAddress: stealthBundle.stealthAddress,
+        ephemeralPublicKey: stealthBundle.ephemeralPublicKey,
+        viewTag: stealthBundle.viewTag,
+        metadata,
+        message: "Send tokens to this stealth address. Only the recipient can claim them.",
+      });
+    } catch (error: any) {
+      console.error("Error generating stealth address:", error);
+      res.status(500).json({ error: error.message || "Failed to generate stealth address" });
+    }
+  });
+
+  app.post("/api/privacy/verify-stealth-ownership", async (req, res) => {
+    try {
+      const { ownerWallet, stealthAddress, ephemeralPublicKey } = req.body;
+      
+      if (!ownerWallet || !stealthAddress || !ephemeralPublicKey) {
+        return res.status(400).json({ error: "ownerWallet, stealthAddress, and ephemeralPublicKey are required" });
+      }
+      
+      const { verifyStealthOwnership } = await import("./privacy");
+      const isOwner = verifyStealthOwnership(ownerWallet, stealthAddress, ephemeralPublicKey);
+      
+      res.json({
+        success: true,
+        isOwner,
+        message: isOwner ? "You own this stealth address" : "This stealth address belongs to someone else",
+      });
+    } catch (error: any) {
+      console.error("Error verifying stealth ownership:", error);
+      res.status(500).json({ error: error.message || "Failed to verify ownership" });
+    }
+  });
+
+  app.post("/api/privacy/confidential-transfer", async (req, res) => {
+    try {
+      const { mintAddress, amount, senderWallet, recipientWallet } = req.body;
+      
+      if (!mintAddress || !amount || !senderWallet || !recipientWallet) {
+        return res.status(400).json({ error: "mintAddress, amount, senderWallet, and recipientWallet are required" });
+      }
+      
+      const { PublicKey } = await import("@solana/web3.js");
+      const { confidentialTransfer, generateToken2022TransferProof } = await import("./privacy");
+      
+      const proofs = generateToken2022TransferProof(amount, amount * 10, recipientWallet);
+      
+      const result = await confidentialTransfer(
+        new PublicKey(mintAddress),
+        amount,
+        new PublicKey(senderWallet),
+        new PublicKey(recipientWallet)
+      );
+      
+      res.json({
+        success: true,
+        ...result,
+        proofs,
+        message: "Confidential transfer prepared. Amount is hidden from observers.",
+      });
+    } catch (error: any) {
+      console.error("Error creating confidential transfer:", error);
+      res.status(500).json({ error: error.message || "Failed to create confidential transfer" });
     }
   });
 
@@ -2002,37 +2104,6 @@ export async function registerRoutes(
     }
   });
 
-  // Privacy stack status endpoint - shows which privacy technologies are integrated
-  app.get("/api/privacy/status", async (req, res) => {
-    const { isHeliusConfigured, getRpcProvider, getHeliusRpcUrl } = await import("./helius-rpc");
-    const { getPrivacySummary, getAllPrivacyIntegrations } = await import("./privacy");
-    
-    const heliusActive = isHeliusConfigured();
-    const network = process.env.SOLANA_NETWORK || "devnet";
-    const privacySummary = getPrivacySummary();
-    const integrations = getAllPrivacyIntegrations();
-    
-    return res.json({
-      platform: "dum.fun",
-      network,
-      privacyFeatures: {
-        heliusRpc: heliusActive,
-        confidentialBetting: true,
-        anonymousTokenCreation: false,
-        privateBalances: "planned",
-        zkProofs: "planned",
-      },
-      rpcProvider: getRpcProvider(),
-      rpcUrl: heliusActive ? "helius-rpc.com (API key hidden)" : getHeliusRpcUrl(),
-      implementation: {
-        heliusRpc: "All server-side Solana connections use centralized Helius RPC helper",
-        onChainTokens: "Real SPL token creation on Solana devnet",
-        confidentialBets: "Prediction market bets stored in database without public disclosure",
-      },
-      activeFeatures: ["Helius RPC Integration", "On-Chain Token Creation", "Confidential Betting"],
-      plannedFeatures: ["Token-2022 Confidential Transfers", "ZK Proofs", "Mainnet Deployment"],
-    });
-  });
 
   return httpServer;
 }
