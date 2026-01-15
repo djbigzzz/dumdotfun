@@ -10,6 +10,7 @@ import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import TokensPage from "@/pages/tokens";
 import Profile from "@/pages/profile";
+import UserProfilePage from "@/pages/user-profile";
 import TokenPage from "@/pages/token";
 import CreateToken from "@/pages/create";
 import CreateMarket from "@/pages/create-market";
@@ -29,6 +30,7 @@ function Router() {
       <Route path="/docs" component={DocsPage} />
       <Route path="/admin" component={AdminPage} />
       <Route path="/profile" component={Profile} />
+      <Route path="/user/:wallet" component={UserProfilePage} />
       <Route path="/token/:mint" component={TokenPage} />
       <Route path="/create" component={CreateToken} />
       <Route path="/create-market" component={CreateMarket} />

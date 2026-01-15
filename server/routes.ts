@@ -370,6 +370,32 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Failed to fetch referrals" });
     }
   });
+
+  app.get("/api/users/profile/:walletAddress", async (req, res) => {
+    try {
+      const walletAddress = req.params.walletAddress;
+      const user = await storage.getUserByWallet(walletAddress);
+      const tokensCreated = await storage.getTokensByCreator(walletAddress);
+      
+      return res.json({
+        walletAddress,
+        createdAt: user?.createdAt || null,
+        tokensCreated: tokensCreated.map(t => ({
+          mint: t.mint,
+          name: t.name,
+          symbol: t.symbol,
+          imageUri: t.imageUri,
+          marketCapSol: t.marketCapSol || 0,
+          priceInSol: t.priceInSol || 0,
+        })),
+        followerCount: 0,
+        followingCount: 0,
+      });
+    } catch (error: any) {
+      console.error("Error fetching user profile:", error);
+      return res.status(500).json({ error: "Failed to fetch user profile" });
+    }
+  });
   
   // Trading API - Build transaction for buy/sell
   app.post("/api/trade/build", async (req, res) => {

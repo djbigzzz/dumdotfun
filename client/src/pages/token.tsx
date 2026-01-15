@@ -543,10 +543,12 @@ export default function TokenPage() {
                         return (
                           <tr key={activity.id} className={`border-b ${privateMode ? "border-[#39FF14]/20" : "border-gray-100"}`}>
                             <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
-                              <div className="flex items-center gap-2">
-                                <img src={defaultAvatar} alt="" className="w-6 h-6 rounded-full border border-gray-300" />
-                                <span>{activity.walletAddress?.slice(0, 6)}...</span>
-                              </div>
+                              <Link href={`/user/${activity.walletAddress}`}>
+                                <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                                  <img src={defaultAvatar} alt="" className="w-6 h-6 rounded-full border border-gray-300" />
+                                  <span className="hover:underline">{activity.walletAddress?.slice(0, 6)}...</span>
+                                </div>
+                              </Link>
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{amount.toFixed(4)} SOL</td>
