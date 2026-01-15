@@ -169,17 +169,22 @@ export async function registerRoutes(
           let marketCapSol = Number(token.marketCapSol) || 0;
           let bondingCurveProgress = Number(token.bondingCurveProgress) || 0;
           
-          // Calculate initial values for tokens with 0 market cap (newly created)
-          // Based on bonding curve initial state: 30 virtual SOL, 1B tokens
-          // Initial market cap = virtual SOL reserves (30 SOL at start)
-          if (marketCapSol === 0) {
-            // Virtual reserves: 30 SOL, 1B tokens -> price = 30/1B = 0.00000003
-            // But tokens start with initial price of 0.000001 SOL
-            // Market cap = price * circulating supply (initially small as tokens are in curve)
-            // Use virtual SOL reserves as initial market cap estimate
-            marketCapSol = 30; // Initial virtual SOL reserves
-            priceInSol = 0.000001;
-            bondingCurveProgress = 0;
+          try {
+            const mintPubkey = new PublicKey(token.mint);
+            const curveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
+            if (curveData) {
+              priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+              const virtualSolReserves = Number(curveData.virtualSolReserves) / 1e9;
+              const graduationThreshold = 85;
+              bondingCurveProgress = Math.min((virtualSolReserves / graduationThreshold) * 100, 100);
+              marketCapSol = virtualSolReserves;
+            }
+          } catch {
+            if (marketCapSol === 0) {
+              marketCapSol = 30;
+              priceInSol = 0.000001;
+              bondingCurveProgress = 0;
+            }
           }
           
           return {
