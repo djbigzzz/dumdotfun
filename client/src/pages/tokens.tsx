@@ -78,7 +78,7 @@ export default function TokensPage() {
   const { data: solPrice } = useQuery<SolPrice>({
     queryKey: ["sol-price"],
     queryFn: async () => {
-      const res = await fetch("/api/sol-price");
+      const res = await fetch("/api/price/sol");
       if (!res.ok) throw new Error("Failed to fetch SOL price");
       return res.json();
     },
