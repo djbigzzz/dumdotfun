@@ -377,17 +377,34 @@ export async function registerRoutes(
       const user = await storage.getUserByWallet(walletAddress);
       const tokensCreated = await storage.getTokensByCreator(walletAddress);
       
+      const tokensWithMarketCap = await Promise.all(
+        tokensCreated.map(async (t) => {
+          let marketCapSol = t.marketCapSol || 0;
+          let virtualSolReserves = t.virtualSolReserves || 30;
+          
+          try {
+            const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(t.mint));
+            if (curveData && curveData.virtualSolReserves) {
+              virtualSolReserves = Number(curveData.virtualSolReserves) / 1e9;
+              marketCapSol = virtualSolReserves;
+            }
+          } catch {}
+          
+          return {
+            mint: t.mint,
+            name: t.name,
+            symbol: t.symbol,
+            imageUri: t.imageUri,
+            marketCapSol: marketCapSol > 0 ? marketCapSol : virtualSolReserves,
+            priceInSol: t.priceInSol || 0.000001,
+          };
+        })
+      );
+      
       return res.json({
         walletAddress,
         createdAt: user?.createdAt || null,
-        tokensCreated: tokensCreated.map(t => ({
-          mint: t.mint,
-          name: t.name,
-          symbol: t.symbol,
-          imageUri: t.imageUri,
-          marketCapSol: t.marketCapSol || 0,
-          priceInSol: t.priceInSol || 0,
-        })),
+        tokensCreated: tokensWithMarketCap,
         followerCount: 0,
         followingCount: 0,
       });
