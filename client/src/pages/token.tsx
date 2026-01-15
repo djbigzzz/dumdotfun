@@ -171,6 +171,17 @@ export default function TokenPage() {
     refetchInterval: 30000,
   });
 
+  const { data: tokenBalance } = useQuery<{ balance: number }>({
+    queryKey: ["token-balance", connectedWallet, mint],
+    queryFn: async () => {
+      const res = await fetch(`/api/devnet/token-balance/${connectedWallet}/${mint}`);
+      if (!res.ok) return { balance: 0 };
+      return res.json();
+    },
+    enabled: !!connectedWallet && !!mint && tradeType === "sell",
+    refetchInterval: 10000,
+  });
+
   const { data: tokenActivity } = useQuery<TokenActivity[]>({
     queryKey: ["token-activity", mint],
     queryFn: async () => {
@@ -637,6 +648,16 @@ export default function TokenPage() {
                 </button>
               </div>
 
+              {/* Token Balance Display for Sell */}
+              {tradeType === "sell" && connectedWallet && (
+                <div className={`flex items-center justify-between text-xs mb-2 px-1 ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
+                  <span>Your Balance:</span>
+                  <span className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
+                    {tokenBalance?.balance ? tokenBalance.balance.toLocaleString(undefined, { maximumFractionDigits: 2 }) : "0"} {token.symbol}
+                  </span>
+                </div>
+              )}
+
               {/* Amount Input */}
               <div className="relative mb-3">
                 <input type="number" value={tradeAmount} onChange={(e) => setTradeAmount(e.target.value)} placeholder="0.00" className={`w-full px-4 py-3 text-lg font-mono ${inputStyle}`} />
@@ -645,11 +666,27 @@ export default function TokenPage() {
 
               {/* Quick Amount Buttons */}
               <div className="grid grid-cols-4 gap-2 mb-4">
-                {["0.1", "0.5", "1", "Max"].map((amt) => (
-                  <button key={amt} onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#39FF14]/30 text-[#39FF14]/70 hover:border-[#39FF14]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
-                    {amt === "Max" ? amt : `${amt}`}
-                  </button>
-                ))}
+                {tradeType === "buy" ? (
+                  ["0.1", "0.5", "1", "Max"].map((amt) => (
+                    <button key={amt} onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#39FF14]/30 text-[#39FF14]/70 hover:border-[#39FF14]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                      {amt === "Max" ? amt : `${amt}`}
+                    </button>
+                  ))
+                ) : (
+                  ["25%", "50%", "75%", "Max"].map((pct) => (
+                    <button key={pct} onClick={() => {
+                      const balance = tokenBalance?.balance || 0;
+                      if (pct === "Max") {
+                        setTradeAmount(balance.toString());
+                      } else {
+                        const percent = parseInt(pct) / 100;
+                        setTradeAmount((balance * percent).toFixed(2));
+                      }
+                    }} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#39FF14]/30 text-[#39FF14]/70 hover:border-[#39FF14]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                      {pct}
+                    </button>
+                  ))
+                )}
               </div>
 
               {/* Quote Display */}

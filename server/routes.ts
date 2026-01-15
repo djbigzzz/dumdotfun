@@ -947,6 +947,36 @@ export async function registerRoutes(
     }
   });
 
+  // DEVNET: Get token balance for a specific mint
+  app.get("/api/devnet/token-balance/:wallet/:mint", async (req, res) => {
+    try {
+      const { wallet, mint } = req.params;
+      const { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } = await import("@solana/spl-token");
+      const connection = getHeliusConnection();
+      
+      const walletPubkey = new PublicKey(wallet);
+      const mintPubkey = new PublicKey(mint);
+      
+      try {
+        const ata = getAssociatedTokenAddressSync(mintPubkey, walletPubkey);
+        const accountInfo = await connection.getTokenAccountBalance(ata);
+        const balance = parseFloat(accountInfo.value.amount) / Math.pow(10, accountInfo.value.decimals);
+        return res.json({ 
+          wallet, 
+          mint, 
+          balance,
+          rawBalance: accountInfo.value.amount,
+          decimals: accountInfo.value.decimals,
+          network: "devnet" 
+        });
+      } catch (e) {
+        return res.json({ wallet, mint, balance: 0, rawBalance: "0", decimals: 6, network: "devnet" });
+      }
+    } catch (error: any) {
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
   // DEVNET: Request airdrop
   app.post("/api/devnet/airdrop", async (req, res) => {
     try {
