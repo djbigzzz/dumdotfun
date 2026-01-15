@@ -7,6 +7,19 @@ import { useState } from "react";
 import { ExternalLink, Copy, Check, Coins, Calendar, ArrowLeft } from "lucide-react";
 import defaultAvatar from "@assets/generated_images/derpy_blob_meme_mascot.png";
 
+function formatMarketCap(mcSol: number, solPrice: number | null): string {
+  const usdValue = solPrice ? mcSol * solPrice : null;
+  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
+  if (usdValue) return `$${usdValue.toFixed(0)}`;
+  return `${mcSol.toFixed(2)} SOL`;
+}
+
+interface SolPrice {
+  price: number;
+  currency: string;
+}
+
 interface UserToken {
   mint: string;
   name: string;
@@ -37,6 +50,16 @@ export default function UserProfilePage() {
       return res.json();
     },
     enabled: !!wallet,
+  });
+
+  const { data: solPrice } = useQuery<SolPrice>({
+    queryKey: ["sol-price"],
+    queryFn: async () => {
+      const res = await fetch("/api/sol-price");
+      if (!res.ok) throw new Error("Failed to fetch SOL price");
+      return res.json();
+    },
+    refetchInterval: 30000,
   });
 
   const copyWallet = () => {
@@ -168,7 +191,7 @@ export default function UserProfilePage() {
                     </div>
                     <div className="text-right">
                       <div className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-green-600"}`}>
-                        {token.marketCapSol.toFixed(2)} SOL
+                        {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
                       </div>
                       <div className={`text-xs ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`}>Market Cap</div>
                     </div>

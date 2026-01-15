@@ -28,9 +28,18 @@ interface TokenWithPredictions {
 
 interface TokenCardProps {
   token: TokenWithPredictions;
+  solPrice?: number | null;
 }
 
-export function TokenCard({ token }: TokenCardProps) {
+function formatMarketCap(mcSol: number, solPrice: number | null): string {
+  const usdValue = solPrice ? mcSol * solPrice : null;
+  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
+  if (usdValue) return `$${usdValue.toFixed(0)}`;
+  return `${mcSol.toFixed(2)} SOL`;
+}
+
+export function TokenCard({ token, solPrice = null }: TokenCardProps) {
   const { privateMode } = usePrivacy();
   const topPrediction = token.predictions?.[0];
   
@@ -97,7 +106,7 @@ export function TokenCard({ token }: TokenCardProps) {
               <div>
                 <span className={privateMode ? "text-[#39FF14]/80" : "text-gray-500"}>Cap: </span>
                 <span className={`font-bold ${privateMode ? "text-white" : "text-green-600"}`}>
-                  {privateMode ? "◈ " : ""}{token.marketCapSol.toFixed(2)} SOL
+                  {privateMode ? "◈ " : ""}{formatMarketCap(token.marketCapSol, solPrice)}
                 </span>
               </div>
               <div>
