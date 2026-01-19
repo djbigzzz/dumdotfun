@@ -5,7 +5,8 @@ import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield } from "lucide-react";
+import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -648,6 +649,21 @@ export default function TokenPage() {
                 </button>
               </div>
 
+              {/* Privacy Features Info */}
+              {tradeType === "buy" && privateMode && (
+                <div className="mb-4 p-3 rounded-lg bg-zinc-900/50 border border-[#39FF14]/20">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[#39FF14]/50" />
+                    <span className="text-sm font-bold text-[#39FF14]/70">
+                      Privacy Mode Active
+                    </span>
+                  </div>
+                  <p className="mt-2 text-xs text-[#39FF14]/50">
+                    Stealth addresses for token trading coming soon. Use prediction markets for confidential betting.
+                  </p>
+                </div>
+              )}
+
               {/* Token Balance Display for Sell */}
               {tradeType === "sell" && connectedWallet && (
                 <div className={`flex items-center justify-between text-xs mb-2 px-1 ${privateMode ? "text-[#39FF14]/70" : "text-gray-500"}`}>
@@ -763,6 +779,9 @@ export default function TokenPage() {
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
+
+            {/* Privacy Integrations */}
+            <PrivacyIntegrationsCard compact />
           </div>
         </div>
       </div>

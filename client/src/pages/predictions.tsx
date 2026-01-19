@@ -5,6 +5,7 @@ import { Link } from "wouter";
 import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap, Shield, Lock } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { PrivacyBadge } from "@/components/privacy-badge";
+import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
 
 interface DFlowMarket {
   ticker: string;
@@ -199,6 +200,8 @@ export default function PredictionsPage() {
             </div>
           </div>
         </div>
+
+        <PrivacyIntegrationsCard compact />
 
         <motion.div
           initial={{ opacity: 0, y: 20 }}
