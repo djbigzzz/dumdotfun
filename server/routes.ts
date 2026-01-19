@@ -2132,8 +2132,17 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Amount must be a positive number" });
       }
 
-      if (!isConfidential || !commitment) {
-        return res.status(400).json({ error: "Confidential bet requires commitment and encryption" });
+      // Auto-generate commitment if not provided (for demo/testing)
+      let betCommitment = commitment;
+      let betNonce = nonce;
+      let betEncryptedAmount = encryptedAmount;
+      
+      if (!commitment) {
+        const { createConfidentialBet } = await import("./privacy");
+        const confidentialData = await createConfidentialBet(id, Number(amount), side, walletAddress);
+        betCommitment = confidentialData.commitment;
+        betNonce = confidentialData.nonce;
+        betEncryptedAmount = confidentialData.encryptedAmount;
       }
 
       const market = await storage.getMarket(id);
@@ -2199,13 +2208,13 @@ export async function registerRoutes(
         newNo.toString(),
         {
           isConfidential: true,
-          encryptedAmount: encryptedAmount || null,
-          commitment,
-          nonce: nonce || null,
+          encryptedAmount: betEncryptedAmount || null,
+          commitment: betCommitment,
+          nonce: betNonce || null,
         }
       );
 
-      console.log(`[INCO] Confidential bet placed: commitment=${commitment.slice(0, 16)}... on ${side} for market ${id}`);
+      console.log(`[INCO] Confidential bet placed: commitment=${betCommitment.slice(0, 16)}... on ${side} for market ${id}`);
 
       return res.json({
         success: true,
@@ -2214,7 +2223,7 @@ export async function registerRoutes(
           amount: "🔒 Hidden",
         },
         isConfidential: true,
-        commitment,
+        commitment: betCommitment,
         feeTransaction,
         platformFee: fee,
         feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,

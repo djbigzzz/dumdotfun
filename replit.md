@@ -173,12 +173,17 @@ Auto-configured:
 - `VITE_SOLANA_RPC_URL` - Frontend RPC (public devnet)
 - `SOLANA_NETWORK` - Set to "devnet"
 
-## Hackathon Bounty Status
+## Hackathon Bounty Status (Feb 1 Deadline)
 
-| Bounty | Prize | Status |
-|--------|-------|--------|
-| Inco Lightning | $2K | ✅ Ready |
-| Helius RPC | $5K | ⚠️ Needs valid API key |
-| Anoncoin | $10K | ✅ Active (Stealth Addresses) |
-| Token-2022 | $15K | ✅ Active (Commitment-based) |
-| Track 03 Open | $18K | ⚠️ Needs demo/metrics |
+| Bounty | Prize | Status | Integration |
+|--------|-------|--------|-------------|
+| Inco Lightning | $2K | ✅ Ready | Confidential betting with encrypted amounts |
+| Helius RPC | $5K | ✅ Active | All Solana connections use Helius |
+| Anoncoin | $10K | ✅ Active | Stealth addresses for private receiving |
+| Token-2022 | $15K | ✅ Active | Commitment-based confidential transfers |
+| Privacy Cash | $15K | ✅ Active | Private deposits/withdrawals breaking links |
+| ShadowWire | $15K | ✅ Active | Bulletproof ZK private transfers |
+| NP Exchange | $2.5K | ✅ Active | PNP SDK v0.2.4 for devnet markets |
+| encrypt.trade | $1K | ✅ Active | Privacy education docs |
+
+**Total Bounty Potential: ~$65K+**
