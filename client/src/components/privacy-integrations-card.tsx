@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, Lock, Zap, Eye, ChevronDown, ChevronUp, ExternalLink, DollarSign } from "lucide-react";
+import { Shield, Lock, Zap, Eye, ChevronDown, ChevronUp, DollarSign, CheckCircle } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 
 interface Integration {
@@ -12,15 +12,40 @@ interface Integration {
   description: string;
   implementation: string;
   version?: string;
-  bounty?: string;
   features?: string[];
 }
 
 interface PrivacyStatusResponse {
   success: boolean;
   integrations: Integration[];
-  hackathonBounties?: Record<string, { prize: string; status: string }>;
 }
+
+const userFriendlyDescriptions: Record<string, { title: string; benefit: string }> = {
+  "Inco Lightning": {
+    title: "Confidential Betting",
+    benefit: "Your bet amounts are encrypted and hidden from others"
+  },
+  "Stealth Addresses": {
+    title: "Private Receiving",
+    benefit: "Receive tokens without revealing your main wallet"
+  },
+  "Token-2022 Confidential": {
+    title: "Hidden Balances",
+    benefit: "Your token balances stay private on-chain"
+  },
+  "Privacy Cash": {
+    title: "Private Transactions",
+    benefit: "Deposit and withdraw without linking your wallets"
+  },
+  "ShadowWire": {
+    title: "Anonymous Transfers",
+    benefit: "Send tokens with hidden amounts and anonymous sender"
+  },
+  "NP Exchange": {
+    title: "AI Markets",
+    benefit: "Create prediction markets with AI assistance"
+  }
+};
 
 export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean }) {
   const { privateMode } = usePrivacy();
@@ -37,21 +62,6 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
   });
 
   const activeIntegrations = status?.integrations?.filter(i => i.available) || [];
-  
-  const totalBounty = (() => {
-    if (!status?.integrations) return "$0";
-    let total = 0;
-    status.integrations.forEach(i => {
-      if (i.bounty) {
-        const match = i.bounty.match(/\$?([\d,]+)/);
-        if (match) {
-          total += parseInt(match[1].replace(/,/g, ''), 10);
-        }
-      }
-    });
-    if (total >= 1000) return `$${Math.floor(total / 1000)}K+`;
-    return `$${total}`;
-  })();
 
   if (isLoading) {
     return (
@@ -64,24 +74,28 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
     );
   }
 
-  if (!status) {
+  if (!status || activeIntegrations.length === 0) {
     return null;
   }
 
-  if (activeIntegrations.length === 0) {
-    return (
-      <div className={`rounded-xl p-4 ${
-        privateMode ? "bg-black/50 border border-[#39FF14]/20" : "bg-gray-100 border-2 border-gray-300"
-      }`}>
-        <div className="flex items-center gap-2">
-          <Shield className={`w-4 h-4 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`} />
-          <span className={`text-sm ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
-            Privacy integrations loading...
-          </span>
-        </div>
-      </div>
-    );
-  }
+  const getIcon = (name: string) => {
+    if (name.includes("Inco")) return <Zap className={`w-4 h-4 ${privateMode ? "text-yellow-400" : "text-yellow-500"}`} />;
+    if (name.includes("Stealth")) return <Eye className={`w-4 h-4 ${privateMode ? "text-cyan-400" : "text-cyan-500"}`} />;
+    if (name.includes("Token-2022")) return <Lock className={`w-4 h-4 ${privateMode ? "text-purple-400" : "text-purple-500"}`} />;
+    if (name.includes("Privacy Cash")) return <DollarSign className={`w-4 h-4 ${privateMode ? "text-green-400" : "text-green-500"}`} />;
+    if (name.includes("ShadowWire")) return <Shield className={`w-4 h-4 ${privateMode ? "text-red-400" : "text-red-500"}`} />;
+    if (name.includes("NP Exchange")) return <Zap className={`w-4 h-4 ${privateMode ? "text-blue-400" : "text-blue-500"}`} />;
+    return <Shield className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-violet-500"}`} />;
+  };
+
+  const getFriendlyInfo = (name: string) => {
+    for (const key of Object.keys(userFriendlyDescriptions)) {
+      if (name.includes(key.split(' ')[0])) {
+        return userFriendlyDescriptions[key];
+      }
+    }
+    return { title: name, benefit: "" };
+  };
 
   return (
     <motion.div
@@ -108,10 +122,10 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
           </div>
           <div className="text-left">
             <h3 className={`font-bold ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
-              {privateMode ? "// PRIVACY_STACK" : "Privacy Integrations"}
+              {privateMode ? "// PRIVACY_FEATURES" : "Privacy Features"}
             </h3>
             <p className={`text-sm ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
-              {activeIntegrations.length} active • {totalBounty} hackathon bounties
+              {activeIntegrations.length} features available
             </p>
           </div>
         </div>
@@ -121,7 +135,7 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
               ? "bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/30" 
               : "bg-green-100 text-green-700 border-2 border-black"
           }`}>
-            LIVE
+            ACTIVE
           </span>
           {expanded ? (
             <ChevronUp className={`w-5 h-5 ${privateMode ? "text-[#39FF14]/50" : "text-gray-400"}`} />
@@ -141,64 +155,31 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
             className="overflow-hidden"
           >
             <div className={`px-4 pb-4 grid gap-3 ${compact ? "grid-cols-1" : "grid-cols-1 md:grid-cols-2"}`}>
-              {activeIntegrations.slice(0, compact ? 4 : undefined).map((integration, i) => (
-                <div
-                  key={i}
-                  className={`p-3 rounded-lg transition-all ${
-                    privateMode 
-                      ? "bg-black/50 border border-[#39FF14]/20 hover:border-[#39FF14]/40" 
-                      : "bg-white border-2 border-gray-200 hover:border-black"
-                  }`}
-                >
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      {integration.name.includes("Inco") && <Zap className={`w-4 h-4 ${privateMode ? "text-yellow-400" : "text-yellow-500"}`} />}
-                      {integration.name.includes("Stealth") && <Eye className={`w-4 h-4 ${privateMode ? "text-cyan-400" : "text-cyan-500"}`} />}
-                      {integration.name.includes("Token-2022") && <Lock className={`w-4 h-4 ${privateMode ? "text-purple-400" : "text-purple-500"}`} />}
-                      {integration.name.includes("Privacy Cash") && <DollarSign className={`w-4 h-4 ${privateMode ? "text-green-400" : "text-green-500"}`} />}
-                      {integration.name.includes("ShadowWire") && <Shield className={`w-4 h-4 ${privateMode ? "text-red-400" : "text-red-500"}`} />}
-                      {integration.name.includes("NP Exchange") && <Zap className={`w-4 h-4 ${privateMode ? "text-blue-400" : "text-blue-500"}`} />}
-                      <span className={`font-bold text-sm ${privateMode ? "text-[#39FF14]/90 font-mono" : "text-gray-800"}`}>
-                        {privateMode ? integration.name.split(' ')[0].toUpperCase() : integration.name.split(' ').slice(0, 2).join(' ')}
-                      </span>
-                    </div>
-                    {integration.bounty && (
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
-                        privateMode ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-700"
-                      }`}>
-                        {integration.bounty}
-                      </span>
-                    )}
-                  </div>
-                  <p className={`text-xs line-clamp-2 ${privateMode ? "text-[#39FF14]/40" : "text-gray-500"}`}>
-                    {integration.description}
-                  </p>
-                  {integration.version && (
-                    <div className={`mt-2 text-xs font-mono ${privateMode ? "text-[#39FF14]/30" : "text-gray-400"}`}>
-                      v{integration.version}
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {!compact && status?.hackathonBounties && (
-              <div className={`px-4 pb-4 pt-2 border-t ${privateMode ? "border-[#39FF14]/10" : "border-gray-200"}`}>
-                <div className="flex items-center justify-between">
-                  <span className={`text-xs font-bold ${privateMode ? "text-[#39FF14]/50 font-mono" : "text-gray-500"}`}>
-                    {privateMode ? "// SOLANA_PRIVACY_HACKATHON" : "Solana Privacy Hackathon - Feb 1 Deadline"}
-                  </span>
-                  <a
-                    href="/docs"
-                    className={`text-xs flex items-center gap-1 ${
-                      privateMode ? "text-[#00FFF0] hover:text-[#00FFF0]/80" : "text-blue-500 hover:text-blue-600"
+              {activeIntegrations.slice(0, compact ? 4 : undefined).map((integration, i) => {
+                const friendlyInfo = getFriendlyInfo(integration.name);
+                return (
+                  <div
+                    key={i}
+                    className={`p-3 rounded-lg transition-all ${
+                      privateMode 
+                        ? "bg-black/50 border border-[#39FF14]/20 hover:border-[#39FF14]/40" 
+                        : "bg-white border-2 border-gray-200 hover:border-black"
                     }`}
                   >
-                    Learn more <ExternalLink className="w-3 h-3" />
-                  </a>
-                </div>
-              </div>
-            )}
+                    <div className="flex items-center gap-2 mb-2">
+                      {getIcon(integration.name)}
+                      <span className={`font-bold text-sm ${privateMode ? "text-[#39FF14]/90 font-mono" : "text-gray-800"}`}>
+                        {friendlyInfo.title}
+                      </span>
+                      <CheckCircle className={`w-3.5 h-3.5 ml-auto ${privateMode ? "text-[#39FF14]" : "text-green-500"}`} />
+                    </div>
+                    <p className={`text-xs ${privateMode ? "text-[#39FF14]/50" : "text-gray-500"}`}>
+                      {friendlyInfo.benefit || integration.description}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
