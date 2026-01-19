@@ -418,34 +418,40 @@ export default function DocsPage() {
                 {section.content.split('\n\n').map((paragraph, i) => (
                   <div key={i} className="mb-4">
                     {paragraph.split('\n').map((line, j) => {
-                      if (line.startsWith('**') && line.endsWith('**')) {
+                      const renderTextWithBold = (text: string) => {
+                        const parts = text.split(/\*\*([^*]+)\*\*/g);
+                        return parts.map((part, idx) => 
+                          idx % 2 === 1 
+                            ? <strong key={idx} className={privateMode ? "text-white" : "font-semibold"}>{part}</strong>
+                            : part
+                        );
+                      };
+                      
+                      if (line.startsWith('**') && line.endsWith('**') && line.split('**').length === 3) {
+                        const text = line.replace(/\*\*/g, '');
                         return (
                           <h3 key={j} className={`font-bold mt-4 mb-2 ${privateMode ? "text-[#39FF14]" : "text-gray-900"}`}>
-                            {privateMode ? `[ ${line.replace(/\*\*/g, '').toUpperCase()} ]` : line.replace(/\*\*/g, '')}
+                            {privateMode ? `[ ${text.toUpperCase()} ]` : text}
                           </h3>
-                        );
-                      }
-                      if (line.startsWith('**')) {
-                        const parts = line.split('**');
-                        return (
-                          <p key={j} className="mb-1">
-                            <strong className={privateMode ? "text-white" : ""}>{parts[1]}</strong>{parts[2]}
-                          </p>
                         );
                       }
                       if (line.startsWith('- ')) {
                         return (
                           <li key={j} className="ml-4 list-disc">
-                            {line.substring(2)}
+                            {renderTextWithBold(line.substring(2))}
                           </li>
                         );
                       }
-                      if (line.match(/^\d\./)) {
+                      if (line.match(/^\d+\./)) {
+                        const numEnd = line.indexOf('.') + 1;
                         return (
                           <li key={j} className="ml-4 list-decimal">
-                            {line.substring(3)}
+                            {renderTextWithBold(line.substring(numEnd).trim())}
                           </li>
                         );
+                      }
+                      if (line.includes('**')) {
+                        return <p key={j} className="mb-1">{renderTextWithBold(line)}</p>;
                       }
                       return line ? <p key={j}>{line}</p> : null;
                     })}

@@ -288,6 +288,34 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/privacy/pnp/create-market", async (req, res) => {
+    try {
+      const { question, initialLiquidityUsdc, daysUntilEnd, creatorAddress } = req.body;
+      if (!question || !initialLiquidityUsdc || !daysUntilEnd || !creatorAddress) {
+        return res.status(400).json({ error: "question, initialLiquidityUsdc, daysUntilEnd, and creatorAddress are required" });
+      }
+      const npExchange = await import("./privacy/np-exchange");
+      const result = await npExchange.prepareMarketCreation({ question, initialLiquidityUsdc, daysUntilEnd, creatorAddress });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/pnp/trade", async (req, res) => {
+    try {
+      const { marketId, side, amount, walletAddress } = req.body;
+      if (!marketId || !side || !amount || !walletAddress) {
+        return res.status(400).json({ error: "marketId, side, amount, and walletAddress are required" });
+      }
+      const npExchange = await import("./privacy/np-exchange");
+      const result = await npExchange.prepareTrade({ marketId, side, amount, walletAddress });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/tokens", async (req, res) => {
     try {
       const dbTokens = await db.select().from(tokensTable).limit(24);
