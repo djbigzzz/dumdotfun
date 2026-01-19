@@ -144,6 +144,150 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/privacy/cash/status", async (_req, res) => {
+    try {
+      const { PRIVACY_CASH_CONFIG } = await import("./privacy");
+      res.json({
+        active: true,
+        ...PRIVACY_CASH_CONFIG
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/cash/deposit", async (req, res) => {
+    try {
+      const { walletAddress, amount, token } = req.body;
+      if (!walletAddress || !amount || !token) {
+        return res.status(400).json({ error: "walletAddress, amount, and token are required" });
+      }
+      const { preparePrivateDeposit } = await import("./privacy");
+      const result = await preparePrivateDeposit({ walletAddress, amount, token });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/cash/withdraw", async (req, res) => {
+    try {
+      const { walletAddress, recipientAddress, amount, token } = req.body;
+      if (!walletAddress || !recipientAddress || !amount || !token) {
+        return res.status(400).json({ error: "walletAddress, recipientAddress, amount, and token are required" });
+      }
+      const { preparePrivateWithdraw } = await import("./privacy");
+      const result = await preparePrivateWithdraw({ walletAddress, recipientAddress, amount, token });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/privacy/shadowwire/status", async (_req, res) => {
+    try {
+      const { SHADOWWIRE_CONFIG } = await import("./privacy");
+      res.json({
+        active: true,
+        ...SHADOWWIRE_CONFIG
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/shadowwire/transfer", async (req, res) => {
+    try {
+      const { senderAddress, recipientAddress, amount, token, type } = req.body;
+      if (!senderAddress || !recipientAddress || !amount || !token || !type) {
+        return res.status(400).json({ error: "senderAddress, recipientAddress, amount, token, and type are required" });
+      }
+      const { prepareShadowWireTransfer } = await import("./privacy");
+      const result = await prepareShadowWireTransfer({ senderAddress, recipientAddress, amount, token, type });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/privacy/shadowwire/balance/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const token = req.query.token as string || "SOL";
+      const { getShadowWireBalance } = await import("./privacy");
+      const balance = await getShadowWireBalance(wallet, token);
+      res.json({ success: true, balance });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/shadowwire/deposit", async (req, res) => {
+    try {
+      const { walletAddress, amount, token } = req.body;
+      if (!walletAddress || !amount) {
+        return res.status(400).json({ error: "walletAddress and amount are required" });
+      }
+      const { prepareShadowWireDeposit } = await import("./privacy");
+      const result = await prepareShadowWireDeposit(walletAddress, amount, token || "SOL");
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/shadowwire/withdraw", async (req, res) => {
+    try {
+      const { walletAddress, amount, token } = req.body;
+      if (!walletAddress || !amount) {
+        return res.status(400).json({ error: "walletAddress and amount are required" });
+      }
+      const { prepareShadowWireWithdraw } = await import("./privacy");
+      const result = await prepareShadowWireWithdraw(walletAddress, amount, token || "SOL");
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/privacy/cash/balance/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const token = req.query.token as string || "SOL";
+      const { getPrivateCashBalance } = await import("./privacy");
+      const balance = await getPrivateCashBalance(wallet, token);
+      res.json({ success: true, balance });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.get("/api/privacy/pnp/status", async (_req, res) => {
+    try {
+      const { NP_EXCHANGE_CONFIG } = await import("./privacy");
+      res.json({
+        active: true,
+        ...NP_EXCHANGE_CONFIG
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/pnp/ai-market", async (req, res) => {
+    try {
+      const { topic, context, creatorAddress } = req.body;
+      if (!topic || !context || !creatorAddress) {
+        return res.status(400).json({ error: "topic, context, and creatorAddress are required" });
+      }
+      const { createAIAgentMarket } = await import("./privacy");
+      const result = await createAIAgentMarket({ topic, context, creatorAddress });
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/tokens", async (req, res) => {
     try {
       const dbTokens = await db.select().from(tokensTable).limit(24);

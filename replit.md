@@ -6,6 +6,10 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (January 2026)
 
+- **Privacy Cash SDK** - Added private deposits/withdrawals breaking on-chain links ($15K bounty)
+- **Radr ShadowWire SDK** - Integrated Bulletproof ZK private transfers for 17 tokens ($15K bounty)
+- **NP Exchange (PNP)** - AI agent-based prediction market creation ($2.5K bounty)
+- **Privacy Education Docs** - "Why Privacy Matters" and "Understanding Wallet Surveillance" sections (encrypt.trade $1K bounty)
 - **Stealth Addresses** - Added one-time receive addresses for private token receiving
 - **Token-2022 Confidential Transfers** - Implemented commitment-based confidential transfers
 - **Privacy API Expansion** - New endpoints for stealth addresses and confidential transfers
@@ -71,6 +75,27 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Client: `client/src/lib/token2022-client.ts`
    - API: `/api/privacy/confidential-transfer`
    - Bounty target: $15K
+
+4. **Privacy Cash SDK** (`server/privacy/privacy-cash.ts`) - ✅ ACTIVE
+   - Private SOL/USDC/USDT deposits and withdrawals
+   - Zero-knowledge proofs for breaking on-chain links
+   - OFAC compliant with selective disclosure
+   - API: `/api/privacy/cash/deposit`, `/api/privacy/cash/withdraw`, `/api/privacy/cash/balance/:wallet`
+   - Bounty target: $15K
+
+5. **Radr ShadowWire SDK** (`server/privacy/shadowwire.ts`) - ✅ ACTIVE
+   - Hidden transfer amounts using Bulletproofs ZK proofs
+   - 17 supported tokens (SOL, USDC, RADR, BONK, etc.)
+   - Internal transfers (fully private) and external (anonymous sender)
+   - API: `/api/privacy/shadowwire/transfer`, `/api/privacy/shadowwire/balance/:wallet`, `/api/privacy/shadowwire/deposit`, `/api/privacy/shadowwire/withdraw`
+   - Bounty target: $15K
+
+6. **NP Exchange (PNP)** (`server/privacy/np-exchange.ts`) - ✅ ACTIVE
+   - AI agent-based prediction market creation
+   - Bonding curve pricing (no orderbook needed)
+   - Privacy-focused token collateral
+   - API: `/api/privacy/pnp/ai-market`, `/api/privacy/pnp/status`
+   - Bounty target: $2.5K
 
 **Pending Integrations:**
 - **DFlow API** - Tokenized Kalshi prediction markets (awaiting API key)

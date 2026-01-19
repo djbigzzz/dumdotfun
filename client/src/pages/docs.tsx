@@ -5,6 +5,88 @@ import { usePrivacy } from "@/lib/privacy-context";
 
 const sections = [
   {
+    id: "why-privacy",
+    icon: Eye,
+    title: "Why Privacy Matters",
+    content: `**Your Wallet is a Public Diary**
+
+Every Solana transaction you make is permanently recorded on a public blockchain. Anyone can see:
+- Your entire transaction history
+- Every token you've ever bought or sold
+- Your wallet balance and holdings
+- Who you've sent money to and received from
+
+**Real Consequences of Surveillance:**
+
+🔍 **Wallet Tracking Services** analyze millions of wallets to identify "whales" and track their moves. When you buy a token, bots can front-run your trades.
+
+💰 **Employers & Tax Authorities** can link your wallet to your identity through exchange KYC records, seeing every degen play you've made.
+
+🎯 **Hackers & Scammers** target wallets with large balances. Your wealth is visible to everyone.
+
+🏢 **Corporations** build profiles on crypto users, selling your on-chain behavior to advertisers.
+
+**Privacy is Not About Hiding Bad Behavior**
+
+Privacy is about:
+- 🛡️ **Personal Safety** - Protecting yourself from targeted attacks
+- 💼 **Business Confidentiality** - Keeping trading strategies private
+- 🔐 **Financial Freedom** - Transacting without surveillance capitalism
+- 🌍 **Human Rights** - A fundamental right recognized by the UN
+
+**What We're Building**
+
+dum.fun integrates privacy-preserving technologies so you can:
+- Launch tokens without revealing your main wallet
+- Bet on predictions with encrypted amounts
+- Receive tokens at stealth addresses nobody can trace
+- Trade without exposing your strategy
+
+**Privacy is a right. Anonymity is power.**`
+  },
+  {
+    id: "surveillance-explained",
+    icon: Eye,
+    title: "Understanding Wallet Surveillance",
+    content: `**How You're Being Tracked**
+
+**1. Block Explorers**
+Every transaction you make is indexed and searchable. Sites like Solscan, SolanaFM, and others make it trivial to:
+- View your complete wallet history
+- See every token you hold
+- Track every address you interact with
+
+**2. On-Chain Analytics Companies**
+Companies like Chainalysis, Elliptic, and TRM Labs:
+- Build identity graphs linking wallets to real people
+- Sell data to governments, exchanges, and institutions
+- Use machine learning to de-anonymize transactions
+
+**3. MEV Bots & Front-Runners**
+- Monitor pending transactions in the mempool
+- Front-run large trades for profit
+- Extract value from your transactions
+
+**4. Exchange Data Sharing**
+- KYC data links your identity to deposit addresses
+- Exchanges share data with analytics companies
+- Your entire on-chain history becomes linked to your name
+
+**Simple Privacy Best Practices:**
+
+✅ Use different wallets for different purposes
+✅ Utilize stealth addresses for receiving funds
+✅ Enable confidential transfers when available
+✅ Break on-chain links with privacy tools
+✅ Don't reuse addresses unnecessarily
+
+**dum.fun Privacy Tools:**
+- Stealth Addresses for unlinkable receiving
+- Confidential betting with encrypted amounts
+- Token-2022 confidential transfers
+- Privacy mode for cypherpunk aesthetics`
+  },
+  {
     id: "devnet-status",
     icon: Shield,
     title: "Platform Status",
@@ -172,37 +254,51 @@ dum.fun is a comprehensive privacy platform for the Solana Privacy Hackathon (Fe
     title: "Platform Integrations",
     content: `**Active Privacy Integrations:**
 
-**Inco Lightning SDK** ✅
+**Inco Lightning SDK** ✅ ($2K Bounty)
 - Confidential prediction betting
 - Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
 - SHA-256 commitment scheme for bet privacy
 
-**Stealth Addresses** ✅
-- One-time receive addresses
-- Unlinkable token transfers
-- View tag scanning
+**Stealth Addresses** ✅ (Anoncoin $10K)
+- One-time receive addresses for private token receiving
+- Unlinkable token transfers - nobody can trace holdings
+- View tag scanning for efficient detection
 
-**Token-2022 Confidential Transfers** ✅
+**Token-2022 Confidential Transfers** ✅ ($15K Bounty)
 - Pedersen commitments for balance hiding
 - Range proofs for amount validation
 - Commitment-based privacy (ZK program in audit)
 
+**Privacy Cash SDK** ✅ ($15K Bounty)
+- Private SOL/USDC/USDT deposits & withdrawals
+- Zero-knowledge proofs for privacy
+- OFAC compliant with selective disclosure
+- Breaks on-chain link between deposit/withdrawal
+
+**Radr ShadowWire** ✅ ($15K Bounty)
+- Hidden transfer amounts using Bulletproofs
+- 17 supported tokens (SOL, USDC, RADR, etc.)
+- Internal transfers: fully private amounts
+- External transfers: anonymous sender
+
+**NP Exchange (PNP)** ✅ ($2.5K Bounty)
+- AI agent-based prediction market creation
+- Bonding curve pricing (no orderbook)
+- Privacy-focused token collateral
+
 **Active Infrastructure:**
 
-**Helius RPC** - All Solana connections use Helius
-- Reliable devnet RPC endpoint
+**Helius RPC** ($5K Bounty)
+- All Solana connections use Helius
 - Real-time transaction processing
-- Balance queries and airdrops
+- Enriched transaction data
 
 **Planned Integrations:**
 
-**DFlow API** - Tokenized Kalshi markets
-- CFTC-regulated prediction markets
-- Awaiting API key access
-
-**Arcium C-SPL** - Confidential token trading
-- Encrypted order matching
-- Coming Q4 2025`
+**Arcium C-SPL** - $10K Bounty
+**Aztec Noir ZK** - $10K Bounty
+**MagicBlock Rollups** - $5K Bounty
+**Light Protocol** - $3K Open Track`
   }
 ];
 

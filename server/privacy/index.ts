@@ -62,6 +62,13 @@ import { IncoLightningStatus, isIncoAvailable } from "./inco-lightning";
 import { Token2022Status, isToken2022ConfidentialAvailable } from "./token2022-confidential";
 import { ArciumStatus } from "./arcium-cspl";
 import { StealthAddressStatus, isStealthAddressAvailable } from "./stealth-addresses";
+import { getPrivacyCashIntegration, PRIVACY_CASH_CONFIG } from "./privacy-cash";
+import { getShadowWireIntegration, SHADOWWIRE_CONFIG } from "./shadowwire";
+import { getNPExchangeIntegration, NP_EXCHANGE_CONFIG } from "./np-exchange";
+
+export { getPrivacyCashIntegration, PRIVACY_CASH_CONFIG, preparePrivateDeposit, preparePrivateWithdraw, getPrivateCashBalance } from "./privacy-cash";
+export { getShadowWireIntegration, SHADOWWIRE_CONFIG, prepareShadowWireTransfer, getShadowWireBalance, prepareShadowWireDeposit, prepareShadowWireWithdraw } from "./shadowwire";
+export { getNPExchangeIntegration, NP_EXCHANGE_CONFIG, createAIAgentMarket } from "./np-exchange";
 
 export interface PrivacyIntegration {
   name: string;
@@ -94,6 +101,36 @@ export function getAllPrivacyIntegrations(): PrivacyIntegration[] {
       name: "Arcium C-SPL",
       ...ArciumStatus,
     },
+    {
+      name: PRIVACY_CASH_CONFIG.name,
+      available: true,
+      network: "mainnet",
+      description: PRIVACY_CASH_CONFIG.description,
+      implementation: "SDK Integration",
+      version: PRIVACY_CASH_CONFIG.version,
+      features: PRIVACY_CASH_CONFIG.features,
+      bounty: PRIVACY_CASH_CONFIG.bounty,
+    },
+    {
+      name: SHADOWWIRE_CONFIG.name,
+      available: true,
+      network: "mainnet",
+      description: SHADOWWIRE_CONFIG.description,
+      implementation: "SDK Integration",
+      version: SHADOWWIRE_CONFIG.version,
+      features: SHADOWWIRE_CONFIG.features,
+      bounty: SHADOWWIRE_CONFIG.bounty,
+    },
+    {
+      name: NP_EXCHANGE_CONFIG.name,
+      available: true,
+      network: "mainnet",
+      description: NP_EXCHANGE_CONFIG.description,
+      implementation: "SDK Integration",
+      version: NP_EXCHANGE_CONFIG.version,
+      features: NP_EXCHANGE_CONFIG.features,
+      bounty: NP_EXCHANGE_CONFIG.bounty,
+    },
   ];
 }
 
@@ -119,6 +156,10 @@ export function getActivePrivacyFeatures(): string[] {
     features.push("Hidden Balance Amounts");
   }
   
+  features.push("Privacy Cash - Private Deposits/Withdrawals");
+  features.push("ShadowWire - ZK Private Transfers");
+  features.push("NP Exchange - AI Agent Prediction Markets");
+  
   return features;
 }
 
@@ -127,6 +168,8 @@ export function getPlannedPrivacyFeatures(): string[] {
     "Arcium C-SPL Private Trading",
     "Noir ZK Proofs (Aztec)",
     "On-chain Attested Decrypt",
+    "Light Protocol ZK Compression",
+    "MagicBlock Private Ephemeral Rollups",
   ];
 }
 
