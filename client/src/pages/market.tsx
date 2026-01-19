@@ -1,11 +1,12 @@
 import { Layout } from "@/components/layout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
+import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
+import { usePrivacy } from "@/lib/privacy-context";
 import { Transaction, Connection } from "@solana/web3.js";
 
 const SOLANA_RPC = "https://api.devnet.solana.com";
@@ -33,12 +34,15 @@ interface Market {
 export default function MarketDetail() {
   const { id } = useParams<{ id: string }>();
   const { connectedWallet, connectWallet } = useWallet();
+  const { privateMode } = usePrivacy();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   const queryClient = useQueryClient();
   const [betAmount, setBetAmount] = useState("");
   const [selectedSide, setSelectedSide] = useState<"yes" | "no" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [useConfidentialBet, setUseConfidentialBet] = useState(false);
+  const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
 
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
@@ -50,10 +54,30 @@ export default function MarketDetail() {
   });
 
   const placeBetMutation = useMutation({
-    mutationFn: async ({ side, amount }: { side: "yes" | "no"; amount: number }) => {
+    mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
       const phantom = (window as any).phantom?.solana;
       if (!phantom) {
         throw new Error("Phantom wallet not found");
+      }
+
+      // Use confidential betting endpoint if privacy mode is on
+      if (confidential) {
+        const confidentialRes = await fetch(`/api/markets/${id}/confidential-bet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: publicKey,
+            side,
+            amount,
+          }),
+        });
+        
+        if (!confidentialRes.ok) {
+          const errorData = await confidentialRes.json();
+          throw new Error(errorData.error || "Failed to place confidential bet");
+        }
+        
+        return confidentialRes.json();
       }
 
       // Step 1: Prepare bet (get transaction to sign)
@@ -138,7 +162,7 @@ export default function MarketDetail() {
       return;
     }
 
-    placeBetMutation.mutate({ side: selectedSide, amount });
+    placeBetMutation.mutate({ side: selectedSide, amount, confidential: useConfidentialBet });
   };
 
   if (isLoading) {
@@ -292,8 +316,77 @@ export default function MarketDetail() {
             </div>
 
             {canBet && (
-              <div className="bg-zinc-800/50 rounded-xl p-6">
-                <h3 className="text-lg font-bold text-white mb-4">Place Your Bet</h3>
+              <div className={`rounded-xl p-6 transition-all ${
+                useConfidentialBet 
+                  ? "bg-black/80 border-2 border-[#39FF14]/50 shadow-[0_0_20px_rgba(57,255,20,0.15)]" 
+                  : "bg-zinc-800/50"
+              }`}>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className={`text-lg font-bold ${useConfidentialBet ? "text-[#39FF14] font-mono" : "text-white"}`}>
+                    {useConfidentialBet ? "🔒 Confidential Bet" : "Place Your Bet"}
+                  </h3>
+                  
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
+                      className={`p-1.5 rounded transition-colors ${
+                        useConfidentialBet ? "text-[#39FF14]/60 hover:text-[#39FF14]" : "text-gray-500 hover:text-gray-300"
+                      }`}
+                      data-testid="button-privacy-info"
+                    >
+                      <Info className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => setUseConfidentialBet(!useConfidentialBet)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                        useConfidentialBet
+                          ? "bg-[#39FF14]/20 text-[#39FF14] border border-[#39FF14]/50"
+                          : "bg-zinc-700 text-gray-400 hover:bg-zinc-600 border border-transparent"
+                      }`}
+                      data-testid="button-toggle-confidential"
+                    >
+                      {useConfidentialBet ? <Lock className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      {useConfidentialBet ? "Private" : "Public"}
+                    </button>
+                  </div>
+                </div>
+
+                <AnimatePresence>
+                  {showPrivacyInfo && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className={`mb-4 p-4 rounded-lg text-sm ${
+                        useConfidentialBet 
+                          ? "bg-[#39FF14]/10 border border-[#39FF14]/30" 
+                          : "bg-zinc-700/50 border border-zinc-600"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <Shield className={`w-5 h-5 mt-0.5 flex-shrink-0 ${useConfidentialBet ? "text-[#39FF14]" : "text-blue-400"}`} />
+                        <div>
+                          <p className={`font-bold mb-1 ${useConfidentialBet ? "text-[#39FF14]" : "text-white"}`}>
+                            {useConfidentialBet ? "Inco Lightning Encryption" : "Privacy Options"}
+                          </p>
+                          <p className={useConfidentialBet ? "text-[#39FF14]/70" : "text-gray-400"}>
+                            {useConfidentialBet 
+                              ? "Your bet amount is encrypted using Inco Lightning SDK. Only you can reveal the amount later. Other users will see '🔒 Hidden' instead of your bet size."
+                              : "Enable confidential betting to hide your bet amount from other users. Uses Inco Lightning SDK for zero-knowledge encryption."
+                            }
+                          </p>
+                          {useConfidentialBet && (
+                            <div className="mt-2 flex items-center gap-2 text-xs text-[#39FF14]/50 font-mono">
+                              <span>Program: 5sjE...Swaj</span>
+                              <span>•</span>
+                              <span>Bounty: $2K</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
                 
                 {error && (
                   <motion.div
@@ -349,12 +442,12 @@ export default function MarketDetail() {
                         {placeBetMutation.isPending ? (
                           <>
                             <Loader2 className="w-4 h-4 animate-spin" />
-                            Placing...
+                            {useConfidentialBet ? "Encrypting..." : "Placing..."}
                           </>
                         ) : (
                           <>
-                            <CheckCircle className="w-4 h-4" />
-                            Bet {selectedSide?.toUpperCase() || "..."}
+                            {useConfidentialBet ? <Lock className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
+                            {useConfidentialBet ? "Private Bet" : `Bet ${selectedSide?.toUpperCase() || "..."}`}
                           </>
                         )}
                       </motion.button>
@@ -366,13 +459,28 @@ export default function MarketDetail() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="mt-4 p-3 bg-zinc-900 rounded-lg"
+                    className={`mt-4 p-3 rounded-lg ${
+                      useConfidentialBet ? "bg-black border border-[#39FF14]/30" : "bg-zinc-900"
+                    }`}
                   >
-                    <p className="text-sm text-gray-400">
-                      You're betting <span className="text-white font-bold">{betAmount} SOL</span> on{" "}
-                      <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
-                        {selectedSide.toUpperCase()}
-                      </span>
+                    <p className={`text-sm ${useConfidentialBet ? "text-[#39FF14]/80 font-mono" : "text-gray-400"}`}>
+                      {useConfidentialBet ? (
+                        <>
+                          <Lock className="w-3.5 h-3.5 inline mr-1" />
+                          Betting <span className="text-[#39FF14] font-bold">{betAmount} SOL</span> on{" "}
+                          <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
+                            {selectedSide.toUpperCase()}
+                          </span>
+                          <span className="text-[#39FF14]/50 ml-2">(amount will be encrypted)</span>
+                        </>
+                      ) : (
+                        <>
+                          You're betting <span className="text-white font-bold">{betAmount} SOL</span> on{" "}
+                          <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
+                            {selectedSide.toUpperCase()}
+                          </span>
+                        </>
+                      )}
                     </p>
                   </motion.div>
                 )}
