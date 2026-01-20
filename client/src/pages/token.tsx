@@ -11,6 +11,9 @@ import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { Buffer } from "buffer";
+import { Transaction, Connection } from "@solana/web3.js";
+
+const SOLANA_RPC = "https://api.devnet.solana.com";
 import defaultAvatar from "@assets/generated_images/derpy_blob_meme_mascot.png";
 
 if (typeof window !== "undefined") {
@@ -208,16 +211,65 @@ export default function TokenPage() {
   const placeBetMutation = useMutation({
     mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
       if (!connectedWallet) throw new Error("Wallet not connected");
-      const res = await fetch(`/api/markets/${marketId}/bet`, {
+      
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom?.isPhantom) {
+        throw new Error("Phantom wallet not found");
+      }
+
+      // Step 1: Prepare bet (get transaction to sign)
+      const prepareRes = await fetch(`/api/markets/${marketId}/prepare-bet`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, side, amount }),
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          side,
+          amount,
+        }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to place bet");
+      
+      if (!prepareRes.ok) {
+        const errorData = await prepareRes.json();
+        throw new Error(errorData.error || "Failed to prepare bet");
       }
-      return res.json();
+      
+      const { transaction: txBase64, betId } = await prepareRes.json();
+
+      // Step 2: Sign transaction with Phantom
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      
+      let signedTx;
+      try {
+        signedTx = await phantom.signTransaction(transaction);
+      } catch (signError: any) {
+        if (signError.message?.includes("User rejected")) {
+          throw new Error("Transaction cancelled");
+        }
+        throw new Error("Failed to sign: " + signError.message);
+      }
+
+      // Step 3: Send signed transaction
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+      await connection.confirmTransaction(signature, "confirmed");
+
+      // Step 4: Confirm bet with server
+      const confirmRes = await fetch(`/api/markets/${marketId}/confirm-bet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ betId, signature }),
+      });
+      
+      if (!confirmRes.ok) {
+        const errorData = await confirmRes.json();
+        throw new Error(errorData.error || "Failed to confirm bet");
+      }
+      
+      return confirmRes.json();
     },
     onSuccess: () => {
       toast.success("Bet placed!");
