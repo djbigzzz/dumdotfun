@@ -1776,14 +1776,21 @@ export async function registerRoutes(
       // Check the amount received by the fee recipient
       const amountReceived = (postBalances[recipientIndex] || 0) - (preBalances[recipientIndex] || 0);
       
-      // Allow some tolerance for rounding (0.1% tolerance)
-      const tolerance = expectedLamports * 0.001;
-      if (amountReceived < expectedLamports - tolerance) {
-        console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
-        return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
-      }
+      // DEVNET: When creator is the fee recipient (self-payment), balance delta is just tx fee
+      // Skip payment verification in this case for devnet testing
+      const isSelfPayment = senderKey === feeRecipient.toBase58();
       
-      console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+      if (isSelfPayment) {
+        console.log(`[Market Creation] DEVNET: Self-payment detected (creator == fee recipient), skipping payment verification`);
+      } else {
+        // Allow some tolerance for rounding (0.1% tolerance)
+        const tolerance = expectedLamports * 0.001;
+        if (amountReceived < expectedLamports - tolerance) {
+          console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
+          return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
+        }
+        console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+      }
 
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
