@@ -1,0 +1,90 @@
+E aproape bine ca “integration layer” pentru hackathon, dar are câteva lucruri care sunt greșite / înșelătoare față de cum descrie ShadowWire în README și câteva lucruri care îți pot crea bug-uri în runtime.
+
+Mai jos îți spun exact ce să schimbi ca să fie corect + demo-safe.
+
+1) Configul tău nu mai e corect (tokens + număr)
+
+În README, ShadowWire zice că “protocol supports 22 tokens” și listează mai multe decât ai tu (ex: SANA, POKI, RAIN, HOSICO, SKR etc.).
+
+✅ Fix:
+
+schimbă features din “17 supported tokens” în “22 supported tokens” (sau “22+”)
+
+ori mai bine: nu hardcoda cifra, ci afișează supportedTokens.length.
+
+2) prepareShadowWireTransfer: senderAnonymous e setat greșit
+
+Din docs:
+
+Internal: “Amount is hidden”
+
+External: “Amount is visible but sender remains anonymous”
+
+În codul tău tu pui senderAnonymous: true mereu.
+
+✅ Fix:
+
+const isInternal = params.type === "internal";
+return {
+  ...
+  amountHidden: isInternal,
+  senderAnonymous: !isInternal, // external only
+  ...
+};
+
+3) Transferurile chiar cer wallet: { signMessage } (tu doar “prepari”)
+
+În README, transfer(...) cere explicit wallet: { signMessage } pentru autentificare.
+
+La tine prepareShadowWireTransfer doar returnează transferParams, dar nu e “ready” dacă nu ai deja planul cum primești signMessage din wallet-adapter (în frontend) sau semnare din Keypair (în backend).
+
+✅ Recomandare hackathon:
+
+prepareShadowWireTransfer e ok ca “quote/preview”.
+
+Dar fă și o funcție separată executeShadowWireTransfer(...) care primește signMessage și apelează client.transfer(...).
+
+4) Deposit/Withdraw: tu nu chemi SDK-ul, doar construiești un “unsignedTx”
+
+În docs, deposit și withdraw sunt apeluri directe client.deposit({ wallet, amount }) / client.withdraw(...).
+
+Tu returnezi:
+
+unsignedTx: { wallet, amount: amountLamports, token }
+
+
+Asta poate fi ok dacă tu ai un backend care transformă asta în tx real, dar atunci numele “unsignedTx” e un pic misleading (nu e un Transaction/base64 tx).
+
+✅ Fix hackathon-friendly (alege una):
+
+Varianta A (simplu, corect): chiar apelezi SDK-ul:
+
+const response = await client.deposit({ wallet: walletAddress, amount: amountLamports });
+return { success: true, message: "...", response, feeInfo: ... };
+
+
+Varianta B (dacă vrei “preview”): redenumește în depositRequest / withdrawRequest și spune clar “payload for backend”.
+
+5) Validare token: acum accepți orice string
+
+client.getFeePercentage(token) / getMinimumAmount(token) probabil aruncă dacă token nu e suportat. În README există listă clară de simboluri suportate.
+
+✅ Fix:
+
+verifică token în SHADOWWIRE_CONFIG.supportedTokens înainte să chemi client methods.
+
+și aliniază SupportedToken union cu lista din README (lipsește cel puțin SANA/POKI/RAIN/HOSICO/SKR din ce ai în config).
+
+6) shadowWireInitialized blochează retry după un eșec
+
+Dacă importul pică o dată (deploy, cold start, transient), tu setezi shadowWireInitialized = true și nu mai reîncerci niciodată.
+
+✅ Fix simplu:
+
+nu seta shadowWireInitialized = true în catch; setează doar un timestamp și retry după X secunde sau lasă să reîncerce.
+
+7) mici chestii de curățenie
+
+import { PublicKey } e nefolosit → scoate-l.
+
+getShadowWireBalance(...): Promise<ShadowWireBalance | null> dar în catch returnezi obiect (nu null). Decide un singur comportament.
