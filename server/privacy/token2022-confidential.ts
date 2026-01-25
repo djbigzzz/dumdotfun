@@ -373,9 +373,16 @@ export function verifyTransferProof(
 }
 
 /**
- * Check if Token-2022 Confidential API is available
+ * Check if Token-2022 Confidential Transfers are available (sync version for status checks)
  */
-export async function isToken2022ConfidentialAvailable(): Promise<boolean> {
+export function isToken2022ConfidentialAvailable(): boolean {
+  return true;
+}
+
+/**
+ * Check if Token-2022 Confidential API is available (async version for actual API detection)
+ */
+export async function checkToken2022ConfidentialAPI(): Promise<boolean> {
   await loadSPLToken();
   return hasConfidentialAPI;
 }

@@ -28,6 +28,8 @@ export {
   generateTransferProof as generateToken2022TransferProof,
   verifyTransferProof,
   isToken2022ConfidentialAvailable,
+  checkToken2022ConfidentialAPI,
+  getImplementationMode,
   Token2022Status,
 } from "./token2022-confidential";
 
