@@ -121,7 +121,7 @@ export function PrivacyWallet() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          wallet: connectedWallet, 
+          walletAddress: connectedWallet, 
           amount: parseFloat(depositAmount),
           token: "SOL"
         })
@@ -156,7 +156,8 @@ export function PrivacyWallet() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
-          wallet: connectedWallet, 
+          walletAddress: connectedWallet, 
+          recipientAddress: connectedWallet,
           amount: parseFloat(withdrawAmount),
           token: "SOL"
         })
