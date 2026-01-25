@@ -112,7 +112,7 @@ const PrivacyToggle = ({ onOpenDrawer }: { onOpenDrawer: () => void }) => {
       onClick={() => {
         togglePrivateMode();
         toast.success(privateMode ? "[ CHANNEL OPEN ]" : "[ ENCRYPTED CHANNEL ACTIVE ]", {
-          style: privateMode ? {} : { background: '#0a0a0a', color: '#39FF14', border: '1px solid #39FF14', fontFamily: 'monospace' }
+          style: privateMode ? {} : { background: '#0a0a0a', color: '#10B981', border: '1px solid #10B981', fontFamily: 'monospace' }
         });
       }}
       onContextMenu={(e) => {
@@ -123,7 +123,7 @@ const PrivacyToggle = ({ onOpenDrawer }: { onOpenDrawer: () => void }) => {
       whileTap={{ scale: 0.98 }}
       className={`relative flex items-center gap-2 px-3 py-2 font-mono font-bold text-sm border-2 transition-all ${
         privateMode 
-          ? "bg-black text-[#39FF14] border-[#39FF14] shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
+          ? "bg-black text-[#10B981] border-[#10B981] shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
           : "bg-gray-100 text-gray-700 border-black hover:bg-gray-200 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
       }`}
       data-testid="button-privacy-toggle"
@@ -143,7 +143,7 @@ const PrivacyToggle = ({ onOpenDrawer }: { onOpenDrawer: () => void }) => {
             <motion.span
               animate={{ opacity: [1, 0.3, 1] }}
               transition={{ repeat: Infinity, duration: 1 }}
-              className="w-2 h-2 bg-[#39FF14] rounded-full"
+              className="w-2 h-2 bg-[#10B981] rounded-full"
             />
           </motion.div>
         ) : (
@@ -193,7 +193,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div className={`min-h-screen flex flex-col transition-colors duration-300 ${
       privateMode 
-        ? "bg-black text-gray-100 selection:bg-[#39FF14] selection:text-black" 
+        ? "bg-black text-gray-100 selection:bg-[#10B981] selection:text-black" 
         : "bg-gray-50 text-gray-900 selection:bg-red-500 selection:text-white"
     }`}>
       {privateMode && (
@@ -207,7 +207,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`
             }} />
           </div>
-          <div className="fixed top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#39FF14]/5 to-transparent pointer-events-none z-10" />
+          <div className="fixed top-0 left-0 right-0 h-8 bg-gradient-to-b from-[#10B981]/5 to-transparent pointer-events-none z-10" />
           <style>{`
             @keyframes scanline {
               0% { transform: translateY(-100%); }
@@ -230,14 +230,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}
       <Marquee />
       <header className={`p-4 border-b-2 flex justify-between items-center transition-colors duration-300 relative z-20 ${
-        privateMode ? "bg-black/90 border-[#39FF14]/30 backdrop-blur-sm" : "bg-white border-black"
+        privateMode ? "bg-black/90 border-[#10B981]/30 backdrop-blur-sm" : "bg-white border-black"
       } ${privateMode ? "scanline-effect" : ""}`}>
         <div className="flex items-center gap-6">
           <Link href="/">
             <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
               <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
               <h1 className={`text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
-                  privateMode ? "text-[#39FF14] font-mono" : "text-red-500"
+                  privateMode ? "text-[#10B981] font-mono" : "text-red-500"
                 }`} style={{ textShadow: privateMode ? "0 0 8px rgba(57,255,20,0.4)" : "2px 2px 0px hsl(60 100% 50%)" }}>
                 DUM.FUN
               </h1>
@@ -246,10 +246,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           
           <nav className="hidden md:flex items-center gap-4">
             <Link href="/tokens">
-              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> TOKENS" : "Tokens"}</span>
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#10B981]/70 hover:text-[#10B981] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> TOKENS" : "Tokens"}</span>
             </Link>
             <Link href="/create">
-              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#39FF14]/70 hover:text-[#39FF14] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> DEPLOY" : "Launch"}</span>
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#10B981]/70 hover:text-[#10B981] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> DEPLOY" : "Launch"}</span>
             </Link>
             <Link href="/docs">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#00FFF0]/70 hover:text-[#00FFF0] font-mono" : "text-gray-700 hover:text-blue-500"}`}>{privateMode ? "> DOCS" : "Docs"}</span>
@@ -262,15 +262,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <motion.div
               initial={{ opacity: 0, scale: 0.8 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-black border border-[#39FF14] rounded-lg"
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-black border border-[#10B981] rounded-lg"
               style={{ boxShadow: "0 0 15px rgba(57,255,20,0.3)" }}
             >
-              <Shield className="w-4 h-4 text-[#39FF14]" />
-              <span className="text-xs font-mono font-bold text-[#39FF14]">SHIELDED</span>
+              <Shield className="w-4 h-4 text-[#10B981]" />
+              <span className="text-xs font-mono font-bold text-[#10B981]">SHIELDED</span>
               <motion.div
                 animate={{ opacity: [1, 0.3, 1] }}
                 transition={{ repeat: Infinity, duration: 1.5 }}
-                className="w-1.5 h-1.5 bg-[#39FF14] rounded-full"
+                className="w-1.5 h-1.5 bg-[#10B981] rounded-full"
               />
             </motion.div>
           )}
@@ -279,7 +279,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <button
               onClick={() => setShowPrivacyDrawer(true)}
               className={`p-2 -ml-1 transition-colors ${
-                privateMode ? "text-[#39FF14]/50 hover:text-[#39FF14]" : "text-gray-400 hover:text-gray-600"
+                privateMode ? "text-[#10B981]/50 hover:text-[#10B981]" : "text-gray-400 hover:text-gray-600"
               }`}
               title="View privacy features"
               data-testid="button-privacy-info"
@@ -291,19 +291,19 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <>
               <div className={`hidden sm:flex items-center gap-2 border px-3 py-2 font-mono text-sm ${
                 privateMode 
-                  ? "bg-black border-[#39FF14]/30 text-[#39FF14]" 
+                  ? "bg-black border-[#10B981]/30 text-[#10B981]" 
                   : "bg-purple-100 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               }`}>
-                <span className={`font-bold ${privateMode ? "text-[#39FF14]" : "text-purple-700"}`}>
+                <span className={`font-bold ${privateMode ? "text-[#10B981]" : "text-purple-700"}`}>
                   {solBalance !== null ? `${privateMode ? "◈ " : ""}${solBalance.toFixed(2)} SOL` : '---'}
                 </span>
-                <span className={`text-xs ${privateMode ? "text-[#39FF14]/50" : "text-purple-500"}`}>{privateMode ? "[DEV]" : "(devnet)"}</span>
+                <span className={`text-xs ${privateMode ? "text-[#10B981]/50" : "text-purple-500"}`}>{privateMode ? "[DEV]" : "(devnet)"}</span>
               </div>
               <Link href="/profile">
                 <button 
                   className={`font-mono font-bold border px-3 md:px-4 py-2 uppercase text-sm transition-all ${
                     privateMode 
-                      ? "bg-black border-[#39FF14]/50 text-[#39FF14] hover:border-[#39FF14] hover:shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
+                      ? "bg-black border-[#10B981]/50 text-[#10B981] hover:border-[#10B981] hover:shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
                       : "bg-red-500 text-white border-black hover:translate-x-1 hover:translate-y-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
                   }`}
                   data-testid="button-profile"
@@ -317,7 +317,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               onClick={() => setShowWalletModal(true)}
               className={`font-mono font-bold border px-3 md:px-4 py-2 uppercase text-sm transition-all ${
                 privateMode 
-                  ? "bg-black border-[#39FF14]/50 text-[#39FF14] hover:border-[#39FF14] hover:shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
+                  ? "bg-black border-[#10B981]/50 text-[#10B981] hover:border-[#10B981] hover:shadow-[0_0_10px_rgba(57,255,20,0.3)]" 
                   : "bg-white text-red-500 border-black hover:bg-red-50 hover:translate-x-1 hover:translate-y-1 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               }`}
               data-testid="button-login"
@@ -347,7 +347,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       <footer className={`p-8 border-t-2 text-center font-mono text-sm transition-colors duration-300 relative z-20 ${
         privateMode 
-          ? "bg-black/90 border-[#39FF14]/20 text-[#39FF14]/50" 
+          ? "bg-black/90 border-[#10B981]/20 text-[#10B981]/50" 
           : "bg-white border-black text-gray-500"
       }`}>
         <div className="flex items-center justify-center gap-4 mb-4">
@@ -355,7 +355,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             href="https://x.com/dumdotfun" 
             target="_blank" 
             rel="noopener noreferrer" 
-            className={`transition-colors ${privateMode ? "hover:text-[#39FF14]" : "hover:text-black"}`}
+            className={`transition-colors ${privateMode ? "hover:text-[#10B981]" : "hover:text-black"}`}
           >
             {privateMode ? "// @dumdotfun" : "@dumdotfun"}
           </a>
@@ -369,7 +369,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               whileTap={{ scale: 0.95 }}
               className={`font-black px-8 py-3 text-lg border-2 rounded-lg transition-all uppercase ${
                 privateMode 
-                  ? "bg-black border-[#39FF14]/50 text-[#39FF14] hover:border-[#39FF14] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)]"
+                  ? "bg-black border-[#10B981]/50 text-[#10B981] hover:border-[#10B981] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)]"
                   : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
               }`}
               data-testid="button-refund"
@@ -391,7 +391,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
         </div>
         
-        <p className={privateMode ? "text-[#39FF14]/30" : ""}>
+        <p className={privateMode ? "text-[#10B981]/30" : ""}>
           {privateMode ? "// © 2025 D/\\EMON NETWORK" : "© 2025 Dum.fun. All rights reserved."}
         </p>
       </footer>

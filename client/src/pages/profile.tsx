@@ -98,7 +98,7 @@ export default function Profile() {
                 <h1 className={`text-3xl font-black mb-2 ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
                   {privateMode ? "> USER_PROFILE" : "Your Profile"}
                 </h1>
-                <p className={`text-sm ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-500"}`}>
+                <p className={`text-sm ${privateMode ? "text-[#10B981] font-mono" : "text-gray-500"}`}>
                   {privateMode ? "// IDENTITY_VERIFIED" : "Manage your wallet and referrals"}
                 </p>
               </div>
@@ -118,16 +118,16 @@ export default function Profile() {
             </div>
 
             <div className={`border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-white shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]"
+              privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]"
             }`}>
               <div className="flex items-center gap-2">
-                <Wallet className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-red-500"}`} />
-                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+                <Wallet className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-red-500"}`} />
+                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
                   {privateMode ? "WALLET_ADDR" : "Wallet Address"}
                 </h2>
               </div>
               <div className={`flex items-center justify-between gap-4 border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-black border-[#39FF14]/30" : "bg-gray-100"
+                privateMode ? "bg-black border-[#10B981]/30" : "bg-gray-100"
               }`}>
                 <p className={`font-mono text-sm break-all flex-1 font-bold ${privateMode ? "text-white" : "text-red-500"}`}>
                   {user.walletAddress}
@@ -136,11 +136,11 @@ export default function Profile() {
                   onClick={copyWallet}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`flex-shrink-0 transition-colors ${privateMode ? "text-[#39FF14] hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
+                  className={`flex-shrink-0 transition-colors ${privateMode ? "text-[#10B981] hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
                   data-testid="button-copy-wallet"
                 >
                   {copiedWallet ? (
-                    <Check className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-green-500"}`} />
+                    <Check className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-green-500"}`} />
                   ) : (
                     <Copy className="w-5 h-5" />
                   )}
@@ -153,7 +153,7 @@ export default function Profile() {
                   rel="noopener noreferrer"
                   className={`flex items-center gap-2 px-3 py-2 border-2 border-black text-xs font-mono rounded-lg transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                     privateMode 
-                      ? "bg-black border-[#39FF14]/30 text-[#39FF14] hover:bg-[#39FF14]/10" 
+                      ? "bg-black border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10" 
                       : "bg-gray-100 hover:bg-gray-200 text-gray-700"
                   }`}
                   data-testid="link-solscan"
@@ -165,18 +165,18 @@ export default function Profile() {
             </div>
 
             <div className={`border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-black border-[#39FF14]" : "bg-white shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]"
+              privateMode ? "bg-black border-[#10B981]" : "bg-white shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]"
             }`}>
               <div className="flex items-center gap-2">
-                <Share2 className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-pink-500"}`} />
-                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+                <Share2 className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-pink-500"}`} />
+                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
                   {privateMode ? "REFERRAL_LINK" : "Your Referral Link"}
                 </h2>
               </div>
               
               <div className="flex items-center gap-2">
                 <div className={`flex-1 px-4 py-3 border-2 border-black rounded-lg text-sm font-mono truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-black border-[#39FF14]/30 text-white" : "bg-gray-100 text-gray-700"
+                  privateMode ? "bg-black border-[#10B981]/30 text-white" : "bg-gray-100 text-gray-700"
                 }`}>
                   {user.referralCode 
                     ? `https://dum.fun?ref=${user.referralCode}`
@@ -190,7 +190,7 @@ export default function Profile() {
                   disabled={!user.referralCode}
                   className={`px-4 py-3 font-bold rounded-lg border-2 border-black transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                     privateMode 
-                      ? "bg-black border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14]/10" 
+                      ? "bg-black border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10" 
                       : "bg-pink-400 text-black hover:bg-pink-500"
                   }`}
                   data-testid="button-copy-referral"
@@ -199,23 +199,23 @@ export default function Profile() {
                 </motion.button>
               </div>
 
-              <p className={`text-xs font-medium ${privateMode ? "text-[#39FF14]/40 font-mono" : "text-gray-500"}`}>
+              <p className={`text-xs font-medium ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
                 {privateMode ? "// SHARE_FOR_REWARDS" : "Share this link to earn rewards for every friend who joins!"}
               </p>
             </div>
 
-            <PrivacyWallet />
+            {privateMode && <PrivacyWallet />}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-yellow-300"
+                  privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-yellow-300"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Calendar className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-black/70"}`}>
+                  <Calendar className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-black"}`} />
+                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-black/70"}`}>
                     {privateMode ? "MINT_DATE" : "Joined"}
                   </span>
                 </div>
@@ -227,12 +227,12 @@ export default function Profile() {
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-green-400"
+                  privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-green-400"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Users className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-black/70"}`}>
+                  <Users className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-black"}`} />
+                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-black/70"}`}>
                     {privateMode ? "NETWORK_NODES" : "Referrals"}
                   </span>
                 </div>
@@ -244,17 +244,17 @@ export default function Profile() {
               <motion.div
                 whileHover={{ y: -2 }}
                 className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/50" : "bg-pink-300"
+                  privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-pink-300"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Gift className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-black/70"}`}>
+                  <Gift className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-black"}`} />
+                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-black/70"}`}>
                     {privateMode ? "INCENTIVES" : "Rewards"}
                   </span>
                 </div>
                 <p className={`text-xl font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>???</p>
-                <p className={`text-xs mt-1 font-medium ${privateMode ? "text-[#39FF14]/40 font-mono" : "text-black/60"}`}>
+                <p className={`text-xs mt-1 font-medium ${privateMode ? "text-[#10B981]/40 font-mono" : "text-black/60"}`}>
                   {privateMode ? "// UNLOCK_ON_LAUNCH" : "Coming at launch"}
                 </p>
               </motion.div>
@@ -262,7 +262,7 @@ export default function Profile() {
 
             {user.referredBy && (
               <div className={`border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-black border-[#39FF14]/30 text-[#39FF14]" : "bg-white text-gray-600"
+                privateMode ? "bg-black border-[#10B981]/30 text-[#10B981]" : "bg-white text-gray-600"
               }`}>
                 <p className={`text-sm font-medium ${privateMode ? "font-mono" : ""}`}>
                   {privateMode ? "REFERRER_ID: " : "You were referred by: "}
@@ -272,7 +272,7 @@ export default function Profile() {
             )}
 
             <div className="text-center pt-4">
-              <p className={`text-xs font-medium ${privateMode ? "text-[#39FF14]/40 font-mono" : "text-gray-500"}`}>
+              <p className={`text-xs font-medium ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
                 {privateMode ? "SESSION_CODE: " : "Your referral code: "}
                 <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-pink-500"}`}>{user.referralCode || "—"}</span>
               </p>

@@ -197,12 +197,12 @@ export function PrivacyWallet() {
 
   return (
     <div className={`border-2 border-black rounded-xl p-6 space-y-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-      privateMode ? "bg-black border-[#39FF14]" : "bg-gradient-to-br from-purple-100 to-indigo-100"
+      privateMode ? "bg-black border-[#10B981]" : "bg-gradient-to-br from-purple-100 to-indigo-100"
     }`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Shield className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-purple-600"}`} />
-          <h2 className={`text-lg font-black uppercase ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
+          <Shield className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-purple-600"}`} />
+          <h2 className={`text-lg font-black uppercase ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
             {privateMode ? "PRIVATE_VAULT" : "Privacy Wallet"}
           </h2>
         </div>
@@ -212,7 +212,7 @@ export function PrivacyWallet() {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
             className={`p-2 rounded-lg transition-colors ${
-              privateMode ? "text-[#39FF14] hover:bg-[#39FF14]/10" : "text-gray-600 hover:bg-gray-200"
+              privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-600 hover:bg-gray-200"
             }`}
             data-testid="button-toggle-balance-visibility"
           >
@@ -223,7 +223,7 @@ export function PrivacyWallet() {
             whileHover={{ scale: 1.1, rotate: 180 }}
             whileTap={{ scale: 0.95 }}
             className={`p-2 rounded-lg transition-colors ${
-              privateMode ? "text-[#39FF14] hover:bg-[#39FF14]/10" : "text-gray-600 hover:bg-gray-200"
+              privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-600 hover:bg-gray-200"
             }`}
             data-testid="button-refresh-balances"
           >
@@ -233,10 +233,10 @@ export function PrivacyWallet() {
       </div>
 
       <div className={`grid grid-cols-2 gap-3 p-4 rounded-lg border-2 ${
-        privateMode ? "bg-zinc-900/50 border-[#39FF14]/30" : "bg-white/50 border-gray-200"
+        privateMode ? "bg-zinc-900/50 border-[#10B981]/30" : "bg-white/50 border-gray-200"
       }`}>
         <div>
-          <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+          <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
             {privateMode ? "SHIELDED_SOL" : "Private SOL"}
           </p>
           <p className={`text-2xl font-mono font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -244,7 +244,7 @@ export function PrivacyWallet() {
           </p>
         </div>
         <div>
-          <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+          <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
             {privateMode ? "SHIELDED_USDC" : "Private USDC"}
           </p>
           <p className={`text-2xl font-mono font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -260,7 +260,7 @@ export function PrivacyWallet() {
           whileTap={{ y: 0, x: 0 }}
           className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all ${
             privateMode 
-              ? "bg-[#39FF14] text-black hover:bg-[#39FF14]/80" 
+              ? "bg-[#10B981] text-black hover:bg-[#10B981]/80" 
               : "bg-purple-500 text-white hover:bg-purple-600"
           }`}
           data-testid="button-private-deposit"
@@ -274,7 +274,7 @@ export function PrivacyWallet() {
           whileTap={{ y: 0, x: 0 }}
           className={`flex-1 flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all ${
             privateMode 
-              ? "bg-black border-[#39FF14] text-[#39FF14] hover:bg-[#39FF14]/10" 
+              ? "bg-black border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10" 
               : "bg-white text-purple-600 hover:bg-gray-100"
           }`}
           data-testid="button-private-withdraw"
@@ -284,11 +284,11 @@ export function PrivacyWallet() {
         </motion.button>
       </div>
 
-      <div className={`border-t-2 pt-4 ${privateMode ? "border-[#39FF14]/30" : "border-gray-200"}`}>
+      <div className={`border-t-2 pt-4 ${privateMode ? "border-[#10B981]/30" : "border-gray-200"}`}>
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <Key className={`w-4 h-4 ${privateMode ? "text-[#39FF14]" : "text-purple-600"}`} />
-            <span className={`text-sm font-bold uppercase ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+            <Key className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-purple-600"}`} />
+            <span className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
               {privateMode ? "STEALTH_ADDRS" : "Stealth Addresses"}
             </span>
           </div>
@@ -298,7 +298,7 @@ export function PrivacyWallet() {
             whileTap={{ scale: 0.95 }}
             className={`px-3 py-1 text-xs font-bold uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
               privateMode 
-                ? "bg-[#39FF14] text-black" 
+                ? "bg-[#10B981] text-black" 
                 : "bg-purple-400 text-white"
             }`}
             data-testid="button-generate-stealth"
@@ -307,7 +307,7 @@ export function PrivacyWallet() {
           </motion.button>
         </div>
         
-        <p className={`text-xs mb-3 ${privateMode ? "text-[#39FF14]/40 font-mono" : "text-gray-500"}`}>
+        <p className={`text-xs mb-3 ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
           {privateMode 
             ? "// ONE_TIME_ADDRS_FOR_UNLINKABLE_TRANSFERS" 
             : "Use these one-time addresses to receive tokens privately. Each address can only be used once."}
@@ -315,7 +315,7 @@ export function PrivacyWallet() {
 
         {stealthAddresses.length === 0 ? (
           <div className={`text-center py-4 rounded-lg border-2 border-dashed ${
-            privateMode ? "border-[#39FF14]/30 text-[#39FF14]/40" : "border-gray-300 text-gray-400"
+            privateMode ? "border-[#10B981]/30 text-[#10B981]/40" : "border-gray-300 text-gray-400"
           }`}>
             <Lock className="w-6 h-6 mx-auto mb-2 opacity-50" />
             <p className="text-sm font-mono">
@@ -328,14 +328,14 @@ export function PrivacyWallet() {
               <div 
                 key={stealth.address}
                 className={`flex items-center justify-between p-2 rounded-lg border ${
-                  privateMode ? "bg-zinc-900/50 border-[#39FF14]/20" : "bg-white border-gray-200"
+                  privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-white border-gray-200"
                 }`}
               >
                 <div className="flex-1 min-w-0">
                   <p className={`font-mono text-xs truncate ${privateMode ? "text-white" : "text-gray-700"}`}>
                     {stealth.address.slice(0, 20)}...{stealth.address.slice(-8)}
                   </p>
-                  <p className={`text-[10px] ${privateMode ? "text-[#39FF14]/40" : "text-gray-400"}`}>
+                  <p className={`text-[10px] ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`}>
                     View tag: {stealth.viewTag}
                   </p>
                 </div>
@@ -343,7 +343,7 @@ export function PrivacyWallet() {
                   onClick={() => copyToClipboard(stealth.address, stealth.address)}
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.95 }}
-                  className={`p-1.5 rounded ${privateMode ? "text-[#39FF14] hover:bg-[#39FF14]/10" : "text-gray-500 hover:bg-gray-100"}`}
+                  className={`p-1.5 rounded ${privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-500 hover:bg-gray-100"}`}
                   data-testid={`button-copy-stealth-${i}`}
                 >
                   {copied === stealth.address ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
@@ -369,13 +369,13 @@ export function PrivacyWallet() {
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
               className={`w-full max-w-md p-6 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-zinc-900 border-[#39FF14]" : "bg-white"
+                privateMode ? "bg-zinc-900 border-[#10B981]" : "bg-white"
               }`}
             >
-              <h3 className={`text-xl font-black mb-4 ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
+              <h3 className={`text-xl font-black mb-4 ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
                 {privateMode ? "PRIVATE_DEPOSIT" : "Private Deposit"}
               </h3>
-              <p className={`text-sm mb-4 ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-600"}`}>
+              <p className={`text-sm mb-4 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
                 {privateMode 
                   ? "// ZK_PROOF_BREAKS_ONCHAIN_LINK" 
                   : "Your deposit will be hidden using zero-knowledge proofs, breaking the link between your public wallet and private balance."}
@@ -386,7 +386,7 @@ export function PrivacyWallet() {
                 onChange={(e) => setDepositAmount(e.target.value)}
                 placeholder="Amount in SOL"
                 className={`w-full px-4 py-3 rounded-lg border-2 border-black mb-4 font-mono ${
-                  privateMode ? "bg-black text-white border-[#39FF14]/50" : "bg-gray-100"
+                  privateMode ? "bg-black text-white border-[#10B981]/50" : "bg-gray-100"
                 }`}
                 data-testid="input-deposit-amount"
               />
@@ -404,7 +404,7 @@ export function PrivacyWallet() {
                   onClick={handleDeposit}
                   disabled={processing || !depositAmount}
                   className={`flex-1 py-3 font-bold rounded-lg border-2 border-black ${
-                    privateMode ? "bg-[#39FF14] text-black" : "bg-purple-500 text-white"
+                    privateMode ? "bg-[#10B981] text-black" : "bg-purple-500 text-white"
                   } disabled:opacity-50`}
                   data-testid="button-confirm-deposit"
                 >
@@ -429,13 +429,13 @@ export function PrivacyWallet() {
               exit={{ scale: 0.9, y: 20 }}
               onClick={(e) => e.stopPropagation()}
               className={`w-full max-w-md p-6 rounded-xl border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-zinc-900 border-[#39FF14]" : "bg-white"
+                privateMode ? "bg-zinc-900 border-[#10B981]" : "bg-white"
               }`}
             >
-              <h3 className={`text-xl font-black mb-4 ${privateMode ? "text-[#39FF14] font-mono" : "text-gray-900"}`}>
+              <h3 className={`text-xl font-black mb-4 ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
                 {privateMode ? "PRIVATE_WITHDRAW" : "Private Withdraw"}
               </h3>
-              <p className={`text-sm mb-4 ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-600"}`}>
+              <p className={`text-sm mb-4 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
                 {privateMode 
                   ? "// ANONYMOUS_EXIT_TO_ANY_WALLET" 
                   : "Withdraw to any wallet anonymously. The receiving wallet cannot be linked to your private balance."}
@@ -446,7 +446,7 @@ export function PrivacyWallet() {
                 onChange={(e) => setWithdrawAmount(e.target.value)}
                 placeholder="Amount in SOL"
                 className={`w-full px-4 py-3 rounded-lg border-2 border-black mb-4 font-mono ${
-                  privateMode ? "bg-black text-white border-[#39FF14]/50" : "bg-gray-100"
+                  privateMode ? "bg-black text-white border-[#10B981]/50" : "bg-gray-100"
                 }`}
                 data-testid="input-withdraw-amount"
               />
@@ -464,7 +464,7 @@ export function PrivacyWallet() {
                   onClick={handleWithdraw}
                   disabled={processing || !withdrawAmount}
                   className={`flex-1 py-3 font-bold rounded-lg border-2 border-black ${
-                    privateMode ? "bg-[#39FF14] text-black" : "bg-purple-500 text-white"
+                    privateMode ? "bg-[#10B981] text-black" : "bg-purple-500 text-white"
                   } disabled:opacity-50`}
                   data-testid="button-confirm-withdraw"
                 >
