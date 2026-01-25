@@ -19,7 +19,6 @@ import PredictionsPage from "@/pages/predictions";
 import PredictionDetail from "@/pages/prediction-detail";
 import DocsPage from "@/pages/docs";
 import AdminPage from "@/pages/admin";
-import PrivacyDemo from "@/pages/privacy-demo";
 
 function Router() {
   return (
@@ -36,7 +35,6 @@ function Router() {
       <Route path="/create" component={CreateToken} />
       <Route path="/create-market" component={CreateMarket} />
       <Route path="/market/:id" component={MarketDetail} />
-      <Route path="/privacy-demo" component={PrivacyDemo} />
       <Route component={NotFound} />
     </Switch>
   );
