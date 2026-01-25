@@ -50,15 +50,14 @@ export function getToken2022Status() {
   return {
     available: true,
     programId: "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
-    network: "devnet",
-    implementation: "hybrid",
-    note: "Automatically uses real API when available (@solana/spl-token 0.5.x+), falls back to commitment scheme otherwise.",
+    network: "devnet/mainnet",
+    implementation: "hybrid (Hackathon-Ready)",
+    note: "On-chain Confidential Transfers require ZK program enabled + mature SDK/proof libs. This implementation stays correct by using fallback commitments today.",
     features: [
-      "Auto-detection of Token-2022 Confidential API",
-      "Seamless fallback to commitment scheme",
-      "Ready for @solana/spl-token upgrade",
+      "Correct capability detection (Token-2022 vs CT exports)",
+      "Commitment-based privacy layer (default)",
+      "Optional Token-2022 mint/account creation via RUN_ONCHAIN=1",
       "Zero breaking changes",
-      "Production-ready hybrid implementation",
     ],
     bounty: "$15,000 - Token-2022 Confidential Transfers",
   };
