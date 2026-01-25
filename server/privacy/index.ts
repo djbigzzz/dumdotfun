@@ -66,7 +66,7 @@ import { getPrivacyCashIntegration, PRIVACY_CASH_CONFIG } from "./privacy-cash";
 import { getShadowWireIntegration, SHADOWWIRE_CONFIG } from "./shadowwire";
 import { getNPExchangeIntegration, NP_EXCHANGE_CONFIG } from "./np-exchange";
 
-export { getPrivacyCashIntegration, PRIVACY_CASH_CONFIG, preparePrivateDeposit, preparePrivateWithdraw, getPrivateCashBalance } from "./privacy-cash";
+export { getPrivacyCashIntegration, PRIVACY_CASH_CONFIG, preparePrivateDeposit, preparePrivateWithdraw, getPrivateCashBalance, addPrivateBalance, subtractPrivateBalance } from "./privacy-cash";
 export { getShadowWireIntegration, SHADOWWIRE_CONFIG, prepareShadowWireTransfer, getShadowWireBalance, prepareShadowWireDeposit, prepareShadowWireWithdraw } from "./shadowwire";
 export { getNPExchangeIntegration, NP_EXCHANGE_CONFIG, createAIAgentMarket } from "./np-exchange";
 

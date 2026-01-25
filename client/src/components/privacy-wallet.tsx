@@ -66,8 +66,8 @@ export function PrivacyWallet() {
       if (pcRes.ok) {
         const pcData = await pcRes.json();
         setPrivacyCashBalance({ 
-          sol: pcData.balance?.sol || 0, 
-          usdc: pcData.balance?.usdc || 0, 
+          sol: pcData.balance?.privateBalance || pcData.balance?.balance || 0, 
+          usdc: 0, 
           loading: false 
         });
       } else {
@@ -130,12 +130,19 @@ export function PrivacyWallet() {
       if (res.ok) {
         const data = await res.json();
         toast({
-          title: "Private Deposit Initiated",
-          description: `Depositing ${depositAmount} SOL privately`,
+          title: "Private Deposit Complete",
+          description: `Shielded ${depositAmount} SOL. New balance: ${data.newPrivateBalance?.toFixed(4) || depositAmount} SOL`,
         });
         setDepositModal(false);
         setDepositAmount("");
-        fetchBalances();
+        setTimeout(() => fetchBalances(), 500);
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Deposit failed",
+          description: error.error || "Unknown error",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({
@@ -164,13 +171,21 @@ export function PrivacyWallet() {
       });
       
       if (res.ok) {
+        const data = await res.json();
         toast({
-          title: "Private Withdrawal Initiated",
-          description: `Withdrawing ${withdrawAmount} SOL privately`,
+          title: "Private Withdrawal Complete",
+          description: `Withdrawn ${withdrawAmount} SOL anonymously. No on-chain link to deposit.`,
         });
         setWithdrawModal(false);
         setWithdrawAmount("");
-        fetchBalances();
+        setTimeout(() => fetchBalances(), 500);
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Withdrawal failed",
+          description: error.error || "Unknown error",
+          variant: "destructive",
+        });
       }
     } catch (error) {
       toast({

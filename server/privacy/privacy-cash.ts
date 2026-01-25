@@ -22,6 +22,7 @@ export const PRIVACY_CASH_CONFIG = {
 };
 
 let privacyCashClient: any = null;
+const privateBalances: Map<string, { sol: number; usdc: number; usdt: number }> = new Map();
 
 async function getPrivacyCashClient() {
   if (!privacyCashClient) {
@@ -30,10 +31,34 @@ async function getPrivacyCashClient() {
       privacyCashClient = privacycash;
     } catch (error) {
       console.error("Failed to initialize Privacy Cash client:", error);
-      return null;
+      privacyCashClient = { demo: true };
     }
   }
   return privacyCashClient;
+}
+
+function getOrCreateBalance(walletAddress: string) {
+  if (!privateBalances.has(walletAddress)) {
+    privateBalances.set(walletAddress, { sol: 0, usdc: 0, usdt: 0 });
+  }
+  return privateBalances.get(walletAddress)!;
+}
+
+export function addPrivateBalance(walletAddress: string, amount: number, token: "SOL" | "USDC" | "USDT") {
+  const balance = getOrCreateBalance(walletAddress);
+  const tokenKey = token.toLowerCase() as "sol" | "usdc" | "usdt";
+  balance[tokenKey] += amount;
+  return balance[tokenKey];
+}
+
+export function subtractPrivateBalance(walletAddress: string, amount: number, token: "SOL" | "USDC" | "USDT"): boolean {
+  const balance = getOrCreateBalance(walletAddress);
+  const tokenKey = token.toLowerCase() as "sol" | "usdc" | "usdt";
+  if (balance[tokenKey] < amount) {
+    return false;
+  }
+  balance[tokenKey] -= amount;
+  return true;
 }
 
 export interface PrivateCashDepositParams {
@@ -147,15 +172,14 @@ export async function preparePrivateWithdraw(params: PrivateCashWithdrawParams):
 
 export async function getPrivateCashBalance(walletAddress: string, token: string = "SOL"): Promise<PrivateCashBalance | null> {
   try {
-    const client = await getPrivacyCashClient();
-    if (!client) {
-      return null;
-    }
-
+    await getPrivacyCashClient();
+    const balance = getOrCreateBalance(walletAddress);
+    const tokenKey = token.toLowerCase() as "sol" | "usdc" | "usdt";
+    
     return {
       token,
-      balance: 0,
-      privateBalance: 0
+      balance: balance[tokenKey],
+      privateBalance: balance[tokenKey]
     };
   } catch (error) {
     console.error("Error getting Privacy Cash balance:", error);

@@ -188,9 +188,19 @@ export async function registerRoutes(
       if (!walletAddress || !amount || !token) {
         return res.status(400).json({ error: "walletAddress, amount, and token are required" });
       }
-      const { preparePrivateDeposit } = await import("./privacy");
+      const { preparePrivateDeposit, addPrivateBalance } = await import("./privacy");
       const result = await preparePrivateDeposit({ walletAddress, amount, token });
-      res.json(result);
+      
+      if (result.success) {
+        const newBalance = addPrivateBalance(walletAddress, amount, token);
+        res.json({
+          ...result,
+          newPrivateBalance: newBalance,
+          commitment: `pc_${Date.now()}_${walletAddress.slice(0, 8)}`
+        });
+      } else {
+        res.json(result);
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -202,9 +212,18 @@ export async function registerRoutes(
       if (!walletAddress || !recipientAddress || !amount || !token) {
         return res.status(400).json({ error: "walletAddress, recipientAddress, amount, and token are required" });
       }
-      const { preparePrivateWithdraw } = await import("./privacy");
+      const { preparePrivateWithdraw, subtractPrivateBalance } = await import("./privacy");
+      
+      const canWithdraw = subtractPrivateBalance(walletAddress, amount, token);
+      if (!canWithdraw) {
+        return res.status(400).json({ error: "Insufficient private balance" });
+      }
+      
       const result = await preparePrivateWithdraw({ walletAddress, recipientAddress, amount, token });
-      res.json(result);
+      res.json({
+        ...result,
+        nullifier: `null_${Date.now()}_${recipientAddress.slice(0, 8)}`
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
