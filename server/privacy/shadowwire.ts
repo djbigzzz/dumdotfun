@@ -139,6 +139,8 @@ export async function getShadowWireBalance(walletAddress: string, token: string 
   }
 }
 
+type SupportedToken = "SOL" | "RADR" | "USDC" | "ORE" | "BONK" | "JIM" | "GODL" | "HUSTLE" | "ZEC" | "CRT" | "BLACKCOIN" | "GIL" | "ANON" | "WLFI" | "USD1" | "AOL" | "IQLABS";
+
 export async function prepareShadowWireDeposit(walletAddress: string, amount: number, token: string = "SOL"): Promise<{
   success: boolean;
   message: string;
@@ -151,7 +153,7 @@ export async function prepareShadowWireDeposit(walletAddress: string, amount: nu
     }
 
     const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token);
+    const amountLamports = TokenUtils.toSmallestUnit(amount, token as SupportedToken);
 
     return {
       success: true,
@@ -179,7 +181,7 @@ export async function prepareShadowWireWithdraw(walletAddress: string, amount: n
     }
 
     const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token);
+    const amountLamports = TokenUtils.toSmallestUnit(amount, token as SupportedToken);
 
     return {
       success: true,

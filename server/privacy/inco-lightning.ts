@@ -10,6 +10,7 @@ export interface EncryptedBet {
   commitment: string;
   nonce: string;
   timestamp: number;
+  sdkUsed: "inco" | "commitment";
 }
 
 export interface IncoLightningConfig {
@@ -23,6 +24,21 @@ const config: IncoLightningConfig = {
   network: "devnet",
   version: "0.1.4",
 };
+
+let incoSDK: any = null;
+
+async function getIncoSDK() {
+  if (!incoSDK) {
+    try {
+      incoSDK = await import("@inco/solana-sdk");
+      console.log("[Inco Lightning] SDK loaded successfully");
+    } catch (error) {
+      console.error("[Inco Lightning] Failed to load SDK:", error);
+      return null;
+    }
+  }
+  return incoSDK;
+}
 
 export function getIncoConfig(): IncoLightningConfig {
   return config;
@@ -45,19 +61,21 @@ function generateCommitment(amount: number, side: string, nonce: string, userAdd
   return sha256Hash(data);
 }
 
-export async function encryptBetAmount(amount: number, userPublicKey: string): Promise<string> {
-  console.log("[Inco Lightning] Encrypting bet amount using SDK:", amount, "SOL");
+export async function encryptBetAmount(amount: number, userPublicKey: string): Promise<{ encrypted: string; sdkUsed: "inco" | "commitment" }> {
+  console.log("[Inco Lightning] Encrypting bet amount:", amount, "SOL");
   
   try {
-    const { encryptValue } = await import("@inco/solana-sdk/encryption");
-    
-    const amountLamports = BigInt(Math.floor(amount * 1e9));
-    const encrypted = await encryptValue(amountLamports);
-    
-    console.log("[Inco Lightning] Successfully encrypted with Inco SDK");
-    return encrypted;
+    const sdk = await getIncoSDK();
+    if (sdk && sdk.encryptValue) {
+      const amountLamports = BigInt(Math.floor(amount * 1e9));
+      const encrypted = await sdk.encryptValue(amountLamports);
+      
+      console.log("[Inco Lightning] Successfully encrypted with Inco SDK");
+      return { encrypted, sdkUsed: "inco" };
+    }
+    throw new Error("SDK encryptValue not available");
   } catch (error) {
-    console.log("[Inco Lightning] SDK encryption not available, using commitment scheme:", error);
+    console.log("[Inco Lightning] Using commitment scheme fallback:", error);
     
     const nonce = generateNonce();
     const commitment = generateCommitment(amount, "bet", nonce, userPublicKey);
@@ -68,10 +86,14 @@ export async function encryptBetAmount(amount: number, userPublicKey: string): P
       commitment,
       nonce,
       timestamp: Date.now(),
+      programId: INCO_LIGHTNING_PROGRAM_ID.toBase58(),
       amountHash: Buffer.from(`${amount}:${nonce}`).toString("base64"),
     };
     
-    return Buffer.from(JSON.stringify(encryptedPayload)).toString("base64");
+    return { 
+      encrypted: Buffer.from(JSON.stringify(encryptedPayload)).toString("base64"),
+      sdkUsed: "commitment"
+    };
   }
 }
 
@@ -86,9 +108,11 @@ export async function createConfidentialBet(
   console.log("[Inco Lightning] Creating confidential bet for market:", marketId);
   
   const nonce = clientNonce || generateNonce();
-  const encryptedAmount = await encryptBetAmount(amount, userPublicKey);
+  const { encrypted: encryptedAmount, sdkUsed } = await encryptBetAmount(amount, userPublicKey);
   
   const commitment = clientCommitment || generateCommitment(amount, side, nonce, userPublicKey);
+  
+  console.log("[Inco Lightning] Bet created with SDK:", sdkUsed);
   
   return {
     marketId,
@@ -97,6 +121,7 @@ export async function createConfidentialBet(
     commitment,
     nonce,
     timestamp: Date.now(),
+    sdkUsed,
   };
 }
 

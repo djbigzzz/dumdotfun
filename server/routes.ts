@@ -59,6 +59,32 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/privacy/test/inco-encrypt", async (req, res) => {
+    try {
+      const { amount, walletAddress } = req.body;
+      
+      if (!amount || !walletAddress) {
+        return res.status(400).json({ error: "amount and walletAddress are required" });
+      }
+      
+      const { encryptBetAmount } = await import("./privacy/inco-lightning");
+      
+      const { encrypted, sdkUsed } = await encryptBetAmount(amount, walletAddress);
+      
+      res.json({
+        success: true,
+        sdkUsed,
+        encrypted: encrypted.slice(0, 100) + (encrypted.length > 100 ? "..." : ""),
+        encryptedLength: encrypted.length,
+        timestamp: Date.now(),
+        network: "devnet"
+      });
+    } catch (error: any) {
+      console.error("Error testing Inco encryption:", error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  });
+
   app.post("/api/privacy/stealth-address", async (req, res) => {
     try {
       const { recipientWallet, tokenMint } = req.body;
