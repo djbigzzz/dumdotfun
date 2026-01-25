@@ -1,11 +1,11 @@
 /**
  * Radr ShadowWire - Private Transfers Integration (Hackathon-Ready)
- * 
+ *
  * Based on https://github.com/Radrdotfun/ShadowWire
- * 
+ *
  * Features:
  * - Hidden transfer amounts using ZK Bulletproofs
- * - Internal transfers: fully private (amount hidden)
+ * - Internal transfers: amount hidden
  * - External transfers: sender anonymous (amount visible)
  * - Client-side WASM proof generation
  * - Wallet signature authentication required
@@ -15,11 +15,15 @@
 const SUPPORTED_TOKENS = [
   "SOL", "RADR", "USDC", "ORE", "BONK", "JIM", "GODL",
   "HUSTLE", "ZEC", "CRT", "BLACKCOIN", "GIL", "ANON",
-  "WLFI", "USD1", "AOL", "IQLABS", "SANA", "POKI", 
-  "RAIN", "HOSICO", "SKR"
+  "WLFI", "USD1", "AOL", "IQLABS", "SANA", "POKI",
+  "RAIN", "HOSICO", "SKR",
 ] as const;
 
 export type SupportedToken = typeof SUPPORTED_TOKENS[number];
+
+export interface SignMessageFn {
+  (message: Uint8Array): Promise<Uint8Array>;
+}
 
 export const SHADOWWIRE_CONFIG = {
   name: "Radr ShadowWire",
@@ -31,41 +35,41 @@ export const SHADOWWIRE_CONFIG = {
   features: [
     "Hidden transfer amounts using ZK proofs",
     `${SUPPORTED_TOKENS.length} supported tokens`,
-    "Internal transfers (fully private - amount hidden)",
+    "Internal transfers (amount hidden)",
     "External transfers (sender anonymous - amount visible)",
     "Client-side proof generation via WASM",
-    "Wallet signature authentication required"
+    "Wallet signature authentication required",
   ],
-  supportedTokens: SUPPORTED_TOKENS as unknown as string[],
-  docs: "https://github.com/Radrdotfun/ShadowWire"
+  supportedTokens: [...SUPPORTED_TOKENS] as string[],
+  docs: "https://github.com/Radrdotfun/ShadowWire",
 };
 
 let shadowWireClient: any = null;
 let shadowWireInitAttemptedAt: number | null = null;
-const RETRY_DELAY_MS = 30000; // Retry after 30 seconds on failure
+const RETRY_DELAY_MS = 30_000; // Retry after 30 seconds on failure
+
+function isTokenSupported(token: string): token is SupportedToken {
+  return (SUPPORTED_TOKENS as readonly string[]).includes(token);
+}
 
 async function getShadowWireClient() {
   const now = Date.now();
-  
-  // If we have a working client, return it
-  if (shadowWireClient) {
-    return shadowWireClient;
-  }
-  
-  // If initialization failed recently, wait before retrying
-  if (shadowWireInitAttemptedAt && (now - shadowWireInitAttemptedAt) < RETRY_DELAY_MS) {
+
+  if (shadowWireClient) return shadowWireClient;
+
+  // If init failed recently, wait before retrying
+  if (shadowWireInitAttemptedAt && now - shadowWireInitAttemptedAt < RETRY_DELAY_MS) {
     return null;
   }
-  
+
   try {
     console.log("[ShadowWire] Initializing ShadowWire SDK...");
     shadowWireInitAttemptedAt = now;
-    
+
     const shadowwire = await import("@radr/shadowwire");
 
-    // Initialize ShadowWire client
     shadowWireClient = new shadowwire.ShadowWireClient({
-      debug: process.env.NODE_ENV === "development"
+      debug: process.env.NODE_ENV === "development",
     });
 
     console.log("[ShadowWire] ✓ Successfully initialized ShadowWire SDK");
@@ -73,32 +77,81 @@ async function getShadowWireClient() {
     return shadowWireClient;
   } catch (error) {
     console.error("[ShadowWire] ✗ Failed to initialize ShadowWire client:", error);
-    // Don't set client, allow retry after delay
     return null;
   }
 }
 
-function isTokenSupported(token: string): token is SupportedToken {
-  return SUPPORTED_TOKENS.includes(token as SupportedToken);
+// ---- SDK-call wrappers to be robust across SDK signature changes ----
+
+async function toSmallestUnit(amountUi: number, token: SupportedToken): Promise<number> {
+  const { TokenUtils } = await import("@radr/shadowwire");
+  // Type assertion needed for newer tokens not in older SDK typings
+  return TokenUtils.toSmallestUnit(amountUi, token as any);
 }
+
+async function callDeposit(
+  client: any,
+  walletAddress: string,
+  signMessage: SignMessageFn,
+  amountSmallest: number,
+  token: SupportedToken
+) {
+  // Some SDK versions may accept wallet as string (README),
+  // others may accept wallet object with signMessage.
+  try {
+    return await client.deposit({
+      wallet: { address: walletAddress, signMessage },
+      amount: amountSmallest,
+      token,
+    });
+  } catch {
+    return await client.deposit({
+      wallet: walletAddress,
+      amount: amountSmallest,
+      token,
+    });
+  }
+}
+
+async function callWithdraw(
+  client: any,
+  walletAddress: string,
+  signMessage: SignMessageFn,
+  amountSmallest: number,
+  token: SupportedToken
+) {
+  try {
+    return await client.withdraw({
+      wallet: { address: walletAddress, signMessage },
+      amount: amountSmallest,
+      token,
+    });
+  } catch {
+    return await client.withdraw({
+      wallet: walletAddress,
+      amount: amountSmallest,
+      token,
+    });
+  }
+}
+
+// ---- Types ----
 
 export interface ShadowWireTransferParams {
   senderAddress: string;
   recipientAddress: string;
-  amount: number;
-  token: string;
+  amount: number; // UI units (e.g. 0.1 SOL)
+  token: string;  // validated to SupportedToken
   type: "internal" | "external";
 }
 
 export interface ShadowWireBalance {
   available: number;
   poolAddress: string;
-  token: string;
+  token: SupportedToken;
 }
 
-export interface SignMessageFn {
-  (message: Uint8Array): Promise<Uint8Array>;
-}
+// ---- Public API ----
 
 export async function getShadowWireStatus(): Promise<{
   active: boolean;
@@ -115,13 +168,12 @@ export async function getShadowWireStatus(): Promise<{
     bounty: SHADOWWIRE_CONFIG.bounty,
     description: SHADOWWIRE_CONFIG.description,
     supportedTokens: [...SUPPORTED_TOKENS],
-    tokenCount: SUPPORTED_TOKENS.length
+    tokenCount: SUPPORTED_TOKENS.length,
   };
 }
 
 /**
  * Prepare a ShadowWire transfer (quote/preview)
- * 
  * Use executeShadowWireTransfer() to actually execute with wallet signature
  */
 export async function prepareShadowWireTransfer(params: ShadowWireTransferParams): Promise<{
@@ -135,16 +187,17 @@ export async function prepareShadowWireTransfer(params: ShadowWireTransferParams
   minimumAmount?: number;
 }> {
   try {
-    // Validate token first
     if (!isTokenSupported(params.token)) {
       return {
         success: false,
-        message: `Token "${params.token}" is not supported. Supported tokens: ${SUPPORTED_TOKENS.join(", ")}`,
+        message: `Token "${params.token}" is not supported. Supported: ${SUPPORTED_TOKENS.join(", ")}`,
         amountHidden: false,
         senderAnonymous: false,
-        requiresWalletSignature: false
+        requiresWalletSignature: false,
       };
     }
+
+    const token: SupportedToken = params.token;
 
     const client = await getShadowWireClient();
     if (!client) {
@@ -153,44 +206,46 @@ export async function prepareShadowWireTransfer(params: ShadowWireTransferParams
         message: "ShadowWire SDK not available - install @radr/shadowwire",
         amountHidden: false,
         senderAnonymous: false,
-        requiresWalletSignature: false
+        requiresWalletSignature: false,
       };
     }
 
-    console.log(`[ShadowWire] Preparing ${params.type} transfer: ${params.amount} ${params.token}`);
+    console.log(`[ShadowWire] Preparing ${params.type} transfer: ${params.amount} ${token}`);
 
     const isInternal = params.type === "internal";
 
-    // Get fee info from SDK
-    const feePercentage = client.getFeePercentage(params.token);
-    const minimumAmount = client.getMinimumAmount(params.token);
+    const feePercentage = client.getFeePercentage(token);
+    const minimumAmount = client.getMinimumAmount(token);
 
-    // Validate minimum amount
     if (params.amount < minimumAmount) {
       return {
         success: false,
-        message: `Amount must be at least ${minimumAmount} ${params.token}`,
+        message: `Amount must be at least ${minimumAmount} ${token}`,
         amountHidden: false,
         senderAnonymous: false,
         requiresWalletSignature: false,
         feePercentage,
-        minimumAmount
+        minimumAmount,
       };
     }
 
-    // Calculate fees
-    const feeCosts = client.calculateFee(params.amount, params.token);
+    const feeCosts = client.calculateFee(params.amount, token);
 
-    // Internal: amount hidden, sender NOT anonymous (recipient knows who sent)
-    // External: amount visible, sender IS anonymous
+    // Semantics (based on ShadowWire README):
+    // - Internal: amount hidden (sender visible)
+    // - External: sender anonymous (amount visible)
     const amountHidden = isInternal;
     const senderAnonymous = !isInternal;
 
-    console.log(`[ShadowWire] Transfer type: ${params.type}, amountHidden: ${amountHidden}, senderAnonymous: ${senderAnonymous}, Fee: ${feePercentage}%`);
+    const privacyLabel = isInternal ? "amount hidden" : "sender anonymous";
+
+    // Normalize fee display
+    const totalFee = feeCosts?.totalFee ?? feeCosts?.total ?? null;
+    const feePart = totalFee != null ? ` Fee: ${totalFee} ${token}.` : "";
 
     return {
       success: true,
-      message: `Ready to transfer ${params.amount} ${params.token} via ShadowWire${amountHidden ? ' (amount hidden)' : ''}${senderAnonymous ? ' (sender anonymous)' : ''}. Fee: ${feeCosts.totalFee} ${params.token}. Wallet signature required.`,
+      message: `Ready to transfer ${params.amount} ${token} via ShadowWire (${privacyLabel}).${feePart} Wallet signature required.`,
       amountHidden,
       senderAnonymous,
       requiresWalletSignature: true,
@@ -200,27 +255,25 @@ export async function prepareShadowWireTransfer(params: ShadowWireTransferParams
         sender: params.senderAddress,
         recipient: params.recipientAddress,
         amount: params.amount,
-        token: params.token,
+        token,
         type: params.type,
-        fee: feeCosts
-      }
+        fee: feeCosts,
+      },
     };
   } catch (error: any) {
     console.error("[ShadowWire] Error preparing transfer:", error);
     return {
       success: false,
-      message: error.message || "Failed to prepare ShadowWire transfer",
+      message: error?.message || "Failed to prepare ShadowWire transfer",
       amountHidden: false,
       senderAnonymous: false,
-      requiresWalletSignature: false
+      requiresWalletSignature: false,
     };
   }
 }
 
 /**
  * Execute a ShadowWire transfer with wallet signature
- * 
- * Requires signMessage function from wallet adapter
  */
 export async function executeShadowWireTransfer(
   params: ShadowWireTransferParams,
@@ -228,80 +281,62 @@ export async function executeShadowWireTransfer(
 ): Promise<{
   success: boolean;
   message: string;
-  signature?: string;
-  txHash?: string;
+  signatureOrHash?: string;
 }> {
   try {
-    // Validate token first
     if (!isTokenSupported(params.token)) {
-      return {
-        success: false,
-        message: `Token "${params.token}" is not supported.`
-      };
+      return { success: false, message: `Token "${params.token}" is not supported.` };
     }
+    const token: SupportedToken = params.token;
 
     const client = await getShadowWireClient();
-    if (!client) {
-      return {
-        success: false,
-        message: "ShadowWire SDK not available"
-      };
-    }
+    if (!client) return { success: false, message: "ShadowWire SDK not available" };
 
-    console.log(`[ShadowWire] Executing ${params.type} transfer: ${params.amount} ${params.token}`);
+    console.log(`[ShadowWire] Executing ${params.type} transfer: ${params.amount} ${token}`);
 
-    // Execute transfer via SDK with wallet signature
     const result = await client.transfer({
       sender: params.senderAddress,
       recipient: params.recipientAddress,
       amount: params.amount,
-      token: params.token,
+      token,
       type: params.type,
-      wallet: { signMessage }
+      wallet: { signMessage },
     });
 
-    console.log("[ShadowWire] Transfer executed successfully:", result?.signature || result?.txHash);
+    const signatureOrHash =
+      result?.signature ?? result?.txHash ?? result?.transactionHash ?? result?.hash;
 
     return {
       success: true,
-      message: `Successfully transferred ${params.amount} ${params.token}`,
-      signature: result?.signature,
-      txHash: result?.txHash
+      message: `Successfully transferred ${params.amount} ${token}`,
+      signatureOrHash,
     };
   } catch (error: any) {
     console.error("[ShadowWire] Error executing transfer:", error);
-    return {
-      success: false,
-      message: error.message || "Failed to execute ShadowWire transfer"
-    };
+    return { success: false, message: error?.message || "Failed to execute ShadowWire transfer" };
   }
 }
 
-export async function getShadowWireBalance(walletAddress: string, token: string = "SOL"): Promise<ShadowWireBalance | null> {
+export async function getShadowWireBalance(
+  walletAddress: string,
+  tokenInput: string = "SOL"
+): Promise<ShadowWireBalance | null> {
   try {
-    // Validate token
-    if (!isTokenSupported(token)) {
-      console.log(`[ShadowWire] Token "${token}" not supported for balance check`);
+    if (!isTokenSupported(tokenInput)) {
+      console.log(`[ShadowWire] Token "${tokenInput}" not supported for balance check`);
       return null;
     }
+    const token: SupportedToken = tokenInput;
 
     const client = await getShadowWireClient();
-    if (!client) {
-      console.log("[ShadowWire] Client not available for balance check");
-      return null;
-    }
+    if (!client) return null;
 
-    console.log(`[ShadowWire] Getting balance for ${walletAddress.slice(0, 8)}... (${token})`);
-
-    // Use real SDK getBalance method
     const balance = await client.getBalance(walletAddress, token);
 
-    console.log(`[ShadowWire] Balance retrieved: ${balance?.available || 0} ${token}`);
-
     return {
-      available: balance?.available || 0,
-      poolAddress: balance?.pool_address || "",
-      token
+      available: Number(balance?.available || 0),
+      poolAddress: String(balance?.pool_address || ""),
+      token,
     };
   } catch (error: any) {
     console.error("[ShadowWire] Error getting balance:", error);
@@ -311,233 +346,155 @@ export async function getShadowWireBalance(walletAddress: string, token: string 
 
 /**
  * Prepare a deposit request (quote/preview)
- * 
  * Use executeShadowWireDeposit() to actually execute with wallet
  */
-export async function prepareShadowWireDeposit(walletAddress: string, amount: number, token: string = "SOL"): Promise<{
+export async function prepareShadowWireDeposit(
+  walletAddress: string,
+  amount: number,
+  tokenInput: string = "SOL"
+): Promise<{
   success: boolean;
   message: string;
-  depositRequest?: {
-    wallet: string;
-    amount: number;
-    token: string;
-  };
-  feeInfo?: any;
+  depositRequest?: { wallet: string; amountSmallest: number; token: SupportedToken };
+  feeInfo?: { percentage: number; minimum: number; costs: any };
 }> {
   try {
-    // Validate token
-    if (!isTokenSupported(token)) {
-      return { 
-        success: false, 
-        message: `Token "${token}" is not supported. Supported tokens: ${SUPPORTED_TOKENS.join(", ")}` 
-      };
-    }
-
-    const client = await getShadowWireClient();
-    if (!client) {
-      return { success: false, message: "ShadowWire SDK not available - install @radr/shadowwire" };
-    }
-
-    console.log(`[ShadowWire] Preparing deposit: ${amount} ${token} for ${walletAddress.slice(0, 8)}...`);
-
-    // Import TokenUtils from SDK
-    const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token as any);
-
-    // Get fee information
-    const feePercentage = client.getFeePercentage(token);
-    const minimumAmount = client.getMinimumAmount(token);
-    const feeCosts = client.calculateFee(amount, token);
-
-    if (amount < minimumAmount) {
+    if (!isTokenSupported(tokenInput)) {
       return {
         success: false,
-        message: `Amount must be at least ${minimumAmount} ${token}`
+        message: `Token "${tokenInput}" is not supported. Supported: ${SUPPORTED_TOKENS.join(", ")}`,
       };
     }
+    const token: SupportedToken = tokenInput;
 
-    console.log(`[ShadowWire] Deposit prepared: ${amountLamports} smallest units, Fee: ${feeCosts.totalFee} ${token}`);
+    const client = await getShadowWireClient();
+    if (!client) return { success: false, message: "ShadowWire SDK not available - install @radr/shadowwire" };
+
+    const feePercentage = client.getFeePercentage(token);
+    const minimumAmount = client.getMinimumAmount(token);
+
+    if (amount < minimumAmount) {
+      return { success: false, message: `Amount must be at least ${minimumAmount} ${token}` };
+    }
+
+    const feeCosts = client.calculateFee(amount, token);
+    const amountSmallest = await toSmallestUnit(amount, token);
 
     return {
       success: true,
-      message: `Ready to deposit ${amount} ${token} to ShadowWire pool. Fee: ${feeCosts.totalFee} ${token}. Sign transaction to complete.`,
-      depositRequest: {
-        wallet: walletAddress,
-        amount: amountLamports,
-        token
-      },
-      feeInfo: {
-        percentage: feePercentage,
-        minimum: minimumAmount,
-        costs: feeCosts
-      }
+      message: `Ready to deposit ${amount} ${token}. Fee: ${feeCosts.totalFee} ${token}. Wallet signature required.`,
+      depositRequest: { wallet: walletAddress, amountSmallest, token },
+      feeInfo: { percentage: feePercentage, minimum: minimumAmount, costs: feeCosts },
     };
   } catch (error: any) {
     console.error("[ShadowWire] Error preparing deposit:", error);
-    return { success: false, message: error.message || "Failed to prepare deposit" };
+    return { success: false, message: error?.message || "Failed to prepare deposit" };
   }
 }
 
 /**
- * Execute a deposit with wallet
+ * Execute a deposit with wallet signature
  */
 export async function executeShadowWireDeposit(
   walletAddress: string,
   amount: number,
-  token: string,
+  tokenInput: string,
   signMessage: SignMessageFn
-): Promise<{
-  success: boolean;
-  message: string;
-  txHash?: string;
-}> {
+): Promise<{ success: boolean; message: string; signatureOrHash?: string }> {
   try {
-    if (!isTokenSupported(token)) {
-      return { success: false, message: `Token "${token}" is not supported.` };
-    }
+    if (!isTokenSupported(tokenInput)) return { success: false, message: `Token "${tokenInput}" is not supported.` };
+    const token: SupportedToken = tokenInput;
 
     const client = await getShadowWireClient();
-    if (!client) {
-      return { success: false, message: "ShadowWire SDK not available" };
-    }
+    if (!client) return { success: false, message: "ShadowWire SDK not available" };
 
-    console.log(`[ShadowWire] Executing deposit: ${amount} ${token}`);
+    const amountSmallest = await toSmallestUnit(amount, token);
+    const result = await callDeposit(client, walletAddress, signMessage, amountSmallest, token);
 
-    const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token as any);
+    const signatureOrHash =
+      result?.signature ?? result?.txHash ?? result?.transactionHash ?? result?.hash;
 
-    const result = await client.deposit({
-      wallet: { address: walletAddress, signMessage },
-      amount: amountLamports,
-      token
-    });
-
-    console.log("[ShadowWire] Deposit executed:", result?.txHash);
-
-    return {
-      success: true,
-      message: `Successfully deposited ${amount} ${token}`,
-      txHash: result?.txHash
-    };
+    return { success: true, message: `Successfully deposited ${amount} ${token}`, signatureOrHash };
   } catch (error: any) {
     console.error("[ShadowWire] Error executing deposit:", error);
-    return { success: false, message: error.message || "Failed to execute deposit" };
+    return { success: false, message: error?.message || "Failed to execute deposit" };
   }
 }
 
 /**
  * Prepare a withdrawal request (quote/preview)
- * 
  * Use executeShadowWireWithdraw() to actually execute with wallet
  */
-export async function prepareShadowWireWithdraw(walletAddress: string, amount: number, token: string = "SOL"): Promise<{
+export async function prepareShadowWireWithdraw(
+  walletAddress: string,
+  amount: number,
+  tokenInput: string = "SOL"
+): Promise<{
   success: boolean;
   message: string;
-  withdrawRequest?: {
-    wallet: string;
-    amount: number;
-    token: string;
-  };
-  feeInfo?: any;
+  withdrawRequest?: { wallet: string; amountSmallest: number; token: SupportedToken };
+  feeInfo?: { percentage: number; minimum: number; costs: any };
 }> {
   try {
-    // Validate token
-    if (!isTokenSupported(token)) {
-      return { 
-        success: false, 
-        message: `Token "${token}" is not supported. Supported tokens: ${SUPPORTED_TOKENS.join(", ")}` 
-      };
-    }
-
-    const client = await getShadowWireClient();
-    if (!client) {
-      return { success: false, message: "ShadowWire SDK not available - install @radr/shadowwire" };
-    }
-
-    console.log(`[ShadowWire] Preparing withdrawal: ${amount} ${token} for ${walletAddress.slice(0, 8)}...`);
-
-    // Import TokenUtils from SDK
-    const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token as any);
-
-    // Get fee information
-    const feePercentage = client.getFeePercentage(token);
-    const minimumAmount = client.getMinimumAmount(token);
-    const feeCosts = client.calculateFee(amount, token);
-
-    if (amount < minimumAmount) {
+    if (!isTokenSupported(tokenInput)) {
       return {
         success: false,
-        message: `Amount must be at least ${minimumAmount} ${token}`
+        message: `Token "${tokenInput}" is not supported. Supported: ${SUPPORTED_TOKENS.join(", ")}`,
       };
     }
+    const token: SupportedToken = tokenInput;
 
-    console.log(`[ShadowWire] Withdrawal prepared: ${amountLamports} smallest units, Fee: ${feeCosts.totalFee} ${token}`);
+    const client = await getShadowWireClient();
+    if (!client) return { success: false, message: "ShadowWire SDK not available - install @radr/shadowwire" };
+
+    const feePercentage = client.getFeePercentage(token);
+    const minimumAmount = client.getMinimumAmount(token);
+
+    if (amount < minimumAmount) {
+      return { success: false, message: `Amount must be at least ${minimumAmount} ${token}` };
+    }
+
+    const feeCosts = client.calculateFee(amount, token);
+    const amountSmallest = await toSmallestUnit(amount, token);
 
     return {
       success: true,
-      message: `Ready to withdraw ${amount} ${token} from ShadowWire pool. Fee: ${feeCosts.totalFee} ${token}. Sign transaction to complete.`,
-      withdrawRequest: {
-        wallet: walletAddress,
-        amount: amountLamports,
-        token
-      },
-      feeInfo: {
-        percentage: feePercentage,
-        minimum: minimumAmount,
-        costs: feeCosts
-      }
+      message: `Ready to withdraw ${amount} ${token}. Fee: ${feeCosts.totalFee} ${token}. Wallet signature required.`,
+      withdrawRequest: { wallet: walletAddress, amountSmallest, token },
+      feeInfo: { percentage: feePercentage, minimum: minimumAmount, costs: feeCosts },
     };
   } catch (error: any) {
     console.error("[ShadowWire] Error preparing withdrawal:", error);
-    return { success: false, message: error.message || "Failed to prepare withdrawal" };
+    return { success: false, message: error?.message || "Failed to prepare withdrawal" };
   }
 }
 
 /**
- * Execute a withdrawal with wallet
+ * Execute a withdrawal with wallet signature
  */
 export async function executeShadowWireWithdraw(
   walletAddress: string,
   amount: number,
-  token: string,
+  tokenInput: string,
   signMessage: SignMessageFn
-): Promise<{
-  success: boolean;
-  message: string;
-  txHash?: string;
-}> {
+): Promise<{ success: boolean; message: string; signatureOrHash?: string }> {
   try {
-    if (!isTokenSupported(token)) {
-      return { success: false, message: `Token "${token}" is not supported.` };
-    }
+    if (!isTokenSupported(tokenInput)) return { success: false, message: `Token "${tokenInput}" is not supported.` };
+    const token: SupportedToken = tokenInput;
 
     const client = await getShadowWireClient();
-    if (!client) {
-      return { success: false, message: "ShadowWire SDK not available" };
-    }
+    if (!client) return { success: false, message: "ShadowWire SDK not available" };
 
-    console.log(`[ShadowWire] Executing withdrawal: ${amount} ${token}`);
+    const amountSmallest = await toSmallestUnit(amount, token);
+    const result = await callWithdraw(client, walletAddress, signMessage, amountSmallest, token);
 
-    const { TokenUtils } = await import("@radr/shadowwire");
-    const amountLamports = TokenUtils.toSmallestUnit(amount, token as any);
+    const signatureOrHash =
+      result?.signature ?? result?.txHash ?? result?.transactionHash ?? result?.hash;
 
-    const result = await client.withdraw({
-      wallet: { address: walletAddress, signMessage },
-      amount: amountLamports,
-      token
-    });
-
-    console.log("[ShadowWire] Withdrawal executed:", result?.txHash);
-
-    return {
-      success: true,
-      message: `Successfully withdrew ${amount} ${token}`,
-      txHash: result?.txHash
-    };
+    return { success: true, message: `Successfully withdrew ${amount} ${token}`, signatureOrHash };
   } catch (error: any) {
     console.error("[ShadowWire] Error executing withdrawal:", error);
-    return { success: false, message: error.message || "Failed to execute withdrawal" };
+    return { success: false, message: error?.message || "Failed to execute withdrawal" };
   }
 }
 
@@ -550,7 +507,7 @@ export function getShadowWireIntegration() {
       transfer: "/api/privacy/shadowwire/transfer",
       balance: "/api/privacy/shadowwire/balance/:wallet",
       deposit: "/api/privacy/shadowwire/deposit",
-      withdraw: "/api/privacy/shadowwire/withdraw"
-    }
+      withdraw: "/api/privacy/shadowwire/withdraw",
+    },
   };
 }
