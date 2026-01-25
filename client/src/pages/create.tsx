@@ -3,7 +3,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw } from "lucide-react";
+import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -40,6 +40,8 @@ export default function CreateToken() {
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [creationStep, setCreationStep] = useState<string>("");
+  const [enableConfidential, setEnableConfidential] = useState(false);
+  const [enableStealth, setEnableStealth] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const fetchBalance = async () => {
@@ -579,6 +581,94 @@ export default function CreateToken() {
                 </label>
               )}
             </div>
+          </div>
+
+          {/* Privacy Options Section */}
+          <div className={`${privateMode ? "bg-black border-[#39FF14]" : "bg-gradient-to-br from-purple-50 to-indigo-50 border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+            <div className="flex items-center gap-2 mb-4">
+              <Shield className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-purple-600"}`} />
+              <h2 className={`text-sm font-black uppercase ${privateMode ? "text-[#39FF14] font-mono" : "text-purple-700"}`}>
+                {privateMode ? "// PRIVACY_CONFIG" : "PRIVACY OPTIONS"}
+              </h2>
+            </div>
+            
+            <div className="space-y-4">
+              <div 
+                onClick={() => setEnableConfidential(!enableConfidential)}
+                className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  enableConfidential 
+                    ? privateMode 
+                      ? "bg-[#39FF14]/10 border-[#39FF14]" 
+                      : "bg-purple-100 border-purple-500"
+                    : privateMode 
+                      ? "bg-zinc-900/50 border-[#39FF14]/30 hover:border-[#39FF14]/50" 
+                      : "bg-white border-gray-200 hover:border-purple-300"
+                }`}
+                data-testid="toggle-confidential-transfers"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${enableConfidential ? (privateMode ? "bg-[#39FF14]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
+                    <Lock className={`w-4 h-4 ${enableConfidential ? (privateMode ? "text-[#39FF14]" : "text-purple-600") : (privateMode ? "text-[#39FF14]/40" : "text-gray-400")}`} />
+                  </div>
+                  <div>
+                    <p className={`font-bold ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+                      {privateMode ? "TOKEN-2022_CONFIDENTIAL" : "Confidential Transfers"}
+                    </p>
+                    <p className={`text-xs ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+                      {privateMode ? "// HIDDEN_BALANCES_AND_AMOUNTS" : "Hide token balances and transfer amounts"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
+                  enableConfidential 
+                    ? privateMode ? "bg-[#39FF14]" : "bg-purple-500" 
+                    : privateMode ? "bg-zinc-700" : "bg-gray-300"
+                }`}>
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableConfidential ? "translate-x-6" : ""}`} />
+                </div>
+              </div>
+
+              <div 
+                onClick={() => setEnableStealth(!enableStealth)}
+                className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                  enableStealth 
+                    ? privateMode 
+                      ? "bg-[#39FF14]/10 border-[#39FF14]" 
+                      : "bg-purple-100 border-purple-500"
+                    : privateMode 
+                      ? "bg-zinc-900/50 border-[#39FF14]/30 hover:border-[#39FF14]/50" 
+                      : "bg-white border-gray-200 hover:border-purple-300"
+                }`}
+                data-testid="toggle-stealth-addresses"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${enableStealth ? (privateMode ? "bg-[#39FF14]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
+                    <Eye className={`w-4 h-4 ${enableStealth ? (privateMode ? "text-[#39FF14]" : "text-purple-600") : (privateMode ? "text-[#39FF14]/40" : "text-gray-400")}`} />
+                  </div>
+                  <div>
+                    <p className={`font-bold ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+                      {privateMode ? "STEALTH_RECEIVING" : "Stealth Address Support"}
+                    </p>
+                    <p className={`text-xs ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-gray-500"}`}>
+                      {privateMode ? "// UNLINKABLE_TOKEN_RECEIVING" : "Enable one-time addresses for private receiving"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
+                  enableStealth 
+                    ? privateMode ? "bg-[#39FF14]" : "bg-purple-500" 
+                    : privateMode ? "bg-zinc-700" : "bg-gray-300"
+                }`}>
+                  <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableStealth ? "translate-x-6" : ""}`} />
+                </div>
+              </div>
+            </div>
+
+            <p className={`text-xs mt-4 ${privateMode ? "text-[#39FF14]/40 font-mono" : "text-gray-500"}`}>
+              {privateMode 
+                ? "// PRIVACY_FEATURES_USE_TOKEN-2022_EXTENSIONS" 
+                : "Privacy features use Solana Token-2022 program extensions"}
+            </p>
           </div>
 
           {/* Creation Step Display */}

@@ -1,9 +1,53 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
-import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu } from "lucide-react";
+import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu, Trophy } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 
 const sections = [
+  {
+    id: "hackathon-summary",
+    icon: Trophy,
+    title: "Hackathon Bounty Summary",
+    content: `**🏆 Solana Privacy Hackathon 2026 - dum.fun Submission**
+
+dum.fun is a privacy-first token launchpad with integrated prediction markets. We're targeting **8 bounties totaling $65K+** with fully working implementations on Solana devnet.
+
+**Active Bounty Integrations:**
+
+| Bounty | Prize | Status | Feature |
+|--------|-------|--------|---------|
+| Inco Lightning | $2,000 | ✅ LIVE | Confidential betting with encrypted amounts |
+| Helius RPC | $5,000 | ✅ LIVE | All Solana connections use Helius |
+| Anoncoin | $10,000 | ✅ LIVE | Stealth addresses for private receiving |
+| Token-2022 | $15,000 | ✅ LIVE | Confidential transfers with commitments |
+| Privacy Cash | $15,000 | ✅ LIVE | Private deposits/withdrawals |
+| ShadowWire | $15,000 | ✅ LIVE | Bulletproof ZK private transfers |
+| NP Exchange | $2,500 | ✅ LIVE | AI agent prediction markets |
+| encrypt.trade | $1,000 | ✅ LIVE | Privacy education documentation |
+
+**How to Test (For Judges):**
+
+1. **Connect Phantom Wallet** - Click "LOG IN" in header
+2. **Get Devnet SOL** - Use the airdrop button or visit faucet.solana.com
+3. **Enable Privacy Mode** - Click the 🔒 toggle in the header (turns green)
+4. **Create Private Token** - Go to Launch, enable confidential transfers
+5. **Place Confidential Bet** - Go to Predictions, toggle privacy on, place bet
+6. **Generate Stealth Address** - Go to Profile, use Privacy Wallet section
+7. **View on Solscan** - All transactions are real on-chain devnet transactions
+
+**Key Verification Points:**
+
+- Program ID: \`6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh\`
+- Inco Program: \`5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj\`
+- Token-2022: \`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb\`
+- Network: Solana Devnet
+
+**API Test Endpoints:**
+
+- GET \`/api/privacy/status\` - View all privacy integrations
+- POST \`/api/privacy/test/inco-encrypt\` - Test Inco encryption
+- POST \`/api/privacy/stealth-address\` - Generate stealth address`
+  },
   {
     id: "why-privacy",
     icon: Eye,

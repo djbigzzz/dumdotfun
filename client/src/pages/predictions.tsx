@@ -2,10 +2,11 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap, Shield, Lock } from "lucide-react";
+import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap, Shield, Lock, Eye, EyeOff } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { PrivacyBadge } from "@/components/privacy-badge";
 import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
+import { usePrivacy } from "@/lib/privacy-context";
 
 interface DFlowMarket {
   ticker: string;
@@ -155,6 +156,7 @@ function NotConfiguredBanner() {
 }
 
 export default function PredictionsPage() {
+  const { privateMode, togglePrivateMode } = usePrivacy();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"volume" | "volume24h" | "liquidity">("volume");
 
@@ -187,19 +189,47 @@ export default function PredictionsPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <div className="bg-green-100 border-2 border-green-500 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]">
-          <div className="flex items-center gap-3">
-            <Shield className="w-5 h-5 text-green-600" />
-            <div>
-              <p className="text-sm font-bold text-green-800">
-                Confidential Betting Active
-              </p>
-              <p className="text-xs text-green-700">
-                Your bets are stored privately. Solana Privacy Hack 2026 submission.
-              </p>
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
+            privateMode 
+              ? "bg-black border-[#39FF14]" 
+              : "bg-gradient-to-r from-purple-100 to-indigo-100 border-black"
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`p-2 rounded-lg ${privateMode ? "bg-[#39FF14]/20" : "bg-purple-200"}`}>
+                <Shield className={`w-5 h-5 ${privateMode ? "text-[#39FF14]" : "text-purple-600"}`} />
+              </div>
+              <div>
+                <p className={`text-sm font-bold ${privateMode ? "text-[#39FF14] font-mono" : "text-purple-800"}`}>
+                  {privateMode ? "CONFIDENTIAL_BETTING_ENABLED" : "Privacy-Enabled Predictions"}
+                </p>
+                <p className={`text-xs ${privateMode ? "text-[#39FF14]/60 font-mono" : "text-purple-600"}`}>
+                  {privateMode 
+                    ? "// INCO_LIGHTNING_SDK_ENCRYPTING_ALL_BETS" 
+                    : "Your bets are encrypted with Inco Lightning SDK"}
+                </p>
+              </div>
             </div>
+            <motion.button
+              onClick={togglePrivateMode}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold text-sm transition-all ${
+                privateMode 
+                  ? "bg-[#39FF14] text-black border-[#39FF14] hover:bg-[#39FF14]/80" 
+                  : "bg-purple-500 text-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-purple-600"
+              }`}
+              data-testid="button-toggle-privacy-predictions"
+            >
+              {privateMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              {privateMode ? "ENCRYPTED" : "Privacy On"}
+            </motion.button>
           </div>
-        </div>
+        </motion.div>
 
         <PrivacyIntegrationsCard compact />
 

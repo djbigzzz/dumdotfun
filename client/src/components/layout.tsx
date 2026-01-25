@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy, obfuscateWallet } from "@/lib/privacy-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Terminal, Lock, Unlock, Info } from "lucide-react";
+import { X, Terminal, Lock, Unlock, Info, Shield } from "lucide-react";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
@@ -258,6 +258,22 @@ export function Layout({ children }: { children: React.ReactNode }) {
         </div>
         
         <div className="flex items-center gap-3">
+          {privateMode && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 bg-black border border-[#39FF14] rounded-lg"
+              style={{ boxShadow: "0 0 15px rgba(57,255,20,0.3)" }}
+            >
+              <Shield className="w-4 h-4 text-[#39FF14]" />
+              <span className="text-xs font-mono font-bold text-[#39FF14]">SHIELDED</span>
+              <motion.div
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+                className="w-1.5 h-1.5 bg-[#39FF14] rounded-full"
+              />
+            </motion.div>
+          )}
           <div className="flex items-center">
             <PrivacyToggle onOpenDrawer={() => setShowPrivacyDrawer(true)} />
             <button
