@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2 } from "lucide-react";
-import { PrivacyWallet } from "@/components/privacy-wallet";
+import { PrivacyHub } from "@/components/privacy-hub";
 
 interface UserWithReferrals {
   id: string;
@@ -204,7 +204,7 @@ export default function Profile() {
               </p>
             </div>
 
-            {privateMode && <PrivacyWallet />}
+            <PrivacyHub />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <motion.div
