@@ -497,10 +497,10 @@ export function PrivacyHub() {
   };
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: "shadowwire", label: "ZK Transfers", icon: <Shield className="w-4 h-4" /> },
-    { id: "token2022", label: "Confidential", icon: <Lock className="w-4 h-4" /> },
+    { id: "shadowwire", label: "ShadowWire", icon: <Shield className="w-4 h-4" /> },
+    { id: "token2022", label: "Token-2022", icon: <Lock className="w-4 h-4" /> },
     { id: "stealth", label: "Stealth", icon: <Key className="w-4 h-4" /> },
-    { id: "arcium", label: "MPC", icon: <Shield className="w-4 h-4" /> },
+    { id: "arcium", label: "Arcium", icon: <Shield className="w-4 h-4" /> },
     { id: "activity", label: "Activity", icon: <Activity className="w-4 h-4" /> },
   ];
 
@@ -599,7 +599,7 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(integrations.find(i => i.name.includes("ShadowWire"))?.available ?? true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-purple-700"}`}>
-                    Zero-Knowledge Transfers
+                    ShadowWire ZK Transfers
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
@@ -732,11 +732,11 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-blue-700"}`}>
-                    Confidential Transfers
+                    Token-2022 Confidential Transfers
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
-                  Hide your transaction amounts and balances using cryptographic commitments and range proofs.
+                  Hide your transaction amounts and balances using cryptographic commitments and range proofs via Token-2022 extension.
                 </p>
               </div>
 
@@ -882,7 +882,7 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-zinc-700"}`}>
-                    Multi-Party Computation (MPC)
+                    Arcium C-SPL (MPC)
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
@@ -1004,7 +1004,7 @@ export function PrivacyHub() {
                                   ? privateMode ? "bg-green-900 text-green-300" : "bg-blue-100 text-blue-700"
                                   : privateMode ? "bg-green-900 text-green-300" : "bg-gray-100 text-gray-700"
                           }`}>
-                            {item.type === "shadowwire" ? "ZK Transfer" : item.type === "token2022" ? "Confidential" : item.type}
+                            {item.type === "shadowwire" ? "ShadowWire" : item.type === "token2022" ? "Token-2022" : item.type === "arcium" ? "Arcium" : item.type}
                           </span>
                         </div>
                         <span className={`text-xs ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`}>

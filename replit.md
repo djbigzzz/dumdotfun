@@ -6,12 +6,12 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (January 2026)
 
-- **Confidential Transfers (Arcium)** - Implemented confidential token operations using MPC
+- **Arcium C-SPL (MPC)** - Implemented confidential token operations using MPC
 - **Privacy Cash** - Added private deposits/withdrawals breaking on-chain links
-- **ZK Transfers (ShadowWire)** - Integrated Bulletproof ZK private transfers
+- **ShadowWire ZK Transfers** - Integrated Bulletproof ZK private transfers
 - **AI Prediction Markets** - AI agent-based prediction market creation
 - **Privacy Education Docs** - "Why Privacy Matters" and "Understanding Wallet Surveillance"
-- **Stealth Addresses** - Added one-time receive addresses for private token receiving
+- **Anoncoin Stealth Addresses** - Added one-time receive addresses for private token receiving
 - **Token-2022 Confidential Transfers** - Implemented commitment-based confidential transfers
 - **Privacy API Expansion** - New endpoints for stealth addresses and confidential transfers
 - **Inco Lightning Integration** - Implemented real confidential betting with Inco Lightning SDK
