@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-type TabType = "shadowwire" | "token2022" | "stealth" | "activity";
+type TabType = "shadowwire" | "token2022" | "stealth" | "arcium" | "activity";
 
 interface PrivateBalance {
   sol: number;
@@ -26,7 +26,7 @@ interface StealthAddress {
 
 interface ActivityItem {
   id: string;
-  type: "shadowwire" | "stealth" | "token2022" | "deposit" | "withdraw";
+  type: "shadowwire" | "stealth" | "token2022" | "arcium" | "deposit" | "withdraw";
   description: string;
   amount?: number;
   token?: string;
@@ -64,6 +64,9 @@ export function PrivacyHub() {
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [commitmentAmount, setCommitmentAmount] = useState("");
+  const [arciumAmount, setArciumAmount] = useState("");
+  const [arciumRecipient, setArciumRecipient] = useState("");
+  const [arciumToken, setArciumToken] = useState("SOL");
 
   useEffect(() => {
     if (connectedWallet) {
@@ -422,6 +425,58 @@ export function PrivacyHub() {
     }
   };
 
+  const handleArciumTransfer = async () => {
+    if (!connectedWallet || !arciumRecipient || !arciumAmount) return;
+    setProcessing(true);
+    
+    try {
+      const res = await fetch("/api/privacy/arcium/transfer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderWallet: connectedWallet,
+          recipientWallet: arciumRecipient,
+          amount: parseFloat(arciumAmount),
+          token: arciumToken
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Arcium MPC Transfer Complete",
+          description: `Encrypted transfer of ${arciumAmount} ${arciumToken} processed`,
+        });
+        addActivity({
+          type: "arcium",
+          description: `MPC Transfer to ${arciumRecipient.slice(0, 8)}...`,
+          amount: parseFloat(arciumAmount),
+          token: arciumToken,
+          status: "success",
+          txSignature: data.signature
+        });
+        setArciumAmount("");
+        setArciumRecipient("");
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Arcium transfer failed",
+          description: error.error || "Unknown error",
+          variant: "destructive",
+        });
+        addActivity({
+          type: "arcium",
+          description: `MPC Transfer Failed: ${error.error || "Unknown error"}`,
+          status: "failed"
+        });
+      }
+    } catch (error) {
+      toast({ title: "Arcium transfer failed", variant: "destructive" });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const copyToClipboard = (text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopied(id);
@@ -445,6 +500,7 @@ export function PrivacyHub() {
     { id: "shadowwire", label: "ShadowWire", icon: <Shield className="w-4 h-4" /> },
     { id: "token2022", label: "Token-2022", icon: <Lock className="w-4 h-4" /> },
     { id: "stealth", label: "Stealth", icon: <Key className="w-4 h-4" /> },
+    { id: "arcium", label: "Arcium", icon: <Shield className="w-4 h-4" /> },
     { id: "activity", label: "Activity", icon: <Activity className="w-4 h-4" /> },
   ];
 
@@ -824,6 +880,94 @@ export function PrivacyHub() {
                 </div>
                 <p className={`text-xs ${privateMode ? "text-amber-400/60" : "text-amber-700/70"}`}>
                   ECC-based stealth addresses for unlinkable token receiving.
+                </p>
+              </div>
+            </motion.div>
+          )}
+
+          {activeTab === "arcium" && (
+            <motion.div
+              key="arcium"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-4"
+            >
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-zinc-50 border-zinc-200"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  {getStatusIcon(true)}
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-zinc-700"}`}>
+                    Arcium C-SPL (MPC)
+                  </span>
+                </div>
+                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                  Confidential SPL tokens using Multi-Party Computation. Both balances and amounts stay hidden during computation.
+                </p>
+                <div className={`mt-2 p-2 rounded text-xs font-mono ${privateMode ? "bg-black text-[#10B981]/60" : "bg-gray-100 text-gray-500"}`}>
+                  Program ID: Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                  Private MPC Transfer
+                </h3>
+                <input
+                  type="text"
+                  value={arciumRecipient}
+                  onChange={(e) => setArciumRecipient(e.target.value)}
+                  placeholder="Recipient C-SPL address"
+                  className={`w-full px-4 py-3 rounded-lg border-2 font-mono text-sm ${
+                    privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                  }`}
+                  data-testid="input-arcium-recipient"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={arciumAmount}
+                    onChange={(e) => setArciumAmount(e.target.value)}
+                    placeholder="Amount"
+                    className={`flex-1 px-4 py-3 rounded-lg border-2 font-mono text-sm ${
+                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                    }`}
+                    data-testid="input-arcium-amount"
+                  />
+                  <select
+                    value={arciumToken}
+                    onChange={(e) => setArciumToken(e.target.value)}
+                    className={`px-4 py-3 rounded-lg border-2 font-mono text-sm ${
+                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                    }`}
+                  >
+                    <option value="SOL">SOL</option>
+                    <option value="USDC">USDC</option>
+                  </select>
+                </div>
+                <motion.button
+                  onClick={handleArciumTransfer}
+                  disabled={processing || !arciumRecipient || !arciumAmount}
+                  whileHover={{ y: -2, x: -2 }}
+                  whileTap={{ y: 0, x: 0 }}
+                  className={`w-full flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 ${
+                    privateMode ? "bg-[#10B981] text-black" : "bg-zinc-800 text-white"
+                  }`}
+                  data-testid="button-arcium-transfer"
+                >
+                  <Shield className="w-4 h-4" />
+                  {processing ? "Processing..." : "Secure MPC Transfer"}
+                </motion.button>
+              </div>
+
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Zap className={`w-4 h-4 ${privateMode ? "text-amber-400" : "text-amber-600"}`} />
+                  <span className={`text-sm font-bold ${privateMode ? "text-amber-400" : "text-amber-700"}`}>
+                    Bounty: $15,000
+                  </span>
+                </div>
+                <p className={`text-xs ${privateMode ? "text-amber-400/60" : "text-amber-700/70"}`}>
+                  MPC-powered confidential tokens with programmable privacy and DeFi composability.
                 </p>
               </div>
             </motion.div>

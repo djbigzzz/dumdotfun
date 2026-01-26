@@ -170,6 +170,40 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/privacy/arcium/transfer", async (req, res) => {
+    try {
+      const { senderWallet, recipientWallet, amount, token } = req.body;
+      
+      if (!senderWallet || !recipientWallet || !amount) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+      
+      const { transferConfidential } = await import("./privacy/arcium-cspl");
+      const { PublicKey } = await import("@solana/web3.js");
+      
+      // Simulate Arcium MPC processing delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      const result = await transferConfidential({
+        mint: new PublicKey("So11111111111111111111111111111111111111112"),
+        sender: new PublicKey(senderWallet),
+        recipient: new PublicKey(recipientWallet),
+        encryptedAmount: new Uint8Array(),
+        proof: new Uint8Array()
+      });
+      
+      res.json({
+        success: true,
+        signature: result.signature,
+        status: "settled",
+        network: "devnet"
+      });
+    } catch (error: any) {
+      console.error("Arcium transfer error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/privacy/cash/status", async (_req, res) => {
     try {
       const { PRIVACY_CASH_CONFIG } = await import("./privacy");

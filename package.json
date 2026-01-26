@@ -12,6 +12,7 @@
     "db:push": "drizzle-kit push"
   },
   "dependencies": {
+    "@arcium-hq/client": "^0.6.4",
     "@hookform/resolvers": "^3.10.0",
     "@inco/solana-sdk": "^0.0.2",
     "@jridgewell/trace-mapping": "^0.3.25",
