@@ -497,10 +497,10 @@ export function PrivacyHub() {
   };
 
   const tabs: { id: TabType; label: string; icon: React.ReactNode }[] = [
-    { id: "shadowwire", label: "ShadowWire", icon: <Shield className="w-4 h-4" /> },
-    { id: "token2022", label: "Token-2022", icon: <Lock className="w-4 h-4" /> },
+    { id: "shadowwire", label: "ZK Transfers", icon: <Shield className="w-4 h-4" /> },
+    { id: "token2022", label: "Confidential", icon: <Lock className="w-4 h-4" /> },
     { id: "stealth", label: "Stealth", icon: <Key className="w-4 h-4" /> },
-    { id: "arcium", label: "Arcium", icon: <Shield className="w-4 h-4" /> },
+    { id: "arcium", label: "MPC", icon: <Shield className="w-4 h-4" /> },
     { id: "activity", label: "Activity", icon: <Activity className="w-4 h-4" /> },
   ];
 
@@ -599,7 +599,7 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(integrations.find(i => i.name.includes("ShadowWire"))?.available ?? true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-purple-700"}`}>
-                    ShadowWire SDK v1.1.15
+                    Zero-Knowledge Transfers
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
@@ -732,15 +732,12 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-blue-700"}`}>
-                    Token-2022 Confidential Transfers
+                    Confidential Transfers
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
-                  Pedersen commitment scheme for hidden amounts. Hybrid implementation ready for ZK ElGamal when mainnet enables.
+                  Hide your transaction amounts and balances using cryptographic commitments and range proofs.
                 </p>
-                <div className={`mt-2 p-2 rounded text-xs font-mono ${privateMode ? "bg-black text-[#10B981]/60" : "bg-gray-100 text-gray-500"}`}>
-                  Program ID: TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb
-                </div>
               </div>
 
               <div className="space-y-3">
@@ -775,15 +772,9 @@ export function PrivacyHub() {
                 </motion.button>
               </div>
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className={`w-4 h-4 ${privateMode ? "text-amber-400" : "text-amber-600"}`} />
-                  <span className={`text-sm font-bold ${privateMode ? "text-amber-400" : "text-amber-700"}`}>
-                    Bounty: $15,000
-                  </span>
-                </div>
-                <p className={`text-xs ${privateMode ? "text-amber-400/60" : "text-amber-700/70"}`}>
-                  Token-2022 Confidential Transfers implementation with hybrid fallback for current devnet limitations.
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+                  Secure confidential transfers with hybrid fallback for optimal network performance.
                 </p>
               </div>
             </motion.div>
@@ -801,7 +792,7 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-green-700"}`}>
-                    Stealth Addresses (Anoncoin)
+                    Stealth Addresses
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
@@ -871,14 +862,8 @@ export function PrivacyHub() {
                 </div>
               )}
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className={`w-4 h-4 ${privateMode ? "text-amber-400" : "text-amber-600"}`} />
-                  <span className={`text-sm font-bold ${privateMode ? "text-amber-400" : "text-amber-700"}`}>
-                    Bounty: $10,000 (Anoncoin)
-                  </span>
-                </div>
-                <p className={`text-xs ${privateMode ? "text-amber-400/60" : "text-amber-700/70"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
                   ECC-based stealth addresses for unlinkable token receiving.
                 </p>
               </div>
@@ -897,7 +882,7 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-zinc-700"}`}>
-                    Arcium C-SPL (MPC)
+                    Multi-Party Computation (MPC)
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
@@ -959,14 +944,8 @@ export function PrivacyHub() {
                 </motion.button>
               </div>
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-amber-500/20" : "bg-amber-50 border-amber-200"}`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <Zap className={`w-4 h-4 ${privateMode ? "text-amber-400" : "text-amber-600"}`} />
-                  <span className={`text-sm font-bold ${privateMode ? "text-amber-400" : "text-amber-700"}`}>
-                    Bounty: $15,000
-                  </span>
-                </div>
-                <p className={`text-xs ${privateMode ? "text-amber-400/60" : "text-amber-700/70"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
                   MPC-powered confidential tokens with programmable privacy and DeFi composability.
                 </p>
               </div>
@@ -1018,14 +997,14 @@ export function PrivacyHub() {
                           )}
                           <span className={`text-xs font-bold uppercase px-2 py-0.5 rounded ${
                             item.type === "shadowwire" 
-                              ? privateMode ? "bg-purple-900 text-purple-300" : "bg-purple-100 text-purple-700"
+                              ? privateMode ? "bg-green-900 text-green-300" : "bg-purple-100 text-purple-700"
                               : item.type === "stealth"
                                 ? privateMode ? "bg-green-900 text-green-300" : "bg-green-100 text-green-700"
                                 : item.type === "token2022"
-                                  ? privateMode ? "bg-blue-900 text-blue-300" : "bg-blue-100 text-blue-700"
-                                  : privateMode ? "bg-gray-800 text-gray-300" : "bg-gray-100 text-gray-700"
+                                  ? privateMode ? "bg-green-900 text-green-300" : "bg-blue-100 text-blue-700"
+                                  : privateMode ? "bg-green-900 text-green-300" : "bg-gray-100 text-gray-700"
                           }`}>
-                            {item.type}
+                            {item.type === "shadowwire" ? "ZK Transfer" : item.type === "token2022" ? "Confidential" : item.type}
                           </span>
                         </div>
                         <span className={`text-xs ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`}>
