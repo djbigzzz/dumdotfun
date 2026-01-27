@@ -15,8 +15,8 @@ export const PRIVACY_CASH_CONFIG = {
     "Non-custodial smart contract system"
   ],
   fees: {
-    withdrawal: "0.35% + 0.006 SOL",
-    swap: "0.35% + 0.008 SOL"
+    withdrawal: "0.006",
+    swap: "0.008"
   },
   docs: "https://github.com/Privacy-Cash/privacy-cash-sdk"
 };

@@ -31,7 +31,25 @@ export function PrivacyWallet() {
   const [withdrawModal, setWithdrawModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [depositFee, setDepositFee] = useState<string | null>(null);
+  const [withdrawFee, setWithdrawFee] = useState<string | null>(null);
   const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    const fetchFees = async () => {
+      try {
+        const res = await fetch("/api/privacy/cash/status");
+        if (res.ok) {
+          const data = await res.json();
+          setDepositFee(data.fees?.withdrawal || "0.006");
+          setWithdrawFee(data.fees?.withdrawal || "0.006");
+        }
+      } catch (e) {
+        console.error("Failed to fetch fees", e);
+      }
+    };
+    fetchFees();
+  }, []);
   const [copied, setCopied] = useState<string | null>(null);
 
   useEffect(() => {
@@ -406,6 +424,11 @@ export function PrivacyWallet() {
                 }`}
                 data-testid="input-deposit-amount"
               />
+              {depositFee && (
+                <p className={`text-xs mb-4 font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                  Estimated Fee: {depositFee} SOL
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => setDepositModal(false)}
@@ -466,6 +489,11 @@ export function PrivacyWallet() {
                 }`}
                 data-testid="input-withdraw-amount"
               />
+              {withdrawFee && (
+                <p className={`text-xs mb-4 font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                  Estimated Fee: {withdrawFee} SOL
+                </p>
+              )}
               <div className="flex gap-2">
                 <button
                   onClick={() => setWithdrawModal(false)}

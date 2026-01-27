@@ -69,7 +69,24 @@ export function PrivacyHub() {
   
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
+  const [shadowWireFee, setShadowWireFee] = useState<string | null>(null);
   const [commitmentAmount, setCommitmentAmount] = useState("");
+
+  useEffect(() => {
+    const fetchShadowWireFee = async () => {
+      try {
+        const res = await fetch("/api/privacy/shadowwire/status");
+        if (res.ok) {
+          const data = await res.json();
+          // ShadowWire calculateFee is dynamic, but we can show the percentage or a base fee
+          setShadowWireFee(data.fees?.withdrawal || "0.005");
+        }
+      } catch (e) {
+        setShadowWireFee("0.005");
+      }
+    };
+    fetchShadowWireFee();
+  }, []);
   const [arciumAmount, setArciumAmount] = useState("");
   const [arciumRecipient, setArciumRecipient] = useState("");
   const [arciumToken, setArciumToken] = useState("SOL");
@@ -877,6 +894,11 @@ export function PrivacyHub() {
                     }`}
                     data-testid="input-deposit-amount"
                   />
+                  {shadowWireFee && (
+                    <p className={`text-xs font-mono mt-1 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                      Fee: ~{shadowWireFee} SOL
+                    </p>
+                  )}
                   <motion.button
                     onClick={handleDeposit}
                     disabled={processing || !depositAmount}
@@ -968,6 +990,11 @@ export function PrivacyHub() {
                     }`}
                     data-testid="input-withdraw-amount"
                   />
+                  {shadowWireFee && (
+                    <p className={`text-xs font-mono mt-1 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                      Fee: ~{shadowWireFee} SOL
+                    </p>
+                  )}
                   <motion.button
                     onClick={handleWithdraw}
                     disabled={processing || !withdrawAmount || poolBalance.sol < parseFloat(withdrawAmount || "0")}
