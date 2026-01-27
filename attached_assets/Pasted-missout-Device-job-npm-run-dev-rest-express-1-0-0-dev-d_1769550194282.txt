@@ -1,0 +1,106 @@
+missout@Device:~/job$ npm run dev
+
+> rest-express@1.0.0 dev
+> dotenv -e .env tsx server/index.ts
+
+[Helius] Using Helius RPC with key: 3c5e3da7...
+bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+9:29:04 PM [websocket] WebSocket server initialized
+[Pool Authority] Loaded existing pool: CZGnDTSFhmmWH2mnExiCPpDXkFUQSf2YTxqPhHWGhYSd
+9:29:05 PM [express] serving on port 5000
+[Pool Authority] Pool address: CZGnDTSFhmmWH2mnExiCPpDXkFUQSf2YTxqPhHWGhYSd
+[Pool Authority] Pool balance: 2 SOL
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+9:29:16 PM [express] GET /api/price/sol 200 in 180ms :: {"price":127.36,"currency":"USD"}
+Error fetching tokens: ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://localhost/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: connect ETIMEDOUT 127.0.0.1:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -110,
+    code: 'ETIMEDOUT',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 443
+  },
+  Symbol(kMessage): 'connect ETIMEDOUT 127.0.0.1:443'
+}
+9:31:31 PM [express] GET /api/tokens 500 in 135263ms :: {"error":"Server error while fetching tokens"}
+Error connecting wallet: ErrorEvent {
+  Symbol(kTarget): WebSocket {
+    _events: [Object: null prototype] {
+      error: [Function],
+      message: [Function],
+      close: [Function],
+      open: [Function]
+    },
+    _eventsCount: 4,
+    _maxListeners: undefined,
+    _binaryType: 'arraybuffer',
+    _closeCode: 1006,
+    _closeFrameReceived: false,
+    _closeFrameSent: false,
+    _closeMessage: <Buffer >,
+    _closeTimer: null,
+    _errorEmitted: true,
+    _extensions: {},
+    _paused: false,
+    _protocol: '',
+    _readyState: 3,
+    _receiver: null,
+    _sender: null,
+    _socket: null,
+    _bufferedAmount: 0,
+    _isServer: false,
+    _redirects: 0,
+    _autoPong: true,
+    _url: 'wss://localhost/v2',
+    _req: null,
+    Symbol(shapeMode): false,
+    Symbol(kCapture): false
+  },
+  Symbol(kType): 'error',
+  Symbol(kError): Error: connect ETIMEDOUT 127.0.0.1:443
+      at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16) {
+    errno: -110,
+    code: 'ETIMEDOUT',
+    syscall: 'connect',
+    address: '127.0.0.1',
+    port: 443
+  },
+  Symbol(kMessage): 'connect ETIMEDOUT 127.0.0.1:443'
+}
+9:31:31 PM [express] POST /api/users/connect 500 in 135051ms :: {"error":"Failed to connect wallet"}
+9:31:32 PM [express] GET /api/devnet/balance/DCHhAjoVvJ4mUUkbQrsKrPztRhivrNV3fDJEZfHNQ8d3 200 in 324ms :: {"address":"DCHhAjoVvJ4mUUkbQrsKrPztRhivrNV3fDJEZfHNQ8d3","balance":46.200501172,"network":"devnet"}
+9:31:42 PM [express] GET /api/devnet/balance/DCHhAjoV
