@@ -1,0 +1,89 @@
+# Contributing to dum.fun
+
+Thank you for your interest in contributing to dum.fun! This project is part of the Solana Privacy Hack 2026, and we welcome contributions from the community.
+
+## 🚀 Quick Start
+
+1. Fork the repository
+2. Clone your fork: `git clone <your-fork-url>`
+3. Install dependencies: `npm install`
+4. Create a branch: `git checkout -b feature/your-feature`
+5. Make your changes
+6. Test your changes: `npm run dev`
+7. Commit with clear messages
+8. Push and create a Pull Request
+
+## 📝 Development Guidelines
+
+### Code Style
+- Use TypeScript for all new code
+- Follow existing code patterns
+- Use meaningful variable names
+- Add comments for complex logic
+- Keep functions small and focused
+
+### Privacy Integrations
+If you're adding a new privacy integration:
+1. Create a new file in `server/privacy/`
+2. Export main functions with clear TypeScript types
+3. Add error handling for all SDK calls
+4. Update `/api/privacy/status` endpoint
+5. Add documentation to README.md
+6. Create tests if possible
+
+### Testing
+- Test manually on Devnet before submitting
+- Provide steps to reproduce in your PR
+- Include screenshots/videos if UI changes
+
+### Commit Messages
+Use clear, descriptive commit messages:
+```
+✅ Good: "Add stealth address sweeping functionality"
+❌ Bad: "fix bug"
+```
+
+## 🐛 Reporting Issues
+
+- Check if the issue already exists
+- Provide clear reproduction steps
+- Include error messages and logs
+- Mention your environment (OS, Node version, etc.)
+
+## 💡 Feature Requests
+
+We love new ideas! When suggesting features:
+- Explain the use case
+- Describe the expected behavior
+- Consider privacy implications
+- Link to relevant documentation
+
+## 📚 Documentation
+
+Help improve our docs:
+- Fix typos and unclear explanations
+- Add code examples
+- Update outdated information
+- Translate documentation
+
+## 🔐 Security
+
+If you discover a security vulnerability:
+- **DO NOT** open a public issue
+- Create a [private security advisory on GitHub](https://docs.github.com/en/code-security/security-advisories/guidance-on-reporting-and-writing/privately-reporting-a-security-vulnerability)
+- Or contact the maintainers directly (see README for contact info)
+
+## 🏆 Recognition
+
+Contributors will be:
+- Added to the README
+- Credited in release notes
+- Invited to future development discussions
+
+## ❓ Questions?
+
+- Open a discussion on GitHub
+- Join our Discord (link in README)
+- Tag maintainers in your PR
+
+Thank you for helping make privacy accessible on Solana! 🔒
