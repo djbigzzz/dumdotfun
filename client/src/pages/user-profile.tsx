@@ -71,14 +71,14 @@ export default function UserProfilePage() {
   };
 
   const cardStyle = privateMode 
-    ? "bg-zinc-900/50 border-2 border-[#10B981]/30" 
+    ? "bg-zinc-900/50 border-2 border-[#4ADE80]/30" 
     : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
 
   if (isLoading) {
     return (
       <Layout>
         <div className="min-h-[calc(100vh-200px)] flex items-center justify-center">
-          <p className={`font-mono font-bold ${privateMode ? "text-[#10B981]" : "text-gray-600"}`}>Loading...</p>
+          <p className={`font-mono font-bold ${privateMode ? "text-[#4ADE80]" : "text-gray-600"}`}>Loading...</p>
         </div>
       </Layout>
     );
@@ -88,13 +88,13 @@ export default function UserProfilePage() {
     <Layout>
       <div className="py-8 max-w-4xl mx-auto">
         <Link href="/tokens">
-          <button className={`flex items-center gap-2 mb-6 font-bold ${privateMode ? "text-[#10B981]" : "text-gray-600 hover:text-black"}`}>
+          <button className={`flex items-center gap-2 mb-6 font-bold ${privateMode ? "text-[#4ADE80]" : "text-gray-600 hover:text-black"}`}>
             <ArrowLeft className="w-4 h-4" /> Back
           </button>
         </Link>
 
         <div className="flex items-center gap-6 mb-8">
-          <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${privateMode ? "border-[#10B981]" : "border-black"}`}>
+          <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${privateMode ? "border-[#4ADE80]" : "border-black"}`}>
             <img src={defaultAvatar} alt="User avatar" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1">
@@ -106,7 +106,7 @@ export default function UserProfilePage() {
                 onClick={copyWallet}
                 className={`flex items-center gap-1 text-xs font-mono px-2 py-1 rounded border ${
                   privateMode 
-                    ? "border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10" 
+                    ? "border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10" 
                     : "border-gray-300 text-gray-500 hover:bg-gray-100"
                 }`}
               >
@@ -119,7 +119,7 @@ export default function UserProfilePage() {
                 rel="noopener noreferrer"
                 className={`flex items-center gap-1 text-xs font-mono px-2 py-1 rounded border ${
                   privateMode 
-                    ? "border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10" 
+                    ? "border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10" 
                     : "border-gray-300 text-gray-500 hover:bg-gray-100"
                 }`}
               >
@@ -134,7 +134,7 @@ export default function UserProfilePage() {
             <div className={`text-3xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
               {profile?.followerCount || 0}
             </div>
-            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#10B981]/70" : "text-gray-500"}`}>
+            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
               Followers
             </div>
           </div>
@@ -142,7 +142,7 @@ export default function UserProfilePage() {
             <div className={`text-3xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
               {profile?.followingCount || 0}
             </div>
-            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#10B981]/70" : "text-gray-500"}`}>
+            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
               Following
             </div>
           </div>
@@ -150,7 +150,7 @@ export default function UserProfilePage() {
             <div className={`text-3xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
               {profile?.tokensCreated?.length || 0}
             </div>
-            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#10B981]/70" : "text-gray-500"}`}>
+            <div className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
               Coins Created
             </div>
           </div>
@@ -158,8 +158,8 @@ export default function UserProfilePage() {
 
         <div className={`${cardStyle} p-6 rounded-lg`}>
           <div className="flex items-center gap-2 mb-4">
-            <Coins className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-red-500"}`} />
-            <h2 className={`text-lg font-black uppercase ${privateMode ? "text-[#10B981]" : "text-gray-900"}`}>
+            <Coins className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} />
+            <h2 className={`text-lg font-black uppercase ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
               Created Coins
             </h2>
           </div>
@@ -172,42 +172,42 @@ export default function UserProfilePage() {
                     whileHover={{ x: 4 }}
                     className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${
                       privateMode 
-                        ? "border-[#10B981]/20 hover:border-[#10B981]/50 bg-black/50" 
+                        ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50" 
                         : "border-gray-200 hover:border-black bg-gray-50"
                     }`}
                   >
-                    <div className={`w-10 h-10 rounded-lg overflow-hidden border ${privateMode ? "border-[#10B981]/30" : "border-gray-300"}`}>
+                    <div className={`w-10 h-10 rounded-lg overflow-hidden border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
                       {token.imageUri ? (
                         <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
                       ) : (
-                        <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#10B981]" : "bg-gray-200 text-gray-500"}`}>
+                        <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
                           {token.symbol[0]}
                         </div>
                       )}
                     </div>
                     <div className="flex-1">
                       <div className={`font-black ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
-                      <div className={`text-xs font-mono ${privateMode ? "text-[#10B981]/70" : "text-gray-500"}`}>${token.symbol}</div>
+                      <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>${token.symbol}</div>
                     </div>
                     <div className="text-right">
-                      <div className={`font-bold ${privateMode ? "text-[#10B981]" : "text-green-600"}`}>
+                      <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
                         {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
                       </div>
-                      <div className={`text-xs ${privateMode ? "text-[#10B981]/50" : "text-gray-400"}`}>Market Cap</div>
+                      <div className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>Market Cap</div>
                     </div>
                   </motion.div>
                 </Link>
               ))}
             </div>
           ) : (
-            <div className={`text-center py-8 ${privateMode ? "text-[#10B981]/50" : "text-gray-400"}`}>
+            <div className={`text-center py-8 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
               No coins created yet
             </div>
           )}
         </div>
 
         {profile?.createdAt && (
-          <div className={`mt-4 flex items-center justify-center gap-2 text-sm ${privateMode ? "text-[#10B981]/50" : "text-gray-400"}`}>
+          <div className={`mt-4 flex items-center justify-center gap-2 text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
             <Calendar className="w-4 h-4" />
             Joined {new Date(profile.createdAt).toLocaleDateString()}
           </div>

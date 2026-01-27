@@ -66,7 +66,7 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
   if (isLoading) {
     return (
       <div className={`rounded-xl p-4 animate-pulse ${
-        privateMode ? "bg-black/50 border border-[#10B981]/20" : "bg-zinc-100 border-2 border-black"
+        privateMode ? "bg-black/50 border border-[#4ADE80]/20" : "bg-zinc-100 border-2 border-black"
       }`}>
         <div className="h-5 bg-zinc-300 rounded w-1/3 mb-2" />
         <div className="h-4 bg-zinc-300 rounded w-2/3" />
@@ -85,7 +85,7 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
     if (name.includes("Privacy Cash")) return <DollarSign className={`w-4 h-4 ${privateMode ? "text-green-400" : "text-green-500"}`} />;
     if (name.includes("ShadowWire")) return <Shield className={`w-4 h-4 ${privateMode ? "text-red-400" : "text-red-500"}`} />;
     if (name.includes("NP Exchange")) return <Zap className={`w-4 h-4 ${privateMode ? "text-blue-400" : "text-blue-500"}`} />;
-    return <Shield className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-violet-500"}`} />;
+    return <Shield className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-violet-500"}`} />;
   };
 
   const getFriendlyInfo = (name: string) => {
@@ -103,28 +103,28 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-xl overflow-hidden transition-all ${
         privateMode 
-          ? "bg-black/80 border border-[#10B981]/30 shadow-[0_0_15px_rgba(57,255,20,0.1)]" 
+          ? "bg-black/80 border border-[#4ADE80]/30 shadow-[0_0_15px_rgba(57,255,20,0.1)]" 
           : "bg-gradient-to-br from-violet-50 to-blue-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
       }`}
     >
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full p-4 flex items-center justify-between transition-colors ${
-          privateMode ? "hover:bg-[#10B981]/5" : "hover:bg-white/50"
+          privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-white/50"
         }`}
         data-testid="button-expand-privacy-card"
       >
         <div className="flex items-center gap-3">
           <div className={`p-2 rounded-lg ${
-            privateMode ? "bg-[#10B981]/10 border border-[#10B981]/30" : "bg-violet-100 border-2 border-black"
+            privateMode ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" : "bg-violet-100 border-2 border-black"
           }`}>
-            <Shield className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-violet-600"}`} />
+            <Shield className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-violet-600"}`} />
           </div>
           <div className="text-left">
-            <h3 className={`font-bold ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
+            <h3 className={`font-bold ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
               {privateMode ? "// PRIVACY_FEATURES" : "Privacy Features"}
             </h3>
-            <p className={`text-sm ${privateMode ? "text-[#10B981]/50" : "text-gray-500"}`}>
+            <p className={`text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
               {activeIntegrations.length} features available
             </p>
           </div>
@@ -132,15 +132,15 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
         <div className="flex items-center gap-2">
           <span className={`px-2 py-1 rounded text-xs font-bold ${
             privateMode 
-              ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/30" 
+              ? "bg-[#4ADE80]/20 text-[#4ADE80] border border-[#4ADE80]/30" 
               : "bg-green-100 text-green-700 border-2 border-black"
           }`}>
             ACTIVE
           </span>
           {expanded ? (
-            <ChevronUp className={`w-5 h-5 ${privateMode ? "text-[#10B981]/50" : "text-gray-400"}`} />
+            <ChevronUp className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} />
           ) : (
-            <ChevronDown className={`w-5 h-5 ${privateMode ? "text-[#10B981]/50" : "text-gray-400"}`} />
+            <ChevronDown className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} />
           )}
         </div>
       </button>
@@ -162,18 +162,18 @@ export function PrivacyIntegrationsCard({ compact = false }: { compact?: boolean
                     key={i}
                     className={`p-3 rounded-lg transition-all ${
                       privateMode 
-                        ? "bg-black/50 border border-[#10B981]/20 hover:border-[#10B981]/40" 
+                        ? "bg-black/50 border border-[#4ADE80]/20 hover:border-[#4ADE80]/40" 
                         : "bg-white border-2 border-gray-200 hover:border-black"
                     }`}
                   >
                     <div className="flex items-center gap-2 mb-2">
                       {getIcon(integration.name)}
-                      <span className={`font-bold text-sm ${privateMode ? "text-[#10B981]/90 font-mono" : "text-gray-800"}`}>
+                      <span className={`font-bold text-sm ${privateMode ? "text-[#4ADE80]/90 font-mono" : "text-gray-800"}`}>
                         {friendlyInfo.title}
                       </span>
-                      <CheckCircle className={`w-3.5 h-3.5 ml-auto ${privateMode ? "text-[#10B981]" : "text-green-500"}`} />
+                      <CheckCircle className={`w-3.5 h-3.5 ml-auto ${privateMode ? "text-[#4ADE80]" : "text-green-500"}`} />
                     </div>
-                    <p className={`text-xs ${privateMode ? "text-[#10B981]/50" : "text-gray-500"}`}>
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
                       {friendlyInfo.benefit || integration.description}
                     </p>
                   </div>
@@ -205,7 +205,7 @@ export function PrivacyFeatureBadge({ feature, small = false }: { feature: strin
       small ? "text-xs" : "text-sm"
     } ${
       privateMode 
-        ? "bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30" 
+        ? "bg-[#4ADE80]/10 text-[#4ADE80] border border-[#4ADE80]/30" 
         : "bg-green-100 text-green-700 border border-green-300"
     }`}>
       {getIcon()}

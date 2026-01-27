@@ -318,11 +318,11 @@ export default function MarketDetail() {
             {canBet && (
               <div className={`rounded-xl p-6 transition-all ${
                 useConfidentialBet 
-                  ? "bg-black/80 border-2 border-[#10B981]/50 shadow-[0_0_20px_rgba(57,255,20,0.15)]" 
+                  ? "bg-black/80 border-2 border-[#4ADE80]/50 shadow-[0_0_20px_rgba(57,255,20,0.15)]" 
                   : "bg-zinc-800/50"
               }`}>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${useConfidentialBet ? "text-[#10B981] font-mono" : "text-white"}`}>
+                  <h3 className={`text-lg font-bold ${useConfidentialBet ? "text-[#4ADE80] font-mono" : "text-white"}`}>
                     {useConfidentialBet ? "🔒 Confidential Bet" : "Place Your Bet"}
                   </h3>
                   
@@ -330,7 +330,7 @@ export default function MarketDetail() {
                     <button
                       onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
                       className={`p-1.5 rounded transition-colors ${
-                        useConfidentialBet ? "text-[#10B981]/60 hover:text-[#10B981]" : "text-gray-500 hover:text-gray-300"
+                        useConfidentialBet ? "text-[#4ADE80]/60 hover:text-[#4ADE80]" : "text-gray-500 hover:text-gray-300"
                       }`}
                       data-testid="button-privacy-info"
                     >
@@ -340,7 +340,7 @@ export default function MarketDetail() {
                       onClick={() => setUseConfidentialBet(!useConfidentialBet)}
                       className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
                         useConfidentialBet
-                          ? "bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/50"
+                          ? "bg-[#4ADE80]/20 text-[#4ADE80] border border-[#4ADE80]/50"
                           : "bg-zinc-700 text-gray-400 hover:bg-zinc-600 border border-transparent"
                       }`}
                       data-testid="button-toggle-confidential"
@@ -359,24 +359,24 @@ export default function MarketDetail() {
                       exit={{ opacity: 0, height: 0 }}
                       className={`mb-4 p-4 rounded-lg text-sm ${
                         useConfidentialBet 
-                          ? "bg-[#10B981]/10 border border-[#10B981]/30" 
+                          ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" 
                           : "bg-zinc-700/50 border border-zinc-600"
                       }`}
                     >
                       <div className="flex items-start gap-3">
-                        <Shield className={`w-5 h-5 mt-0.5 flex-shrink-0 ${useConfidentialBet ? "text-[#10B981]" : "text-blue-400"}`} />
+                        <Shield className={`w-5 h-5 mt-0.5 flex-shrink-0 ${useConfidentialBet ? "text-[#4ADE80]" : "text-blue-400"}`} />
                         <div>
-                          <p className={`font-bold mb-1 ${useConfidentialBet ? "text-[#10B981]" : "text-white"}`}>
+                          <p className={`font-bold mb-1 ${useConfidentialBet ? "text-[#4ADE80]" : "text-white"}`}>
                             {useConfidentialBet ? "Inco Lightning Encryption" : "Privacy Options"}
                           </p>
-                          <p className={useConfidentialBet ? "text-[#10B981]/70" : "text-gray-400"}>
+                          <p className={useConfidentialBet ? "text-[#4ADE80]/70" : "text-gray-400"}>
                             {useConfidentialBet 
                               ? "Your bet amount is encrypted using Inco Lightning SDK. Only you can reveal the amount later. Other users will see '🔒 Hidden' instead of your bet size."
                               : "Enable confidential betting to hide your bet amount from other users. Uses Inco Lightning SDK for zero-knowledge encryption."
                             }
                           </p>
                           {useConfidentialBet && (
-                            <div className="mt-2 flex items-center gap-2 text-xs text-[#10B981]/50 font-mono">
+                            <div className="mt-2 flex items-center gap-2 text-xs text-[#4ADE80]/50 font-mono">
                               <span>Program: 5sjE...Swaj</span>
                               <span>•</span>
                               <span>Bounty: $2K</span>
@@ -460,18 +460,18 @@ export default function MarketDetail() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     className={`mt-4 p-3 rounded-lg ${
-                      useConfidentialBet ? "bg-black border border-[#10B981]/30" : "bg-zinc-900"
+                      useConfidentialBet ? "bg-black border border-[#4ADE80]/30" : "bg-zinc-900"
                     }`}
                   >
-                    <p className={`text-sm ${useConfidentialBet ? "text-[#10B981]/80 font-mono" : "text-gray-400"}`}>
+                    <p className={`text-sm ${useConfidentialBet ? "text-[#4ADE80]/80 font-mono" : "text-gray-400"}`}>
                       {useConfidentialBet ? (
                         <>
                           <Lock className="w-3.5 h-3.5 inline mr-1" />
-                          Betting <span className="text-[#10B981] font-bold">{betAmount} SOL</span> on{" "}
+                          Betting <span className="text-[#4ADE80] font-bold">{betAmount} SOL</span> on{" "}
                           <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
                             {selectedSide.toUpperCase()}
                           </span>
-                          <span className="text-[#10B981]/50 ml-2">(amount will be encrypted)</span>
+                          <span className="text-[#4ADE80]/50 ml-2">(amount will be encrypted)</span>
                         </>
                       ) : (
                         <>

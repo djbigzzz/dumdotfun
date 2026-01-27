@@ -194,20 +194,20 @@ export default function PredictionsPage() {
           animate={{ opacity: 1, y: 0 }}
           className={`border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
             privateMode 
-              ? "bg-black border-[#10B981]" 
+              ? "bg-black border-[#4ADE80]" 
               : "bg-gradient-to-r from-purple-100 to-indigo-100 border-black"
           }`}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${privateMode ? "bg-[#10B981]/20" : "bg-purple-200"}`}>
-                <Shield className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-purple-600"}`} />
+              <div className={`p-2 rounded-lg ${privateMode ? "bg-[#4ADE80]/20" : "bg-purple-200"}`}>
+                <Shield className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-purple-600"}`} />
               </div>
               <div>
-                <p className={`text-sm font-bold ${privateMode ? "text-[#10B981] font-mono" : "text-purple-800"}`}>
+                <p className={`text-sm font-bold ${privateMode ? "text-[#4ADE80] font-mono" : "text-purple-800"}`}>
                   {privateMode ? "CONFIDENTIAL_BETTING_ENABLED" : "Privacy-Enabled Predictions"}
                 </p>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-purple-600"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-purple-600"}`}>
                   {privateMode 
                     ? "// INCO_LIGHTNING_SDK_ENCRYPTING_ALL_BETS" 
                     : "Your bets are encrypted with Inco Lightning SDK"}
@@ -220,7 +220,7 @@ export default function PredictionsPage() {
               whileTap={{ scale: 0.95 }}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold text-sm transition-all ${
                 privateMode 
-                  ? "bg-[#10B981] text-black border-[#10B981] hover:bg-[#10B981]/80" 
+                  ? "bg-[#4ADE80] text-black border-[#4ADE80] hover:bg-[#4ADE80]/80" 
                   : "bg-purple-500 text-white border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:bg-purple-600"
               }`}
               data-testid="button-toggle-privacy-predictions"

@@ -392,18 +392,18 @@ export default function DocsPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center gap-3 mb-2">
-            {privateMode ? <Cpu className="w-8 h-8 text-[#10B981]" /> : <Book className="w-8 h-8 text-red-500" />}
+            {privateMode ? <Cpu className="w-8 h-8 text-[#4ADE80]" /> : <Book className="w-8 h-8 text-red-500" />}
             <h1 className={`text-3xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
               {privateMode ? "> SYSTEM_DOCUMENTATION" : "Documentation"}
             </h1>
           </div>
-          <p className={`mt-1 ${privateMode ? "text-[#10B981] font-mono" : "text-gray-600"}`}>
+          <p className={`mt-1 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-600"}`}>
             {privateMode ? "// ACCESSING_LOCAL_DATABASE" : "Everything you need to know about dum.fun"}
           </p>
         </motion.div>
 
         <nav className={`border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-          privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white"
+          privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
         }`}>
           <h2 className={`font-bold mb-3 ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
             {privateMode ? "> NAV_LINKS" : "Quick Links"}
@@ -415,7 +415,7 @@ export default function DocsPage() {
                 href={`#${section.id}`}
                 className={`px-3 py-1.5 border border-black rounded-lg text-sm font-medium transition-colors ${
                   privateMode 
-                    ? "bg-black border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10 font-mono" 
+                    ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono" 
                     : "bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-600"
                 }`}
               >
@@ -426,7 +426,7 @@ export default function DocsPage() {
               href="#faq"
               className={`px-3 py-1.5 border border-black rounded-lg text-sm font-medium transition-colors ${
                 privateMode 
-                  ? "bg-black border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10 font-mono" 
+                  ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono" 
                   : "bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-600"
               }`}
             >
@@ -445,20 +445,20 @@ export default function DocsPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
               className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white"
+                privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
               }`}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className={`p-2 rounded-lg border ${
-                  privateMode ? "bg-black border-[#10B981]/30" : "bg-red-100 border-red-200"
+                  privateMode ? "bg-black border-[#4ADE80]/30" : "bg-red-100 border-red-200"
                 }`}>
-                  <section.icon className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-red-600"}`} />
+                  <section.icon className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-600"}`} />
                 </div>
                 <h2 className={`text-xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
                   {privateMode ? section.title.toUpperCase().replace(/\s/g, '_') : section.title}
                 </h2>
               </div>
-              <div className={`prose prose-sm max-w-none ${privateMode ? "prose-invert font-mono text-[#10B981]/80" : "text-gray-700"}`}>
+              <div className={`prose prose-sm max-w-none ${privateMode ? "prose-invert font-mono text-[#4ADE80]/80" : "text-gray-700"}`}>
                 {section.content.split('\n\n').map((paragraph, i) => (
                   <div key={i} className="mb-4">
                     {paragraph.split('\n').map((line, j) => {
@@ -474,7 +474,7 @@ export default function DocsPage() {
                       if (line.startsWith('**') && line.endsWith('**') && line.split('**').length === 3) {
                         const text = line.replace(/\*\*/g, '');
                         return (
-                          <h3 key={j} className={`font-bold mt-4 mb-2 ${privateMode ? "text-[#10B981]" : "text-gray-900"}`}>
+                          <h3 key={j} className={`font-bold mt-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
                             {privateMode ? `[ ${text.toUpperCase()} ]` : text}
                           </h3>
                         );
@@ -511,14 +511,14 @@ export default function DocsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-            privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white"
+            privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
           }`}
         >
           <div className="flex items-center gap-3 mb-6">
             <div className={`p-2 rounded-lg border ${
-              privateMode ? "bg-black border-[#10B981]/30" : "bg-yellow-100 border-yellow-200"
+              privateMode ? "bg-black border-[#4ADE80]/30" : "bg-yellow-100 border-yellow-200"
             }`}>
-              <HelpCircle className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-yellow-600"}`} />
+              <HelpCircle className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-yellow-600"}`} />
             </div>
             <h2 className={`text-xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
               {privateMode ? "QUERY_DATABASE_FAQS" : "Frequently Asked Questions"}
@@ -527,17 +527,17 @@ export default function DocsPage() {
           
           <div className="space-y-4">
             {faqs.map((faq, index) => (
-              <div key={index} className={`border-b pb-4 last:border-0 ${privateMode ? "border-[#10B981]/20" : "border-gray-200"}`}>
-                <h3 className={`font-bold mb-2 ${privateMode ? "text-[#10B981]" : "text-gray-900"}`}>
+              <div key={index} className={`border-b pb-4 last:border-0 ${privateMode ? "border-[#4ADE80]/20" : "border-gray-200"}`}>
+                <h3 className={`font-bold mb-2 ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
                   {privateMode ? `> ${faq.q.toUpperCase()}` : faq.q}
                 </h3>
-                <p className={`text-sm ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>{faq.a}</p>
+                <p className={`text-sm ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>{faq.a}</p>
               </div>
             ))}
           </div>
         </motion.section>
 
-        <div className={`text-center py-8 text-sm ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
+        <div className={`text-center py-8 text-sm ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
           <p>Still have questions? DM us on X: <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className={`font-bold hover:underline ${privateMode ? "text-white" : "text-red-500"}`}>@dumdotfun</a></p>
         </div>
       </div>

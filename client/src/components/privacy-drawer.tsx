@@ -59,7 +59,7 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={`absolute right-0 top-0 h-full w-full max-w-md shadow-xl overflow-y-auto ${
           privateMode 
-            ? "bg-black border-l border-[#10B981]/30" 
+            ? "bg-black border-l border-[#4ADE80]/30" 
             : "bg-white border-l-2 border-black"
         }`}
       >
@@ -72,21 +72,21 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
         <div className="p-6 relative">
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
-              <div className={`p-2 ${privateMode ? "border border-[#10B981]/50" : "bg-gray-100 rounded-lg"}`}>
-                <Terminal className={`w-6 h-6 ${privateMode ? "text-[#10B981]" : "text-gray-700"}`} />
+              <div className={`p-2 ${privateMode ? "border border-[#4ADE80]/50" : "bg-gray-100 rounded-lg"}`}>
+                <Terminal className={`w-6 h-6 ${privateMode ? "text-[#4ADE80]" : "text-gray-700"}`} />
               </div>
               <div>
-                <h2 className={`text-xl font-black font-mono ${privateMode ? "text-[#10B981]" : "text-gray-900"}`}>
+                <h2 className={`text-xl font-black font-mono ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
                   {privateMode ? "// ENCRYPTION" : "Privacy Mode"}
                 </h2>
-                <p className={`text-sm font-mono ${privateMode ? "text-[#10B981]/50" : "text-gray-500"}`}>
+                <p className={`text-sm font-mono ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
                   {privateMode ? "[ SECURE CHANNEL ACTIVE ]" : "Trading publicly"}
                 </p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className={`p-2 transition-colors ${privateMode ? "text-[#10B981]/50 hover:text-[#10B981]" : "hover:bg-gray-100 rounded-lg text-gray-600"}`}
+              className={`p-2 transition-colors ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "hover:bg-gray-100 rounded-lg text-gray-600"}`}
             >
               <X className="w-5 h-5" />
             </button>
@@ -96,7 +96,7 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
             onClick={togglePrivateMode}
             className={`w-full py-4 px-6 font-black font-mono text-lg border-2 mb-8 transition-all ${
               privateMode
-                ? "bg-black border-[#10B981] text-[#10B981] hover:shadow-[0_0_20px_rgba(57,255,20,0.3)]"
+                ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:shadow-[0_0_20px_rgba(57,255,20,0.3)]"
                 : "bg-gray-100 border-black text-gray-900 hover:bg-gray-200 rounded-lg shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             }`}
             data-testid="button-toggle-privacy-full"
@@ -107,14 +107,14 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
           {loading ? (
             <div className="flex items-center justify-center py-8">
               <div className={`animate-spin w-8 h-8 border-2 rounded-full ${
-                privateMode ? "border-[#10B981] border-t-transparent" : "border-violet-500 border-t-transparent"
+                privateMode ? "border-[#4ADE80] border-t-transparent" : "border-violet-500 border-t-transparent"
               }`} />
             </div>
           ) : status ? (
             <div className="space-y-6">
               <div>
                 <h3 className={`text-sm font-black uppercase mb-3 flex items-center gap-2 font-mono ${
-                  privateMode ? "text-[#10B981]" : "text-green-600"
+                  privateMode ? "text-[#4ADE80]" : "text-green-600"
                 }`}>
                   <Check className="w-4 h-4" /> {privateMode ? "// ACTIVE_PROTOCOLS" : "Active Features"}
                 </h3>
@@ -124,13 +124,13 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
                       key={i}
                       className={`p-3 border ${
                         privateMode
-                          ? "bg-black border-[#10B981]/30"
+                          ? "bg-black border-[#4ADE80]/30"
                           : "bg-green-50 border-green-200 rounded-lg"
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <Shield className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-green-600"}`} />
-                        <span className={`font-bold font-mono ${privateMode ? "text-[#10B981]/80" : "text-gray-800"}`}>
+                        <Shield className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`} />
+                        <span className={`font-bold font-mono ${privateMode ? "text-[#4ADE80]/80" : "text-gray-800"}`}>
                           {privateMode ? `> ${feature.toUpperCase().replace(/ /g, '_')}` : feature}
                         </span>
                       </div>
@@ -188,7 +188,7 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
                         </span>
                         <span className={`text-xs px-2 py-1 font-mono ${
                           integration.available
-                            ? privateMode ? "bg-[#10B981]/10 text-[#10B981] border border-[#10B981]/30" : "bg-green-100 text-green-700 rounded"
+                            ? privateMode ? "bg-[#4ADE80]/10 text-[#4ADE80] border border-[#4ADE80]/30" : "bg-green-100 text-green-700 rounded"
                             : privateMode ? "bg-[#F6C90E]/10 text-[#F6C90E] border border-[#F6C90E]/30" : "bg-yellow-100 text-yellow-700 rounded"
                         }`}>
                           {integration.available ? (privateMode ? "ONLINE" : "READY") : (privateMode ? "OFFLINE" : "PENDING")}
@@ -214,8 +214,8 @@ export function PrivacyDrawer({ isOpen, onClose }: { isOpen: boolean; onClose: (
               </div>
 
               {privateMode && (
-                <div className="mt-8 pt-6 border-t border-[#10B981]/20">
-                  <div className="font-mono text-xs text-[#10B981]/30 space-y-1">
+                <div className="mt-8 pt-6 border-t border-[#4ADE80]/20">
+                  <div className="font-mono text-xs text-[#4ADE80]/30 space-y-1">
                     <p>// ENCRYPTION: AES-256-GCM</p>
                     <p>// NETWORK: SOLANA_DEVNET</p>
                     <p>// STATUS: ALL_SYSTEMS_NOMINAL</p>

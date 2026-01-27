@@ -580,16 +580,16 @@ export function PrivacyHub() {
 
   return (
     <div className={`border-2 border-black rounded-xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-      privateMode ? "bg-black border-[#10B981]" : "bg-white"
+      privateMode ? "bg-black border-[#4ADE80]" : "bg-white"
     }`} data-testid="privacy-hub">
-      <div className={`p-4 border-b-2 ${privateMode ? "border-[#10B981]/30 bg-zinc-900" : "border-gray-200 bg-gradient-to-r from-purple-100 to-indigo-100"}`}>
+      <div className={`p-4 border-b-2 ${privateMode ? "border-[#4ADE80]/30 bg-zinc-900" : "border-gray-200 bg-gradient-to-r from-purple-100 to-indigo-100"}`}>
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <Shield className={`w-6 h-6 ${privateMode ? "text-[#10B981]" : "text-purple-600"}`} />
-            <h2 className={`text-xl font-black uppercase ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
+            <Shield className={`w-6 h-6 ${privateMode ? "text-[#4ADE80]" : "text-purple-600"}`} />
+            <h2 className={`text-xl font-black uppercase ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
               {privateMode ? "PRIVACY_HUB" : "Privacy Hub"}
             </h2>
-            <span className={`px-2 py-0.5 text-xs font-bold rounded ${privateMode ? "bg-[#10B981]/20 text-[#10B981]" : "bg-purple-200 text-purple-700"}`}>
+            <span className={`px-2 py-0.5 text-xs font-bold rounded ${privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-purple-200 text-purple-700"}`}>
               JUDGE DEMO
             </span>
           </div>
@@ -598,7 +598,7 @@ export function PrivacyHub() {
               onClick={() => setShowBalances(!showBalances)}
               whileHover={{ scale: 1.1 }}
               whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg ${privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-600 hover:bg-gray-200"}`}
+              className={`p-2 rounded-lg ${privateMode ? "text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-600 hover:bg-gray-200"}`}
               data-testid="button-toggle-balance"
             >
               {showBalances ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -607,7 +607,7 @@ export function PrivacyHub() {
               onClick={fetchBalances}
               whileHover={{ scale: 1.1, rotate: 180 }}
               whileTap={{ scale: 0.95 }}
-              className={`p-2 rounded-lg ${privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-600 hover:bg-gray-200"}`}
+              className={`p-2 rounded-lg ${privateMode ? "text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-600 hover:bg-gray-200"}`}
               data-testid="button-refresh"
             >
               <RefreshCw className="w-4 h-4" />
@@ -615,9 +615,9 @@ export function PrivacyHub() {
           </div>
         </div>
 
-        <div className={`grid grid-cols-2 gap-3 p-3 rounded-lg border-2 ${privateMode ? "bg-black border-[#10B981]/30" : "bg-white/50 border-gray-200"}`}>
+        <div className={`grid grid-cols-2 gap-3 p-3 rounded-lg border-2 ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-white/50 border-gray-200"}`}>
           <div>
-            <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+            <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
               Total Private SOL
             </p>
             <p className={`text-2xl font-mono font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -625,7 +625,7 @@ export function PrivacyHub() {
             </p>
           </div>
           <div>
-            <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+            <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
               Active Integrations
             </p>
             <p className={`text-2xl font-mono font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -635,7 +635,7 @@ export function PrivacyHub() {
         </div>
       </div>
 
-      <div className={`flex border-b-2 ${privateMode ? "border-[#10B981]/30" : "border-gray-200"}`}>
+      <div className={`flex border-b-2 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
         {tabs.map(tab => (
           <button
             key={tab.id}
@@ -643,10 +643,10 @@ export function PrivacyHub() {
             className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-bold uppercase transition-colors ${
               activeTab === tab.id
                 ? privateMode
-                  ? "bg-[#10B981]/20 text-[#10B981] border-b-2 border-[#10B981]"
+                  ? "bg-[#4ADE80]/20 text-[#4ADE80] border-b-2 border-[#4ADE80]"
                   : "bg-purple-100 text-purple-700 border-b-2 border-purple-500"
                 : privateMode
-                  ? "text-[#10B981]/50 hover:bg-[#10B981]/10"
+                  ? "text-[#4ADE80]/50 hover:bg-[#4ADE80]/10"
                   : "text-gray-500 hover:bg-gray-100"
             }`}
             data-testid={`tab-${tab.id}`}
@@ -667,20 +667,20 @@ export function PrivacyHub() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-purple-50 border-purple-200"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-purple-50 border-purple-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(integrations.find(i => i.name.includes("ShadowWire"))?.available ?? true)}
-                  <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-purple-700"}`}>
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]" : "text-purple-700"}`}>
                     ShadowWire ZK Transfers
                   </span>
                 </div>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   Bulletproof ZK proofs for private transfers. Supports 22 tokens including SOL, USDC, BONK.
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Send Private Transfer
                 </h3>
                 <input
@@ -689,7 +689,7 @@ export function PrivacyHub() {
                   onChange={(e) => setTransferRecipient(e.target.value)}
                   placeholder="Recipient wallet address"
                   className={`w-full px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                    privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                   }`}
                   data-testid="input-transfer-recipient"
                 />
@@ -700,7 +700,7 @@ export function PrivacyHub() {
                     onChange={(e) => setTransferAmount(e.target.value)}
                     placeholder="Amount"
                     className={`flex-1 px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                     }`}
                     data-testid="input-transfer-amount"
                   />
@@ -708,7 +708,7 @@ export function PrivacyHub() {
                     value={transferToken}
                     onChange={(e) => setTransferToken(e.target.value)}
                     className={`px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                     }`}
                     data-testid="select-transfer-token"
                   >
@@ -723,7 +723,7 @@ export function PrivacyHub() {
                   whileHover={{ y: -2, x: -2 }}
                   whileTap={{ y: 0, x: 0 }}
                   className={`w-full flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 ${
-                    privateMode ? "bg-[#10B981] text-black" : "bg-purple-500 text-white"
+                    privateMode ? "bg-[#4ADE80] text-black" : "bg-purple-500 text-white"
                   }`}
                   data-testid="button-send-private-transfer"
                 >
@@ -732,8 +732,8 @@ export function PrivacyHub() {
                 </motion.button>
               </div>
 
-              <div className={`border-t-2 pt-4 ${privateMode ? "border-[#10B981]/30" : "border-gray-200"}`}>
-                <h3 className={`text-sm font-bold uppercase mb-3 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+              <div className={`border-t-2 pt-4 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase mb-3 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Quick Actions
                 </h3>
                 <div className="grid grid-cols-2 gap-2">
@@ -744,7 +744,7 @@ export function PrivacyHub() {
                       onChange={(e) => setDepositAmount(e.target.value)}
                       placeholder="SOL amount"
                       className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
-                        privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                        privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                       }`}
                       data-testid="input-deposit-amount"
                     />
@@ -754,7 +754,7 @@ export function PrivacyHub() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       className={`w-full flex items-center justify-center gap-2 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
-                        privateMode ? "bg-[#10B981] text-black" : "bg-green-400 text-black"
+                        privateMode ? "bg-[#4ADE80] text-black" : "bg-green-400 text-black"
                       }`}
                       data-testid="button-deposit"
                     >
@@ -769,7 +769,7 @@ export function PrivacyHub() {
                       onChange={(e) => setWithdrawAmount(e.target.value)}
                       placeholder="SOL amount"
                       className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
-                        privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                        privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                       }`}
                       data-testid="input-withdraw-amount"
                     />
@@ -779,7 +779,7 @@ export function PrivacyHub() {
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       className={`w-full flex items-center justify-center gap-2 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
-                        privateMode ? "bg-black border-[#10B981] text-[#10B981]" : "bg-white text-gray-700"
+                        privateMode ? "bg-black border-[#4ADE80] text-[#4ADE80]" : "bg-white text-gray-700"
                       }`}
                       data-testid="button-withdraw"
                     >
@@ -800,23 +800,23 @@ export function PrivacyHub() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-blue-50 border-blue-200"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-blue-50 border-blue-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
-                  <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-blue-700"}`}>
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]" : "text-blue-700"}`}>
                     Token-2022 Confidential Transfers
                   </span>
                 </div>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   Hide your transaction amounts and balances using cryptographic commitments and range proofs via Token-2022 extension.
                 </p>
               </div>
 
               <div className="space-y-3">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Create Confidential Commitment
                 </h3>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
                   Generate a cryptographic commitment that hides the transfer amount from observers.
                 </p>
                 <input
@@ -825,7 +825,7 @@ export function PrivacyHub() {
                   onChange={(e) => setCommitmentAmount(e.target.value)}
                   placeholder="Amount to commit (SOL)"
                   className={`w-full px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                    privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                   }`}
                   data-testid="input-commitment-amount"
                 />
@@ -835,7 +835,7 @@ export function PrivacyHub() {
                   whileHover={{ y: -2, x: -2 }}
                   whileTap={{ y: 0, x: 0 }}
                   className={`w-full flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 ${
-                    privateMode ? "bg-[#10B981] text-black" : "bg-blue-500 text-white"
+                    privateMode ? "bg-[#4ADE80] text-black" : "bg-blue-500 text-white"
                   }`}
                   data-testid="button-create-commitment"
                 >
@@ -844,8 +844,8 @@ export function PrivacyHub() {
                 </motion.button>
               </div>
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
                   Secure confidential transfers with hybrid fallback for optimal network performance.
                 </p>
               </div>
@@ -860,20 +860,20 @@ export function PrivacyHub() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-green-50 border-green-200"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-green-50 border-green-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
-                  <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-green-700"}`}>
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-700"}`}>
                     Stealth Addresses
                   </span>
                 </div>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   One-time receive addresses using ECC key derivation. Each address is unlinkable to your main wallet.
                 </p>
               </div>
 
               <div className="flex items-center justify-between">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Your Stealth Addresses
                 </h3>
                 <motion.button
@@ -882,7 +882,7 @@ export function PrivacyHub() {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   className={`px-3 py-1.5 text-xs font-bold uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
-                    privateMode ? "bg-[#10B981] text-black" : "bg-green-400 text-black"
+                    privateMode ? "bg-[#4ADE80] text-black" : "bg-green-400 text-black"
                   }`}
                   data-testid="button-generate-stealth"
                 >
@@ -892,7 +892,7 @@ export function PrivacyHub() {
 
               {stealthAddresses.length === 0 ? (
                 <div className={`text-center py-6 rounded-lg border-2 border-dashed ${
-                  privateMode ? "border-[#10B981]/30 text-[#10B981]/40" : "border-gray-300 text-gray-400"
+                  privateMode ? "border-[#4ADE80]/30 text-[#4ADE80]/40" : "border-gray-300 text-gray-400"
                 }`}>
                   <Key className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm font-mono">No stealth addresses yet</p>
@@ -904,7 +904,7 @@ export function PrivacyHub() {
                     <div 
                       key={stealth.address}
                       className={`p-3 rounded-lg border-2 ${
-                        privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-white border-gray-200"
+                        privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-white border-gray-200"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
@@ -915,17 +915,17 @@ export function PrivacyHub() {
                           onClick={() => copyToClipboard(stealth.address, stealth.address)}
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.95 }}
-                          className={`p-1.5 rounded ${privateMode ? "text-[#10B981] hover:bg-[#10B981]/10" : "text-gray-500 hover:bg-gray-100"}`}
+                          className={`p-1.5 rounded ${privateMode ? "text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-500 hover:bg-gray-100"}`}
                           data-testid={`button-copy-stealth-${i}`}
                         >
                           {copied === stealth.address ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
                         </motion.button>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
-                        <span className={privateMode ? "text-[#10B981]/40" : "text-gray-400"}>
+                        <span className={privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}>
                           View tag: <span className="font-mono">{stealth.viewTag}</span>
                         </span>
-                        <span className={privateMode ? "text-[#10B981]/40" : "text-gray-400"}>
+                        <span className={privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}>
                           {new Date(stealth.createdAt).toLocaleTimeString()}
                         </span>
                       </div>
@@ -934,8 +934,8 @@ export function PrivacyHub() {
                 </div>
               )}
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
                   ECC-based stealth addresses for unlinkable token receiving.
                 </p>
               </div>
@@ -950,23 +950,23 @@ export function PrivacyHub() {
               exit={{ opacity: 0, y: -10 }}
               className="space-y-4"
             >
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-zinc-50 border-zinc-200"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-zinc-50 border-zinc-200"}`}>
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(true)}
-                  <span className={`text-sm font-bold ${privateMode ? "text-[#10B981]" : "text-zinc-700"}`}>
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]" : "text-zinc-700"}`}>
                     Arcium C-SPL (MPC)
                   </span>
                 </div>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   Confidential SPL tokens using Multi-Party Computation. Both balances and amounts stay hidden during computation.
                 </p>
-                <div className={`mt-2 p-2 rounded text-xs font-mono ${privateMode ? "bg-black text-[#10B981]/60" : "bg-gray-100 text-gray-500"}`}>
+                <div className={`mt-2 p-2 rounded text-xs font-mono ${privateMode ? "bg-black text-[#4ADE80]/60" : "bg-gray-100 text-gray-500"}`}>
                   Program ID: Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX
                 </div>
               </div>
 
               <div className="space-y-3">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Private MPC Transfer
                 </h3>
                 <input
@@ -975,7 +975,7 @@ export function PrivacyHub() {
                   onChange={(e) => setArciumRecipient(e.target.value)}
                   placeholder="Recipient C-SPL address"
                   className={`w-full px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                    privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                   }`}
                   data-testid="input-arcium-recipient"
                 />
@@ -986,7 +986,7 @@ export function PrivacyHub() {
                     onChange={(e) => setArciumAmount(e.target.value)}
                     placeholder="Amount"
                     className={`flex-1 px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                     }`}
                     data-testid="input-arcium-amount"
                   />
@@ -994,7 +994,7 @@ export function PrivacyHub() {
                     value={arciumToken}
                     onChange={(e) => setArciumToken(e.target.value)}
                     className={`px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#10B981]/30" : "bg-gray-100 border-gray-300"
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
                     }`}
                   >
                     <option value="SOL">SOL</option>
@@ -1007,7 +1007,7 @@ export function PrivacyHub() {
                   whileHover={{ y: -2, x: -2 }}
                   whileTap={{ y: 0, x: 0 }}
                   className={`w-full flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 ${
-                    privateMode ? "bg-[#10B981] text-black" : "bg-zinc-800 text-white"
+                    privateMode ? "bg-[#4ADE80] text-black" : "bg-zinc-800 text-white"
                   }`}
                   data-testid="button-arcium-transfer"
                 >
@@ -1016,8 +1016,8 @@ export function PrivacyHub() {
                 </motion.button>
               </div>
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#10B981]/10" : "bg-zinc-50 border-zinc-200"}`}>
-                <p className={`text-xs ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/10" : "bg-zinc-50 border-zinc-200"}`}>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
                   MPC-powered confidential tokens with programmable privacy and DeFi composability.
                 </p>
               </div>
@@ -1033,17 +1033,17 @@ export function PrivacyHub() {
               className="space-y-4"
             >
               <div className="flex items-center justify-between">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                   Privacy Activity Log
                 </h3>
-                <span className={`text-xs ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`}>
+                <span className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
                   Session only
                 </span>
               </div>
 
               {activity.length === 0 ? (
                 <div className={`text-center py-8 rounded-lg border-2 border-dashed ${
-                  privateMode ? "border-[#10B981]/30 text-[#10B981]/40" : "border-gray-300 text-gray-400"
+                  privateMode ? "border-[#4ADE80]/30 text-[#4ADE80]/40" : "border-gray-300 text-gray-400"
                 }`}>
                   <FileText className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm font-mono">No activity yet</p>
@@ -1055,7 +1055,7 @@ export function PrivacyHub() {
                     <div 
                       key={item.id}
                       className={`p-3 rounded-lg border-2 ${
-                        privateMode ? "bg-zinc-900/50 border-[#10B981]/20" : "bg-white border-gray-200"
+                        privateMode ? "bg-zinc-900/50 border-[#4ADE80]/20" : "bg-white border-gray-200"
                       }`}
                     >
                       <div className="flex items-start justify-between">
@@ -1079,7 +1079,7 @@ export function PrivacyHub() {
                             {item.type === "shadowwire" ? "ShadowWire" : item.type === "token2022" ? "Token-2022" : item.type === "arcium" ? "Arcium" : item.type}
                           </span>
                         </div>
-                        <span className={`text-xs ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`}>
+                        <span className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
                           {new Date(item.timestamp).toLocaleTimeString()}
                         </span>
                       </div>
@@ -1087,7 +1087,7 @@ export function PrivacyHub() {
                         {item.description}
                       </p>
                       {item.amount && (
-                        <p className={`text-xs mt-1 font-mono ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+                        <p className={`text-xs mt-1 font-mono ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
                           Amount: {item.amount} {item.token}
                         </p>
                       )}
@@ -1097,7 +1097,7 @@ export function PrivacyHub() {
                           target="_blank"
                           rel="noopener noreferrer"
                           className={`inline-flex items-center gap-1 text-xs mt-2 ${
-                            privateMode ? "text-[#10B981] hover:underline" : "text-purple-600 hover:underline"
+                            privateMode ? "text-[#4ADE80] hover:underline" : "text-purple-600 hover:underline"
                           }`}
                         >
                           View on Solscan <ExternalLink className="w-3 h-3" />
@@ -1112,7 +1112,7 @@ export function PrivacyHub() {
         </AnimatePresence>
       </div>
 
-      <div className={`p-3 border-t-2 ${privateMode ? "border-[#10B981]/30 bg-zinc-900/50" : "border-gray-200 bg-gray-50"}`}>
+      <div className={`p-3 border-t-2 ${privateMode ? "border-[#4ADE80]/30 bg-zinc-900/50" : "border-gray-200 bg-gray-50"}`}>
         <div className="flex flex-wrap gap-2">
           {integrations.slice(0, 5).map(integration => (
             <div 

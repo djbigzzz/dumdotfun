@@ -233,9 +233,9 @@ export default function CreateToken() {
     <Layout>
       <div className="max-w-3xl mx-auto space-y-6">
         {/* Devnet Banner */}
-        <div className={`${privateMode ? "bg-zinc-900/50 border-[#10B981]/50 text-[#10B981]" : "bg-purple-100 border-black text-purple-800"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}>
+        <div className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50 text-[#4ADE80]" : "bg-purple-100 border-black text-purple-800"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}>
           <div className="flex items-center gap-2">
-            <Zap className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-purple-700"}`} />
+            <Zap className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-purple-700"}`} />
             <p className={`text-sm font-bold ${privateMode ? "font-mono" : ""}`}>
               SOLANA DEVNET - All tokens are deployed on-chain to Solana devnet
             </p>
@@ -246,44 +246,44 @@ export default function CreateToken() {
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`${privateMode ? "bg-zinc-900/50 border-[#10B981]/50 text-[#10B981]" : "bg-white border-black text-gray-900"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}
+          className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50 text-[#4ADE80]" : "bg-white border-black text-gray-900"} border-2 rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]`}
         >
           {connectedWallet ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${privateMode ? "bg-[#10B981]/20" : "bg-green-500"}`}>
-                    <Wallet className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-white"}`} />
+                  <div className={`p-2 rounded-lg ${privateMode ? "bg-[#4ADE80]/20" : "bg-green-500"}`}>
+                    <Wallet className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-white"}`} />
                   </div>
                   <div>
                     <p className={`font-bold ${privateMode ? "font-mono" : ""}`}>Wallet Connected</p>
-                    <p className={`text-xs font-mono ${privateMode ? "text-[#10B981]/60" : "text-gray-500"}`}>
+                    <p className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
                       {connectedWallet.slice(0, 4)}...{connectedWallet.slice(-4)}
                     </p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>Devnet Balance</p>
+                  <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>Devnet Balance</p>
                   <div className="flex items-center gap-2">
-                    <p className={`font-bold text-xl ${privateMode ? "text-[#10B981] font-mono" : "text-gray-900"}`}>
+                    <p className={`font-bold text-xl ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
                       {walletBalance !== null ? `${walletBalance.toFixed(4)} SOL` : '---'}
                     </p>
                     <button
                       type="button"
                       onClick={fetchBalance}
                       disabled={isLoadingBalance}
-                      className={`p-1 rounded ${privateMode ? "hover:bg-[#10B981]/10" : "hover:bg-gray-100"}`}
+                      className={`p-1 rounded ${privateMode ? "hover:bg-[#4ADE80]/10" : "hover:bg-gray-100"}`}
                       data-testid="button-refresh-balance"
                     >
-                      <RefreshCw className={`w-4 h-4 ${privateMode ? "text-[#10B981]" : "text-gray-500"} ${isLoadingBalance ? 'animate-spin' : ''}`} />
+                      <RefreshCw className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-gray-500"} ${isLoadingBalance ? 'animate-spin' : ''}`} />
                     </button>
                   </div>
                 </div>
               </div>
               
               {walletBalance !== null && walletBalance < 0.1 && (
-                <div className={`flex items-center justify-between p-3 rounded-lg border ${privateMode ? "bg-black border-[#10B981]/30" : "bg-yellow-50 border-yellow-200"}`}>
-                  <p className={`text-sm ${privateMode ? "text-[#10B981] font-mono" : "text-yellow-800"}`}>
+                <div className={`flex items-center justify-between p-3 rounded-lg border ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-yellow-50 border-yellow-200"}`}>
+                  <p className={`text-sm ${privateMode ? "text-[#4ADE80] font-mono" : "text-yellow-800"}`}>
                     Low balance! You need SOL to deploy tokens.
                   </p>
                   <a
@@ -292,7 +292,7 @@ export default function CreateToken() {
                     rel="noopener noreferrer"
                     className={`px-4 py-2 text-sm font-bold border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-colors ${
                       privateMode 
-                        ? "bg-black border-[#10B981] text-[#10B981] hover:bg-[#10B981]/10" 
+                        ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:bg-[#4ADE80]/10" 
                         : "bg-purple-500 text-white hover:bg-purple-600"
                     }`}
                     data-testid="button-request-airdrop"
@@ -309,7 +309,7 @@ export default function CreateToken() {
                   rel="noopener noreferrer"
                   className={`w-full py-2 text-sm font-bold rounded-lg transition-colors text-center block ${
                     privateMode 
-                      ? "bg-black border border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/10 font-mono" 
+                      ? "bg-black border border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono" 
                       : "bg-gray-100 text-gray-700 hover:bg-gray-200"
                   }`}
                   data-testid="button-request-airdrop-secondary"
@@ -320,13 +320,13 @@ export default function CreateToken() {
             </div>
           ) : (
             <div className="text-center py-4">
-              <Wallet className={`w-12 h-12 mx-auto mb-3 ${privateMode ? "text-[#10B981]/20" : "text-gray-300"}`} />
-              <p className={`${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"} mb-3`}>Connect your wallet to deploy tokens on Solana devnet</p>
+              <Wallet className={`w-12 h-12 mx-auto mb-3 ${privateMode ? "text-[#4ADE80]/20" : "text-gray-300"}`} />
+              <p className={`${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"} mb-3`}>Connect your wallet to deploy tokens on Solana devnet</p>
               <button
                 onClick={() => connectWallet()}
                 className={`px-6 py-3 font-bold rounded-lg border-2 border-black transition-all ${
                   privateMode 
-                    ? "bg-black border-[#10B981] text-[#10B981] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)] font-mono" 
+                    ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:shadow-[0_0_15px_rgba(57,255,20,0.3)] font-mono" 
                     : "bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
                 }`}
                 data-testid="button-connect-wallet"
@@ -341,7 +341,7 @@ export default function CreateToken() {
           <h1 className={`text-3xl md:text-4xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
             {privateMode ? "> INITIALIZE_MINT" : "Launch New Token"}
           </h1>
-          <p className={`mt-1 ${privateMode ? "text-[#10B981] font-mono" : "text-gray-500"}`}>
+          <p className={`mt-1 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-500"}`}>
             {privateMode ? "// BROADCASTING_TO_DEVNET" : "Deploy your token directly to Solana devnet"}
           </p>
         </div>
@@ -351,31 +351,31 @@ export default function CreateToken() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             className={`border-2 border-black rounded-lg p-6 text-center space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-black border-[#10B981]" : "bg-green-50"
+              privateMode ? "bg-black border-[#4ADE80]" : "bg-green-50"
             }`}
           >
-            <CheckCircle className={`w-16 h-16 mx-auto ${privateMode ? "text-[#10B981]" : "text-green-600"}`} />
+            <CheckCircle className={`w-16 h-16 mx-auto ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`} />
             <div>
               <h2 className={`text-2xl font-black ${privateMode ? "text-white font-mono" : "text-green-700"}`}>
                 {privateMode ? ">> MINT_SUCCESSFULL" : "TOKEN DEPLOYED!"}
               </h2>
-              <p className={`text-sm mt-2 ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+              <p className={`text-sm mt-2 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                 Your token <span className={`${privateMode ? "text-white" : "text-gray-900"} font-bold`}>{createdToken.name}</span> ({createdToken.symbol}) is now live on Solana devnet!
               </p>
             </div>
-            <div className={`border-2 border-black rounded-lg p-3 ${privateMode ? "bg-black border-[#10B981]/30" : "bg-white"}`}>
-              <p className={`text-xs mb-1 font-bold ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>Token Mint Address</p>
+            <div className={`border-2 border-black rounded-lg p-3 ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-white"}`}>
+              <p className={`text-xs mb-1 font-bold ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>Token Mint Address</p>
               <p className={`font-mono text-sm break-all ${privateMode ? "text-white" : "text-green-600"}`}>{createdToken.mint}</p>
             </div>
             {createdToken.signature && (
-              <div className={`border-2 border-black rounded-lg p-3 ${privateMode ? "bg-black border-[#10B981]/30" : "bg-white"}`}>
-                <p className={`text-xs mb-1 font-bold ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>Transaction Signature</p>
+              <div className={`border-2 border-black rounded-lg p-3 ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-white"}`}>
+                <p className={`text-xs mb-1 font-bold ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>Transaction Signature</p>
                 <a 
                   href={`https://explorer.solana.com/tx/${createdToken.signature}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`font-mono text-sm break-all hover:underline flex items-center justify-center gap-1 ${
-                    privateMode ? "text-[#10B981]" : "text-blue-600"
+                    privateMode ? "text-[#4ADE80]" : "text-blue-600"
                   }`}
                   data-testid="link-transaction"
                 >
@@ -391,7 +391,7 @@ export default function CreateToken() {
                   whileTap={{ y: 0, x: 0 }}
                   className={`px-6 py-3 font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981] text-[#10B981] font-mono" 
+                      ? "bg-black border-[#4ADE80] text-[#4ADE80] font-mono" 
                       : "bg-red-500 text-white"
                   }`}
                   data-testid="button-view-token"
@@ -405,7 +405,7 @@ export default function CreateToken() {
                 whileTap={{ y: 0, x: 0 }}
                 className={`px-6 py-3 font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all ${
                   privateMode 
-                    ? "bg-black border-[#10B981]/30 text-[#10B981] font-mono" 
+                    ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] font-mono" 
                     : "bg-white text-gray-900"
                 }`}
                 data-testid="button-create-another"
@@ -417,14 +417,14 @@ export default function CreateToken() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Coin Details Section */}
-          <div className={`${privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#10B981] font-mono" : "text-red-500"}`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#4ADE80] font-mono" : "text-red-500"}`}>
               {privateMode ? "// ASSET_METADATA" : "COIN DETAILS"}
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
               <div>
-                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   {privateMode ? "IDENTIFIER_NAME *" : "COIN NAME *"}
                 </label>
                 <input
@@ -435,14 +435,14 @@ export default function CreateToken() {
                   maxLength={32}
                   className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono focus:outline-none transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                       : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                   }`}
                   data-testid="input-token-name"
                 />
               </div>
               <div>
-                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                   {privateMode ? "TICKER_SYMBOL *" : "TICKER *"}
                 </label>
                 <input
@@ -453,7 +453,7 @@ export default function CreateToken() {
                   maxLength={10}
                   className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono focus:outline-none transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                       : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                   }`}
                   data-testid="input-token-symbol"
@@ -462,7 +462,7 @@ export default function CreateToken() {
             </div>
 
             <div>
-              <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>
+              <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
                 {privateMode ? "DESCRIPTION_LOG" : "DESCRIPTION (OPTIONAL)"}
               </label>
               <textarea
@@ -473,7 +473,7 @@ export default function CreateToken() {
                 maxLength={500}
                 className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono focus:outline-none transition-all resize-none ${
                   privateMode 
-                    ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                    ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                     : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                 }`}
                 data-testid="input-token-description"
@@ -482,14 +482,14 @@ export default function CreateToken() {
           </div>
 
           {/* Social Links Section */}
-          <div className={`${privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-700"}`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-700"}`}>
               {privateMode ? "// COMMS_PROTOCOLS" : "+ SOCIAL LINKS (OPTIONAL)"}
             </h2>
             
             <div className="space-y-4">
               <div>
-                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-600"}`}>TWITTER</label>
+                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-600"}`}>TWITTER</label>
                 <input
                   type="url"
                   value={formData.twitter}
@@ -497,14 +497,14 @@ export default function CreateToken() {
                   placeholder="https://twitter.com/..."
                   className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono text-sm focus:outline-none transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                       : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                   }`}
                   data-testid="input-token-twitter"
                 />
               </div>
               <div>
-                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-600"}`}>TELEGRAM</label>
+                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-600"}`}>TELEGRAM</label>
                 <input
                   type="url"
                   value={formData.telegram}
@@ -512,14 +512,14 @@ export default function CreateToken() {
                   placeholder="https://t.me/..."
                   className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono text-sm focus:outline-none transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                       : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                   }`}
                   data-testid="input-token-telegram"
                 />
               </div>
               <div>
-                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-600"}`}>WEBSITE</label>
+                <label className={`text-xs block mb-2 font-bold ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-600"}`}>WEBSITE</label>
                 <input
                   type="url"
                   value={formData.website}
@@ -527,7 +527,7 @@ export default function CreateToken() {
                   placeholder="https://..."
                   className={`w-full border-2 border-black rounded-lg px-3 py-2 font-mono text-sm focus:outline-none transition-all ${
                     privateMode 
-                      ? "bg-black border-[#10B981]/30 text-[#10B981] placeholder-[#10B981]/30 focus:border-[#10B981]" 
+                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] placeholder-[#4ADE80]/30 focus:border-[#4ADE80]" 
                       : "bg-gray-50 text-gray-900 focus:ring-2 focus:ring-red-500"
                   }`}
                   data-testid="input-token-website"
@@ -537,21 +537,21 @@ export default function CreateToken() {
           </div>
 
           {/* Image Upload Section */}
-          <div className={`${privateMode ? "bg-zinc-900/50 border-[#10B981]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
-            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#10B981] font-mono" : "text-red-500"}`}>
+          <div className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+            <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#4ADE80] font-mono" : "text-red-500"}`}>
               {privateMode ? "// VISUAL_ID" : "COIN IMAGE"}
             </h2>
             
             <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-              privateMode ? "bg-black border-[#10B981]/30 hover:border-[#10B981]" : "bg-gray-50 border-gray-300 hover:border-red-500"
+              privateMode ? "bg-black border-[#4ADE80]/30 hover:border-[#4ADE80]" : "bg-gray-50 border-gray-300 hover:border-red-500"
             }`}>
               {imagePreview ? (
                 <div className="space-y-4">
-                  <div className={`w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 ${privateMode ? "border-[#10B981]" : "border-black"}`}>
+                  <div className={`w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 ${privateMode ? "border-[#4ADE80]" : "border-black"}`}>
                     <img src={imagePreview} alt="Token" className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
                   </div>
                   <div>
-                    <p className={`text-sm font-mono ${privateMode ? "text-[#10B981]" : "text-gray-600"}`}>{fileName}</p>
+                    <p className={`text-sm font-mono ${privateMode ? "text-[#4ADE80]" : "text-gray-600"}`}>{fileName}</p>
                     <button
                       type="button"
                       onClick={() => {
@@ -567,9 +567,9 @@ export default function CreateToken() {
               ) : (
                 <label className="cursor-pointer block">
                   <div className="space-y-2">
-                    <Upload className={`w-8 h-8 mx-auto ${privateMode ? "text-[#10B981]/40" : "text-gray-400"}`} />
-                    <p className={`text-sm font-medium ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-600"}`}>Select image to upload</p>
-                    <p className={`text-xs ${privateMode ? "text-[#10B981]/30 font-mono" : "text-gray-400"}`}>or drag and drop here</p>
+                    <Upload className={`w-8 h-8 mx-auto ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`} />
+                    <p className={`text-sm font-medium ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>Select image to upload</p>
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/30 font-mono" : "text-gray-400"}`}>or drag and drop here</p>
                   </div>
                   <input
                     type="file"
@@ -584,10 +584,10 @@ export default function CreateToken() {
           </div>
 
           {/* Privacy Options Section */}
-          <div className={`${privateMode ? "bg-black border-[#10B981]" : "bg-gradient-to-br from-purple-50 to-indigo-50 border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
+          <div className={`${privateMode ? "bg-black border-[#4ADE80]" : "bg-gradient-to-br from-purple-50 to-indigo-50 border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
             <div className="flex items-center gap-2 mb-4">
-              <Shield className={`w-5 h-5 ${privateMode ? "text-[#10B981]" : "text-purple-600"}`} />
-              <h2 className={`text-sm font-black uppercase ${privateMode ? "text-[#10B981] font-mono" : "text-purple-700"}`}>
+              <Shield className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-purple-600"}`} />
+              <h2 className={`text-sm font-black uppercase ${privateMode ? "text-[#4ADE80] font-mono" : "text-purple-700"}`}>
                 {privateMode ? "// PRIVACY_CONFIG" : "PRIVACY OPTIONS"}
               </h2>
             </div>
@@ -598,30 +598,30 @@ export default function CreateToken() {
                 className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   enableConfidential 
                     ? privateMode 
-                      ? "bg-[#10B981]/10 border-[#10B981]" 
+                      ? "bg-[#4ADE80]/10 border-[#4ADE80]" 
                       : "bg-purple-100 border-purple-500"
                     : privateMode 
-                      ? "bg-zinc-900/50 border-[#10B981]/30 hover:border-[#10B981]/50" 
+                      ? "bg-zinc-900/50 border-[#4ADE80]/30 hover:border-[#4ADE80]/50" 
                       : "bg-white border-gray-200 hover:border-purple-300"
                 }`}
                 data-testid="toggle-confidential-transfers"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${enableConfidential ? (privateMode ? "bg-[#10B981]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
-                    <Lock className={`w-4 h-4 ${enableConfidential ? (privateMode ? "text-[#10B981]" : "text-purple-600") : (privateMode ? "text-[#10B981]/40" : "text-gray-400")}`} />
+                  <div className={`p-2 rounded-lg ${enableConfidential ? (privateMode ? "bg-[#4ADE80]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
+                    <Lock className={`w-4 h-4 ${enableConfidential ? (privateMode ? "text-[#4ADE80]" : "text-purple-600") : (privateMode ? "text-[#4ADE80]/40" : "text-gray-400")}`} />
                   </div>
                   <div>
                     <p className={`font-bold ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
                       {privateMode ? "TOKEN-2022_CONFIDENTIAL" : "Confidential Transfers"}
                     </p>
-                    <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                       {privateMode ? "// HIDDEN_BALANCES_AND_AMOUNTS" : "Hide token balances and transfer amounts"}
                     </p>
                   </div>
                 </div>
                 <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
                   enableConfidential 
-                    ? privateMode ? "bg-[#10B981]" : "bg-purple-500" 
+                    ? privateMode ? "bg-[#4ADE80]" : "bg-purple-500" 
                     : privateMode ? "bg-zinc-700" : "bg-gray-300"
                 }`}>
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableConfidential ? "translate-x-6" : ""}`} />
@@ -633,30 +633,30 @@ export default function CreateToken() {
                 className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
                   enableStealth 
                     ? privateMode 
-                      ? "bg-[#10B981]/10 border-[#10B981]" 
+                      ? "bg-[#4ADE80]/10 border-[#4ADE80]" 
                       : "bg-purple-100 border-purple-500"
                     : privateMode 
-                      ? "bg-zinc-900/50 border-[#10B981]/30 hover:border-[#10B981]/50" 
+                      ? "bg-zinc-900/50 border-[#4ADE80]/30 hover:border-[#4ADE80]/50" 
                       : "bg-white border-gray-200 hover:border-purple-300"
                 }`}
                 data-testid="toggle-stealth-addresses"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${enableStealth ? (privateMode ? "bg-[#10B981]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
-                    <Eye className={`w-4 h-4 ${enableStealth ? (privateMode ? "text-[#10B981]" : "text-purple-600") : (privateMode ? "text-[#10B981]/40" : "text-gray-400")}`} />
+                  <div className={`p-2 rounded-lg ${enableStealth ? (privateMode ? "bg-[#4ADE80]/20" : "bg-purple-200") : (privateMode ? "bg-zinc-800" : "bg-gray-100")}`}>
+                    <Eye className={`w-4 h-4 ${enableStealth ? (privateMode ? "text-[#4ADE80]" : "text-purple-600") : (privateMode ? "text-[#4ADE80]/40" : "text-gray-400")}`} />
                   </div>
                   <div>
                     <p className={`font-bold ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
                       {privateMode ? "STEALTH_RECEIVING" : "Stealth Address Support"}
                     </p>
-                    <p className={`text-xs ${privateMode ? "text-[#10B981]/60 font-mono" : "text-gray-500"}`}>
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
                       {privateMode ? "// UNLINKABLE_TOKEN_RECEIVING" : "Enable one-time addresses for private receiving"}
                     </p>
                   </div>
                 </div>
                 <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
                   enableStealth 
-                    ? privateMode ? "bg-[#10B981]" : "bg-purple-500" 
+                    ? privateMode ? "bg-[#4ADE80]" : "bg-purple-500" 
                     : privateMode ? "bg-zinc-700" : "bg-gray-300"
                 }`}>
                   <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableStealth ? "translate-x-6" : ""}`} />
@@ -664,7 +664,7 @@ export default function CreateToken() {
               </div>
             </div>
 
-            <p className={`text-xs mt-4 ${privateMode ? "text-[#10B981]/40 font-mono" : "text-gray-500"}`}>
+            <p className={`text-xs mt-4 ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
               {privateMode 
                 ? "// PRIVACY_FEATURES_USE_TOKEN-2022_EXTENSIONS" 
                 : "Privacy features use Solana Token-2022 program extensions"}
@@ -674,10 +674,10 @@ export default function CreateToken() {
           {/* Creation Step Display */}
           {creationStep && (
             <div className={`border-2 border-black rounded-lg p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-black border-[#10B981] text-[#10B981]" : "bg-blue-50 text-blue-800"
+              privateMode ? "bg-black border-[#4ADE80] text-[#4ADE80]" : "bg-blue-50 text-blue-800"
             }`}>
               <div className="flex items-center gap-3">
-                <Loader2 className={`w-5 h-5 animate-spin ${privateMode ? "text-[#10B981]" : "text-blue-600"}`} />
+                <Loader2 className={`w-5 h-5 animate-spin ${privateMode ? "text-[#4ADE80]" : "text-blue-600"}`} />
                 <p className={`text-sm font-bold ${privateMode ? "font-mono" : ""}`}>{creationStep}</p>
               </div>
             </div>
@@ -693,7 +693,7 @@ export default function CreateToken() {
               createTokenMutation.isPending || !connectedWallet
                 ? `bg-gray-300 text-gray-500 cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${privateMode ? "opacity-30" : ""}`
                 : privateMode 
-                  ? "bg-black border-[#10B981] text-[#10B981] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] font-mono" 
+                  ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] font-mono" 
                   : "bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
             }`}
             data-testid="button-create-token"
