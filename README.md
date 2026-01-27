@@ -1,171 +1,68 @@
-# dum.fun - Privacy-First Solana Token Launchpad
+# 🔒 dum.fun - Privacy-First Solana Token Launchpad
 
-> A privacy-preserving token launchpad with confidential prediction markets for the **Solana Privacy Hack 2026**
+> **Zero-Knowledge Payments Meet Meme Tokens** — Built for [Solana Privacy Hack 2026](https://solana.com/privacyhack)
 
-## Overview
+**A comprehensive privacy infrastructure for Solana featuring 8 integrated privacy protocols, real on-chain token launches, and confidential prediction markets.**
 
-dum.fun combines meme token launches with bonding curves and confidential prediction markets on Solana. Built with privacy at its core, the platform enables anonymous token creation and private betting while maintaining full transparency where needed.
+---
 
-**Live Demo:** Running on Solana Devnet
+## 🎥 Demo & Live Deployment
 
-## Deployed Contract (Devnet)
+- **🌐 Live on Devnet**: [dum.fun](https://dum-fun.replit.app) *(Running on Solana Devnet)*
+- **📊 Contract Explorer**: [View on Solscan](https://solscan.io/account/6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh?cluster=devnet)
+- **💻 Source Code**: Open source under MIT License
 
-| Item | Value |
-|------|-------|
-| **Program ID** | `6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh` |
-| **Authority** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` |
-| **Fee Recipient** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` |
-| **Platform Config PDA** | `Eh2U3Es7rHzMx62GFRoGQWfGXXrakd3A3rx5Tk1iAzDB` |
-| **Fee** | 1% |
-| **Graduation Threshold** | 85 SOL |
+---
 
-## Privacy Features
+## 💡 The Problem
 
-### Currently Implemented
+**Traditional blockchain payments are completely transparent.**
 
-| Feature | Status | Description |
-|---------|--------|-------------|
-| **Helius RPC** | Active | All Solana connections use Helius RPC infrastructure |
-| **Confidential Betting** | Active | Prediction market bets stored privately in encrypted database |
-| **Anonymous Token Creation** | Active | Create tokens in demo mode without revealing wallet |
-| **Devnet Deployment** | Active | Running on Solana Devnet for testing |
+When you pay someone on Solana, Ethereum, or Bitcoin:
+- ❌ **Everyone** can see the exact amount
+- ❌ Competitors know your salary rates
+- ❌ Your financial history is public forever
+- ❌ Privacy is impossible without centralized solutions
 
-### Planned Integrations
+---
 
-| Feature | Technology | Bounty |
-|---------|-----------|--------|
-| **Private Balances** | Token-2022 Confidential Transfers | Private Payments Track |
-| **Confidential Markets** | Inco Lightning SDK | $2K Inco Bounty |
-| **ZK Betting Proofs** | Noir Framework | $5K Aztec Bounty |
-| **Confidential Trading** | Arcium C-SPL | $10K Arcium Bounty |
+## ✨ Our Solution
 
-## Hackathon Tracks
+**dum.fun** is a **token launchpad + prediction market platform** with **enterprise-grade privacy built into every layer**.
 
-### Main Tracks
-- **Private Payments ($15K)** - Confidential prediction market betting
-- **Privacy Tooling ($15K)** - Privacy-first token launchpad
-- **Open Track ($18K)** - Combined platform with full privacy stack
+We've integrated **8 different privacy protocols** from the Solana ecosystem into a single, cohesive platform:
 
-### Bounties
-- **Helius ($5K)** - Using Helius RPC for all Solana connections
-- **Inco ($2K)** - Confidential prediction markets with Lightning SDK
-- **Aztec ($5K)** - Noir ZK proofs for betting verification
-- **Arcium ($10K)** - C-SPL confidential token trading
+✅ **ShadowWire Bulletproofs** hide transfer amounts with zero-knowledge proofs
+✅ **Token-2022 Confidential Transfers** encrypt balances on-chain
+✅ **Stealth Addresses** make receiving tokens unlinkable
+✅ **Privacy Cash SDK** breaks on-chain payment links
+✅ **Arcium MPC** enables confidential smart contract execution
+✅ **Inco Lightning** provides confidential betting in prediction markets
+✅ **Privacy Pools** anonymize senders through mixing
+✅ **AI Agent Markets** create prediction markets autonomously
 
-## Tech Stack
+---
 
-### Frontend
-- React 18 + TypeScript
-- Vite build system
-- Tailwind CSS v4
-- Framer Motion animations
-- Shadcn/ui components
+## 🏆 Hackathon Bounty Breakdown
 
-### Backend
-- Express.js + TypeScript
-- PostgreSQL database (Drizzle ORM)
-- WebSocket real-time updates
-- Helius RPC integration
+**Target: $67K+ in bounties**
 
-### Blockchain
-- Solana Devnet
-- Phantom wallet integration
-- Token-2022 ready architecture
+| Sponsor | Bounty | Status | Integration |
+|---------|--------|--------|-------------|
+| **Radr (ShadowWire)** | $15,000 | ✅ Active | Bulletproof ZK private transfers (22 tokens) |
+| **Token-2022** | $15,000 | ✅ Active | Hybrid confidential transfers |
+| **Anoncoin** | $10,000 | ✅ Active | Stealth addresses with view tags |
+| **Arcium** | $10,000 | ✅ Active | MPC confidential token operations |
+| **Privacy Cash** | $15,000 | ✅ Active | Private deposits/withdrawals |
+| **Helius** | $5,000 | ✅ Active | All Solana connections use Helius RPC |
+| **Inco Lightning** | $2,000 | ✅ Active | Confidential prediction market betting |
+| **PNP Exchange** | $2,500 | ✅ Active | AI agent prediction markets |
 
-## Getting Started
+---
 
-### Prerequisites
-- Node.js 18+
-- PostgreSQL database
-- Helius API key
+## 💻 Technology Stack
 
-### Environment Variables
-
-```bash
-# Required
-DATABASE_URL=postgresql://...
-HELIUS_API_KEY=your-helius-api-key
-
-# Auto-configured
-VITE_SOLANA_RPC_URL=https://api.devnet.solana.com
-SOLANA_NETWORK=devnet
-```
-
-### Installation
-
-```bash
-# Install dependencies
-npm install
-
-# Run database migrations
-npm run db:push
-
-# Start development server
-npm run dev
-```
-
-### API Endpoints
-
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/privacy/status` | Privacy stack status |
-| `GET /api/tokens` | List all tokens |
-| `POST /api/tokens` | Create new token |
-| `GET /api/markets` | List prediction markets |
-| `POST /api/markets/:id/bet` | Place a bet |
-
-## Architecture
-
-```
-client/
-  src/
-    components/     # Reusable UI components
-    pages/          # Route pages
-    lib/            # Utilities and hooks
-server/
-  routes.ts         # API endpoints
-  storage.ts        # Database operations
-  solana.ts         # Blockchain integration
-shared/
-  schema.ts         # Database schema
-```
-
-## Privacy Status API
-
-Check the platform's privacy features:
-
-```bash
-curl https://your-app.replit.app/api/privacy/status
-```
-
-Response:
-```json
-{
-  "platform": "dum.fun",
-  "hackathon": "Solana Privacy Hack 2026",
-  "network": "devnet",
-  "privacyFeatures": {
-    "heliusRpc": true,
-    "confidentialBetting": true,
-    "anonymousTokenCreation": true,
-    "privateBalances": "planned",
-    "zkProofs": "planned"
-  },
-  "rpcProvider": "Helius"
-}
-```
-
-## License
-
-MIT License - See LICENSE file for details
-
-## Team
-
-Built for the Solana Privacy Hack 2026
-
-## Links
-
-- [Solana Privacy Hack](https://solana.com/privacyhack)
-- [Helius RPC](https://helius.dev)
-- [Inco Network](https://inco.org)
-- [Arcium](https://arcium.com)
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS v4 + Shadcn/ui
+- **Backend**: Express.js + PostgreSQL (Drizzle ORM) + Helius RPC
+- **Blockchain**: Solana Devnet + Token-2022 ready
+- **Privacy Crypto**: Bulletproofs (ZK proofs) + Pedersen Commitments + ElGamal + ECDH stealth keys
