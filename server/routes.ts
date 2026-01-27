@@ -901,7 +901,12 @@ export async function registerRoutes(
   // POOL-BASED PRIVACY TRANSFERS (TRUE SHADOWWIRE FLOW)
   // =====================================================
   
-  const PRIVACY_POOL_ADDRESS = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
+  const { getPoolAddress, getPoolBalance: getOnChainPoolBalance, withdrawFromPool, initializePool, airdropToPool } = await import("./privacy/pool-authority");
+  
+  // Initialize pool on server start
+  initializePool().catch(console.error);
+  
+  const PRIVACY_POOL_ADDRESS = getPoolAddress();
 
   // Get user's pool balance
   app.get("/api/privacy/pool/balance/:wallet", async (req, res) => {
@@ -1235,7 +1240,7 @@ export async function registerRoutes(
     }
   });
 
-  // Process withdrawal (demo: shows concept - in production pool authority would send SOL)
+  // Process withdrawal - REAL ON-CHAIN transaction from pool
   app.post("/api/privacy/pool/process-withdraw", async (req, res) => {
     try {
       const { walletAddress, amount, destinationAddress } = req.body;
@@ -1256,42 +1261,88 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Insufficient pool balance" });
       }
 
-      // Generate withdrawal reference
-      const crypto = await import("crypto");
-      const withdrawRef = crypto.createHash("sha256")
-        .update(`withdraw:${walletAddress}:${destination}:${withdrawAmount}:${Date.now()}`)
-        .digest("hex").slice(0, 16);
+      // Execute REAL on-chain withdrawal from pool
+      console.log(`[Pool Withdraw] Sending ${withdrawAmount} SOL from pool to ${destination}...`);
+      const withdrawResult = await withdrawFromPool(destination, withdrawAmount);
 
-      // DEMO MODE: Don't actually debit until we have a funded pool to send from
-      // In production, the pool authority would:
-      // 1. Verify the withdrawal request
-      // 2. Sign and send SOL from pool to destination
-      // 3. THEN debit the user's pool balance
-      
-      // Record activity as "pending" for demo
+      if (!withdrawResult.success) {
+        // Check if pool needs funding
+        const poolOnChainBalance = await getOnChainPoolBalance();
+        if (poolOnChainBalance < withdrawAmount) {
+          return res.status(400).json({ 
+            error: `Pool has insufficient on-chain funds (${poolOnChainBalance.toFixed(4)} SOL). Pool needs to be funded.`,
+            poolOnChainBalance,
+            needsFunding: true
+          });
+        }
+        return res.status(500).json({ error: withdrawResult.error || "Withdrawal failed" });
+      }
+
+      // Debit user's pool balance AFTER successful on-chain tx
+      await db.update(poolBalances)
+        .set({ 
+          solBalance: balance.solBalance - withdrawAmount,
+          updatedAt: new Date()
+        })
+        .where(eq(poolBalances.walletAddress, walletAddress));
+
+      // Record activity with real tx signature
       await db.insert(privacyActivity).values({
         walletAddress,
         activityType: "withdraw",
-        description: `[DEMO] Withdrawal request: ${withdrawAmount} SOL to ${destination.slice(0, 8)}... (would be sender anonymous in production)`,
+        description: `Withdrew ${withdrawAmount} SOL to ${destination.slice(0, 8)}... (sender anonymous - from pool)`,
         amount: withdrawAmount,
         token: "SOL",
         status: "success",
-        txSignature: withdrawRef
+        txSignature: withdrawResult.signature
       });
 
       res.json({
         success: true,
-        demo: true,
-        message: `[DEMO] Withdrawal simulated. In production, ${withdrawAmount} SOL would be sent from pool (sender anonymous).`,
-        explanation: "To complete real withdrawals, the pool needs to be funded and have authority to sign transactions. For hackathon demo, this shows the privacy concept: on-chain shows pool as sender, not you.",
+        message: `Withdrawal complete! ${withdrawAmount} SOL sent from pool to ${destination}`,
         senderAnonymous: true,
+        onChain: true,
         destination,
         amount: withdrawAmount,
-        poolBalance: balance.solBalance, // Not debited in demo mode
-        reference: withdrawRef
+        newPoolBalance: balance.solBalance - withdrawAmount,
+        txSignature: withdrawResult.signature,
+        solscanUrl: `https://solscan.io/tx/${withdrawResult.signature}?cluster=devnet`
       });
     } catch (error: any) {
       console.error("[Pool Process Withdraw] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Airdrop to pool (for testing)
+  app.post("/api/privacy/pool/airdrop", async (req, res) => {
+    try {
+      const { amount = 1 } = req.body;
+      const signature = await airdropToPool(amount);
+      const newBalance = await getOnChainPoolBalance();
+      res.json({
+        success: true,
+        message: `Airdropped ${amount} SOL to pool`,
+        txSignature: signature,
+        newPoolBalance: newBalance
+      });
+    } catch (error: any) {
+      console.error("[Pool Airdrop] Error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get pool info including on-chain balance
+  app.get("/api/privacy/pool/info", async (_req, res) => {
+    try {
+      const onChainBalance = await getOnChainPoolBalance();
+      res.json({
+        success: true,
+        poolAddress: PRIVACY_POOL_ADDRESS,
+        onChainBalance,
+        network: "devnet"
+      });
+    } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
   });

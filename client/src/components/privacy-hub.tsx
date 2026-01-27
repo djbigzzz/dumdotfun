@@ -434,29 +434,25 @@ export function PrivacyHub() {
       const result = await res.json();
       
       if (res.ok && result.success) {
-        if (result.demo) {
-          toast({
-            title: "Withdrawal Simulated (Demo)",
-            description: (
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-yellow-400">Demo Mode</span>
-                <span>In production: {withdrawAmt} SOL would be sent from pool to {destination.slice(0, 8)}...</span>
-                <span className="text-xs opacity-70">On-chain would show pool as sender = your identity hidden</span>
-              </div>
-            ),
-          });
-        } else {
-          toast({
-            title: "Withdrawal Complete!",
-            description: (
-              <div className="flex flex-col gap-1">
-                <span className="font-bold text-green-400">Sender Anonymous</span>
-                <span>{withdrawAmt} SOL sent from pool to {destination.slice(0, 8)}...</span>
-                <span className="text-xs opacity-70">Your wallet is not linked on-chain</span>
-              </div>
-            ),
-          });
-        }
+        toast({
+          title: "Withdrawal Complete!",
+          description: (
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-green-400">Sender Anonymous - Real On-Chain!</span>
+              <span>{withdrawAmt} SOL sent from pool to {destination.slice(0, 8)}...</span>
+              {result.txSignature && (
+                <a 
+                  href={`https://solscan.io/tx/${result.txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline text-green-400"
+                >
+                  View on Solscan (shows pool as sender)
+                </a>
+              )}
+            </div>
+          ),
+        });
         setWithdrawAmount("");
         setWithdrawDestination("");
         setTimeout(() => fetchBalances(), 500);
@@ -943,13 +939,13 @@ export function PrivacyHub() {
                 )}
               </div>
 
-              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-yellow-500/20" : "bg-gray-50 border-gray-200"}`}>
-                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-yellow-400 font-mono" : "text-gray-700"}`}>
+              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-[#4ADE80]/20" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-700"}`}>
                   <ArrowUpFromLine className="w-4 h-4" />
-                  Step 3: Withdraw (Demo Only)
+                  Step 3: Withdraw (Sender Anonymous)
                 </h3>
-                <p className={`text-xs ${privateMode ? "text-yellow-400/50" : "text-gray-500"}`}>
-                  In production: Pool sends REAL SOL to destination. On-chain shows pool as sender = your identity hidden. (Requires funded pool authority)
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                  REAL on-chain SOL transfer from pool to destination. On-chain shows pool as sender = your identity hidden!
                 </p>
                 <input
                   type="text"
@@ -987,16 +983,17 @@ export function PrivacyHub() {
                 </div>
               </div>
 
-              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-800/50 border-[#4ADE80]/10" : "bg-yellow-50 border-yellow-200"}`}>
-                <h4 className={`text-xs font-bold uppercase mb-2 ${privateMode ? "text-[#4ADE80]/70" : "text-yellow-700"}`}>
-                  Key Difference: Step 2 vs Step 3
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-800/50 border-[#4ADE80]/10" : "bg-green-50 border-green-200"}`}>
+                <h4 className={`text-xs font-bold uppercase mb-2 ${privateMode ? "text-[#4ADE80]/70" : "text-green-700"}`}>
+                  All Steps Are REAL On-Chain!
                 </h4>
-                <ul className={`text-xs space-y-2 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-yellow-600"}`}>
-                  <li><strong>Step 2 (Private Transfer):</strong> Moves SOL from YOUR pool balance to RECIPIENT'S pool balance. They get pool balance, not actual wallet SOL. No on-chain record = amount hidden.</li>
-                  <li><strong>Step 3 (Withdraw):</strong> Sends REAL SOL from pool to any wallet on-chain. On-chain shows pool as sender = your identity hidden.</li>
+                <ul className={`text-xs space-y-2 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-green-600"}`}>
+                  <li><strong>Step 1 (Deposit):</strong> Real on-chain tx from your wallet → pool. Verifiable on Solscan.</li>
+                  <li><strong>Step 2 (Private Transfer):</strong> Pool-to-pool balance transfer. NO on-chain record = amount hidden. Recipient gets pool balance.</li>
+                  <li><strong>Step 3 (Withdraw):</strong> Real on-chain tx from pool → destination. Solscan shows pool as sender = YOUR identity hidden!</li>
                 </ul>
-                <p className={`text-xs mt-2 ${privateMode ? "text-yellow-400/70" : "text-yellow-700"}`}>
-                  Note: Withdraw is demo-only (requires funded pool). Deposit + Private Transfer work with real on-chain transactions.
+                <p className={`text-xs mt-2 ${privateMode ? "text-[#4ADE80]/40" : "text-green-600"}`}>
+                  Security: Pool balances are only credited after on-chain deposit verification. No fake balances possible.
                 </p>
               </div>
             </motion.div>
