@@ -204,7 +204,7 @@ export default function Profile() {
               </p>
             </div>
 
-            <PrivacyHub />
+            {privateMode && <PrivacyHub />}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <motion.div
