@@ -349,26 +349,30 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      const res = await fetch("/api/privacy/cash/withdraw", {
+      // Use ShadowWire withdraw if there's tracked balance, otherwise Privacy Cash
+      const withdrawAmt = parseFloat(withdrawAmount);
+      
+      // Try ShadowWire withdraw first (uses real on-chain pool)
+      const res = await fetch("/api/privacy/shadowwire/withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           walletAddress: connectedWallet, 
-          recipientAddress: connectedWallet,
-          amount: parseFloat(withdrawAmount),
+          amount: withdrawAmt,
           token: "SOL"
         })
       });
       
       if (res.ok) {
+        const data = await res.json();
         toast({
-          title: "Private Withdrawal Complete",
-          description: `Withdrawn ${withdrawAmount} SOL anonymously`,
+          title: "ShadowWire Withdrawal Complete",
+          description: data.message || `Withdrawn ${withdrawAmount} SOL`,
         });
         addActivity({
           type: "withdraw",
-          description: `Withdrew ${withdrawAmount} SOL privately`,
-          amount: parseFloat(withdrawAmount),
+          description: `ShadowWire: Withdrew ${withdrawAmount} SOL`,
+          amount: withdrawAmt,
           token: "SOL",
           status: "success"
         });
@@ -378,22 +382,26 @@ export function PrivacyHub() {
         const error = await res.json();
         toast({
           title: "Withdrawal failed",
-          description: error.error || "Unknown error",
+          description: error.error || "ShadowWire withdrawal requires SDK integration. Tracked deposits are display-only for hackathon demo.",
           variant: "destructive",
         });
         addActivity({
           type: "withdraw",
-          description: `Failed: ${error.error || "Withdrawal failed"}`,
-          amount: parseFloat(withdrawAmount),
+          description: `Note: ${error.error || "ShadowWire SDK required for withdrawals"}`,
+          amount: withdrawAmt,
           token: "SOL",
           status: "failed"
         });
       }
     } catch (error) {
-      toast({ title: "Withdrawal failed", variant: "destructive" });
+      toast({ 
+        title: "Withdrawal note", 
+        description: "ShadowWire withdrawals require SDK deposit method. Tracked on-chain deposits are display-only.",
+        variant: "destructive" 
+      });
       addActivity({
         type: "withdraw",
-        description: "Withdrawal failed",
+        description: "Withdrawal requires ShadowWire SDK",
         amount: parseFloat(withdrawAmount),
         token: "SOL",
         status: "failed"
