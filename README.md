@@ -21,7 +21,6 @@
 - **⚡ Quick evaluation** (5 min): [JUDGES_QUICKSTART.md](JUDGES_QUICKSTART.md) — Test live demo, verify bounties
 - **📋 Bounty checklist** ($67K): [HACKATHON_CHECKLIST.md](HACKATHON_CHECKLIST.md) — All requirements verified
 - **🔬 Technical deep-dives**: [SHADOWWIRE_HACKATHON.md](SHADOWWIRE_HACKATHON.md) (Bulletproofs) • [TOKEN2022_HACKATHON.md](TOKEN2022_HACKATHON.md) (Confidential transfers)
-- **🧪 Run tests**: `npx tsx server/privacy/test-shadowwire.ts` → 10/10 passing
 
 **Time to fully evaluate: ~30 minutes**
 

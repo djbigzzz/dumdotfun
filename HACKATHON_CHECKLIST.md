@@ -60,7 +60,6 @@ Use this checklist to ensure your submission is complete before the deadline.
   - [ ] Environment variables documented
 
 - [ ] **Testing**
-  - [ ] Run test suite: `npx tsx server/privacy/test-shadowwire.ts`
   - [ ] Manual testing on Devnet
   - [ ] Test on different browsers
   - [ ] Mobile responsive check
