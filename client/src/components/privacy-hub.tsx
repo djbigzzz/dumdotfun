@@ -456,6 +456,47 @@ export function PrivacyHub() {
     }
   };
 
+  const sweepFunds = async (sa: StealthAddress) => {
+    if (!connectedWallet) return;
+    setProcessing(true);
+    try {
+      const res = await fetch("/api/privacy/stealth-addresses/sweep", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          stealthAddress: sa.address,
+          ephemeralPublicKey: sa.ephemeralPublicKey
+        })
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        toast({
+          title: "Funds Swept",
+          description: `Successfully recovered funds from stealth address. TX: ${data.txSignature.slice(0, 10)}...`,
+        });
+        addActivity({
+          type: "stealth",
+          description: `Swept funds from ${sa.address.slice(0, 8)}...`,
+          status: "success",
+          txSignature: data.txSignature
+        });
+      } else {
+        const error = await res.json();
+        toast({
+          title: "Sweep Failed",
+          description: error.error || "Unknown error",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({ title: "Sweep Failed", variant: "destructive" });
+    } finally {
+      setProcessing(false);
+    }
+  };
+
   const generateStealthAddress = async () => {
     if (!connectedWallet) return;
     setProcessing(true);

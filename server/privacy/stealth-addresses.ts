@@ -189,6 +189,29 @@ export function isStealthAddressAvailable(): boolean {
   return true;
 }
 
+export function deriveStealthPrivateKey(
+  ownerWallet: string,
+  ephemeralPublicKey: string
+): string | null {
+  try {
+    const ownerPubkey = new PublicKey(ownerWallet);
+    const ephemeralPubkey = new PublicKey(ephemeralPublicKey);
+    
+    const sharedSecretHash = deriveSharedSecretHash(
+      ephemeralPubkey.toBytes(),
+      ownerPubkey.toBytes()
+    );
+    
+    const { seed } = deriveStealthAddress(ownerPubkey, sharedSecretHash);
+    const stealthKeypair = Keypair.fromSeed(seed);
+    
+    return Buffer.from(stealthKeypair.secretKey).toString("hex");
+  } catch (error) {
+    console.log("[Stealth] Private key derivation failed:", error);
+    return null;
+  }
+}
+
 export const StealthAddressStatus = {
   available: true,
   network: "devnet",

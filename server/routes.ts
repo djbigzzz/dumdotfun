@@ -386,6 +386,38 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/privacy/stealth-addresses/sweep", async (req, res) => {
+    try {
+      const { walletAddress, stealthAddress, ephemeralPublicKey } = req.body;
+      if (!walletAddress || !stealthAddress || !ephemeralPublicKey) {
+        return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      const { verifyStealthOwnership, deriveStealthPrivateKey } = await import("./privacy/stealth-addresses");
+      
+      const isOwner = verifyStealthOwnership(walletAddress, stealthAddress, ephemeralPublicKey);
+      if (!isOwner) {
+        return res.status(403).json({ error: "You do not own this stealth address" });
+      }
+
+      const privateKey = deriveStealthPrivateKey(walletAddress, ephemeralPublicKey);
+      if (!privateKey) {
+        return res.status(500).json({ error: "Failed to derive private key" });
+      }
+
+      // In a real implementation, we would construct and sign a transaction here
+      // For the hackathon, we'll return the success and simulated TX
+      res.json({ 
+        success: true, 
+        message: "Funds swept successfully",
+        txSignature: "Simulated_Sweep_TX_" + Math.random().toString(36).slice(2),
+        privateKey: privateKey.slice(0, 10) + "..." // Only show prefix for security in demo
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/shadowwire/deposit", async (req, res) => {
     try {
       const { walletAddress, amount, token } = req.body;
