@@ -228,32 +228,89 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      const res = await fetch("/api/privacy/shadowwire/transfer", {
+      // Execute real on-chain transfer via server
+      const res = await fetch("/api/privacy/shadowwire/execute-transfer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           senderAddress: connectedWallet,
           recipientAddress: transferRecipient,
           amount: parseFloat(transferAmount),
-          token: transferToken,
-          type: "external"
+          token: transferToken
         })
       });
       
       if (res.ok) {
         const data = await res.json();
-        toast({
-          title: "Private Transfer Initiated",
-          description: `Sending ${transferAmount} ${transferToken} privately via ShadowWire`,
-        });
-        addActivity({
-          type: "shadowwire",
-          description: `Private transfer to ${transferRecipient.slice(0, 8)}...`,
-          amount: parseFloat(transferAmount),
-          token: transferToken,
-          status: "success",
-          txSignature: data.transaction?.signature
-        });
+        
+        if (data.requiresClientSign && data.serializedTransaction) {
+          // Need Phantom to sign
+          const phantom = (window as any).phantom?.solana;
+          if (!phantom) {
+            toast({ title: "Phantom wallet not found", variant: "destructive" });
+            return;
+          }
+          
+          const { Transaction, Connection } = await import("@solana/web3.js");
+          const connection = new Connection("https://api.devnet.solana.com", "confirmed");
+          
+          const tx = Transaction.from(Buffer.from(data.serializedTransaction, "base64"));
+          const signedTx = await phantom.signTransaction(tx);
+          const signature = await connection.sendRawTransaction(signedTx.serialize());
+          await connection.confirmTransaction(signature, "confirmed");
+          
+          toast({
+            title: "Private Transfer Complete",
+            description: (
+              <div className="flex flex-col gap-1">
+                <span>Sent {transferAmount} {transferToken} via ShadowWire</span>
+                <a 
+                  href={`https://solscan.io/tx/${signature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline text-green-400"
+                >
+                  View on Solscan
+                </a>
+              </div>
+            ),
+          });
+          addActivity({
+            type: "shadowwire",
+            description: `Private transfer to ${transferRecipient.slice(0, 8)}...`,
+            amount: parseFloat(transferAmount),
+            token: transferToken,
+            status: "success",
+            txSignature: signature
+          });
+        } else if (data.txSignature) {
+          // Server already executed
+          toast({
+            title: "Private Transfer Complete",
+            description: (
+              <div className="flex flex-col gap-1">
+                <span>Sent {transferAmount} {transferToken} via ShadowWire</span>
+                <a 
+                  href={`https://solscan.io/tx/${data.txSignature}?cluster=devnet`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline text-green-400"
+                >
+                  View on Solscan
+                </a>
+              </div>
+            ),
+          });
+          addActivity({
+            type: "shadowwire",
+            description: `Private transfer to ${transferRecipient.slice(0, 8)}...`,
+            amount: parseFloat(transferAmount),
+            token: transferToken,
+            status: "success",
+            txSignature: data.txSignature
+          });
+        }
+        
         setTransferRecipient("");
         setTransferAmount("");
         setTimeout(() => fetchBalances(), 1000);
@@ -272,9 +329,10 @@ export function PrivacyHub() {
           status: "failed"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: "Transfer failed",
+        description: error?.message || "Unknown error",
         variant: "destructive",
       });
     } finally {

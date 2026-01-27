@@ -275,6 +275,66 @@ export async function registerRoutes(
     }
   });
 
+  // Real on-chain ShadowWire transfer - builds transaction for client signing
+  app.post("/api/privacy/shadowwire/execute-transfer", async (req, res) => {
+    try {
+      const { senderAddress, recipientAddress, amount, token } = req.body;
+      if (!senderAddress || !recipientAddress || !amount) {
+        return res.status(400).json({ error: "senderAddress, recipientAddress, and amount are required" });
+      }
+
+      const { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } = await import("@solana/web3.js");
+      const connection = new Connection(
+        process.env.HELIUS_API_KEY 
+          ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}` 
+          : "https://api.devnet.solana.com", 
+        "confirmed"
+      );
+
+      const senderPubkey = new PublicKey(senderAddress);
+      const recipientPubkey = new PublicKey(recipientAddress);
+      const lamports = Math.floor(amount * LAMPORTS_PER_SOL);
+
+      // Check sender balance
+      const balance = await connection.getBalance(senderPubkey);
+      if (balance < lamports + 5000) {
+        return res.status(400).json({ error: "Insufficient balance for transfer" });
+      }
+
+      // Create transfer transaction
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: senderPubkey,
+          toPubkey: recipientPubkey,
+          lamports,
+        })
+      );
+
+      // Get recent blockhash
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = senderPubkey;
+
+      // Serialize for client signing
+      const serializedTransaction = transaction.serialize({ 
+        requireAllSignatures: false,
+        verifySignatures: false 
+      }).toString("base64");
+
+      res.json({
+        success: true,
+        requiresClientSign: true,
+        serializedTransaction,
+        amount,
+        token: token || "SOL",
+        recipient: recipientAddress
+      });
+    } catch (error: any) {
+      console.error("[ShadowWire Execute Error]", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/shadowwire/transfer", async (req, res) => {
     try {
       const { senderAddress, recipientAddress, amount, token, type } = req.body;
