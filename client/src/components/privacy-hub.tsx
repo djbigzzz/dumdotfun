@@ -10,6 +10,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
+
 type TabType = "shadowwire" | "token2022" | "stealth" | "arcium" | "activity";
 
 interface PrivateBalance {
@@ -225,102 +226,59 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      // First, get the ShadowWire pool address from the balance API
-      let poolAddress: string;
-      try {
-        const balanceRes = await fetch(`/api/privacy/shadowwire/balance/${connectedWallet}`);
-        const balanceData = await balanceRes.json();
-        
-        if (balanceData.success && balanceData.balance?.poolAddress) {
-          poolAddress = balanceData.balance.poolAddress;
-        } else {
-          // Fallback to known ShadowWire pool address
-          poolAddress = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
-          console.log("[Deposit] Using fallback pool address");
-        }
-      } catch {
-        // Fallback pool address if API fails
-        poolAddress = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
-        console.log("[Deposit] API failed, using fallback pool address");
-      }
+      // Use ShadowWire SDK deposit with wallet signature for full functionality
+      const depositMessage = `ShadowWire deposit: ${amount} SOL to ${connectedWallet}`;
+      const messageBytes = new TextEncoder().encode(depositMessage);
       
-      // Validate pool address format
-      try {
-        new PublicKey(poolAddress);
-      } catch {
-        throw new Error("Invalid pool address format");
-      }
-      
-      // Show pending toast
       toast({
-        title: "Creating transaction...",
-        description: "Please approve the transaction in your wallet",
+        title: "Sign deposit request",
+        description: "Please sign the message in your wallet to authorize the deposit",
       });
       
-      // Create a real SOL transfer transaction to the ShadowWire pool
-      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
-      const fromPubkey = new PublicKey(connectedWallet);
-      const toPubkey = new PublicKey(poolAddress);
-      
-      // Get latest blockhash
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-      
-      // Create the transaction
-      const transaction = new Transaction({
-        recentBlockhash: blockhash,
-        feePayer: fromPubkey,
-      }).add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: Math.floor(amount * LAMPORTS_PER_SOL),
-        })
-      );
-      
-      // Sign and send with Phantom
-      const signature = await signAndSendTransaction(transaction);
-      
-      // Wait for confirmation
-      toast({
-        title: "Confirming transaction...",
-        description: `TX: ${signature.slice(0, 12)}... waiting for confirmation`,
-      });
-      
-      const confirmation = await connection.confirmTransaction({
-        signature,
-        blockhash,
-        lastValidBlockHeight,
-      }, "confirmed");
-      
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      // Get wallet signature
+      if (!window.solana?.isPhantom) {
+        throw new Error("Phantom wallet not available");
       }
       
-      // Record the confirmed deposit in our backend
-      await fetch("/api/privacy/shadowwire/record-deposit", {
+      const signResult = await window.solana.signMessage(messageBytes);
+      const signatureBase64 = btoa(String.fromCharCode(...Array.from(signResult.signature)));
+      const messageBase64 = btoa(depositMessage);
+      
+      toast({
+        title: "Processing deposit...",
+        description: "Executing ShadowWire SDK deposit",
+      });
+      
+      // Call execute-deposit endpoint with signature
+      const response = await fetch("/api/privacy/shadowwire/execute-deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          walletAddress: connectedWallet, 
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
           amount,
           token: "SOL",
-          signature,
-          poolAddress,
-          confirmed: true
+          signature: signatureBase64,
+          messageBase64
         })
       });
       
+      const result = await response.json();
+      
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || result.message || "Deposit failed");
+      }
+      
       toast({
-        title: "On-Chain Deposit Confirmed!",
-        description: `${amount} SOL sent to pool. View on Solscan: ${signature.slice(0, 8)}...`,
+        title: "ShadowWire Deposit Complete!",
+        description: `${amount} SOL deposited privately. TX: ${result.signatureOrHash?.slice(0, 8) || "confirmed"}...`,
       });
       addActivity({
         type: "deposit",
-        description: `Confirmed on-chain deposit to ${poolAddress.slice(0, 8)}...`,
+        description: `ShadowWire SDK deposit successful`,
         amount,
         token: "SOL",
         status: "success",
-        txSignature: signature
+        txSignature: result.signatureOrHash
       });
       setDepositAmount("");
       setTimeout(() => fetchBalances(), 2000);
@@ -349,60 +307,75 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      // Use ShadowWire withdraw if there's tracked balance, otherwise Privacy Cash
       const withdrawAmt = parseFloat(withdrawAmount);
       
-      // Try ShadowWire withdraw first (uses real on-chain pool)
-      const res = await fetch("/api/privacy/shadowwire/withdraw", {
+      // Use ShadowWire SDK withdraw with wallet signature for full functionality
+      const withdrawMessage = `ShadowWire withdraw: ${withdrawAmt} SOL to ${connectedWallet}`;
+      const messageBytes = new TextEncoder().encode(withdrawMessage);
+      
+      toast({
+        title: "Sign withdrawal request",
+        description: "Please sign the message in your wallet to authorize the withdrawal",
+      });
+      
+      // Get wallet signature
+      if (!window.solana?.isPhantom) {
+        throw new Error("Phantom wallet not available");
+      }
+      
+      const signResult = await window.solana.signMessage(messageBytes);
+      const signatureBase64 = btoa(String.fromCharCode(...Array.from(signResult.signature)));
+      const messageBase64 = btoa(withdrawMessage);
+      
+      toast({
+        title: "Processing withdrawal...",
+        description: "Executing ShadowWire SDK withdrawal",
+      });
+      
+      // Call execute-withdraw endpoint with signature
+      const res = await fetch("/api/privacy/shadowwire/execute-withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          walletAddress: connectedWallet, 
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
           amount: withdrawAmt,
-          token: "SOL"
+          token: "SOL",
+          signature: signatureBase64,
+          messageBase64
         })
       });
       
-      if (res.ok) {
-        const data = await res.json();
+      const result = await res.json();
+      
+      if (res.ok && result.success) {
         toast({
-          title: "ShadowWire Withdrawal Complete",
-          description: data.message || `Withdrawn ${withdrawAmount} SOL`,
+          title: "ShadowWire Withdrawal Complete!",
+          description: result.message || `Withdrawn ${withdrawAmount} SOL`,
         });
         addActivity({
           type: "withdraw",
-          description: `ShadowWire: Withdrew ${withdrawAmount} SOL`,
+          description: `ShadowWire SDK withdrawal successful`,
           amount: withdrawAmt,
           token: "SOL",
-          status: "success"
+          status: "success",
+          txSignature: result.signatureOrHash
         });
         setWithdrawAmount("");
         setTimeout(() => fetchBalances(), 500);
       } else {
-        const error = await res.json();
-        toast({
-          title: "Withdrawal failed",
-          description: error.error || "ShadowWire withdrawal requires SDK integration. Tracked deposits are display-only for hackathon demo.",
-          variant: "destructive",
-        });
-        addActivity({
-          type: "withdraw",
-          description: `Note: ${error.error || "ShadowWire SDK required for withdrawals"}`,
-          amount: withdrawAmt,
-          token: "SOL",
-          status: "failed"
-        });
+        throw new Error(result.error || result.message || "Withdrawal failed");
       }
-    } catch (error) {
-      toast({ 
-        title: "Withdrawal note", 
-        description: "ShadowWire withdrawals require SDK deposit method. Tracked on-chain deposits are display-only.",
-        variant: "destructive" 
+    } catch (error: any) {
+      const errorMessage = error?.message || "Withdrawal failed";
+      toast({
+        title: "Withdrawal failed",
+        description: errorMessage.includes("User rejected") ? "Transaction cancelled by user" : errorMessage,
+        variant: "destructive",
       });
       addActivity({
         type: "withdraw",
-        description: "Withdrawal requires ShadowWire SDK",
-        amount: parseFloat(withdrawAmount),
+        description: `Failed: ${errorMessage.slice(0, 50)}`,
+        amount: parseFloat(withdrawAmount) || 0,
         token: "SOL",
         status: "failed"
       });

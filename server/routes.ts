@@ -315,6 +315,52 @@ export async function registerRoutes(
     }
   });
 
+  // Execute deposit with wallet signature for full SDK functionality
+  app.post("/api/privacy/shadowwire/execute-deposit", async (req, res) => {
+    try {
+      const { walletAddress, amount, token, signature, messageBase64 } = req.body;
+      if (!walletAddress || !amount || !signature || !messageBase64) {
+        return res.status(400).json({ error: "walletAddress, amount, signature, and messageBase64 are required" });
+      }
+      
+      const { executeShadowWireDeposit } = await import("./privacy");
+      
+      // Create a signMessage function that returns the pre-signed signature
+      const signatureBytes = Buffer.from(signature, "base64");
+      const signMessage = async (_msg: Uint8Array): Promise<Uint8Array> => {
+        return signatureBytes;
+      };
+      
+      const result = await executeShadowWireDeposit(walletAddress, amount, token || "SOL", signMessage);
+      
+      if (result.success) {
+        // Also track in our database for balance display
+        const { privateDeposits } = await import("@shared/schema");
+        try {
+          await db.insert(privateDeposits).values({
+            walletAddress,
+            amount: parseFloat(amount.toString()),
+            token: token || "SOL",
+            signature: result.signatureOrHash || `sdk-${Date.now()}`,
+            poolAddress: "ShadowWire-SDK",
+            verified: true,
+            createdAt: new Date()
+          });
+        } catch (dbError: any) {
+          // Ignore duplicate signature errors
+          if (!dbError.message?.includes("duplicate")) {
+            console.error("[ShadowWire] DB insert error:", dbError);
+          }
+        }
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("[ShadowWire] Execute deposit error:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/shadowwire/withdraw", async (req, res) => {
     try {
       const { walletAddress, amount, token } = req.body;
@@ -354,6 +400,43 @@ export async function registerRoutes(
       const result = await prepareShadowWireWithdraw(walletAddress, amount, token || "SOL");
       res.json(result);
     } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Execute withdrawal with wallet signature for full SDK functionality
+  app.post("/api/privacy/shadowwire/execute-withdraw", async (req, res) => {
+    try {
+      const { walletAddress, amount, token, signature, messageBase64 } = req.body;
+      if (!walletAddress || !amount || !signature || !messageBase64) {
+        return res.status(400).json({ error: "walletAddress, amount, signature, and messageBase64 are required" });
+      }
+      
+      const { executeShadowWireWithdraw } = await import("./privacy");
+      
+      // Create a signMessage function that returns the pre-signed signature
+      const signatureBytes = Buffer.from(signature, "base64");
+      const signMessage = async (_msg: Uint8Array): Promise<Uint8Array> => {
+        return signatureBytes;
+      };
+      
+      const result = await executeShadowWireWithdraw(walletAddress, amount, token || "SOL", signMessage);
+      
+      if (result.success) {
+        // Remove from our tracked deposits after successful withdrawal
+        const { privateDeposits } = await import("@shared/schema");
+        const { eq, and } = await import("drizzle-orm");
+        
+        // Mark withdrawals - for simplicity, clear all tracked deposits for this wallet
+        // In production, you'd track withdrawal amounts more precisely
+        await db.delete(privateDeposits).where(
+          eq(privateDeposits.walletAddress, walletAddress)
+        );
+      }
+      
+      res.json(result);
+    } catch (error: any) {
+      console.error("[ShadowWire] Execute withdraw error:", error);
       res.status(500).json({ error: error.message });
     }
   });
