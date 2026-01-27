@@ -54,6 +54,7 @@ export function PrivacyHub() {
   const [activeTab, setActiveTab] = useState<TabType>("shadowwire");
   const [shadowWireBalance, setShadowWireBalance] = useState<PrivateBalance>({ sol: 0, usdc: 0, loading: true });
   const [privacyCashBalance, setPrivacyCashBalance] = useState<PrivateBalance>({ sol: 0, usdc: 0, loading: true });
+  const [poolBalance, setPoolBalance] = useState<{ sol: number; loading: boolean }>({ sol: 0, loading: true });
   const [stealthAddresses, setStealthAddresses] = useState<StealthAddress[]>([]);
   const [showBalances, setShowBalances] = useState(false);
   const [processing, setProcessing] = useState(false);
@@ -64,6 +65,7 @@ export function PrivacyHub() {
   const [transferRecipient, setTransferRecipient] = useState("");
   const [transferAmount, setTransferAmount] = useState("");
   const [transferToken, setTransferToken] = useState("SOL");
+  const [withdrawDestination, setWithdrawDestination] = useState("");
   
   const [depositAmount, setDepositAmount] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
@@ -84,33 +86,24 @@ export function PrivacyHub() {
     
     setShadowWireBalance(prev => ({ ...prev, loading: true }));
     setPrivacyCashBalance(prev => ({ ...prev, loading: true }));
+    setPoolBalance(prev => ({ ...prev, loading: true }));
     
     try {
-      const [swRes, pcRes, trackedRes] = await Promise.all([
+      const [swRes, pcRes, poolRes] = await Promise.all([
         fetch(`/api/privacy/shadowwire/balance/${connectedWallet}`),
         fetch(`/api/privacy/cash/balance/${connectedWallet}`),
-        fetch(`/api/privacy/tracked-balance/${connectedWallet}`)
+        fetch(`/api/privacy/pool/balance/${connectedWallet}`)
       ]);
       
-      // Get tracked on-chain deposits (real SOL sent to pool)
-      let trackedBalance = 0;
-      if (trackedRes.ok) {
-        const trackedData = await trackedRes.json();
-        trackedBalance = trackedData.balance || 0;
-      }
-      
-      if (swRes.ok) {
-        const swData = await swRes.json();
-        // Add tracked deposits to the ShadowWire balance display
-        const apiBalance = swData.balance?.available || swData.balances?.SOL || 0;
-        setShadowWireBalance({ 
-          sol: apiBalance + trackedBalance,  // Include tracked on-chain deposits
-          usdc: swData.balances?.USDC || 0, 
-          loading: false 
-        });
+      // Get pool balance (the REAL privacy pool balance)
+      if (poolRes.ok) {
+        const poolData = await poolRes.json();
+        setPoolBalance({ sol: poolData.solBalance || 0, loading: false });
+        // Also update shadowWireBalance to show pool balance
+        setShadowWireBalance({ sol: poolData.solBalance || 0, usdc: 0, loading: false });
       } else {
-        // Still show tracked deposits even if API fails
-        setShadowWireBalance({ sol: trackedBalance, usdc: 0, loading: false });
+        setPoolBalance({ sol: 0, loading: false });
+        setShadowWireBalance({ sol: 0, usdc: 0, loading: false });
       }
       
       if (pcRes.ok) {
@@ -127,6 +120,7 @@ export function PrivacyHub() {
       console.error("Failed to fetch private balances:", error);
       setShadowWireBalance({ sol: 0, usdc: 0, loading: false });
       setPrivacyCashBalance({ sol: 0, usdc: 0, loading: false });
+      setPoolBalance({ sol: 0, loading: false });
     }
   };
 
@@ -228,105 +222,55 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      // Execute real on-chain transfer via server
-      const res = await fetch("/api/privacy/shadowwire/execute-transfer", {
+      const amount = parseFloat(transferAmount);
+      
+      // Check pool balance first
+      if (poolBalance.sol < amount) {
+        toast({
+          title: "Insufficient Pool Balance",
+          description: `You have ${poolBalance.sol.toFixed(4)} SOL in your privacy pool. Deposit more SOL first.`,
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
+      }
+      
+      // Execute internal pool transfer (NO on-chain record = amount hidden)
+      const res = await fetch("/api/privacy/pool/internal-transfer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           senderAddress: connectedWallet,
           recipientAddress: transferRecipient,
-          amount: parseFloat(transferAmount),
-          token: transferToken
+          amount
         })
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        
-        if (data.requiresClientSign && data.serializedTransaction) {
-          // Need Phantom to sign
-          const phantom = (window as any).phantom?.solana;
-          if (!phantom) {
-            toast({ title: "Phantom wallet not found", variant: "destructive" });
-            return;
-          }
-          
-          const { Transaction, Connection } = await import("@solana/web3.js");
-          const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-          
-          const tx = Transaction.from(Buffer.from(data.serializedTransaction, "base64"));
-          const signedTx = await phantom.signTransaction(tx);
-          const signature = await connection.sendRawTransaction(signedTx.serialize());
-          await connection.confirmTransaction(signature, "confirmed");
-          
-          toast({
-            title: "Private Transfer Complete",
-            description: (
-              <div className="flex flex-col gap-1">
-                <span>Sent {transferAmount} {transferToken} via ShadowWire</span>
-                <a 
-                  href={`https://solscan.io/tx/${signature}?cluster=devnet`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs underline text-green-400"
-                >
-                  View on Solscan
-                </a>
-              </div>
-            ),
-          });
-          addActivity({
-            type: "shadowwire",
-            description: `Private transfer to ${transferRecipient.slice(0, 8)}...`,
-            amount: parseFloat(transferAmount),
-            token: transferToken,
-            status: "success",
-            txSignature: signature
-          });
-        } else if (data.txSignature) {
-          // Server already executed
-          toast({
-            title: "Private Transfer Complete",
-            description: (
-              <div className="flex flex-col gap-1">
-                <span>Sent {transferAmount} {transferToken} via ShadowWire</span>
-                <a 
-                  href={`https://solscan.io/tx/${data.txSignature}?cluster=devnet`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs underline text-green-400"
-                >
-                  View on Solscan
-                </a>
-              </div>
-            ),
-          });
-          addActivity({
-            type: "shadowwire",
-            description: `Private transfer to ${transferRecipient.slice(0, 8)}...`,
-            amount: parseFloat(transferAmount),
-            token: transferToken,
-            status: "success",
-            txSignature: data.txSignature
-          });
-        }
+      const data = await res.json();
+      
+      if (res.ok && data.success) {
+        toast({
+          title: "Private Transfer Complete!",
+          description: (
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-green-400">Amount Hidden (No On-Chain Record)</span>
+              <span>Sent {amount} SOL privately to {transferRecipient.slice(0, 8)}...</span>
+              <span className="text-xs opacity-70">Commitment: {data.commitment?.slice(0, 16)}...</span>
+            </div>
+          ),
+        });
         
         setTransferRecipient("");
         setTransferAmount("");
-        setTimeout(() => fetchBalances(), 1000);
+        setTimeout(() => {
+          fetchBalances();
+          fetchActivity();
+        }, 500);
       } else {
-        const error = await res.json();
         toast({
           title: "Transfer failed",
-          description: error.error || "Unknown error",
+          description: data.error || "Unknown error",
           variant: "destructive",
-        });
-        addActivity({
-          type: "shadowwire",
-          description: `Failed transfer to ${transferRecipient.slice(0, 8)}...`,
-          amount: parseFloat(transferAmount),
-          token: transferToken,
-          status: "failed"
         });
       }
     } catch (error: any) {
@@ -344,10 +288,10 @@ export function PrivacyHub() {
     if (!connectedWallet || !depositAmount) return;
     
     const amount = parseFloat(depositAmount);
-    if (amount < 0.1) {
+    if (amount < 0.01) {
       toast({
-        title: "Minimum deposit is 0.1 SOL",
-        description: "ShadowWire requires a minimum of 0.1 SOL for deposits",
+        title: "Minimum deposit is 0.01 SOL",
+        description: "Please enter at least 0.01 SOL",
         variant: "destructive",
       });
       return;
@@ -356,62 +300,89 @@ export function PrivacyHub() {
     setProcessing(true);
     
     try {
-      // Use ShadowWire SDK deposit with wallet signature for full functionality
-      const depositMessage = `ShadowWire deposit: ${amount} SOL to ${connectedWallet}`;
-      const messageBytes = new TextEncoder().encode(depositMessage);
-      
+      // Step 1: Create deposit transaction
       toast({
-        title: "Sign deposit request",
-        description: "Please sign the message in your wallet to authorize the deposit",
+        title: "Creating deposit transaction...",
+        description: "Preparing real on-chain transfer to privacy pool",
       });
       
-      // Get wallet signature
-      if (!window.solana?.isPhantom) {
-        throw new Error("Phantom wallet not available");
+      const txRes = await fetch("/api/privacy/pool/create-deposit-tx", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          amount
+        })
+      });
+      
+      const txData = await txRes.json();
+      if (!txRes.ok || !txData.success) {
+        throw new Error(txData.error || "Failed to create deposit transaction");
       }
       
-      const signResult = await window.solana.signMessage(messageBytes);
-      const signatureBase64 = btoa(String.fromCharCode(...Array.from(signResult.signature)));
-      const messageBase64 = btoa(depositMessage);
-      
+      // Step 2: Sign and send via Phantom
       toast({
-        title: "Processing deposit...",
-        description: "Executing ShadowWire SDK deposit",
+        title: "Sign transaction",
+        description: "Approve the deposit in your Phantom wallet",
       });
       
-      // Call execute-deposit endpoint with signature
-      const response = await fetch("/api/privacy/shadowwire/execute-deposit", {
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom) {
+        throw new Error("Phantom wallet not found");
+      }
+      
+      const { Transaction, Connection } = await import("@solana/web3.js");
+      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
+      
+      const tx = Transaction.from(Buffer.from(txData.serializedTransaction, "base64"));
+      const signedTx = await phantom.signTransaction(tx);
+      const signature = await connection.sendRawTransaction(signedTx.serialize());
+      
+      toast({
+        title: "Confirming on-chain...",
+        description: "Waiting for transaction confirmation",
+      });
+      
+      await connection.confirmTransaction(signature, "confirmed");
+      
+      // Step 3: Verify and credit pool balance
+      const verifyRes = await fetch("/api/privacy/pool/verify-deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           walletAddress: connectedWallet,
           amount,
-          token: "SOL",
-          signature: signatureBase64,
-          messageBase64
+          signature
         })
       });
       
-      const result = await response.json();
+      const verifyData = await verifyRes.json();
       
-      if (!response.ok || !result.success) {
-        throw new Error(result.error || result.message || "Deposit failed");
+      if (verifyRes.ok && verifyData.success) {
+        toast({
+          title: "Deposit Complete!",
+          description: (
+            <div className="flex flex-col gap-1">
+              <span className="font-bold">{amount} SOL added to Privacy Pool</span>
+              <a 
+                href={verifyData.explorerUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs underline text-green-400"
+              >
+                View on Solscan
+              </a>
+            </div>
+          ),
+        });
+        setDepositAmount("");
+        setTimeout(() => {
+          fetchBalances();
+          fetchActivity();
+        }, 500);
+      } else {
+        throw new Error(verifyData.error || "Deposit verification failed");
       }
-      
-      toast({
-        title: "ShadowWire Deposit Complete!",
-        description: `${amount} SOL deposited privately. TX: ${result.signatureOrHash?.slice(0, 8) || "confirmed"}...`,
-      });
-      addActivity({
-        type: "deposit",
-        description: `ShadowWire SDK deposit successful`,
-        amount,
-        token: "SOL",
-        status: "success",
-        txSignature: result.signatureOrHash
-      });
-      setDepositAmount("");
-      setTimeout(() => fetchBalances(), 2000);
     } catch (error: any) {
       console.error("Deposit error:", error);
       const errorMessage = error?.message || "Transaction rejected or failed";
@@ -419,13 +390,6 @@ export function PrivacyHub() {
         title: "Deposit failed", 
         description: errorMessage.includes("User rejected") ? "Transaction cancelled by user" : errorMessage,
         variant: "destructive" 
-      });
-      addActivity({
-        type: "deposit",
-        description: `Failed: ${errorMessage.slice(0, 50)}`,
-        amount: parseFloat(depositAmount) || 0,
-        token: "SOL",
-        status: "failed"
       });
     } finally {
       setProcessing(false);
@@ -438,40 +402,32 @@ export function PrivacyHub() {
     
     try {
       const withdrawAmt = parseFloat(withdrawAmount);
+      const destination = withdrawDestination || connectedWallet;
       
-      // Use ShadowWire SDK withdraw with wallet signature for full functionality
-      const withdrawMessage = `ShadowWire withdraw: ${withdrawAmt} SOL to ${connectedWallet}`;
-      const messageBytes = new TextEncoder().encode(withdrawMessage);
-      
-      toast({
-        title: "Sign withdrawal request",
-        description: "Please sign the message in your wallet to authorize the withdrawal",
-      });
-      
-      // Get wallet signature
-      if (!window.solana?.isPhantom) {
-        throw new Error("Phantom wallet not available");
+      // Check pool balance
+      if (poolBalance.sol < withdrawAmt) {
+        toast({
+          title: "Insufficient Pool Balance",
+          description: `You have ${poolBalance.sol.toFixed(4)} SOL in pool`,
+          variant: "destructive",
+        });
+        setProcessing(false);
+        return;
       }
-      
-      const signResult = await window.solana.signMessage(messageBytes);
-      const signatureBase64 = btoa(String.fromCharCode(...Array.from(signResult.signature)));
-      const messageBase64 = btoa(withdrawMessage);
       
       toast({
         title: "Processing withdrawal...",
-        description: "Executing ShadowWire SDK withdrawal",
+        description: "Withdrawing from privacy pool (sender anonymous)",
       });
       
-      // Call execute-withdraw endpoint with signature
-      const res = await fetch("/api/privacy/shadowwire/execute-withdraw", {
+      // Process withdrawal (debit pool balance)
+      const res = await fetch("/api/privacy/pool/process-withdraw", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           walletAddress: connectedWallet,
           amount: withdrawAmt,
-          token: "SOL",
-          signature: signatureBase64,
-          messageBase64
+          destinationAddress: destination
         })
       });
       
@@ -479,18 +435,17 @@ export function PrivacyHub() {
       
       if (res.ok && result.success) {
         toast({
-          title: "ShadowWire Withdrawal Complete!",
-          description: result.message || `Withdrawn ${withdrawAmount} SOL`,
-        });
-        addActivity({
-          type: "withdraw",
-          description: `ShadowWire SDK withdrawal successful`,
-          amount: withdrawAmt,
-          token: "SOL",
-          status: "success",
-          txSignature: result.signatureOrHash
+          title: "Withdrawal Complete!",
+          description: (
+            <div className="flex flex-col gap-1">
+              <span className="font-bold text-green-400">Sender Anonymous</span>
+              <span>{withdrawAmt} SOL sent from pool to {destination.slice(0, 8)}...</span>
+              <span className="text-xs opacity-70">Your wallet is not linked on-chain</span>
+            </div>
+          ),
         });
         setWithdrawAmount("");
+        setWithdrawDestination("");
         setTimeout(() => fetchBalances(), 500);
       } else {
         throw new Error(result.error || result.message || "Withdrawal failed");
@@ -871,25 +826,78 @@ export function PrivacyHub() {
                 <div className="flex items-center gap-2 mb-2">
                   {getStatusIcon(integrations.find(i => i.name.includes("ShadowWire"))?.available ?? true)}
                   <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]" : "text-purple-700"}`}>
-                    ShadowWire ZK Transfers
+                    ShadowWire Pool-Based Privacy
                   </span>
                 </div>
                 <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>
-                  Bulletproof ZK proofs for private transfers. Supports 22 tokens including SOL, USDC, BONK.
+                  Real privacy: Deposit to pool (on-chain) → Transfer privately (no record) → Withdraw (sender anonymous)
                 </p>
               </div>
 
-              <div className="space-y-3">
-                <h3 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                  Send Private Transfer
+              <div className={`p-4 rounded-lg border-2 ${privateMode ? "bg-black border-[#4ADE80]/40" : "bg-green-50 border-green-300"}`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]" : "text-green-700"}`}>
+                    Your Privacy Pool Balance
+                  </span>
+                  <Lock className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`} />
+                </div>
+                <div className={`text-3xl font-mono font-black ${privateMode ? "text-white" : "text-green-800"}`}>
+                  {poolBalance.loading ? "..." : `${poolBalance.sol.toFixed(4)} SOL`}
+                </div>
+                <p className={`text-xs mt-1 ${privateMode ? "text-[#4ADE80]/50" : "text-green-600"}`}>
+                  Pool: ApfNm...rBU (devnet)
+                </p>
+              </div>
+
+              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-[#4ADE80]/20" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-700"}`}>
+                  <ArrowDownToLine className="w-4 h-4" />
+                  Step 1: Deposit to Pool
                 </h3>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                  Real on-chain transfer to privacy pool. Verifiable on Solscan.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={depositAmount}
+                    onChange={(e) => setDepositAmount(e.target.value)}
+                    placeholder="SOL amount"
+                    className={`flex-1 px-3 py-2 rounded-lg border-2 font-mono text-sm ${
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-white border-gray-300"
+                    }`}
+                    data-testid="input-deposit-amount"
+                  />
+                  <motion.button
+                    onClick={handleDeposit}
+                    disabled={processing || !depositAmount}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-4 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
+                      privateMode ? "bg-[#4ADE80] text-black" : "bg-green-400 text-black"
+                    }`}
+                    data-testid="button-deposit"
+                  >
+                    {processing ? "..." : "Deposit"}
+                  </motion.button>
+                </div>
+              </div>
+
+              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-[#4ADE80]/20" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-700"}`}>
+                  <Send className="w-4 h-4" />
+                  Step 2: Private Transfer (Amount Hidden)
+                </h3>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                  Transfers between pool balances. NO on-chain record = amount completely hidden.
+                </p>
                 <input
                   type="text"
                   value={transferRecipient}
                   onChange={(e) => setTransferRecipient(e.target.value)}
                   placeholder="Recipient wallet address"
-                  className={`w-full px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
+                  className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
+                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-white border-gray-300"
                   }`}
                   data-testid="input-transfer-recipient"
                 />
@@ -899,95 +907,82 @@ export function PrivacyHub() {
                     value={transferAmount}
                     onChange={(e) => setTransferAmount(e.target.value)}
                     placeholder="Amount"
-                    className={`flex-1 px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
+                    className={`flex-1 px-3 py-2 rounded-lg border-2 font-mono text-sm ${
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-white border-gray-300"
                     }`}
                     data-testid="input-transfer-amount"
                   />
-                  <select
-                    value={transferToken}
-                    onChange={(e) => setTransferToken(e.target.value)}
-                    className={`px-4 py-3 rounded-lg border-2 font-mono text-sm ${
-                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
+                  <motion.button
+                    onClick={handleShadowWireTransfer}
+                    disabled={processing || !transferRecipient || !transferAmount || poolBalance.sol < parseFloat(transferAmount || "0")}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-4 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
+                      privateMode ? "bg-[#4ADE80] text-black" : "bg-purple-500 text-white"
                     }`}
-                    data-testid="select-transfer-token"
+                    data-testid="button-send-private-transfer"
                   >
-                    <option value="SOL">SOL</option>
-                    <option value="USDC">USDC</option>
-                    <option value="BONK">BONK</option>
-                  </select>
+                    {processing ? "..." : "Send Private"}
+                  </motion.button>
                 </div>
-                <motion.button
-                  onClick={handleShadowWireTransfer}
-                  disabled={processing || !transferRecipient || !transferAmount}
-                  whileHover={{ y: -2, x: -2 }}
-                  whileTap={{ y: 0, x: 0 }}
-                  className={`w-full flex items-center justify-center gap-2 py-3 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-50 ${
-                    privateMode ? "bg-[#4ADE80] text-black" : "bg-purple-500 text-white"
-                  }`}
-                  data-testid="button-send-private-transfer"
-                >
-                  <Send className="w-4 h-4" />
-                  {processing ? "Processing..." : "Send Private Transfer"}
-                </motion.button>
+                {transferAmount && poolBalance.sol < parseFloat(transferAmount || "0") && (
+                  <p className="text-xs text-red-400">Insufficient pool balance. Deposit more SOL first.</p>
+                )}
               </div>
 
-              <div className={`border-t-2 pt-4 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
-                <h3 className={`text-sm font-bold uppercase mb-3 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                  Quick Actions
+              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-[#4ADE80]/20" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-700"}`}>
+                  <ArrowUpFromLine className="w-4 h-4" />
+                  Step 3: Withdraw (Sender Anonymous)
                 </h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-2">
-                    <input
-                      type="number"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
-                      placeholder="SOL amount"
-                      className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
-                        privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
-                      }`}
-                      data-testid="input-deposit-amount"
-                    />
-                    <motion.button
-                      onClick={handleDeposit}
-                      disabled={processing || !depositAmount}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full flex items-center justify-center gap-2 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
-                        privateMode ? "bg-[#4ADE80] text-black" : "bg-green-400 text-black"
-                      }`}
-                      data-testid="button-deposit"
-                    >
-                      <ArrowDownToLine className="w-3 h-3" />
-                      Deposit
-                    </motion.button>
-                  </div>
-                  <div className="space-y-2">
-                    <input
-                      type="number"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="SOL amount"
-                      className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
-                        privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-gray-100 border-gray-300"
-                      }`}
-                      data-testid="input-withdraw-amount"
-                    />
-                    <motion.button
-                      onClick={handleWithdraw}
-                      disabled={processing || !withdrawAmount}
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`w-full flex items-center justify-center gap-2 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
-                        privateMode ? "bg-black border-[#4ADE80] text-[#4ADE80]" : "bg-white text-gray-700"
-                      }`}
-                      data-testid="button-withdraw"
-                    >
-                      <ArrowUpFromLine className="w-3 h-3" />
-                      Withdraw
-                    </motion.button>
-                  </div>
+                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                  Funds come from pool, not your wallet. On-chain shows pool as sender = your identity hidden.
+                </p>
+                <input
+                  type="text"
+                  value={withdrawDestination}
+                  onChange={(e) => setWithdrawDestination(e.target.value)}
+                  placeholder="Destination address (optional, defaults to your wallet)"
+                  className={`w-full px-3 py-2 rounded-lg border-2 font-mono text-sm ${
+                    privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-white border-gray-300"
+                  }`}
+                  data-testid="input-withdraw-destination"
+                />
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="SOL amount"
+                    className={`flex-1 px-3 py-2 rounded-lg border-2 font-mono text-sm ${
+                      privateMode ? "bg-black text-white border-[#4ADE80]/30" : "bg-white border-gray-300"
+                    }`}
+                    data-testid="input-withdraw-amount"
+                  />
+                  <motion.button
+                    onClick={handleWithdraw}
+                    disabled={processing || !withdrawAmount || poolBalance.sol < parseFloat(withdrawAmount || "0")}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    className={`px-4 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] disabled:opacity-50 ${
+                      privateMode ? "bg-black border-[#4ADE80] text-[#4ADE80]" : "bg-white text-gray-700 border-gray-400"
+                    }`}
+                    data-testid="button-withdraw"
+                  >
+                    {processing ? "..." : "Withdraw"}
+                  </motion.button>
                 </div>
+              </div>
+
+              <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-800/50 border-[#4ADE80]/10" : "bg-yellow-50 border-yellow-200"}`}>
+                <h4 className={`text-xs font-bold uppercase mb-2 ${privateMode ? "text-[#4ADE80]/70" : "text-yellow-700"}`}>
+                  How Privacy Works
+                </h4>
+                <ul className={`text-xs space-y-1 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-yellow-600"}`}>
+                  <li>• Deposit: Verifiable on-chain tx to pool (shows you deposited)</li>
+                  <li>• Private Transfer: Pool-to-pool = no blockchain record (amount hidden)</li>
+                  <li>• Withdraw: Pool sends to destination (your wallet not linked)</li>
+                </ul>
               </div>
             </motion.div>
           )}

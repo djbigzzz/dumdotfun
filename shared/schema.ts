@@ -205,6 +205,26 @@ export const privateDeposits = pgTable("private_deposits", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+// Pool balances - tracks user balances in the privacy pool
+export const poolBalances = pgTable("pool_balances", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull().unique(),
+  solBalance: real("sol_balance").notNull().default(0),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+// Pool transfers - internal transfers between pool balances (amount hidden - no on-chain record)
+export const poolTransfers = pgTable("pool_transfers", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  senderAddress: text("sender_address").notNull(),
+  recipientAddress: text("recipient_address").notNull(),
+  amount: real("amount").notNull(),
+  token: text("token").notNull().default("SOL"),
+  transferType: text("transfer_type").notNull().default("internal"), // internal (amount hidden) or external (sender hidden)
+  commitment: text("commitment"), // ZK commitment hash for verification
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export const insertPrivateDepositSchema = createInsertSchema(privateDeposits).omit({
   id: true,
   createdAt: true,
