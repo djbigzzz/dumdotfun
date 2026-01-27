@@ -434,16 +434,29 @@ export function PrivacyHub() {
       const result = await res.json();
       
       if (res.ok && result.success) {
-        toast({
-          title: "Withdrawal Complete!",
-          description: (
-            <div className="flex flex-col gap-1">
-              <span className="font-bold text-green-400">Sender Anonymous</span>
-              <span>{withdrawAmt} SOL sent from pool to {destination.slice(0, 8)}...</span>
-              <span className="text-xs opacity-70">Your wallet is not linked on-chain</span>
-            </div>
-          ),
-        });
+        if (result.demo) {
+          toast({
+            title: "Withdrawal Simulated (Demo)",
+            description: (
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-yellow-400">Demo Mode</span>
+                <span>In production: {withdrawAmt} SOL would be sent from pool to {destination.slice(0, 8)}...</span>
+                <span className="text-xs opacity-70">On-chain would show pool as sender = your identity hidden</span>
+              </div>
+            ),
+          });
+        } else {
+          toast({
+            title: "Withdrawal Complete!",
+            description: (
+              <div className="flex flex-col gap-1">
+                <span className="font-bold text-green-400">Sender Anonymous</span>
+                <span>{withdrawAmt} SOL sent from pool to {destination.slice(0, 8)}...</span>
+                <span className="text-xs opacity-70">Your wallet is not linked on-chain</span>
+              </div>
+            ),
+          });
+        }
         setWithdrawAmount("");
         setWithdrawDestination("");
         setTimeout(() => fetchBalances(), 500);
@@ -889,7 +902,7 @@ export function PrivacyHub() {
                   Step 2: Private Transfer (Amount Hidden)
                 </h3>
                 <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                  Transfers between pool balances. NO on-chain record = amount completely hidden.
+                  Moves SOL from YOUR pool → RECIPIENT'S pool. NO on-chain record = amount hidden. Recipient must withdraw to get actual SOL.
                 </p>
                 <input
                   type="text"
@@ -930,13 +943,13 @@ export function PrivacyHub() {
                 )}
               </div>
 
-              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-[#4ADE80]/20" : "bg-gray-50 border-gray-200"}`}>
-                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-700"}`}>
+              <div className={`p-3 rounded-lg border-2 space-y-3 ${privateMode ? "bg-zinc-900/30 border-yellow-500/20" : "bg-gray-50 border-gray-200"}`}>
+                <h3 className={`text-sm font-bold uppercase flex items-center gap-2 ${privateMode ? "text-yellow-400 font-mono" : "text-gray-700"}`}>
                   <ArrowUpFromLine className="w-4 h-4" />
-                  Step 3: Withdraw (Sender Anonymous)
+                  Step 3: Withdraw (Demo Only)
                 </h3>
-                <p className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                  Funds come from pool, not your wallet. On-chain shows pool as sender = your identity hidden.
+                <p className={`text-xs ${privateMode ? "text-yellow-400/50" : "text-gray-500"}`}>
+                  In production: Pool sends REAL SOL to destination. On-chain shows pool as sender = your identity hidden. (Requires funded pool authority)
                 </p>
                 <input
                   type="text"
@@ -976,13 +989,15 @@ export function PrivacyHub() {
 
               <div className={`p-3 rounded-lg border-2 ${privateMode ? "bg-zinc-800/50 border-[#4ADE80]/10" : "bg-yellow-50 border-yellow-200"}`}>
                 <h4 className={`text-xs font-bold uppercase mb-2 ${privateMode ? "text-[#4ADE80]/70" : "text-yellow-700"}`}>
-                  How Privacy Works
+                  Key Difference: Step 2 vs Step 3
                 </h4>
-                <ul className={`text-xs space-y-1 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-yellow-600"}`}>
-                  <li>• Deposit: Verifiable on-chain tx to pool (shows you deposited)</li>
-                  <li>• Private Transfer: Pool-to-pool = no blockchain record (amount hidden)</li>
-                  <li>• Withdraw: Pool sends to destination (your wallet not linked)</li>
+                <ul className={`text-xs space-y-2 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-yellow-600"}`}>
+                  <li><strong>Step 2 (Private Transfer):</strong> Moves SOL from YOUR pool balance to RECIPIENT'S pool balance. They get pool balance, not actual wallet SOL. No on-chain record = amount hidden.</li>
+                  <li><strong>Step 3 (Withdraw):</strong> Sends REAL SOL from pool to any wallet on-chain. On-chain shows pool as sender = your identity hidden.</li>
                 </ul>
+                <p className={`text-xs mt-2 ${privateMode ? "text-yellow-400/70" : "text-yellow-700"}`}>
+                  Note: Withdraw is demo-only (requires funded pool). Deposit + Private Transfer work with real on-chain transactions.
+                </p>
               </div>
             </motion.div>
           )}

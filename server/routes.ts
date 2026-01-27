@@ -1235,7 +1235,7 @@ export async function registerRoutes(
     }
   });
 
-  // Process withdrawal (debit pool balance)
+  // Process withdrawal (demo: shows concept - in production pool authority would send SOL)
   app.post("/api/privacy/pool/process-withdraw", async (req, res) => {
     try {
       const { walletAddress, amount, destinationAddress } = req.body;
@@ -1256,25 +1256,23 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Insufficient pool balance" });
       }
 
-      // Debit pool balance
-      await db.update(poolBalances)
-        .set({ 
-          solBalance: balance.solBalance - withdrawAmount,
-          updatedAt: new Date()
-        })
-        .where(eq(poolBalances.walletAddress, walletAddress));
-
       // Generate withdrawal reference
       const crypto = await import("crypto");
       const withdrawRef = crypto.createHash("sha256")
         .update(`withdraw:${walletAddress}:${destination}:${withdrawAmount}:${Date.now()}`)
         .digest("hex").slice(0, 16);
 
-      // Record activity
+      // DEMO MODE: Don't actually debit until we have a funded pool to send from
+      // In production, the pool authority would:
+      // 1. Verify the withdrawal request
+      // 2. Sign and send SOL from pool to destination
+      // 3. THEN debit the user's pool balance
+      
+      // Record activity as "pending" for demo
       await db.insert(privacyActivity).values({
         walletAddress,
         activityType: "withdraw",
-        description: `Withdrew ${withdrawAmount} SOL to ${destination.slice(0, 8)}... (sender anonymous)`,
+        description: `[DEMO] Withdrawal request: ${withdrawAmount} SOL to ${destination.slice(0, 8)}... (would be sender anonymous in production)`,
         amount: withdrawAmount,
         token: "SOL",
         status: "success",
@@ -1283,11 +1281,13 @@ export async function registerRoutes(
 
       res.json({
         success: true,
-        message: `Withdrawal processed. ${withdrawAmount} SOL sent from pool to ${destination}`,
+        demo: true,
+        message: `[DEMO] Withdrawal simulated. In production, ${withdrawAmount} SOL would be sent from pool (sender anonymous).`,
+        explanation: "To complete real withdrawals, the pool needs to be funded and have authority to sign transactions. For hackathon demo, this shows the privacy concept: on-chain shows pool as sender, not you.",
         senderAnonymous: true,
         destination,
         amount: withdrawAmount,
-        newPoolBalance: balance.solBalance - withdrawAmount,
+        poolBalance: balance.solBalance, // Not debited in demo mode
         reference: withdrawRef
       });
     } catch (error: any) {
