@@ -235,6 +235,24 @@ export const insertPrivacyActivitySchema = createInsertSchema(privacyActivity).o
 export type InsertPrivacyActivity = z.infer<typeof insertPrivacyActivitySchema>;
 export type PrivacyActivity = typeof privacyActivity.$inferSelect;
 
+// Stealth addresses - persisted across sessions
+export const stealthAddresses = pgTable("stealth_addresses", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  stealthAddress: text("stealth_address").notNull(),
+  ephemeralPublicKey: text("ephemeral_public_key").notNull(),
+  viewTag: text("view_tag").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertStealthAddressSchema = createInsertSchema(stealthAddresses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertStealthAddress = z.infer<typeof insertStealthAddressSchema>;
+export type StealthAddress = typeof stealthAddresses.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertToken = z.infer<typeof insertTokenSchema>;

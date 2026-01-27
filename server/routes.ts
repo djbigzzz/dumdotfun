@@ -345,6 +345,47 @@ export async function registerRoutes(
     }
   });
 
+  // Stealth addresses - persistent across sessions
+  app.get("/api/privacy/stealth-addresses/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const { stealthAddresses } = await import("@shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+      
+      const addresses = await db.select().from(stealthAddresses)
+        .where(eq(stealthAddresses.walletAddress, wallet))
+        .orderBy(desc(stealthAddresses.createdAt))
+        .limit(20);
+      
+      res.json({ success: true, addresses });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/stealth-addresses", async (req, res) => {
+    try {
+      const { walletAddress, stealthAddress, ephemeralPublicKey, viewTag } = req.body;
+      if (!walletAddress || !stealthAddress || !ephemeralPublicKey || !viewTag) {
+        return res.status(400).json({ error: "walletAddress, stealthAddress, ephemeralPublicKey, and viewTag are required" });
+      }
+      
+      const { stealthAddresses } = await import("@shared/schema");
+      
+      const [address] = await db.insert(stealthAddresses).values({
+        walletAddress,
+        stealthAddress,
+        ephemeralPublicKey,
+        viewTag,
+        createdAt: new Date()
+      }).returning();
+      
+      res.json({ success: true, address });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/shadowwire/deposit", async (req, res) => {
     try {
       const { walletAddress, amount, token } = req.body;

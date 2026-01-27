@@ -166,9 +166,30 @@ export function PrivacyHub() {
     }
   };
 
+  const fetchStealthAddresses = async () => {
+    if (!connectedWallet) return;
+    try {
+      const res = await fetch(`/api/privacy/stealth-addresses/${connectedWallet}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.addresses) {
+          setStealthAddresses(data.addresses.map((a: any) => ({
+            address: a.stealthAddress,
+            ephemeralPublicKey: a.ephemeralPublicKey,
+            viewTag: a.viewTag,
+            createdAt: new Date(a.createdAt).getTime()
+          })));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch stealth addresses:", error);
+    }
+  };
+
   useEffect(() => {
     if (connectedWallet) {
       fetchActivity();
+      fetchStealthAddresses();
     }
   }, [connectedWallet]);
 
@@ -454,7 +475,24 @@ export function PrivacyHub() {
           viewTag: data.viewTag,
           createdAt: Date.now()
         };
-        setStealthAddresses(prev => [newStealth, ...prev.slice(0, 4)]);
+        setStealthAddresses(prev => [newStealth, ...prev.slice(0, 19)]);
+        
+        // Persist to database
+        try {
+          await fetch("/api/privacy/stealth-addresses", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              walletAddress: connectedWallet,
+              stealthAddress: data.stealthAddress,
+              ephemeralPublicKey: data.ephemeralPublicKey,
+              viewTag: data.viewTag
+            })
+          });
+        } catch (e) {
+          console.error("Failed to persist stealth address:", e);
+        }
+        
         toast({
           title: "Stealth Address Generated",
           description: "Use this address to receive tokens privately",
