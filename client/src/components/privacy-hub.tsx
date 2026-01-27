@@ -8,6 +8,7 @@ import {
   CheckCircle, XCircle, Clock, ExternalLink, FileText
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 type TabType = "shadowwire" | "token2022" | "stealth" | "arcium" | "activity";
 
@@ -42,8 +43,10 @@ interface IntegrationStatus {
   features?: string[];
 }
 
+const SOLANA_RPC_URL = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
 export function PrivacyHub() {
-  const { connectedWallet } = useWallet();
+  const { connectedWallet, signAndSendTransaction, getPublicKey } = useWallet();
   const { privateMode } = usePrivacy();
   const { toast } = useToast();
   
@@ -197,54 +200,131 @@ export function PrivacyHub() {
 
   const handleDeposit = async () => {
     if (!connectedWallet || !depositAmount) return;
+    
+    const amount = parseFloat(depositAmount);
+    if (amount < 0.1) {
+      toast({
+        title: "Minimum deposit is 0.1 SOL",
+        description: "ShadowWire requires a minimum of 0.1 SOL for deposits",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setProcessing(true);
     
     try {
-      const res = await fetch("/api/privacy/cash/deposit", {
+      // First, get the ShadowWire pool address from the balance API
+      let poolAddress: string;
+      try {
+        const balanceRes = await fetch(`/api/privacy/shadowwire/balance/${connectedWallet}`);
+        const balanceData = await balanceRes.json();
+        
+        if (balanceData.success && balanceData.balance?.poolAddress) {
+          poolAddress = balanceData.balance.poolAddress;
+        } else {
+          // Fallback to known ShadowWire pool address
+          poolAddress = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
+          console.log("[Deposit] Using fallback pool address");
+        }
+      } catch {
+        // Fallback pool address if API fails
+        poolAddress = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
+        console.log("[Deposit] API failed, using fallback pool address");
+      }
+      
+      // Validate pool address format
+      try {
+        new PublicKey(poolAddress);
+      } catch {
+        throw new Error("Invalid pool address format");
+      }
+      
+      // Show pending toast
+      toast({
+        title: "Creating transaction...",
+        description: "Please approve the transaction in your wallet",
+      });
+      
+      // Create a real SOL transfer transaction to the ShadowWire pool
+      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
+      const fromPubkey = new PublicKey(connectedWallet);
+      const toPubkey = new PublicKey(poolAddress);
+      
+      // Get latest blockhash
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      
+      // Create the transaction
+      const transaction = new Transaction({
+        recentBlockhash: blockhash,
+        feePayer: fromPubkey,
+      }).add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: Math.floor(amount * LAMPORTS_PER_SOL),
+        })
+      );
+      
+      // Sign and send with Phantom
+      const signature = await signAndSendTransaction(transaction);
+      
+      // Wait for confirmation
+      toast({
+        title: "Confirming transaction...",
+        description: `TX: ${signature.slice(0, 12)}... waiting for confirmation`,
+      });
+      
+      const confirmation = await connection.confirmTransaction({
+        signature,
+        blockhash,
+        lastValidBlockHeight,
+      }, "confirmed");
+      
+      if (confirmation.value.err) {
+        throw new Error(`Transaction failed: ${JSON.stringify(confirmation.value.err)}`);
+      }
+      
+      // Record the confirmed deposit in our backend
+      await fetch("/api/privacy/shadowwire/record-deposit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           walletAddress: connectedWallet, 
-          amount: parseFloat(depositAmount),
-          token: "SOL"
+          amount,
+          token: "SOL",
+          signature,
+          poolAddress,
+          confirmed: true
         })
       });
       
-      if (res.ok) {
-        toast({
-          title: "Private Deposit Complete",
-          description: `Shielded ${depositAmount} SOL into private balance`,
-        });
-        addActivity({
-          type: "deposit",
-          description: `Deposited ${depositAmount} SOL to private balance`,
-          amount: parseFloat(depositAmount),
-          token: "SOL",
-          status: "success"
-        });
-        setDepositAmount("");
-        setTimeout(() => fetchBalances(), 500);
-      } else {
-        const error = await res.json();
-        toast({
-          title: "Deposit failed",
-          description: error.error || "Unknown error",
-          variant: "destructive",
-        });
-        addActivity({
-          type: "deposit",
-          description: `Failed: ${error.error || "Deposit failed"}`,
-          amount: parseFloat(depositAmount),
-          token: "SOL",
-          status: "failed"
-        });
-      }
-    } catch (error) {
-      toast({ title: "Deposit failed", variant: "destructive" });
+      toast({
+        title: "On-Chain Deposit Confirmed!",
+        description: `${amount} SOL sent to pool. View on Solscan: ${signature.slice(0, 8)}...`,
+      });
       addActivity({
         type: "deposit",
-        description: "Deposit failed",
-        amount: parseFloat(depositAmount),
+        description: `Confirmed on-chain deposit to ${poolAddress.slice(0, 8)}...`,
+        amount,
+        token: "SOL",
+        status: "success",
+        txSignature: signature
+      });
+      setDepositAmount("");
+      setTimeout(() => fetchBalances(), 2000);
+    } catch (error: any) {
+      console.error("Deposit error:", error);
+      const errorMessage = error?.message || "Transaction rejected or failed";
+      toast({ 
+        title: "Deposit failed", 
+        description: errorMessage.includes("User rejected") ? "Transaction cancelled by user" : errorMessage,
+        variant: "destructive" 
+      });
+      addActivity({
+        type: "deposit",
+        description: `Failed: ${errorMessage.slice(0, 50)}`,
+        amount: parseFloat(depositAmount) || 0,
         token: "SOL",
         status: "failed"
       });

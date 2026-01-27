@@ -329,6 +329,35 @@ export async function registerRoutes(
     }
   });
 
+  // Record real on-chain deposits to ShadowWire pool
+  app.post("/api/privacy/shadowwire/record-deposit", async (req, res) => {
+    try {
+      const { walletAddress, amount, token, signature, poolAddress } = req.body;
+      if (!walletAddress || !amount || !signature) {
+        return res.status(400).json({ error: "walletAddress, amount, and signature are required" });
+      }
+      
+      console.log(`[ShadowWire] Recording real on-chain deposit:`);
+      console.log(`  Wallet: ${walletAddress}`);
+      console.log(`  Amount: ${amount} ${token || "SOL"}`);
+      console.log(`  Pool: ${poolAddress}`);
+      console.log(`  TX Signature: ${signature}`);
+      console.log(`  Explorer: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
+      
+      // The actual balance update happens on the ShadowWire side
+      // We just record this for our activity log
+      res.json({ 
+        success: true, 
+        message: `Recorded deposit of ${amount} ${token || "SOL"} to ShadowWire pool`,
+        signature,
+        explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+      });
+    } catch (error: any) {
+      console.error("[ShadowWire] Error recording deposit:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.get("/api/privacy/cash/balance/:wallet", async (req, res) => {
     try {
       const { wallet } = req.params;

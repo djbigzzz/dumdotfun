@@ -8,8 +8,10 @@ declare global {
       connect: (options?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: { toString: () => string } }>;
       disconnect: () => Promise<void>;
       signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
+      signAndSendTransaction: (transaction: any, options?: any) => Promise<{ signature: string }>;
+      signTransaction: (transaction: any) => Promise<any>;
       on: (event: string, callback: () => void) => void;
-      publicKey?: { toString: () => string };
+      publicKey?: { toString: () => string; toBase58?: () => string };
     };
   }
 }
@@ -19,6 +21,8 @@ interface WalletContextType {
   hasPhantom: boolean;
   connectWallet: (referralCode?: string) => Promise<void>;
   signMessage: (message: string) => Promise<string>;
+  signAndSendTransaction: (transaction: any) => Promise<string>;
+  getPublicKey: () => any;
   disconnectWallet: () => Promise<void>;
 }
 
@@ -109,6 +113,24 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signAndSendTransaction = async (transaction: any): Promise<string> => {
+    if (!window.solana?.isPhantom || !connectedWallet) {
+      throw new Error("Phantom not available or wallet not connected");
+    }
+
+    try {
+      const result = await window.solana.signAndSendTransaction(transaction);
+      return result.signature;
+    } catch (err) {
+      console.error("Failed to sign and send transaction:", err);
+      throw err;
+    }
+  };
+
+  const getPublicKey = () => {
+    return window.solana?.publicKey;
+  };
+
   const disconnectWallet = async () => {
     if (window.solana?.isPhantom) {
       try {
@@ -121,7 +143,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <WalletContext.Provider value={{ connectedWallet, hasPhantom, connectWallet, signMessage, disconnectWallet }}>
+    <WalletContext.Provider value={{ connectedWallet, hasPhantom, connectWallet, signMessage, signAndSendTransaction, getPublicKey, disconnectWallet }}>
       {children}
     </WalletContext.Provider>
   );
