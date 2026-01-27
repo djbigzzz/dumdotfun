@@ -400,20 +400,54 @@ export async function registerRoutes(
         return res.status(403).json({ error: "You do not own this stealth address" });
       }
 
-      const privateKey = deriveStealthPrivateKey(walletAddress, ephemeralPublicKey);
-      if (!privateKey) {
+      const privateKeyHex = deriveStealthPrivateKey(walletAddress, ephemeralPublicKey);
+      if (!privateKeyHex) {
         return res.status(500).json({ error: "Failed to derive private key" });
       }
 
-      // In a real implementation, we would construct and sign a transaction here
-      // For the hackathon, we'll return the success and simulated TX
+      // Execute real on-chain sweep
+      const { Connection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } = await import("@solana/web3.js");
+      const connection = new Connection(process.env.HELIUS_API_KEY ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}` : "https://api.devnet.solana.com", "confirmed");
+      
+      const stealthKeypair = Keypair.fromSecretKey(Buffer.from(privateKeyHex, "hex"));
+      const destinationPubkey = new PublicKey(walletAddress);
+      
+      // Get balance
+      const balance = await connection.getBalance(stealthKeypair.publicKey);
+      if (balance === 0) {
+        return res.status(400).json({ error: "No funds found on stealth address" });
+      }
+
+      // Calculate rent-exempt minimum and fee (approx 5000 lamports)
+      const fee = 5000;
+      const amountToSend = balance - fee;
+      
+      if (amountToSend <= 0) {
+        return res.status(400).json({ error: "Insufficient funds to cover transaction fee" });
+      }
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey: stealthKeypair.publicKey,
+          toPubkey: destinationPubkey,
+          lamports: amountToSend,
+        })
+      );
+
+      const signature = await sendAndConfirmTransaction(
+        connection,
+        transaction,
+        [stealthKeypair]
+      );
+
       res.json({ 
         success: true, 
         message: "Funds swept successfully",
-        txSignature: "Simulated_Sweep_TX_" + Math.random().toString(36).slice(2),
-        privateKey: privateKey.slice(0, 10) + "..." // Only show prefix for security in demo
+        txSignature: signature,
+        amount: amountToSend / 1e9
       });
     } catch (error: any) {
+      console.error("[Stealth Sweep Error]", error);
       res.status(500).json({ error: error.message });
     }
   });

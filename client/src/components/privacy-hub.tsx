@@ -474,7 +474,19 @@ export function PrivacyHub() {
         const data = await res.json();
         toast({
           title: "Funds Swept",
-          description: `Successfully recovered funds from stealth address. TX: ${data.txSignature.slice(0, 10)}...`,
+          description: (
+            <div className="flex flex-col gap-1">
+              <span>Successfully recovered {data.amount} SOL</span>
+              <a 
+                href={`https://solscan.io/tx/${data.txSignature}?cluster=devnet`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-xs underline text-green-400"
+              >
+                View on Solscan
+              </a>
+            </div>
+          ),
         });
         addActivity({
           type: "stealth",
