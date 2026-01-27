@@ -142,13 +142,64 @@ export function PrivacyHub() {
     }
   };
 
-  const addActivity = (item: Omit<ActivityItem, "id" | "timestamp">) => {
+  const fetchActivity = async () => {
+    if (!connectedWallet) return;
+    try {
+      const res = await fetch(`/api/privacy/activity/${connectedWallet}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (data.activities) {
+          setActivity(data.activities.map((a: any) => ({
+            id: a.id,
+            type: a.activityType,
+            description: a.description,
+            amount: a.amount,
+            token: a.token,
+            timestamp: new Date(a.createdAt).getTime(),
+            status: a.status,
+            txSignature: a.txSignature
+          })));
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch activity:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (connectedWallet) {
+      fetchActivity();
+    }
+  }, [connectedWallet]);
+
+  const addActivity = async (item: Omit<ActivityItem, "id" | "timestamp">) => {
     const newItem: ActivityItem = {
       ...item,
       id: Math.random().toString(36).slice(2),
       timestamp: Date.now()
     };
-    setActivity(prev => [newItem, ...prev.slice(0, 19)]);
+    setActivity(prev => [newItem, ...prev.slice(0, 49)]);
+    
+    // Persist to database
+    if (connectedWallet) {
+      try {
+        await fetch("/api/privacy/activity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: connectedWallet,
+            activityType: item.type,
+            description: item.description,
+            amount: item.amount,
+            token: item.token,
+            status: item.status,
+            txSignature: item.txSignature
+          })
+        });
+      } catch (error) {
+        console.error("Failed to save activity:", error);
+      }
+    }
   };
 
   const handleShadowWireTransfer = async () => {
@@ -1037,7 +1088,7 @@ export function PrivacyHub() {
                   Privacy Activity Log
                 </h3>
                 <span className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                  Session only
+                  Last 50
                 </span>
               </div>
 

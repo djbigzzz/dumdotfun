@@ -214,6 +214,27 @@ export const insertPrivateDepositSchema = createInsertSchema(privateDeposits).om
 export type InsertPrivateDeposit = z.infer<typeof insertPrivateDepositSchema>;
 export type PrivateDeposit = typeof privateDeposits.$inferSelect;
 
+// Privacy activity log - persists across sessions
+export const privacyActivity = pgTable("privacy_activity", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  activityType: text("activity_type").notNull(), // shadowwire, stealth, token2022, arcium, deposit, withdraw
+  description: text("description").notNull(),
+  amount: real("amount"),
+  token: text("token"),
+  status: text("status").notNull(), // success, pending, failed
+  txSignature: text("tx_signature"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPrivacyActivitySchema = createInsertSchema(privacyActivity).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPrivacyActivity = z.infer<typeof insertPrivacyActivitySchema>;
+export type PrivacyActivity = typeof privacyActivity.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertToken = z.infer<typeof insertTokenSchema>;

@@ -301,6 +301,50 @@ export async function registerRoutes(
     }
   });
 
+  // Privacy activity log - persistent across sessions
+  app.get("/api/privacy/activity/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const { privacyActivity } = await import("@shared/schema");
+      const { eq, desc } = await import("drizzle-orm");
+      
+      const activities = await db.select().from(privacyActivity)
+        .where(eq(privacyActivity.walletAddress, wallet))
+        .orderBy(desc(privacyActivity.createdAt))
+        .limit(50);
+      
+      res.json({ success: true, activities });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/privacy/activity", async (req, res) => {
+    try {
+      const { walletAddress, activityType, description, amount, token, status, txSignature } = req.body;
+      if (!walletAddress || !activityType || !description || !status) {
+        return res.status(400).json({ error: "walletAddress, activityType, description, and status are required" });
+      }
+      
+      const { privacyActivity } = await import("@shared/schema");
+      
+      const [activity] = await db.insert(privacyActivity).values({
+        walletAddress,
+        activityType,
+        description,
+        amount: amount ? parseFloat(amount.toString()) : null,
+        token: token || null,
+        status,
+        txSignature: txSignature || null,
+        createdAt: new Date()
+      }).returning();
+      
+      res.json({ success: true, activity });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   app.post("/api/privacy/shadowwire/deposit", async (req, res) => {
     try {
       const { walletAddress, amount, token } = req.body;
