@@ -1041,15 +1041,30 @@ export function PrivacyHub() {
                         <p className={`font-mono text-sm font-bold truncate flex-1 mr-2 ${privateMode ? "text-white" : "text-gray-700"}`}>
                           {stealth.address.slice(0, 24)}...
                         </p>
-                        <motion.button
-                          onClick={() => copyToClipboard(stealth.address, stealth.address)}
-                          whileHover={{ scale: 1.1 }}
-                          whileTap={{ scale: 0.95 }}
-                          className={`p-1.5 rounded ${privateMode ? "text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-500 hover:bg-gray-100"}`}
-                          data-testid={`button-copy-stealth-${i}`}
-                        >
-                          {copied === stealth.address ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                        </motion.button>
+                        <div className="flex items-center gap-2">
+                          <motion.button
+                            onClick={() => copyToClipboard(stealth.address, stealth.address)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`p-1.5 rounded ${privateMode ? "text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-500 hover:bg-gray-100"}`}
+                            data-testid={`button-copy-stealth-${i}`}
+                          >
+                            {copied === stealth.address ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                          </motion.button>
+                          <motion.button
+                            onClick={() => sweepFunds(stealth)}
+                            disabled={processing}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`px-2 py-1 text-[10px] font-bold uppercase rounded border ${
+                              privateMode 
+                                ? "bg-[#4ADE80]/10 border-[#4ADE80] text-[#4ADE80] hover:bg-[#4ADE80]/20" 
+                                : "bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                            } disabled:opacity-50`}
+                          >
+                            {processing ? "..." : "Sweep"}
+                          </motion.button>
+                        </div>
                       </div>
                       <div className="flex items-center gap-3 text-xs">
                         <span className={privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}>
