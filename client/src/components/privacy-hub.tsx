@@ -85,20 +85,31 @@ export function PrivacyHub() {
     setPrivacyCashBalance(prev => ({ ...prev, loading: true }));
     
     try {
-      const [swRes, pcRes] = await Promise.all([
+      const [swRes, pcRes, trackedRes] = await Promise.all([
         fetch(`/api/privacy/shadowwire/balance/${connectedWallet}`),
-        fetch(`/api/privacy/cash/balance/${connectedWallet}`)
+        fetch(`/api/privacy/cash/balance/${connectedWallet}`),
+        fetch(`/api/privacy/tracked-balance/${connectedWallet}`)
       ]);
+      
+      // Get tracked on-chain deposits (real SOL sent to pool)
+      let trackedBalance = 0;
+      if (trackedRes.ok) {
+        const trackedData = await trackedRes.json();
+        trackedBalance = trackedData.balance || 0;
+      }
       
       if (swRes.ok) {
         const swData = await swRes.json();
+        // Add tracked deposits to the ShadowWire balance display
+        const apiBalance = swData.balance?.available || swData.balances?.SOL || 0;
         setShadowWireBalance({ 
-          sol: swData.balance?.available || swData.balances?.SOL || 0, 
+          sol: apiBalance + trackedBalance,  // Include tracked on-chain deposits
           usdc: swData.balances?.USDC || 0, 
           loading: false 
         });
       } else {
-        setShadowWireBalance({ sol: 0, usdc: 0, loading: false });
+        // Still show tracked deposits even if API fails
+        setShadowWireBalance({ sol: trackedBalance, usdc: 0, loading: false });
       }
       
       if (pcRes.ok) {

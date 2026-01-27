@@ -329,7 +329,7 @@ export async function registerRoutes(
     }
   });
 
-  // Record real on-chain deposits to ShadowWire pool
+  // Record real on-chain deposits to ShadowWire pool (persisted to database)
   app.post("/api/privacy/shadowwire/record-deposit", async (req, res) => {
     try {
       const { walletAddress, amount, token, signature, poolAddress } = req.body;
@@ -337,24 +337,240 @@ export async function registerRoutes(
         return res.status(400).json({ error: "walletAddress, amount, and signature are required" });
       }
       
-      console.log(`[ShadowWire] Recording real on-chain deposit:`);
+      // Fixed ShadowWire pool address - NOT client-controllable to prevent spoofing
+      const SHADOWWIRE_POOL_ADDRESS = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
+      const expectedAmount = parseFloat(amount);
+      const LAMPORTS_PER_SOL = 1_000_000_000;
+      
+      // Reject if client tries to specify a different pool (security)
+      if (poolAddress && poolAddress !== SHADOWWIRE_POOL_ADDRESS) {
+        console.log(`[ShadowWire] ✗ Rejected: client attempted to use non-official pool ${poolAddress}`);
+        return res.status(400).json({ 
+          error: "Invalid pool address. Only official ShadowWire pool is accepted.",
+          verified: false
+        });
+      }
+      
+      console.log(`[ShadowWire] Verifying on-chain deposit:`);
       console.log(`  Wallet: ${walletAddress}`);
       console.log(`  Amount: ${amount} ${token || "SOL"}`);
-      console.log(`  Pool: ${poolAddress}`);
+      console.log(`  Pool: ${SHADOWWIRE_POOL_ADDRESS}`);
       console.log(`  TX Signature: ${signature}`);
-      console.log(`  Explorer: https://explorer.solana.com/tx/${signature}?cluster=devnet`);
       
-      // The actual balance update happens on the ShadowWire side
-      // We just record this for our activity log
+      // Strict on-chain verification: validate sender, destination, and amount
+      const { Connection, PublicKey } = await import("@solana/web3.js");
+      const rpcUrl = process.env.HELIUS_API_KEY 
+        ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+        : "https://api.devnet.solana.com";
+      const connection = new Connection(rpcUrl, "confirmed");
+      
+      const txInfo = await connection.getTransaction(signature, {
+        commitment: "confirmed",
+        maxSupportedTransactionVersion: 0
+      });
+      
+      if (!txInfo) {
+        console.log(`[ShadowWire] ✗ Transaction not found on-chain`);
+        return res.status(400).json({ 
+          error: "Transaction not found on-chain. Please wait for confirmation and try again.",
+          signature,
+          verified: false
+        });
+      }
+      
+      // Enforce SOL-only verification (token transfers require different validation)
+      if (token && token !== "SOL") {
+        console.log(`[ShadowWire] ✗ Rejected: only SOL deposits supported, got ${token}`);
+        return res.status(400).json({ 
+          error: "Only SOL deposits are currently supported for verified tracking.",
+          verified: false
+        });
+      }
+      
+      // Parse transaction to verify sender and destination with instruction-level validation
+      let verified = false;
+      let verifiedAmount = 0;
+      
+      const accountKeys = txInfo.transaction.message.getAccountKeys();
+      const preBalances = txInfo.meta?.preBalances || [];
+      const postBalances = txInfo.meta?.postBalances || [];
+      
+      // SystemProgram ID for native SOL transfers
+      const SYSTEM_PROGRAM_ID = "11111111111111111111111111111111";
+      const SYSTEM_TRANSFER_TYPE = 2; // SystemProgram::Transfer instruction type
+      
+      // Parse transaction instructions to find and validate the exact transfer
+      const message = txInfo.transaction.message;
+      let foundValidTransfer = false;
+      
+      // Helper to parse SystemProgram transfer instruction data
+      // Layout: [4 bytes type][8 bytes lamports]
+      const parseTransferInstruction = (data: Uint8Array) => {
+        if (data.length < 12) return null;
+        // First 4 bytes = instruction type (little-endian u32)
+        const type = data[0] | (data[1] << 8) | (data[2] << 16) | (data[3] << 24);
+        if (type !== SYSTEM_TRANSFER_TYPE) return null;
+        // Next 8 bytes = lamports (little-endian u64)
+        const lamportsLow = data[4] | (data[5] << 8) | (data[6] << 16) | (data[7] << 24);
+        const lamportsHigh = data[8] | (data[9] << 8) | (data[10] << 16) | (data[11] << 24);
+        const lamports = lamportsLow + lamportsHigh * 0x100000000;
+        return lamports;
+      };
+      
+      // Check compiled instructions (versioned transactions)
+      const compiledInstructions = message.compiledInstructions || [];
+      for (const ix of compiledInstructions) {
+        const programId = accountKeys.get(ix.programIdIndex)?.toBase58();
+        if (programId !== SYSTEM_PROGRAM_ID) continue;
+        
+        // Parse instruction data
+        const lamports = parseTransferInstruction(ix.data);
+        if (lamports === null) continue;
+        
+        // Get accounts: [0] = from, [1] = to
+        if (ix.accountKeyIndexes?.length < 2) continue;
+        const fromAddr = accountKeys.get(ix.accountKeyIndexes[0])?.toBase58();
+        const toAddr = accountKeys.get(ix.accountKeyIndexes[1])?.toBase58();
+        
+        console.log(`[ShadowWire] Found SystemProgram Transfer: ${fromAddr} -> ${toAddr}, ${lamports / LAMPORTS_PER_SOL} SOL`);
+        
+        // Validate: from == walletAddress, to == pool, amount matches
+        if (fromAddr === walletAddress && toAddr === SHADOWWIRE_POOL_ADDRESS) {
+          const transferAmount = lamports / LAMPORTS_PER_SOL;
+          if (Math.abs(transferAmount - expectedAmount) < 0.001) {
+            foundValidTransfer = true;
+            verifiedAmount = transferAmount;
+            console.log(`[ShadowWire] ✓ Transfer instruction validated: ${walletAddress} -> ${SHADOWWIRE_POOL_ADDRESS}, ${verifiedAmount} SOL`);
+            verified = true;
+            break;
+          }
+        }
+      }
+      
+      // Fallback for legacy transactions if no versioned instructions found
+      if (!verified && (message as any).instructions) {
+        for (const ix of (message as any).instructions) {
+          const programId = accountKeys.get(ix.programIdIndex)?.toBase58();
+          if (programId !== SYSTEM_PROGRAM_ID) continue;
+          
+          // Parse instruction data (Buffer in legacy)
+          const data = ix.data;
+          const lamports = parseTransferInstruction(Buffer.isBuffer(data) ? data : Buffer.from(data));
+          if (lamports === null) continue;
+          
+          // Get accounts: [0] = from, [1] = to
+          if (!ix.accounts || ix.accounts.length < 2) continue;
+          const fromAddr = accountKeys.get(ix.accounts[0])?.toBase58();
+          const toAddr = accountKeys.get(ix.accounts[1])?.toBase58();
+          
+          console.log(`[ShadowWire] Found legacy Transfer: ${fromAddr} -> ${toAddr}, ${lamports / LAMPORTS_PER_SOL} SOL`);
+          
+          if (fromAddr === walletAddress && toAddr === SHADOWWIRE_POOL_ADDRESS) {
+            const transferAmount = lamports / LAMPORTS_PER_SOL;
+            if (Math.abs(transferAmount - expectedAmount) < 0.001) {
+              foundValidTransfer = true;
+              verifiedAmount = transferAmount;
+              console.log(`[ShadowWire] ✓ Legacy transfer validated: ${walletAddress} -> ${SHADOWWIRE_POOL_ADDRESS}, ${verifiedAmount} SOL`);
+              verified = true;
+              break;
+            }
+          }
+        }
+      }
+      
+      if (!verified) {
+        console.log(`[ShadowWire] ✗ Transaction verification failed - sender/amount/destination mismatch`);
+        return res.status(400).json({ 
+          error: "Transaction verification failed. Sender, destination, or amount does not match.",
+          signature,
+          verified: false
+        });
+      }
+      
+      // Store VERIFIED deposit in database
+      const { privateDeposits } = await import("@shared/schema");
+      const { eq, sql } = await import("drizzle-orm");
+      
+      try {
+        await db.insert(privateDeposits).values({
+          walletAddress,
+          amount: verifiedAmount,
+          token: token || "SOL",
+          signature,
+          poolAddress: SHADOWWIRE_POOL_ADDRESS,
+          verified: true, // Only stored after on-chain verification
+        });
+        console.log(`[ShadowWire] ✓ Verified deposit saved to database`);
+      } catch (dbError: any) {
+        if (dbError?.message?.includes("unique") || dbError?.message?.includes("duplicate")) {
+          console.log(`[ShadowWire] Deposit already recorded (duplicate signature)`);
+        } else {
+          throw dbError;
+        }
+      }
+      
+      // Get total VERIFIED deposits for this wallet only
+      const { and } = await import("drizzle-orm");
+      const result = await db.select({
+        total: sql<number>`COALESCE(SUM(${privateDeposits.amount}), 0)`,
+        count: sql<number>`COUNT(*)`
+      }).from(privateDeposits)
+        .where(and(
+          eq(privateDeposits.walletAddress, walletAddress),
+          eq(privateDeposits.verified, true)
+        ));
+      
+      const totalDeposited = result[0]?.total || 0;
+      const depositCount = result[0]?.count || 0;
+      
       res.json({ 
         success: true, 
-        message: `Recorded deposit of ${amount} ${token || "SOL"} to ShadowWire pool`,
+        verified: true,
+        message: `Verified deposit of ${verifiedAmount} SOL to ShadowWire pool`,
         signature,
-        explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`
+        explorerUrl: `https://explorer.solana.com/tx/${signature}?cluster=devnet`,
+        totalPrivateBalance: totalDeposited,
+        depositCount,
+        persisted: true
       });
     } catch (error: any) {
       console.error("[ShadowWire] Error recording deposit:", error);
       res.status(500).json({ error: error.message });
+    }
+  });
+  
+  // Get tracked deposits for a wallet (from database) - only verified deposits count
+  app.get("/api/privacy/tracked-balance/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const { privateDeposits } = await import("@shared/schema");
+      const { eq, and, desc } = await import("drizzle-orm");
+      
+      // Get only VERIFIED deposits for this wallet
+      const deposits = await db.select().from(privateDeposits)
+        .where(and(
+          eq(privateDeposits.walletAddress, wallet),
+          eq(privateDeposits.verified, true)
+        ))
+        .orderBy(desc(privateDeposits.createdAt));
+      
+      const totalBalance = deposits.reduce((sum, d) => sum + d.amount, 0);
+      
+      res.json({
+        success: true,
+        balance: totalBalance,
+        deposits: deposits.map(d => ({
+          amount: d.amount,
+          token: d.token,
+          signature: d.signature,
+          explorerUrl: `https://explorer.solana.com/tx/${d.signature}?cluster=devnet`,
+          timestamp: d.createdAt?.getTime() || Date.now(),
+          verified: d.verified
+        }))
+      });
+    } catch (error: any) {
+      console.error("[Privacy] Error getting tracked balance:", error);
+      res.status(500).json({ error: error.message, balance: 0, deposits: [] });
     }
   });
 

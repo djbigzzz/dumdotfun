@@ -193,6 +193,27 @@ export const insertActivitySchema = createInsertSchema(activityFeed).omit({
   metadata: true,
 });
 
+// Private deposits - tracks on-chain deposits to ShadowWire pool for hackathon demo
+export const privateDeposits = pgTable("private_deposits", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  amount: real("amount").notNull(),
+  token: text("token").notNull().default("SOL"),
+  signature: text("signature").notNull().unique(), // On-chain tx signature
+  poolAddress: text("pool_address").notNull(),
+  verified: boolean("verified").notNull().default(false), // Set true after on-chain verification
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertPrivateDepositSchema = createInsertSchema(privateDeposits).omit({
+  id: true,
+  createdAt: true,
+  verified: true,
+});
+
+export type InsertPrivateDeposit = z.infer<typeof insertPrivateDepositSchema>;
+export type PrivateDeposit = typeof privateDeposits.$inferSelect;
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertToken = z.infer<typeof insertTokenSchema>;
