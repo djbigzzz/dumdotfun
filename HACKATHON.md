@@ -9,7 +9,7 @@
 | Metric | Value |
 |--------|-------|
 | Bounties | 9 sponsors, $75,500+ |
-| Privacy Code | 2,249 lines |
+| Privacy Code | 2,617 lines |
 | Network | Solana Devnet |
 | Status | All integrations active |
 
@@ -131,19 +131,37 @@ GET  /api/privacy/cash/balance/:wallet
 
 ### 5. Arcium C-SPL (MPC) - $10K
 
-**File**: `server/privacy/arcium-cspl.ts` (108 lines)
+**File**: `server/privacy/arcium-cspl.ts` (476 lines)
 
-Multi-Party Computation for confidential token operations.
+**Full SDK Integration**: Uses `@arcium-hq/client` and `@arcium-hq/reader` packages (v0.6.5)
+
+Multi-Party Computation with AES-256 and Rescue ciphers for confidential token operations.
 
 **Functions**:
-- `createCSPLToken()` - Create confidential token
-- `mintConfidential()` - Mint with hidden amount
-- `transferConfidential()` - Transfer with encrypted amount
-- `getEncryptedBalance()` - Get encrypted balance
-- `decryptBalance()` - Decrypt with private key
-- `generateTransferProof()` - Generate MPC proof
+- `initializeArciumMXE()` - Initialize MXE connection for wallet
+- `encryptAmount()` - Encrypt with AES-256-CTR (8-byte nonce)
+- `decryptAmount()` - Decrypt with AES-256-CTR
+- `encryptWithRescue()` - Encrypt with Rescue cipher (ZK-friendly, 16-byte nonce)
+- `decryptWithRescue()` - Decrypt Rescue cipher data
+- `hashWithRescue()` - Rescue Prime hash for commitments
+- `createCSPLToken()` - Create confidential C-SPL token
+- `mintConfidential()` - Mint with encrypted supply
+- `transferConfidential()` - Transfer with MPC encryption
+- `getEncryptedBalance()` - Get Rescue-encrypted balance
+- `decryptBalance()` - Decrypt with session key
+- `generateTransferProof()` - Generate MPC proof with commitment
+- `checkComputationStatus()` - Check computation on Arcium network
+- `getActiveMXESession()` - Get active MXE session
+- `closeMXESession()` - Close MXE session
 
-**Program**: `Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX`
+**Ciphers**:
+- AES-256-CTR (fast, client-side)
+- Rescue (ZK-friendly, on-chain)
+- Rescue Prime hash (commitments)
+
+**Program**: Derived from `getArciumProgramId()`
+
+**Packages**: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
 
 ---
 
@@ -256,15 +274,15 @@ curl http://localhost:5000/api/privacy/shadowwire/status | jq
 server/privacy/
 ├── index.ts              (200 lines) - Exports all integrations
 ├── shadowwire.ts         (513 lines) - Bulletproof ZK
+├── arcium-cspl.ts        (476 lines) - Full Arcium MPC SDK
 ├── token2022-confidential.ts (427 lines) - Pedersen commitments
 ├── stealth-addresses.ts  (230 lines) - One-time addresses
-├── inco-lightning.ts     (217 lines) - Confidential betting
 ├── np-exchange.ts        (219 lines) - AI agent markets
+├── inco-lightning.ts     (217 lines) - Confidential betting
 ├── privacy-cash.ts       (200 lines) - Private deposits
-├── pool-authority.ts     (135 lines) - Pool management
-└── arcium-cspl.ts        (108 lines) - MPC tokens
+└── pool-authority.ts     (135 lines) - Pool management
 
-Total: 2,249 lines
+Total: 2,617 lines
 ```
 
 ---
@@ -310,7 +328,7 @@ All screenshots in `docs/screenshots/`:
 ```bash
 # Privacy implementation size
 find server/privacy -name "*.ts" -exec wc -l {} + | tail -1
-# Expected: 2249 lines
+# Expected: 2617 lines
 
 # Check integrations API
 curl http://localhost:5000/api/privacy/status | jq

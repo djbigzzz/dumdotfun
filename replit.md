@@ -97,9 +97,16 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - API: `/api/privacy/pnp/ai-market`, `/api/privacy/pnp/status`
    - Bounty target: $2.5K
 
+7. **Arcium C-SPL** (`server/privacy/arcium-cspl.ts`) - ✅ ACTIVE (476 lines)
+   - Full SDK: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
+   - AES-256-CTR encryption (fast, client-side)
+   - Rescue cipher (ZK-friendly, on-chain)
+   - Rescue Prime hash (commitments)
+   - MXE session management
+   - Bounty target: $10K
+
 **Pending Integrations:**
 - **DFlow API** - Tokenized Kalshi prediction markets (awaiting API key)
-- **Arcium C-SPL** (`arcium-cspl.ts`) - Coming Q4 2025
 
 ### Privacy Mode UI
 - Toggle with 👁 icon in header

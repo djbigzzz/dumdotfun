@@ -7,16 +7,18 @@ Quick reference for all privacy functions. See [HACKATHON.md](../HACKATHON.md) f
 | Integration | File | Lines | Bounty |
 |-------------|------|-------|--------|
 | ShadowWire | `shadowwire.ts` | 513 | $15K |
+| Arcium MPC | `arcium-cspl.ts` | 476 | $10K |
 | Token-2022 | `token2022-confidential.ts` | 427 | $15K |
 | Stealth Addresses | `stealth-addresses.ts` | 230 | $10K |
-| Privacy Cash | `privacy-cash.ts` | 200 | $15K |
-| Arcium MPC | `arcium-cspl.ts` | 108 | $10K |
-| Inco Lightning | `inco-lightning.ts` | 217 | $2K |
 | PNP Exchange | `np-exchange.ts` | 219 | $2.5K |
-| Pool Authority | `pool-authority.ts` | 135 | - |
+| Inco Lightning | `inco-lightning.ts` | 217 | $2K |
+| Privacy Cash | `privacy-cash.ts` | 200 | $15K |
 | Index/Exports | `index.ts` | 200 | - |
+| Pool Authority | `pool-authority.ts` | 135 | - |
 
-**Total: 2,249 lines**
+**Total: 2,617 lines**
+
+**Packages**: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
 
 ## API Endpoints
 
