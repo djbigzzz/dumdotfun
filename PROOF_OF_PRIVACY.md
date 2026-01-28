@@ -44,7 +44,15 @@ ZK-SNARK based private pooling and unlinkable withdrawals.
 - **On-Chain Evidence**: [ALT Creation Transaction](https://solscan.io/tx/53tAzWEJpazmYpxhHNSLf3wQG38EALGNtM6UcJL8NaTkyQv2K7KN7FKXFS5k8yFVagJ62hbG3GRQH46yfFDUMFFM?cluster=devnet)
 - **Note**: Program execution on Devnet currently returns "Out of Memory" (Infrastructure Bug), but full SDK integration and ZK-SNARK generation are verified.
 
-### 5. Private Token Transfers (ShadowWire)
+### 5. Prediction Markets (NP Exchange)
+AI agent-powered prediction markets with bonding curve liquidity.
+- **Signature**: `3fBj1FtAx4zR8TbY6ejMB6RJz8th7vHvKGhjPP3Cr3rKiEBwMaGRswxMZKdLpivwyFwfwiT6C1aWpsnPsffV1UAx`
+- **Result**: Market created for "Will SOL reach $500 by end of 2026?"
+- **Proof**: [View on Solscan](https://solscan.io/tx/3fBj1FtAx4zR8TbY6ejMB6RJz8th7vHvKGhjPP3Cr3rKiEBwMaGRswxMZKdLpivwyFwfwiT6C1aWpsnPsffV1UAx?cluster=devnet)
+
+![NP Exchange Proof](docs/screenshots/05-np-exchange-proof.png)
+
+### 6. Private Token Transfers (ShadowWire)
 ZK Bulletproofs for hidden transfer amounts and anonymous senders across 22 tokens.
 - **Infrastructure**: SDK v1.1.15 Integrated (Bulletproofs).
 - **Proof of Integration**: Balance queries, fee calculations, and multi-token (SOL, USDC, RADR) support verified.

@@ -390,6 +390,11 @@ curl -X POST http://localhost:5000/api/privacy/test/inco-encrypt \
 - Program: `pnpkv2qnh4bfpGvTugGDSEhvZC7DP4pVxTuDykV3BGz`
 - Collateral Mint: `Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr`
 
+**On-Chain Proof**:
+- **Transaction**: `3fBj1FtAx4zR8TbY6ejMB6RJz8th7vHvKGhjPP3Cr3rKiEBwMaGRswxMZKdLpivwyFwfwiT6C1aWpsnPsffV1UAx`
+- **Explorer**: [View on Devnet](https://explorer.solana.com/tx/3fBj1FtAx4zR8TbY6ejMB6RJz8th7vHvKGhjPP3Cr3rKiEBwMaGRswxMZKdLpivwyFwfwiT6C1aWpsnPsffV1UAx?cluster=devnet)
+- **Screenshot**: `docs/screenshots/05-np-exchange-proof.png`
+
 **Features**:
 - Permissionless market creation
 - Bonding curve pricing (no orderbook needed)
@@ -679,6 +684,7 @@ All core screenshots in `docs/screenshots/`:
 | 2 | `02-token-solscan-proof.png` | On-chain verification of token |
 | 3 | `03-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
 | 4 | `04-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
+| 5 | `05-np-exchange-proof.png` | **NEW** NP Exchange on-chain proof |
 
 ---
 
