@@ -169,10 +169,10 @@ Multi-Party Computation with AES-256 and Rescue ciphers for confidential token o
 
 **File**: `server/privacy/inco-lightning.ts` (217 lines)
 
-Confidential betting for prediction markets. Bet amounts encrypted.
+Confidential betting for prediction markets. Bet amounts encrypted with Inco Lightning SDK.
 
 **Functions**:
-- `encryptBetAmount()` - Encrypt bet client-side
+- `encryptBetAmount()` - Encrypt bet client-side using Inco SDK
 - `createConfidentialBet()` - Place encrypted bet
 - `verifyBetCommitment()` - Verify commitment matches
 - `aggregateEncryptedPool()` - Combine bets for odds
@@ -183,8 +183,8 @@ Confidential betting for prediction markets. Bet amounts encrypted.
 POST /api/markets/:id/confidential-bet
 ```
 
+**Package**: `@inco/solana-sdk`
 **Commitment**: `SHA256(amount:side:nonce:wallet)`
-
 **Program**: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
 
 ---
