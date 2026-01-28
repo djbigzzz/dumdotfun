@@ -660,6 +660,7 @@ All core screenshots in `docs/screenshots/`:
 | # | File | What It Proves |
 |---|---|---|
 | 1 | `01-token-creation-success.png` | Real SPL token created on Devnet |
+| 2 | `02-token-solscan-proof.png` | On-chain verification of token |
 | 14 | `14-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
 | 15 | `15-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
 
