@@ -41,12 +41,12 @@ ZK-SNARK based private pooling and unlinkable withdrawals.
 
 ## 📸 Visual Evidence
 
-| ID | Proof Description | Filename |
+| ID | Proof Description | Preview |
 |---|---|---|
-| **01** | **Token Launch** | `01-token-creation-success.png` |
-| **02** | **On-Chain Audit** | `02-token-solscan-proof.png` |
-| **03** | **Stealth Payment** | `03-stealth-address-proof.png` |
-| **04** | **Encrypted Metadata** | `04-inco-lightning-encryption-proof.png` |
+| **01** | **Token Launch** | ![Token Launch](docs/screenshots/01-token-creation-success.png) |
+| **02** | **On-Chain Audit** | ![On-Chain Audit](docs/screenshots/02-token-solscan-proof.png) |
+| **03** | **Stealth Payment** | ![Stealth Payment](docs/screenshots/03-stealth-address-proof.png) |
+| **04** | **Encrypted Metadata** | ![Encrypted Metadata](docs/screenshots/04-inco-lightning-encryption-proof.png) |
 
 ---
 
