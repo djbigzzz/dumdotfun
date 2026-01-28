@@ -16,7 +16,7 @@ Quick reference for all privacy functions. See [HACKATHON.md](../HACKATHON.md) f
 | Index/Exports | `index.ts` | 218 | - |
 | Pool Authority | `pool-authority.ts` | 135 | - |
 
-**Total: 2,635 lines**
+**Total: 2,620 lines**
 
 **Packages**: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
 

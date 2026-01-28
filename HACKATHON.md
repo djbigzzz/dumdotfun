@@ -3,7 +3,7 @@
 **Project**: dum.fun - Anonymous Meme Token Launchpad with Privacy-First Prediction Markets
 **Category**: Privacy & Confidential Computing
 **Network**: Solana Devnet
-**Total Bounty Potential**: **$73,500**
+**Total Bounty Potential**: **$79,500**
 
 ---
 
@@ -17,9 +17,9 @@ dum.fun is a **privacy-first platform** combining anonymous token creation with 
 - Transfer funds privately using zero-knowledge proofs (ShadowWire)
 - Execute confidential computations via MPC (Arcium)
 
-**Total Privacy Code**: 2,636 lines
-**Privacy Features**: 7 major integrations
-**On-chain Proofs**: Yes (see PROOF_OF_PRIVACY.md)
+**Total Privacy Code**: 2,620 lines
+**Privacy Features**: 9 major integrations (7 SDKs + Helius RPC + Education)
+**On-chain Proofs**: Yes (see [PROOF_OF_PRIVACY.md](./PROOF_OF_PRIVACY.md))
 
 ---
 
@@ -456,7 +456,7 @@ server/privacy/
 └── pool-authority.ts             # Pool management (135 lines)
 ```
 
-**Total Privacy Implementation: 2,636 lines**
+**Total Privacy Implementation: 2,620 lines**
 
 ---
 
@@ -510,11 +510,48 @@ curl -X POST http://localhost:5000/api/privacy/test/inco-encrypt \
 
 ---
 
-## 🎯 Total Bounty Target: $73,500+
-- Token-2022: $15,000
-- ShadowWire: $15,000
-- Privacy Cash: $15,000
-- Arcium MPC: $10,000
-- Anoncoin (Stealth): $10,000
-- Inco Lightning: $6,000
-- NP Exchange (PNP): $2,500
+---
+
+### 8. **Helius RPC** - $5,000 ✅
+
+**Implementation**: All Solana connections route through Helius RPC
+
+**Technical Details**:
+- File: `server/helius-rpc.ts`
+- All `getConnection()` calls use Helius
+- Devnet endpoint: `https://devnet.helius-rpc.com/?api-key=HELIUS_API_KEY`
+
+**Verification**:
+```bash
+grep -r "getConnection" server/*.ts  # All use helius-rpc
+```
+
+---
+
+### 9. **encrypt.trade Education** - $1,000 ✅
+
+**Implementation**: Privacy education content in documentation
+
+**Content**:
+- Why Privacy Matters
+- Understanding Wallet Surveillance
+- Privacy Technologies Explained
+- Getting Started with Privacy
+
+**File**: `client/src/pages/docs.tsx` (800+ lines)
+
+---
+
+## 🎯 Total Bounty Target: $79,500+
+
+| Bounty | Prize | Status |
+|--------|-------|--------|
+| Token-2022 | $15,000 | ✅ Active |
+| ShadowWire | $15,000 | ✅ Active |
+| Privacy Cash | $15,000 | ✅ Active |
+| Arcium MPC | $10,000 | ✅ Active |
+| Anoncoin (Stealth) | $10,000 | ✅ Active |
+| Inco Lightning | $6,000 | ✅ Active |
+| Helius RPC | $5,000 | ✅ Active |
+| NP Exchange (PNP) | $2,500 | ✅ Active |
+| encrypt.trade | $1,000 | ✅ Active |

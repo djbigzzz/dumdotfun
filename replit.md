@@ -59,7 +59,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Commitment-based privacy scheme: SHA-256(amount:side:nonce:address)
    - Client: `client/src/lib/inco-client.ts`
    - API: `/api/markets/:id/confidential-bet`
-   - Bounty target: $2K (Consumer, Gaming, Prediction Markets)
+   - Bounty target: $6K (Consumer, Gaming, Prediction Markets)
 
 2. **Stealth Addresses** (`server/privacy/stealth-addresses.ts`) - ✅ ACTIVE
    - One-time receive addresses for each token transfer
@@ -188,7 +188,7 @@ Auto-configured:
 
 | Bounty | Prize | Status | Integration |
 |--------|-------|--------|-------------|
-| Inco Lightning | $2K | ✅ Ready | Confidential betting with encrypted amounts |
+| Inco Lightning | $6K | ✅ Ready | Confidential betting with encrypted amounts |
 | Helius RPC | $5K | ✅ Active | All Solana connections use Helius |
 | Anoncoin | $10K | ✅ Active | Stealth addresses for private receiving |
 | Token-2022 | $15K | ✅ Active | Commitment-based confidential transfers |
@@ -197,4 +197,4 @@ Auto-configured:
 | NP Exchange | $2.5K | ✅ Active | PNP SDK v0.2.4 for devnet markets |
 | encrypt.trade | $1K | ✅ Active | Privacy education docs |
 
-**Total Bounty Potential: ~$65K+**
+**Total Bounty Potential: ~$79.5K+**
