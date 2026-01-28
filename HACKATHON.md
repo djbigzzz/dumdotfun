@@ -219,9 +219,9 @@ curl -X POST http://localhost:5000/api/privacy/stealth-address \
 ```
 
 **On-Chain Proof** (NEW):
-- **Transaction**: `5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp`
-- **Block**: 438266982
-- **Time**: 16:07:10 Jan 28, 2026 (UTC)
+- **Transaction**: `5Sb8S6MhKmF5n4yp5FrRwhQw85hgmcyrLQDm6FEC12ALBZahSYMcYEkVqUyVB3V9mZJNA8wV8gtHEnt6rCcPuxHE`
+- **Block**: 438294010
+- **Time**: 18:57:30 Jan 28, 2026 (UTC)
 - **Amount**: 0.1 SOL stealth transfer
 - **Result**: SUCCESS (MAX Confirmations)
 - **Screenshot**: `docs/screenshots/14-stealth-address-proof.png`

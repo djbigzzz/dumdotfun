@@ -90,14 +90,14 @@ Example Generated:
 ```
 
 **On-Chain Stealth Transfer Proof** ✅ NEW:
-- **Transaction**: `5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp`
-- **Block**: 438266982
-- **Time**: 16:07:10 Jan 28, 2026 (UTC)
+- **Transaction**: `5Sb8S6MhKmF5n4yp5FrRwhQw85hgmcyrLQDm6FEC12ALBZahSYMcYEkVqUyVB3V9mZJNA8wV8gtHEnt6rCcPuxHE`
+- **Block**: 438294010
+- **Time**: 18:57:30 Jan 28, 2026 (UTC)
 - **Amount**: 0.1 SOL stealth transfer
 - **From**: DCHhAj...HNQ8d3 (stealth sender)
-- **To**: 8DxHUb...nJqM6w (stealth recipient)
+- **To**: 9CuXq8...ebSgJ6 (stealth recipient)
 - **Result**: SUCCESS (MAX Confirmations)
-- **Explorer**: [View on Solscan](https://solscan.io/tx/5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp?cluster=devnet)
+- **Explorer**: [View on Solscan](https://solscan.io/tx/5Sb8S6MhKmF5n4yp5FrRwhQw85hgmcyrLQDm6FEC12ALBZahSYMcYEkVqUyVB3V9mZJNA8wV8gtHEnt6rCcPuxHE?cluster=devnet)
 
 ---
 
