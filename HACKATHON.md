@@ -355,6 +355,14 @@ curl -X POST http://localhost:5000/api/privacy/test/inco-encrypt \
 
 **Verification**: `sdkUsed: "inco"` confirms real SDK is active (not fallback)
 
+**On-Chain Proof** (NEW):
+- **Transaction**: `4vZN256oGMHLNwcKe2uJtes7nsMDkZaFfQVwXeLefHRWb8YPs1jznHwuRBv7WN8hyrLyx4RbeLTGCJjgbR57vnCC`
+- **Block**: 438289966
+- **Time**: 18:32:01 Jan 28, 2026 (UTC)
+- **Amount**: 0.01 SOL (metadata transfer)
+- **Encrypted Data**: `046bb69075aef9eb798c0c78764cd120...`
+- **Screenshot**: `docs/screenshots/15-inco-lightning-encryption-proof.png`
+
 ---
 
 ### 7. **NP Exchange (PNP)** - $2,500 ✅
@@ -665,6 +673,7 @@ All screenshots in `docs/screenshots/`:
 | 12 | `12-confidential-betting.png` | Privacy mode bet placement |
 | 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure |
 | 14 | `14-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
+| 15 | `15-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
 
 ---
 

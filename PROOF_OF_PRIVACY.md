@@ -42,13 +42,22 @@ All transactions can be verified on [Solscan Devnet](https://solscan.io/?cluster
 ## 4. Inco Lightning
 
 **Program ID**: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
+**SDK Version**: `@inco/solana-sdk v0.0.2`
+
+**On-Chain Encryption Proof** ✅ NEW:
+- **Transaction**: `4vZN256oGMHLNwcKe2uJtes7nsMDkZaFfQVwXeLefHRWb8YPs1jznHwuRBv7WN8hyrLyx4RbeLTGCJjgbR57vnCC`
+- **Block**: 438289966
+- **Time**: 18:32:01 Jan 28, 2026 (UTC)
+- **Status**: SUCCESS (Finalized)
+- **Encrypted Data Stored**: `046bb69075aef9eb798c0c78764cd120...`
+- **Explorer**: [View on Solscan](https://solscan.io/tx/4vZN256oGMHLNwcKe2uJtes7nsMDkZaFfQVwXeLefHRWb8YPs1jznHwuRBv7WN8hyrLyx4RbeLTGCJjgbR57vnCC?cluster=devnet)
 
 Test Results:
 ```json
 {
   "success": true,
   "sdkUsed": "inco",
-  "encryptedLength": 248
+  "encryptedLength": 242
 }
 ```
 
@@ -101,7 +110,7 @@ Example Generated:
 
 ## Screenshot Evidence
 
-All 14 screenshots in `docs/screenshots/`:
+All 15 screenshots in `docs/screenshots/`:
 1. Token creation success
 2. Solscan verification
 3. Privacy Hub overview
@@ -116,6 +125,7 @@ All 14 screenshots in `docs/screenshots/`:
 12. Confidential betting
 13. Arcium infrastructure
 14. Stealth address on-chain proof (NEW)
+15. Inco Lightning encryption proof (NEW)
 
 ---
 
