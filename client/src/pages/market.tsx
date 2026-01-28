@@ -44,6 +44,8 @@ export default function MarketDetail() {
   const [useConfidentialBet, setUseConfidentialBet] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
 
+  const [success, setSuccess] = useState<boolean>(false);
+
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
     queryFn: async () => {
@@ -139,6 +141,8 @@ export default function MarketDetail() {
       setBetAmount("");
       setSelectedSide(null);
       setError(null);
+      setSuccess(true);
+      setTimeout(() => setSuccess(false), 5000);
     },
     onError: (error: Error) => {
       setError(error.message);
@@ -388,6 +392,23 @@ export default function MarketDetail() {
                   )}
                 </AnimatePresence>
                 
+                {success && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className={`mb-4 p-3 border rounded-lg flex items-center gap-2 ${
+                      useConfidentialBet 
+                        ? "bg-[#4ADE80]/20 border-[#4ADE80]/50 text-[#4ADE80]" 
+                        : "bg-green-600/20 border-green-600/50 text-green-400"
+                    }`}
+                  >
+                    <CheckCircle className="w-4 h-4" />
+                    <p className="text-sm font-bold">
+                      {useConfidentialBet ? "Confidential bet placed successfully!" : "Bet placed successfully!"}
+                    </p>
+                  </motion.div>
+                )}
+
                 {error && (
                   <motion.div
                     initial={{ opacity: 0, y: -10 }}
