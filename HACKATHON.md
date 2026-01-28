@@ -57,6 +57,7 @@ dum.fun is a **privacy-first platform** combining anonymous token creation with 
 ### 3. **Privacy Cash** - $15,000 ✅
 
 **Implementation**: Private deposit/withdrawal system with commitment schemes
+- Package: `privacycash@1.1.7`
 - Deposit assets into privacy pool
 - Withdraw to any address with nullifier proofs
 - Unlinkable deposits and withdrawals

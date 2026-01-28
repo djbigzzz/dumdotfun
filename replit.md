@@ -79,6 +79,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Bounty target: $15K
 
 4. **Privacy Cash SDK** (`server/privacy/privacy-cash.ts`) - ✅ ACTIVE
+   - Package: `privacycash@1.1.7`
    - Private SOL/USDC/USDT deposits and withdrawals
    - Zero-knowledge proofs for breaking on-chain links
    - OFAC compliant with selective disclosure
