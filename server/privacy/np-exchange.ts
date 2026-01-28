@@ -111,8 +111,8 @@ export async function createAIAgentMarket(params: {
     suggestedResolutionDate: resolutionDate,
     marketParams: {
       question: template.question,
-      initialLiquidity: BigInt(1_000_000),
-      endTime: endTime,
+      initialLiquidity: BigInt(1_000_000).toString(),
+      endTime: endTime.toString(),
       baseMint: NP_EXCHANGE_CONFIG.collateralMint,
       creatorAddress: params.creatorAddress
     },
