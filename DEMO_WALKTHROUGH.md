@@ -12,7 +12,7 @@
 
 ---
 
-## Demo Flow (10 minutes total)
+## Demo Flow (15 minutes total - covers all 9 bounties)
 
 ### Part 1: Token Creation (2 min)
 
@@ -35,20 +35,22 @@
 
 ### Part 2: Privacy Hub Overview (1 min)
 
-**Goal**: Show all 8 privacy integrations in one UI
+**Goal**: Show all 9 privacy integrations in one UI
 
 1. Click the **Privacy Hub** icon (shield in header)
 2. Observe the dashboard showing:
-   - ShadowWire: ACTIVE
-   - Token-2022: ACTIVE
-   - Stealth Addresses: ACTIVE
-   - Privacy Cash: ACTIVE
-   - Arcium MPC: ACTIVE
-   - Inco Lightning: ACTIVE
-   - PNP Exchange: ACTIVE
+   - ShadowWire: ACTIVE ($15K bounty)
+   - Token-2022: ACTIVE ($15K bounty)
+   - Stealth Addresses: ACTIVE ($10K bounty)
+   - Privacy Cash: ACTIVE ($15K bounty)
+   - Arcium MPC: ACTIVE ($10K bounty)
+   - Inco Lightning: ACTIVE ($2K bounty)
+   - PNP Exchange: ACTIVE ($2.5K bounty)
+   - Helius RPC: Underlying all connections ($5K bounty)
+   - encrypt.trade: Privacy education in /docs ($1K bounty)
 3. Each integration has status indicator and quick actions
 
-**What This Proves**: Comprehensive privacy infrastructure
+**What This Proves**: Comprehensive privacy infrastructure ($75.5K+ targeted)
 
 ---
 
@@ -134,6 +136,70 @@
 6. Note: Uses Pedersen commitments for hiding
 
 **What This Proves**: Balance hiding on SPL tokens
+
+---
+
+### Part 7: Privacy Cash SDK (1 min) - $15K Bounty
+
+**Goal**: Show private deposits/withdrawals that break on-chain links
+
+1. In Privacy Hub, select **Privacy Cash** tab
+2. Enter deposit amount: **0.5 SOL**
+3. Click **Deposit to Privacy Pool**
+4. Observe nullifier generated for withdrawal proof
+5. Later: Withdraw breaks the link between deposit and withdrawal
+
+**API Verification**:
+```bash
+curl http://localhost:5000/api/privacy/cash/balance/YOUR_WALLET | jq
+```
+
+---
+
+### Part 8: Arcium MPC (30 sec) - $10K Bounty
+
+**Goal**: Show Multi-Party Computation integration
+
+1. In Privacy Hub, select **Arcium MPC** tab
+2. View the MPC program integration
+3. Program ID: `Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX`
+
+**Code Verification**:
+```bash
+wc -l server/privacy/arcium-cspl.ts  # 108 lines
+```
+
+---
+
+### Part 9: Helius RPC (30 sec) - $5K Bounty
+
+**Goal**: Verify all Solana connections use Helius
+
+1. Check any token creation or transaction
+2. All connections route through Helius RPC
+3. Centralized in `server/helius-rpc.ts`
+
+**Verification**:
+```bash
+grep -r "helius" server/helius-rpc.ts
+grep -r "getConnection" server/*.ts  # All use helius-rpc helper
+```
+
+---
+
+### Part 10: encrypt.trade Education (30 sec) - $1K Bounty
+
+**Goal**: Show privacy education content
+
+1. Navigate to **/docs** page
+2. View "Why Privacy Matters" section
+3. View "Understanding Wallet Surveillance" section
+4. Comprehensive privacy education for users
+
+**Verification**:
+```bash
+wc -l client/src/pages/docs.tsx  # 800+ lines of privacy docs
+```
 
 ---
 

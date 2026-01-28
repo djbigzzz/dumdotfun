@@ -19,7 +19,7 @@
 **Evaluating this project? Start here:**
 
 - **⚡ Quick evaluation** (5 min): [JUDGES_QUICKSTART.md](JUDGES_QUICKSTART.md) — Test live demo, verify bounties
-- **📋 Bounty checklist** ($67K): [HACKATHON_CHECKLIST.md](HACKATHON_CHECKLIST.md) — All requirements verified
+- **📋 Bounty checklist** ($75.5K+): [HACKATHON_CHECKLIST.md](HACKATHON_CHECKLIST.md) — All 9 bounties verified
 - **🔬 Technical deep-dives**: [SHADOWWIRE_HACKATHON.md](SHADOWWIRE_HACKATHON.md) (Bulletproofs) • [TOKEN2022_HACKATHON.md](TOKEN2022_HACKATHON.md) (Confidential transfers)
 
 **Time to fully evaluate: ~30 minutes**
@@ -184,7 +184,7 @@ We've integrated **8 different privacy protocols** from the Solana ecosystem int
 
 ## 🏆 Hackathon Bounty Breakdown
 
-**Target: $67K+ in bounties**
+**Target: $75,500+ across 9 bounties**
 
 | Sponsor | Bounty | Status | Integration |
 |---------|--------|--------|-------------|

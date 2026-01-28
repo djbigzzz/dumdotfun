@@ -21,7 +21,7 @@
 - Costs ~0.05 SOL
 
 ✅ **View Privacy Hub** (Click privacy icon in header)
-- See all 8 integrations
+- See all 9 active integrations
 - Check ShadowWire balance
 - Generate stealth address
 
@@ -103,7 +103,7 @@ curl http://localhost:5000/api/privacy/shadowwire/status | jq
 
 ## 🏆 Bounty Checklist
 
-**We're targeting $67K in bounties. Here's what to verify:**
+**We're targeting $75,500+ across 9 bounties. Here's what to verify:**
 
 ### ShadowWire ($15K)
 - [x] Bulletproof ZK proofs implemented
