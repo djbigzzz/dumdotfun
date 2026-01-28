@@ -307,6 +307,38 @@ All screenshots in `docs/screenshots/`:
 | 12 | `12-confidential-betting.png` | Privacy mode bet placement |
 | 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure verification |
 
+## Verification Commands
+
+### 1. Count Privacy Code
+```bash
+find server/privacy -name "*.ts" -exec wc -l {} + | tail -1
+# Expected Result: ~2635 lines
+```
+
+### 2. Check Integration Status
+```bash
+curl http://localhost:5000/api/privacy/status | jq
+```
+
+### 3. Test Stealth Address Generation
+```bash
+curl -X POST http://localhost:5000/api/privacy/stealth-address \
+  -H "Content-Type: application/json" \
+  -d '{"recipientWallet":"G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM"}' | jq
+```
+
+### 4. Check ShadowWire SDK Status
+```bash
+curl http://localhost:5000/api/privacy/shadowwire/status | jq
+```
+
+### 5. Test Arcium MPC Transfer (Simulated)
+```bash
+curl -X POST http://localhost:5000/api/privacy/arcium/transfer \
+  -H "Content-Type: application/json" \
+  -d '{"senderWallet":"SENDER_PUBKEY", "recipientWallet":"RECIPIENT_PUBKEY", "amount": 1}' | jq
+```
+
 ---
 
 ## Judges Quick Start
