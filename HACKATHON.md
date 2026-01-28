@@ -224,7 +224,7 @@ curl -X POST http://localhost:5000/api/privacy/stealth-address \
 - **Time**: 18:57:30 Jan 28, 2026 (UTC)
 - **Amount**: 0.1 SOL stealth transfer
 - **Result**: SUCCESS (MAX Confirmations)
-- **Screenshot**: `docs/screenshots/14-stealth-address-proof.png`
+- **Screenshot**: `docs/screenshots/03-stealth-address-proof.png`
 
 ---
 
@@ -361,7 +361,7 @@ curl -X POST http://localhost:5000/api/privacy/test/inco-encrypt \
 - **Time**: 18:32:01 Jan 28, 2026 (UTC)
 - **Amount**: 0.01 SOL (metadata transfer)
 - **Encrypted Data**: `046bb69075aef9eb798c0c78764cd120...`
-- **Screenshot**: `docs/screenshots/15-inco-lightning-encryption-proof.png`
+- **Screenshot**: `docs/screenshots/04-inco-lightning-encryption-proof.png`
 
 ---
 
@@ -661,8 +661,8 @@ All core screenshots in `docs/screenshots/`:
 |---|---|---|
 | 1 | `01-token-creation-success.png` | Real SPL token created on Devnet |
 | 2 | `02-token-solscan-proof.png` | On-chain verification of token |
-| 14 | `14-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
-| 15 | `15-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
+| 3 | `03-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
+| 4 | `04-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
 
 ---
 

@@ -113,8 +113,8 @@ Example Generated:
 Core proofs in `docs/screenshots/`:
 1. `01-token-creation-success.png` - Token creation success
 2. `02-token-solscan-proof.png` - Solscan verification
-14. `14-stealth-address-proof.png` - Stealth address on-chain proof (NEW)
-15. `15-inco-lightning-encryption-proof.png` - Inco Lightning encryption proof (NEW)
+3. `03-stealth-address-proof.png` - Stealth address on-chain proof (NEW)
+4. `04-inco-lightning-encryption-proof.png` - Inco Lightning encryption proof (NEW)
 
 ---
 
