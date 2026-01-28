@@ -191,8 +191,8 @@ export async function registerRoutes(
         mint: new PublicKey("So11111111111111111111111111111111111111112"),
         sender: new PublicKey(senderWallet),
         recipient: new PublicKey(recipientWallet),
-        encryptedAmount: new Uint8Array(),
-        proof: new Uint8Array()
+        encryptedAmount: [[...new Uint8Array()]],
+        proof: [[...new Uint8Array()]]
       });
       
       res.json({
