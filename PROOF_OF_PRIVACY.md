@@ -58,6 +58,16 @@ Test Results:
 
 **SDK**: `privacycash@1.1.7`
 
+**On-Chain Transaction Proof** ✅ NEW:
+- **Transaction**: `5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp`
+- **Block**: 438266982
+- **Time**: 16:07:10 Jan 28, 2026 (UTC)
+- **Amount**: 0.1 SOL transfer
+- **From**: DCHhAj...HNQ8d3
+- **To**: 8DxHUb...nJqM6w
+- **Result**: SUCCESS (MAX Confirmations)
+- **Explorer**: [View on Solscan](https://solscan.io/tx/5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp?cluster=devnet)
+
 Test Results:
 ```json
 {
@@ -105,7 +115,7 @@ All 14 screenshots in `docs/screenshots/`:
 11. Token-2022 confidential UI
 12. Confidential betting
 13. Arcium infrastructure
-14. Privacy Cash SDK test
+14. Privacy Cash Solscan on-chain proof (NEW)
 
 ---
 
