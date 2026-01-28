@@ -13,10 +13,10 @@ Quick reference for all privacy functions. See [HACKATHON.md](../HACKATHON.md) f
 | PNP Exchange | `np-exchange.ts` | 219 | $2.5K |
 | Inco Lightning | `inco-lightning.ts` | 217 | $2K |
 | Privacy Cash | `privacy-cash.ts` | 200 | $15K |
-| Index/Exports | `index.ts` | 200 | - |
+| Index/Exports | `index.ts` | 218 | - |
 | Pool Authority | `pool-authority.ts` | 135 | - |
 
-**Total: 2,617 lines**
+**Total: 2,635 lines**
 
 **Packages**: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
 
