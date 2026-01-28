@@ -1,3 +1,4 @@
+import BN from "bn.js";
 import { PublicKey, Keypair, Connection } from "@solana/web3.js";
 
 // Real Arcium SDK Integration
@@ -55,8 +56,8 @@ export interface CSPLTransferParams {
   mint: PublicKey;
   sender: PublicKey;
   recipient: PublicKey;
-  encryptedAmount: number[][];
-  proof: Uint8Array;
+  encryptedAmount: number[][] | Uint8Array;
+  proof: Uint8Array | number[][];
   mxeId?: PublicKey;
 }
 
@@ -277,7 +278,7 @@ export async function transferConfidential(
   // Check MXE status if connection provided
   if (connection && params.mxeId) {
     try {
-      const computationAddress = getComputationAccAddress(0, BigInt(Date.now()));
+      const computationAddress = getComputationAccAddress(0, new BN(Math.floor(Date.now() / 1000)));
       console.log("[Arcium] Computation Address:", computationAddress.toBase58());
     } catch (e) {
       console.log("[Arcium] Address derivation (testnet):", e);
