@@ -305,6 +305,7 @@ All screenshots in `docs/screenshots/`:
 | 10 | `10-stealth-address-generation.png` | One-time address created |
 | 11 | `11-token2022-confidential.png` | Confidential transfer UI |
 | 12 | `12-confidential-betting.png` | Privacy mode bet placement |
+| 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure verification |
 
 ---
 
