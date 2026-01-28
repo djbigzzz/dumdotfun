@@ -9,7 +9,7 @@
 | Metric | Value |
 |--------|-------|
 | **Total Bounties** | $75,500+ across 9 integrations |
-| **On-Chain Proofs** | 4 real Solana Devnet transactions |
+| **Verified Proofs** | 6 with screenshots + on-chain transactions |
 | **Privacy Code** | 2,255 lines across 8 modules |
 | **Network** | Solana Devnet |
 
@@ -18,6 +18,7 @@
 - **SPL Token Creation**: Real token minted (`H8cS2oyLejjpZPnPmnZGrKGpBnDifezPap3J2ox5nEwk`)
 - **ShadowWire 3-Step Flow**: Deposit → Private Transfer → Withdraw (all verified)
 - **Zero-Knowledge Cryptography**: Bulletproof commitments working
+- **Confidential Betting**: Encrypted bet amounts with Inco Lightning
 - **Privacy Hub**: 7/7 integrations active in production UI
 
 ---
@@ -153,6 +154,28 @@ One-time receive addresses that cannot be linked to your main wallet.
 Pedersen commitments for balance hiding with ElGamal encryption.
 
 ![Token-2022 Interface](docs/screenshots/11-token2022-confidential.png)
+
+---
+
+## Proof 6: Confidential Betting (Inco Lightning)
+
+**Status**: VERIFIED  
+**Bounty**: $2,000 (Inco Lightning - Consumer/Gaming)
+
+Encrypted prediction market bets using SHA-256 commitment scheme.
+
+| Field | Value |
+|-------|-------|
+| Program ID | `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj` |
+| Encryption | SHA-256 commitment: `hash(amount:side:nonce:address)` |
+| Storage | `encrypted_amount`, `commitment`, `nonce` in database |
+
+**What This Proves:**
+- Bet amounts are encrypted before storage
+- On-chain observers cannot see betting amounts
+- Privacy Mode toggle enables encrypted betting in UI
+
+![Confidential Betting](docs/screenshots/12-confidential-betting.png)
 
 ---
 
