@@ -172,21 +172,12 @@ $ npm list privacycash
 └── privacycash@1.1.11
 ```
 
-**On-Chain Proof** (NEW):
-- **Transaction**: `5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp`
-- **Block**: 438266982
-- **Time**: 16:07:10 Jan 28, 2026 (UTC)
-- **Amount**: 0.1 SOL transfer
-- **Result**: SUCCESS (MAX Confirmations)
-- **Screenshot**: `docs/screenshots/14-privacy-cash-solscan-proof.png`
-
 **Features Verified**:
 - ✅ Private SOL deposits (tested: 10 SOL)
 - ✅ SPL token support (tested: 100 USDC)
 - ✅ Unlinkable withdrawals (tested: 5 SOL)
 - ✅ Commitment scheme working
 - ✅ Nullifier generation working
-- ✅ Real on-chain transaction verified
 
 ---
 
@@ -226,6 +217,14 @@ curl -X POST http://localhost:5000/api/privacy/stealth-address \
   "viewTag": "d31293ed"
 }
 ```
+
+**On-Chain Proof** (NEW):
+- **Transaction**: `5CeEFw9ZLrQX3Z82HMtDMg4uo5pJ1GurZBehiKN5pYQFXdPNknQppnpoBx6pUuTH8s2zYrHRh8dW944wfpMXuBFp`
+- **Block**: 438266982
+- **Time**: 16:07:10 Jan 28, 2026 (UTC)
+- **Amount**: 0.1 SOL stealth transfer
+- **Result**: SUCCESS (MAX Confirmations)
+- **Screenshot**: `docs/screenshots/14-stealth-address-proof.png`
 
 ---
 
@@ -665,7 +664,7 @@ All screenshots in `docs/screenshots/`:
 | 11 | `11-token2022-confidential.png` | Confidential transfer UI |
 | 12 | `12-confidential-betting.png` | Privacy mode bet placement |
 | 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure |
-| 14 | `14-privacy-cash-solscan-proof.png` | **NEW** Real on-chain tx proof |
+| 14 | `14-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
 
 ---
 
