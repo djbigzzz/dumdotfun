@@ -5,7 +5,7 @@ import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link } from "wouter";
-import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield } from "lucide-react";
+import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock } from "lucide-react";
 import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -209,8 +209,28 @@ export default function TokenPage() {
   });
 
   const placeBetMutation = useMutation({
-    mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
+    mutationFn: async ({ marketId, side, amount, confidential }: { marketId: string; side: "yes" | "no"; amount: number; confidential?: boolean }) => {
       if (!connectedWallet) throw new Error("Wallet not connected");
+      
+      // Use confidential betting endpoint if privacy mode is on
+      if (confidential) {
+        const confidentialRes = await fetch(`/api/markets/${marketId}/confidential-bet`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: connectedWallet,
+            side,
+            amount,
+          }),
+        });
+        
+        if (!confidentialRes.ok) {
+          const errorData = await confidentialRes.json();
+          throw new Error(errorData.error || "Failed to place confidential bet");
+        }
+        
+        return confidentialRes.json();
+      }
       
       const phantom = (window as any).phantom?.solana;
       if (!phantom?.isPhantom) {
@@ -252,7 +272,7 @@ export default function TokenPage() {
       // Step 3: Send signed transaction
       const connection = new Connection(SOLANA_RPC, "confirmed");
       const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
+        skipPreflight: true,
         preflightCommitment: "confirmed",
       });
       await connection.confirmTransaction(signature, "confirmed");
@@ -271,8 +291,8 @@ export default function TokenPage() {
       
       return confirmRes.json();
     },
-    onSuccess: () => {
-      toast.success("Bet placed!");
+    onSuccess: (_, variables) => {
+      toast.success(variables.confidential ? "Private bet placed!" : "Bet placed!");
       setActiveBet(null);
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
@@ -321,6 +341,7 @@ export default function TokenPage() {
       marketId: activeBet.predictionId,
       side: activeBet.side,
       amount: parseFloat(betAmount),
+      confidential: privateMode,
     });
   };
 
@@ -675,8 +696,8 @@ export default function TokenPage() {
                       {isBettingActive && (
                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
                           <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
-                          <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white`} data-testid={`button-confirm-bet-${prediction.id}`}>
-                            {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : "BET"}
+                          <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${privateMode ? "bg-[#4ADE80] border-[#4ADE80]" : activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white flex items-center gap-1`} data-testid={`button-confirm-bet-${prediction.id}`}>
+                            {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : privateMode ? <><Lock className="w-3 h-3" /> PRIVATE</> : "BET"}
                           </button>
                         </motion.div>
                       )}
