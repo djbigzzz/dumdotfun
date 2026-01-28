@@ -1,0 +1,65 @@
+2inject.js:1 Port connected
+client:745 WebSocket connection to 'wss://8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev/vite-hmr?token=1nrmSt1hLoBK' failed: 
+createConnection @ client:745Understand this error
+2inject.js:1 Port connected
+injectedScript.bundle.js:2 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+ Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+contentScripts.bundle.js:2 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+ Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+inpage.js:37 Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+ Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+inpage.js:82 Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+ Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+2inject.js:1 Port connected
+client:755 WebSocket connection to 'wss://localhost:5173/?token=1nrmSt1hLoBK' failed: 
+createConnection @ client:755Understand this error
+injected.js:37 [vite] failed to connect to websocket.
+your current setup:
+  (browser) 8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev/ <--[HTTP]--> localhost:5173/ (server)
+  (browser) 8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev:/vite-hmr <--[WebSocket (failing)]--> localhost:5173/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .
+(anonymous) @ injected.js:37Understand this error
+SatiricalAntiLaunchpad:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+stallwart.build.js:1 stallwart: failed ping 1
+stallwart.build.js:1 stallwart: failed ping 2
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+inject.js:26 [Violation] Permissions policy violation: unload is not allowed in this document.
+(anonymous) @ inject.js:26
+K @ inject.js:1
+await in K
+(anonymous) @ inject.js:1Understand this error
+inject.js:1 Port disconnected, reconnecting...
+ Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+ Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+ Port disconnected, reconnecting...
+ Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected

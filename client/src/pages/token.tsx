@@ -680,9 +680,7 @@ export default function TokenPage() {
                   const isBettingActive = activeBet?.predictionId === prediction.id;
                   return (
                     <div key={prediction.id} className={`p-3 mb-2 border ${privateMode ? "bg-black border-yellow-500/30" : "bg-yellow-50 border-gray-200 rounded"}`} data-testid={`prediction-${prediction.id}`}>
-                      <Link href={`/market/${prediction.id}`}>
-                        <p className={`text-sm mb-2 font-medium cursor-pointer underline decoration-dotted underline-offset-2 ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}>{prediction.question} →</p>
-                      </Link>
+                      <a href={`/market/${prediction.id}`} className={`block text-sm mb-2 font-medium cursor-pointer underline decoration-dotted underline-offset-2 ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}>{prediction.question} →</a>
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
                           <span className="block font-bold">{prediction.yesOdds}%</span>
