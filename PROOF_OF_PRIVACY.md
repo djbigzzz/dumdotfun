@@ -110,7 +110,7 @@ Example Generated:
 
 ## Screenshot Evidence
 
-All 15 screenshots in `docs/screenshots/`:
+All 14 screenshots in `docs/screenshots/`:
 1. Token creation success
 2. Solscan verification
 3. Privacy Hub overview
@@ -120,7 +120,7 @@ All 15 screenshots in `docs/screenshots/`:
 7. Transfer commitment
 8. ShadowWire withdraw
 9. Withdraw Solscan (pool is sender)
-10. Stealth address generation
+10. (Removed)
 11. Token-2022 confidential UI
 12. Confidential betting
 13. Arcium infrastructure

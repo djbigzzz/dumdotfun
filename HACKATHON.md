@@ -668,7 +668,7 @@ All screenshots in `docs/screenshots/`:
 | 7 | `07-shadowwire-transfer-success.png` | Transfer success with commitment |
 | 8 | `08-shadowwire-withdraw.png` | Withdraw from pool UI |
 | 9 | `09-shadowwire-withdraw-solscan.png` | Pool is sender (anonymous) |
-| 10 | `10-stealth-address-generation.png` | One-time address created |
+| 10 | (Removed) | |
 | 11 | `11-token2022-confidential.png` | Confidential transfer UI |
 | 12 | `12-confidential-betting.png` | Privacy mode bet placement |
 | 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure |
