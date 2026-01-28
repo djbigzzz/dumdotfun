@@ -269,16 +269,55 @@ Total: 2,249 lines
 
 ---
 
-## Screenshots
+## Screenshot Proofs
 
-All in `docs/screenshots/`:
-1. Token creation
-2. Solscan verification
-3. Privacy Hub
-4. ShadowWire flow (deposit, transfer, withdraw)
-5. Stealth addresses
-6. Confidential betting
-7. Token-2022 transfers
+All screenshots in `docs/screenshots/`:
+
+| # | File | What It Proves |
+|---|------|----------------|
+| 1 | `01-token-creation-success.png` | Real SPL token created on Devnet |
+| 2 | `02-token-solscan-proof.png` | On-chain verification of token |
+| 3 | `03-privacy-hub-overview.png` | All 9 integrations visible and active |
+| 4 | `04-shadowwire-deposit.png` | Deposit to privacy pool UI |
+| 5 | `05-shadowwire-deposit-solscan.png` | Deposit transaction on Solscan |
+| 6 | `06-shadowwire-private-transfer.png` | Internal transfer (no on-chain tx) |
+| 7 | `07-shadowwire-transfer-success.png` | Transfer success with commitment |
+| 8 | `08-shadowwire-withdraw.png` | Withdraw from pool UI |
+| 9 | `09-shadowwire-withdraw-solscan.png` | Pool is sender (anonymous) |
+| 10 | `10-stealth-address-generation.png` | One-time address created |
+| 11 | `11-token2022-confidential.png` | Confidential transfer UI |
+| 12 | `12-confidential-betting.png` | Privacy mode bet placement |
+
+---
+
+## Judges Quick Start
+
+### Setup (2 min)
+1. Install [Phantom Wallet](https://phantom.app/)
+2. Open Phantom → Settings → Change Network → **Devnet**
+3. Visit the live demo or run locally
+4. Click "Connect Wallet"
+5. Click "Airdrop 2 SOL" in header
+
+### Test Each Feature (5 min)
+- **Token Creation**: Go to /create, make a token, verify on Solscan
+- **Privacy Hub**: Click shield icon, see all 9 integrations active
+- **Confidential Bet**: Go to /predictions, toggle privacy ON, place bet
+- **Stealth Address**: In Privacy Hub, generate one-time address
+- **ShadowWire**: Deposit → Transfer → Withdraw flow
+
+### Verify Code (3 min)
+```bash
+# Privacy implementation size
+find server/privacy -name "*.ts" -exec wc -l {} + | tail -1
+# Expected: 2249 lines
+
+# Check integrations API
+curl http://localhost:5000/api/privacy/status | jq
+
+# TypeScript check
+npm run check
+```
 
 ---
 
