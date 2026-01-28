@@ -683,8 +683,12 @@ export default function TokenPage() {
                     <div key={prediction.id} className={`p-3 mb-2 border ${privateMode ? "bg-black border-yellow-500/30" : "bg-yellow-50 border-gray-200 rounded"}`} data-testid={`prediction-${prediction.id}`}>
                       <button 
                         type="button"
-                        onClick={() => setLocation(`/market/${prediction.id}`)}
+                        onClick={() => {
+                          console.log("Navigating to market:", prediction.id);
+                          window.location.href = `/market/${prediction.id}`;
+                        }}
                         className={`block text-left w-full text-sm mb-2 font-medium cursor-pointer underline decoration-dotted underline-offset-2 ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}
+                        data-testid={`link-market-${prediction.id}`}
                       >
                         {prediction.question} →
                       </button>
