@@ -53,6 +53,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 1. **Inco Lightning SDK** (`server/privacy/inco-lightning.ts`) - ✅ ACTIVE
    - Program ID: `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
+   - Package: `@inco/solana-sdk`
    - Confidential prediction market bets with encrypted amounts
    - Commitment-based privacy scheme: SHA-256(amount:side:nonce:address)
    - Client: `client/src/lib/inco-client.ts`
