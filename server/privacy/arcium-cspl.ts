@@ -1,5 +1,4 @@
 import { PublicKey, Keypair, Connection } from "@solana/web3.js";
-import BN from "bn.js";
 
 // Real Arcium SDK Integration
 // Using @arcium-hq/client and @arcium-hq/reader packages (v0.6.5)
@@ -263,10 +262,13 @@ export async function transferConfidential(
 
   const computationId = `arcium_transfer_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
 
-  // Generate commitment from transfer params
+  // Generate commitment from transfer params using PublicKey bytes (not base58)
+  const senderBytes = Buffer.from(params.sender.toBytes()).toString('hex');
+  const recipientBytes = Buffer.from(params.recipient.toBytes()).toString('hex');
+
   const transferData = [
-    BigInt('0x' + params.sender.toBase58().slice(0, 16)),
-    BigInt('0x' + params.recipient.toBase58().slice(0, 16)),
+    BigInt('0x' + senderBytes.slice(0, 16)),
+    BigInt('0x' + recipientBytes.slice(0, 16)),
     BigInt(Date.now()),
   ];
   const commitmentHash = hashWithRescue(transferData);
@@ -275,7 +277,7 @@ export async function transferConfidential(
   // Check MXE status if connection provided
   if (connection && params.mxeId) {
     try {
-      const computationAddress = getComputationAccAddress(0, new BN(Date.now()));
+      const computationAddress = getComputationAccAddress(0, BigInt(Date.now()));
       console.log("[Arcium] Computation Address:", computationAddress.toBase58());
     } catch (e) {
       console.log("[Arcium] Address derivation (testnet):", e);

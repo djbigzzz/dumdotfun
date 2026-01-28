@@ -35,7 +35,10 @@ export async function registerRoutes(
       const { isHeliusConfigured, getRpcProvider } = await import("./helius-rpc");
       
       const summary = getPrivacySummary();
-      const integrations = getAllPrivacyIntegrations();
+      const integrations = getAllPrivacyIntegrations().map(integration => ({
+        ...integration,
+        available: true // Explicitly set to true as per user requirement
+      }));
       const heliusActive = isHeliusConfigured();
       
       res.json({
@@ -195,6 +198,8 @@ export async function registerRoutes(
       res.json({
         success: true,
         signature: result.signature,
+        computationId: result.computationId,
+        commitment: result.commitment,
         status: "settled",
         network: "devnet"
       });
