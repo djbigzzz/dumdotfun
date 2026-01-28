@@ -110,22 +110,10 @@ Example Generated:
 
 ## Screenshot Evidence
 
-All 14 screenshots in `docs/screenshots/`:
-1. Token creation success
-2. Solscan verification
-3. Privacy Hub overview
-4. ShadowWire deposit
-5. ShadowWire Solscan proof
-6. Private transfer (no on-chain tx)
-7. Transfer commitment
-8. ShadowWire withdraw
-9. Withdraw Solscan (pool is sender)
-10. (Removed)
-11. Token-2022 confidential UI
-12. Confidential betting
-13. Arcium infrastructure
-14. Stealth address on-chain proof (NEW)
-15. Inco Lightning encryption proof (NEW)
+Core proofs in `docs/screenshots/`:
+1. `01-token-creation-success.png` - Token creation success
+14. `14-stealth-address-proof.png` - Stealth address on-chain proof (NEW)
+15. `15-inco-lightning-encryption-proof.png` - Inco Lightning encryption proof (NEW)
 
 ---
 

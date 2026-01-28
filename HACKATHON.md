@@ -655,23 +655,11 @@ find server/privacy -name "*.ts" -exec wc -l {} + | tail -1
 
 ## 📸 Screenshot Proofs
 
-All screenshots in `docs/screenshots/`:
+All core screenshots in `docs/screenshots/`:
 
 | # | File | What It Proves |
 |---|---|---|
 | 1 | `01-token-creation-success.png` | Real SPL token created on Devnet |
-| 2 | `02-token-solscan-proof.png` | On-chain verification of token |
-| 3 | `03-privacy-hub-overview.png` | All 7 integrations visible and active |
-| 4 | `04-shadowwire-deposit.png` | Deposit to privacy pool UI |
-| 5 | `05-shadowwire-deposit-solscan.png` | Deposit transaction on Solscan |
-| 6 | `06-shadowwire-private-transfer.png` | Internal transfer (no on-chain tx) |
-| 7 | `07-shadowwire-transfer-success.png` | Transfer success with commitment |
-| 8 | `08-shadowwire-withdraw.png` | Withdraw from pool UI |
-| 9 | `09-shadowwire-withdraw-solscan.png` | Pool is sender (anonymous) |
-| 10 | (Removed) | |
-| 11 | `11-token2022-confidential.png` | Confidential transfer UI |
-| 12 | `12-confidential-betting.png` | Privacy mode bet placement |
-| 13 | `13-arcium-infrastructure.png` | Real Arcium Devnet infrastructure |
 | 14 | `14-stealth-address-proof.png` | **NEW** Stealth address on-chain proof |
 | 15 | `15-inco-lightning-encryption-proof.png` | **NEW** Inco Lightning encryption proof |
 
