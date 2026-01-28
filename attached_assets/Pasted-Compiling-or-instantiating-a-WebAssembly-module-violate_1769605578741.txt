@@ -1,0 +1,234 @@
+Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'none'". The policy is report-only, so the violation has been logged but no further action has been taken.
+contentScripts.bundle.js:2 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'none'". The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:113 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-BnOe+s2wzmMmGLvpG8u3lfUo37KvZfDyJpTaEnEjmdw='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:143 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-Q2BC+6wvEMMGAG5ptiy0mdlUVz5ymLU+2wnaD11rhyc='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:146 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-XYvVliZ7kJ9JIDhACMzGUvidf8E8T+euknSiwFmyDfg='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:146 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-8GWp4mkQPASAkJpSKvaGYIiWtBRnBlynjCY5dML+3eI='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:146 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-SGuWyr7tf/y6jHYAjaav9VXoF4fxavaFVkswL9yB0WM='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:146 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-07l5B4sWF6cor6yDQ+CQBYw+BXfYaB+C6wxFZmj0wqo='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+167Loading the script '<URL>' violates the following Content Security Policy directive: "script-src 'none'". Note that 'script-src-elem' was not explicitly set, so 'script-src' is used as a fallback. The policy is report-only, so the violation has been logged but no further action has been taken.
+SatiricalAntiLaunchpad:149 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-AQueeHl2N8bLd4p6xnNE6DshmhLYMb+Bl9ut5mkadvY='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+7ab1a7c946d899a7.js:2 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-CnAE4A1CKQUDsMmNoyTSWr15YgqG04LyqoQeRry+I1c='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+b53e200464c97507.js:2 Creating a worker from 'https://replit.com/public/stallwart.build.js' violates the following Content Security Policy directive: "script-src 'none'". Note that 'worker-src' was not explicitly set, so 'script-src' is used as a fallback. The policy is report-only, so the violation has been logged but no further action has been taken.
+12The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+12The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+12The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+6Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'none'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+cf.js?config=%257B%2522projectId%2522%253A%252268c9ad4d4cddb58cf3a1f93d%2522%252C%2522startTime%2522%253A1769605524893%252C%2522timeoutMs%2522%253A1000%252C%2522currentUrl%2522%253A%2522https%253A%252F%252Freplit.com%252F%2540galindimitrov94%252FSatiricalAntiLaunchpad%2522%252C%2522trackingOnly%2522%253Atrue%257D:10 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-K+NY9lGGjRCPWHEQkJZC7NQJuOQA/B40uWOviekF7gY='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+cf.js?config=%257B%2522projectId%2522%253A%252268c9ad4d4cddb58cf3a1f93d%2522%252C%2522startTime%2522%253A1769605524893%252C%2522timeoutMs%2522%253A1000%252C%2522currentUrl%2522%253A%2522https%253A%252F%252Freplit.com%252F%2540galindimitrov94%252FSatiricalAntiLaunchpad%2522%252C%2522trackingOnly%2522%253Atrue%257D:10 Executing inline script violates the following Content Security Policy directive 'script-src 'none''. Either the 'unsafe-inline' keyword, a hash ('sha256-0O1YD39A9hMSmSuKqFVojOJhtVwkyBGTaxx2JQAQBqo='), or a nonce ('nonce-...') is required to enable inline execution. The policy is report-only, so the violation has been logged but no further action has been taken.
+b53e200464c97507.js:2 [Coframe] Replit Enterprise watcher loaded
+SatiricalAntiLaunchpad:1 The source list for the Content Security Policy directive 'default-src' contains an invalid source: ''unsafe-dynamic''. It will be ignored.Understand this error
+SatiricalAntiLaunchpad:1 The Content-Security-Policy directive 'default-src' contains 'report-uri' as a source expression. Did you want to add it as a directive and forget a semicolon?Understand this error
+SatiricalAntiLaunchpad:1 The source list for Content Security Policy directive 'default-src' contains a source with an invalid path: '/api/4509669501698048/security/?sentry_key=7eb3d90eb4660416caf507087367e67e'. The query component, including the '?', will be ignored.Understand this error
+b53e200464c97507.js:2 
+      /////////////////////
+   ///////////////////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////        Curious and driven?
+  ///////////////@@@@@@@///////        Work with us!
+  ///////////////@@@@@@@///////
+  ///////////////@@@@@@@///////        https://join.replit.com/hack.with.us
+  ////////@@@@@@@//////////////
+  ////////@@@@@@@//////////////
+  ////////@@@@@@#//////////////
+   ///////////////////////////
+      /////////////////////
+      
+b53e200464c97507.js:2 Download the Apollo DevTools for a better development experience: https://chrome.google.com/webstore/detail/apollo-client-developer-t/jdkknkkbebbapilgoeccciglkfbmbnfm
+b53e200464c97507.js:2 [LaunchDarkly] LaunchDarkly client initialized
+inject.js:1 Port connected
+inject.js:26 [Violation] Permissions policy violation: unload is not allowed in this document.
+(anonymous) @ inject.js:26Understand this error
+inject.js:1 Port connected
+b53e200464c97507.js:2 [ai-chat] Creating connection with chat proxy enabled
+(anonymous) @ b53e200464c97507.js:2Understand this warning
+2 Port connected
+2inject.js:1 Port connected
+b53e200464c97507.js:2 Creating a worker from 'https://replit.com/service-worker.js' violates the following Content Security Policy directive: "script-src 'none'". Note that 'worker-src' was not explicitly set, so 'script-src' is used as a fallback. The policy is report-only, so the violation has been logged but no further action has been taken.
+2inject.js:1 Port connected
+ Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+injectedScript.bundle.js:2 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+ Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+contentScripts.bundle.js:2 Compiling or instantiating a WebAssembly module violates the following Content Security policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'". The policy is report-only, so the violation has been logged but no further action has been taken.
+ Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+inpage.js:37 Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+ Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+inpage.js:82 Evaluating a string as JavaScript violates the following Content Security Policy directive because 'unsafe-eval' is not an allowed source of script: "script-src 'self'".
+ The policy is report-only, so the violation has been logged but no further action has been taken.
+ed1e693c96a75807.js:2 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.
+z @ ed1e693c96a75807.js:2Understand this error
+ed1e693c96a75807.js:2 Unrecognized feature: 'ambient-light-sensor'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'battery'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-not-rendered'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'execution-while-out-of-viewport'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'layout-animations'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'legacy-image-formats'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'navigation-override'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'oversized-images'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'publickey-credentials'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'speaker-selection'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'unoptimized-images'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'unsized-media'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Unrecognized feature: 'pointer-lock'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowfullscreen'.
+z @ ed1e693c96a75807.js:2Understand this warning
+ed1e693c96a75807.js:2 Allow attribute will take precedence over 'allowpaymentrequest'.
+z @ ed1e693c96a75807.js:2Understand this warning
+2inject.js:1 Port connected
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Error while parsing the 'sandbox' attribute: 'allow-downloads-without-user-activation' is an invalid sandbox flag.Understand this error
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'ambient-light-sensor'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'battery'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'execution-while-not-rendered'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'execution-while-out-of-viewport'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'layout-animations'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'legacy-image-formats'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'navigation-override'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'oversized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'publickey-credentials'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'speaker-selection'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'unoptimized-images'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Unrecognized feature: 'unsized-media'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Allow attribute will take precedence over 'allowfullscreen'.Understand this warning
+workspace_iframe.html?initialPath=%2F&id=%3Ar27%3A:32 Allow attribute will take precedence over 'allowpaymentrequest'.Understand this warning
+2inject.js:1 Port connected
+2inject.js:1 Port connected
+client:745 WebSocket connection to 'wss://8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev/vite-hmr?token=l7UVQYdWQ6JQ' failed: 
+createConnection @ client:745Understand this error
+SatiricalAntiLaunchpad:1 Banner not shown: beforeinstallpromptevent.preventDefault() called. The page must call beforeinstallpromptevent.prompt() to show the banner.
+client:755 WebSocket connection to 'wss://localhost:5173/?token=l7UVQYdWQ6JQ' failed: 
+createConnection @ client:755Understand this error
+injected.js:37 [vite] failed to connect to websocket.
+your current setup:
+  (browser) 8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev/ <--[HTTP]--> localhost:5173/ (server)
+  (browser) 8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev:/vite-hmr <--[WebSocket (failing)]--> localhost:5173/ (server)
+Check out your Vite / network configuration and https://vite.dev/config/server-options.html#server-hmr .
+(anonymous) @ injected.js:37Understand this error
+stallwart.build.js:1 stallwart: failed ping 1
+stallwart.build.js:1 stallwart: failed ping 2
+injected.js:214  GET https://8fdf2e2f-b03c-41f5-9148-a9b477ad3849-00-14ul1cilsijk0.kirk.replit.dev/api/devnet/token-balance/DCHhAjoVvJ4mUUkbQrsKrPztRhivrNV3fDJEZfHNQ8d3/QWRRL4JQkSkBF5uBemxrr4EhDaNBibmZpzbPFrE8CHmB 500 (Internal Server Error)
+apply @ injected.js:214
+queryFn @ token.tsx:182
+fetchFn @ @tanstack_react-query.js?v=3aca9ba9:812
+run @ @tanstack_react-query.js?v=3aca9ba9:477
+start @ @tanstack_react-query.js?v=3aca9ba9:518
+fetch @ @tanstack_react-query.js?v=3aca9ba9:893
+#executeFetch @ @tanstack_react-query.js?v=3aca9ba9:1963
+setOptions @ @tanstack_react-query.js?v=3aca9ba9:1897
+(anonymous) @ @tanstack_react-query.js?v=3aca9ba9:2972
+react_stack_bottom_frame @ react-dom_client.js?v=3aca9ba9:18567
+runWithFiberInDEV @ react-dom_client.js?v=3aca9ba9:997
+commitHookEffectListMount @ react-dom_client.js?v=3aca9ba9:9411
+commitHookPassiveMountEffects @ react-dom_client.js?v=3aca9ba9:9465
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11040
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11201
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11033
+recursivelyTraversePassiveMountEffects @ react-dom_client.js?v=3aca9ba9:11010
+commitPassiveMountOnFiber @ react-dom_client.js?v=3aca9ba9:11066
+flushPassiveEffects @ react-dom_client.js?v=3aca9ba9:13150
+flushPendingEffects @ react-dom_client.js?v=3aca9ba9:13088
+flushSpawnedWork @ react-dom_client.js?v=3aca9ba9:13062
+commitRoot @ react-dom_client.js?v=3aca9ba9:12804
+commitRootWhenReady @ react-dom_client.js?v=3aca9ba9:12016
+performWorkOnRoot @ react-dom_client.js?v=3aca9ba9:11950
+performSyncWorkOnRoot @ react-dom_client.js?v=3aca9ba9:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=3aca9ba9:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=3aca9ba9:13437
+(anonymous) @ react-dom_client.js?v=3aca9ba9:13531
+<TokenPage>
+exports.createElement @ chunk-FTFSCOIU.js?v=3aca9ba9:793
+h_route @ wouter.js?v=3aca9ba9:255
+Route @ wouter.js?v=3aca9ba9:274
+react_stack_bottom_frame @ react-dom_client.js?v=3aca9ba9:18509
+renderWithHooks @ react-dom_client.js?v=3aca9ba9:5654
+updateFunctionComponent @ react-dom_client.js?v=3aca9ba9:7475
+beginWork @ react-dom_client.js?v=3aca9ba9:8525
+runWithFiberInDEV @ react-dom_client.js?v=3aca9ba9:997
+performUnitOfWork @ react-dom_client.js?v=3aca9ba9:12561
+workLoopSync @ react-dom_client.js?v=3aca9ba9:12424
+renderRootSync @ react-dom_client.js?v=3aca9ba9:12408
+performWorkOnRoot @ react-dom_client.js?v=3aca9ba9:11766
+performSyncWorkOnRoot @ react-dom_client.js?v=3aca9ba9:13517
+flushSyncWorkAcrossRoots_impl @ react-dom_client.js?v=3aca9ba9:13414
+processRootScheduleInMicrotask @ react-dom_client.js?v=3aca9ba9:13437
+(anonymous) @ react-dom_client.js?v=3aca9ba9:13531Understand this error
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:26 [Violation] Permissions policy violation: unload is not allowed in this document.
+(anonymous) @ inject.js:26
+K @ inject.js:1
+await in K
+(anonymous) @ inject.js:1Understand this error
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+ Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+ Port connected
+ Port disconnected, reconnecting...
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+ Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected
+inject.js:1 Port disconnected, reconnecting...
+inject.js:1 Port connected

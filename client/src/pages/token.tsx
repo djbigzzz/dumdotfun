@@ -681,17 +681,16 @@ export default function TokenPage() {
                   const isBettingActive = activeBet?.predictionId === prediction.id;
                   return (
                     <div key={prediction.id} className={`p-3 mb-2 border ${privateMode ? "bg-black border-yellow-500/30" : "bg-yellow-50 border-gray-200 rounded"}`} data-testid={`prediction-${prediction.id}`}>
-                      <button 
-                        type="button"
-                        onClick={() => {
-                          console.log("Navigating to market:", prediction.id);
-                          window.location.href = `/market/${prediction.id}`;
-                        }}
-                        className={`block text-left w-full text-sm mb-2 font-medium cursor-pointer underline decoration-dotted underline-offset-2 ${privateMode ? "text-white hover:text-yellow-400" : "text-gray-900 hover:text-yellow-600"}`}
-                        data-testid={`link-market-${prediction.id}`}
-                      >
-                        {prediction.question} →
-                      </button>
+                      <div className="flex items-center justify-between mb-2">
+                        <span className={`text-sm font-medium ${privateMode ? "text-white" : "text-gray-900"}`}>{prediction.question}</span>
+                        <a 
+                          href={`/market/${prediction.id}`}
+                          className={`text-xs px-2 py-1 rounded font-bold ${privateMode ? "bg-yellow-500 text-black hover:bg-yellow-400" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+                          data-testid={`link-market-${prediction.id}`}
+                        >
+                          VIEW MARKET
+                        </a>
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
                           <span className="block font-bold">{prediction.yesOdds}%</span>
