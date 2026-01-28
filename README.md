@@ -14,15 +14,11 @@
 
 ---
 
-## 📖 Start Here (For Judges)
+## 📖 For Judges
 
-**Evaluating this project? Start here:**
+**[HACKATHON.md](HACKATHON.md)** - All 9 bounties, verification commands, on-chain proofs
 
-- **⚡ Quick evaluation** (5 min): [JUDGES_QUICKSTART.md](JUDGES_QUICKSTART.md) — Test live demo, verify bounties
-- **📋 Bounty checklist** ($75.5K+): [HACKATHON_CHECKLIST.md](HACKATHON_CHECKLIST.md) — All 9 bounties verified
-- **🔬 Technical deep-dives**: [SHADOWWIRE_HACKATHON.md](SHADOWWIRE_HACKATHON.md) (Bulletproofs) • [TOKEN2022_HACKATHON.md](TOKEN2022_HACKATHON.md) (Confidential transfers)
-
-**Time to fully evaluate: ~30 minutes**
+Quick test: Connect Phantom (Devnet) → Privacy Hub → Place confidential bet
 
 ---
 
