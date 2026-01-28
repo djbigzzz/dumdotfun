@@ -44,6 +44,12 @@ ZK-SNARK based private pooling and unlinkable withdrawals.
 - **On-Chain Evidence**: [ALT Creation Transaction](https://solscan.io/tx/53tAzWEJpazmYpxhHNSLf3wQG38EALGNtM6UcJL8NaTkyQv2K7KN7FKXFS5k8yFVagJ62hbG3GRQH46yfFDUMFFM?cluster=devnet)
 - **Note**: Program execution on Devnet currently returns "Out of Memory" (Infrastructure Bug), but full SDK integration and ZK-SNARK generation are verified.
 
+### 5. Private Token Transfers (ShadowWire)
+ZK Bulletproofs for hidden transfer amounts and anonymous senders across 22 tokens.
+- **Infrastructure**: SDK v1.1.15 Integrated (Bulletproofs).
+- **Proof of Integration**: Balance queries, fee calculations, and multi-token (SOL, USDC, RADR) support verified.
+- **Note**: Program currently Mainnet-only (Program ID `GQBqww...mFPzD`). Integration complete and simulation-verified.
+
 ---
 
 ## 🛠 Tech Stack Summary
