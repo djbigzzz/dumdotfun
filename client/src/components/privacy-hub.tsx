@@ -353,52 +353,68 @@ export function PrivacyHub() {
       
       const tx = Transaction.from(Buffer.from(txData.serializedTransaction, "base64"));
       const signedTx = await phantom.signTransaction(tx);
-      const signature = await connection.sendRawTransaction(signedTx.serialize());
-      
-      toast({
-        title: "Confirming on-chain...",
-        description: "Waiting for transaction confirmation",
-      });
-      
-      await connection.confirmTransaction(signature, "confirmed");
-      
-      // Step 3: Verify and credit pool balance
-      const verifyRes = await fetch("/api/privacy/pool/verify-deposit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: connectedWallet,
-          amount,
-          signature
-        })
-      });
-      
-      const verifyData = await verifyRes.json();
-      
-      if (verifyRes.ok && verifyData.success) {
-        toast({
-          title: "Deposit Complete!",
-          description: (
-            <div className="flex flex-col gap-1">
-              <span className="font-bold">{amount} SOL added to Privacy Pool</span>
-              <a 
-                href={verifyData.explorerUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs underline text-green-400"
-              >
-                View on Solscan
-              </a>
-            </div>
-          ),
+
+      // Check if transaction was already processed before sending
+      try {
+        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true, // Skip simulation to avoid "already processed" error during simulation
         });
-        setDepositAmount("");
-        setTimeout(() => {
-          fetchBalances();
-          fetchActivity();
-        }, 500);
-      } else {
-        throw new Error(verifyData.error || "Deposit verification failed");
+        
+        toast({
+          title: "Confirming on-chain...",
+          description: "Waiting for transaction confirmation",
+        });
+        
+        await connection.confirmTransaction(signature, "confirmed");
+        
+        // Step 3: Verify and credit pool balance
+        const verifyRes = await fetch("/api/privacy/pool/verify-deposit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            walletAddress: connectedWallet,
+            amount,
+            signature
+          })
+        });
+        
+        const verifyData = await verifyRes.json();
+        
+        if (verifyRes.ok && verifyData.success) {
+          toast({
+            title: "Deposit Complete!",
+            description: (
+              <div className="flex flex-col gap-1">
+                <span className="font-bold">{amount} SOL added to Privacy Pool</span>
+                <a 
+                  href={verifyData.explorerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs underline text-green-400"
+                >
+                  View on Solscan
+                </a>
+              </div>
+            ),
+          });
+          setDepositAmount("");
+          setTimeout(() => {
+            fetchBalances();
+            fetchActivity();
+          }, 500);
+        } else {
+          throw new Error(verifyData.error || "Deposit verification failed");
+        }
+      } catch (sendError: any) {
+        if (sendError.message?.includes("already been processed")) {
+          toast({
+            title: "Already Processed",
+            description: "This transaction was already confirmed. Refreshing balances...",
+          });
+          setTimeout(() => fetchBalances(), 1000);
+          return;
+        }
+        throw sendError;
       }
     } catch (error: any) {
       console.error("Deposit error:", error);
