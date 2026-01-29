@@ -43,6 +43,8 @@ export default function CreateToken() {
   const [enableConfidential, setEnableConfidential] = useState(false);
   const [enableStealth, setEnableStealth] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
+  const [showDevBuyStep, setShowDevBuyStep] = useState(false);
+  const [devBuyAmount, setDevBuyAmount] = useState<string>("0");
 
   const { data: solPriceData } = useQuery({
     queryKey: ["sol-price"],
@@ -223,7 +225,17 @@ export default function CreateToken() {
       return;
     }
 
+    setShowDevBuyStep(true);
+  };
+
+  const handleCreateWithDevBuy = () => {
     createTokenMutation.mutate();
+    setShowDevBuyStep(false);
+  };
+
+  const handleBackToForm = () => {
+    setShowDevBuyStep(false);
+    setDevBuyAmount("0");
   };
 
   const resetForm = () => {
@@ -238,6 +250,8 @@ export default function CreateToken() {
     setImagePreview(null);
     setFileName(null);
     setCreatedToken(null);
+    setShowDevBuyStep(false);
+    setDevBuyAmount("0");
   };
 
   return (
@@ -252,6 +266,77 @@ export default function CreateToken() {
             </p>
           </div>
         </div>
+
+        {/* Dev Buy Step Modal */}
+        {showDevBuyStep && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+          >
+            <div className={`${privateMode ? "bg-zinc-900 border-[#4ADE80]" : "bg-zinc-900 border-zinc-700"} border-2 rounded-2xl p-6 max-w-md w-full shadow-2xl`}>
+              <h2 className="text-white text-xl font-bold text-center mb-2">
+                Choose how many [{formData.symbol || 'tokens'}] you want to buy (optional)
+              </h2>
+              
+              <p className="text-zinc-400 text-sm text-center mb-6">
+                Tip: its optional but buying a small amount of coins helps protect your coin from snipers
+              </p>
+
+              <div className="mb-6">
+                <div className="flex items-center justify-end mb-2">
+                  <span className="text-zinc-500 text-sm">Switch to {formData.symbol || 'token'}</span>
+                </div>
+                
+                <div className={`${privateMode ? "bg-zinc-800 border-[#4ADE80]/30" : "bg-zinc-800 border-zinc-600"} border rounded-xl p-4 flex items-center justify-between`}>
+                  <input
+                    type="number"
+                    value={devBuyAmount}
+                    onChange={(e) => setDevBuyAmount(e.target.value)}
+                    min="0"
+                    step="0.01"
+                    className="bg-transparent text-white text-2xl font-bold w-full outline-none"
+                    placeholder="0"
+                    data-testid="input-dev-buy-amount"
+                  />
+                  <div className="flex items-center gap-2 ml-4">
+                    <span className="text-white font-bold">SOL</span>
+                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
+                      <span className="text-white text-xs font-bold">◎</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {walletBalance !== null && (
+                  <p className="text-zinc-500 text-xs mt-2 text-right">
+                    Balance: {walletBalance.toFixed(4)} SOL
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={handleCreateWithDevBuy}
+                disabled={createTokenMutation.isPending}
+                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                  privateMode 
+                    ? "bg-[#4ADE80] hover:bg-[#4ADE80]/90 text-black" 
+                    : "bg-green-400 hover:bg-green-500 text-black"
+                } disabled:opacity-50`}
+                data-testid="button-create-with-dev-buy"
+              >
+                {createTokenMutation.isPending ? "Creating..." : "Create coin"}
+              </button>
+
+              <button
+                onClick={handleBackToForm}
+                className="w-full mt-3 py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
+                data-testid="button-back-to-form"
+              >
+                ← Back to edit
+              </button>
+            </div>
+          </motion.div>
+        )}
 
         {/* Wallet & Balance Section */}
         <motion.div 
