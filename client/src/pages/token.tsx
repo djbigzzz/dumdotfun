@@ -95,9 +95,12 @@ function formatPrice(price: number): string {
   return `$${price.toFixed(6)}`;
 }
 
-function formatMarketCap(mcSol: number): string {
-  if (mcSol >= 1000) return `${(mcSol / 1000).toFixed(2)}k SOL`;
-  return `${mcSol.toFixed(2)} SOL`;
+function formatMarketCap(mcSol: number, solPrice: number | null): string {
+  const usdValue = solPrice ? mcSol * solPrice : null;
+  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
+  if (usdValue) return `$${usdValue.toFixed(0)}`;
+  return `$${(mcSol * ((window as any).lastSolPrice || 0)).toFixed(2)}`;
 }
 
 export default function TokenPage() {
@@ -523,7 +526,7 @@ export default function TokenPage() {
                 </div>
                 <div className="text-right">
                   <div className={`text-2xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
-                    {formatMarketCap(token.marketCapSol)}
+                    {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
                   </div>
                   <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
                     {token.bondingCurveProgress.toFixed(1)}% bonded
@@ -638,7 +641,9 @@ export default function TokenPage() {
                               </Link>
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
-                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{formatMarketCap(amount, solPrice?.price || null)}</td>
+                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>
+                              {formatMarketCap(amount, solPrice?.price || null)}
+                            </td>
                             <td className={`py-2 text-right ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
                             <td className="py-2 text-right">
                               {signature ? (
