@@ -44,7 +44,7 @@ export default function CreateToken() {
   const [enableStealth, setEnableStealth] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showDevBuyStep, setShowDevBuyStep] = useState(false);
-  const [devBuyAmount, setDevBuyAmount] = useState<string>("0");
+  const [devBuyAmount, setDevBuyAmount] = useState<string>("0.2");
 
   const { data: solPriceData } = useQuery({
     queryKey: ["sol-price"],
@@ -229,13 +229,18 @@ export default function CreateToken() {
   };
 
   const handleCreateWithDevBuy = () => {
+    const amount = parseFloat(devBuyAmount);
+    if (isNaN(amount) || amount < 0.2) {
+      toast.error("Minimum dev buy is 0.2 SOL");
+      return;
+    }
     createTokenMutation.mutate();
     setShowDevBuyStep(false);
   };
 
   const handleBackToForm = () => {
     setShowDevBuyStep(false);
-    setDevBuyAmount("0");
+    setDevBuyAmount("0.2");
   };
 
   const resetForm = () => {
@@ -251,7 +256,7 @@ export default function CreateToken() {
     setFileName(null);
     setCreatedToken(null);
     setShowDevBuyStep(false);
-    setDevBuyAmount("0");
+    setDevBuyAmount("0.2");
   };
 
   return (
@@ -276,11 +281,11 @@ export default function CreateToken() {
           >
             <div className={`${privateMode ? "bg-zinc-900 border-[#4ADE80]" : "bg-zinc-900 border-zinc-700"} border-2 rounded-2xl p-6 max-w-md w-full shadow-2xl`}>
               <h2 className="text-white text-xl font-bold text-center mb-2">
-                Choose how many [{formData.symbol || 'tokens'}] you want to buy (optional)
+                Choose how many [{formData.symbol || 'tokens'}] you want to buy
               </h2>
               
               <p className="text-zinc-400 text-sm text-center mb-6">
-                Tip: its optional but buying a small amount of coins helps protect your coin from snipers
+                As the creator, you must buy at least 0.2 SOL worth to protect your coin from snipers
               </p>
 
               <div className="mb-6">
@@ -288,15 +293,15 @@ export default function CreateToken() {
                   <span className="text-zinc-500 text-sm">Switch to {formData.symbol || 'token'}</span>
                 </div>
                 
-                <div className={`${privateMode ? "bg-zinc-800 border-[#4ADE80]/30" : "bg-zinc-800 border-zinc-600"} border rounded-xl p-4 flex items-center justify-between`}>
+                <div className={`${privateMode ? "bg-zinc-800 border-[#4ADE80]/30" : "bg-zinc-800 border-zinc-600"} border rounded-xl p-4 flex items-center justify-between ${parseFloat(devBuyAmount) < 0.2 ? "border-red-500" : ""}`}>
                   <input
                     type="number"
                     value={devBuyAmount}
                     onChange={(e) => setDevBuyAmount(e.target.value)}
-                    min="0"
-                    step="0.01"
+                    min="0.2"
+                    step="0.1"
                     className="bg-transparent text-white text-2xl font-bold w-full outline-none"
-                    placeholder="0"
+                    placeholder="0.2"
                     data-testid="input-dev-buy-amount"
                   />
                   <div className="flex items-center gap-2 ml-4">
@@ -316,16 +321,20 @@ export default function CreateToken() {
 
               <button
                 onClick={handleCreateWithDevBuy}
-                disabled={createTokenMutation.isPending}
+                disabled={createTokenMutation.isPending || parseFloat(devBuyAmount) < 0.2}
                 className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
                   privateMode 
                     ? "bg-[#4ADE80] hover:bg-[#4ADE80]/90 text-black" 
                     : "bg-green-400 hover:bg-green-500 text-black"
-                } disabled:opacity-50`}
+                } disabled:opacity-50 disabled:cursor-not-allowed`}
                 data-testid="button-create-with-dev-buy"
               >
                 {createTokenMutation.isPending ? "Creating..." : "Create coin"}
               </button>
+              
+              {parseFloat(devBuyAmount) < 0.2 && (
+                <p className="text-red-400 text-xs text-center mt-2">Minimum: 0.2 SOL</p>
+              )}
 
               <button
                 onClick={handleBackToForm}
