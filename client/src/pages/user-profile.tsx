@@ -12,7 +12,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
   if (usdValue) return `$${usdValue.toFixed(0)}`;
-  return `${mcSol.toFixed(2)} SOL`;
+  return `$${(mcSol * (window as any).lastSolPrice || 0).toFixed(2)}`;
 }
 
 interface SolPrice {
@@ -57,7 +57,11 @@ export default function UserProfilePage() {
     queryFn: async () => {
       const res = await fetch("/api/price/sol");
       if (!res.ok) throw new Error("Failed to fetch SOL price");
-      return res.json();
+      const data = await res.json();
+      if (typeof window !== "undefined") {
+        (window as any).lastSolPrice = data.price;
+      }
+      return data;
     },
     refetchInterval: 30000,
   });

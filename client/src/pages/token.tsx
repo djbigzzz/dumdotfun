@@ -100,7 +100,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
   if (usdValue) return `$${usdValue.toFixed(0)}`;
-  return `${mcSol.toFixed(2)} SOL`;
+  return `$${(mcSol * (window as any).lastSolPrice || 0).toFixed(2)}`;
 }
 
 export default function TokenPage() {
@@ -171,7 +171,11 @@ export default function TokenPage() {
     queryFn: async () => {
       const res = await fetch("/api/price/sol");
       if (!res.ok) throw new Error("Failed to fetch SOL price");
-      return res.json();
+      const data = await res.json();
+      if (typeof window !== "undefined") {
+        (window as any).lastSolPrice = data.price;
+      }
+      return data;
     },
     refetchInterval: 30000,
   });
@@ -544,8 +548,8 @@ export default function TokenPage() {
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="time" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
-                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || 200)), 'Price']} />
+                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || (window as any).lastSolPrice || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
+                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || (window as any).lastSolPrice || 200)), 'Price']} />
                       <Area type="monotone" dataKey="price" stroke={privateMode ? "#4ADE80" : "#ef4444"} strokeWidth={2} fill="url(#chartGradient)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -578,7 +582,7 @@ export default function TokenPage() {
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || 200)) },
+                { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || (window as any).lastSolPrice || 200)) },
                 { label: "Market Cap", value: formatMarketCap(token.marketCapSol, solPrice?.price || null) },
                 { label: "Holders", value: "-" },
                 { label: "Txns", value: tokenActivity?.length || 0 },
@@ -637,7 +641,7 @@ export default function TokenPage() {
                               </Link>
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
-                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{amount.toFixed(4)} SOL</td>
+                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>{formatMarketCap(amount, solPrice?.price || null)}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
                             <td className="py-2 text-right">
                               {signature ? (

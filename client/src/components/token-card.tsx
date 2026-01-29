@@ -36,7 +36,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
   if (usdValue) return `$${usdValue.toFixed(0)}`;
-  return `${mcSol.toFixed(2)} SOL`;
+  return `$${(mcSol * (window as any).lastSolPrice || 0).toFixed(2)}`;
 }
 
 export function TokenCard({ token, solPrice = null }: TokenCardProps) {
