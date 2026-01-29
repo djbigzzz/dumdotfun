@@ -316,6 +316,27 @@ export default function TokenPage() {
     }
   }, [priceHistory, chartInterval]);
 
+  const formatChartTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = new Date();
+    const diffMs = now.getTime() - timestamp;
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    
+    switch (chartInterval) {
+      case "1m":
+      case "5m":
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      case "1h":
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      default:
+        if (diffDays > 1) {
+          return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        } else {
+          return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+    }
+  };
+
   const handleQuickBuy = (amount: number) => {
     setTradeAmount(amount.toString());
     setTradeType("buy");
@@ -547,7 +568,7 @@ export default function TokenPage() {
                           <stop offset="100%" stopColor={privateMode ? "#4ADE80" : "#ef4444"} stopOpacity={0} />
                         </linearGradient>
                       </defs>
-                      <XAxis dataKey="time" tickFormatter={(t) => new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
+                      <XAxis dataKey="time" tickFormatter={formatChartTime} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
                       <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || (window as any).lastSolPrice || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
                       <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || (window as any).lastSolPrice || 200)), 'Price']} />
                       <Area type="monotone" dataKey="price" stroke={privateMode ? "#4ADE80" : "#ef4444"} strokeWidth={2} fill="url(#chartGradient)" />
