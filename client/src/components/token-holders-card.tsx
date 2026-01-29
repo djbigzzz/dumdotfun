@@ -17,6 +17,9 @@ interface TokenHoldersResponse {
   holders: TokenHolder[];
   totalHolders: number;
   totalSupplyHeld: number;
+  notDeployed?: boolean;
+  noTradesYet?: boolean;
+  message?: string;
 }
 
 interface TokenHoldersCardProps {
@@ -111,9 +114,27 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                 <div className="flex items-center justify-center py-8">
                   <Loader2 className={`w-6 h-6 animate-spin ${privateMode ? "text-[#4ADE80]" : "text-blue-500"}`} />
                 </div>
-              ) : error || holders.length === 0 ? (
+              ) : error ? (
                 <div className={`text-center py-6 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
-                  {error ? "Failed to load holders" : "No holders found"}
+                  Failed to load holders
+                </div>
+              ) : data?.notDeployed ? (
+                <div className={`text-center py-6 px-4 rounded-lg ${privateMode ? "bg-orange-900/20 border border-orange-500/30" : "bg-orange-50 border-2 border-orange-200"}`}>
+                  <div className={`font-bold text-sm mb-1 ${privateMode ? "text-orange-400" : "text-orange-700"}`}>
+                    Not Deployed On-Chain
+                  </div>
+                  <div className={`text-xs ${privateMode ? "text-orange-400/60" : "text-orange-600"}`}>
+                    This token is stored locally only
+                  </div>
+                </div>
+              ) : data?.noTradesYet || holders.length === 0 ? (
+                <div className={`text-center py-6 px-4 rounded-lg ${privateMode ? "bg-purple-900/20 border border-purple-500/30" : "bg-purple-50 border-2 border-purple-200"}`}>
+                  <div className={`font-bold text-sm mb-1 ${privateMode ? "text-purple-400" : "text-purple-700"}`}>
+                    Available via Bonding Curve
+                  </div>
+                  <div className={`text-xs ${privateMode ? "text-purple-400/60" : "text-purple-600"}`}>
+                    No purchases yet - be the first buyer!
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2">

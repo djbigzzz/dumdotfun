@@ -3493,23 +3493,15 @@ export async function registerRoutes(
       let mintPubkey: PublicKey;
       try {
         mintPubkey = new PublicKey(mint);
-        // Additional validation - check it's on curve
-        if (!PublicKey.isOnCurve(mintPubkey.toBytes())) {
-          throw new Error("Not on curve");
-        }
       } catch (e) {
-        // Not a valid on-chain token - show bonding curve as holder
+        // Not a valid public key - indicate not deployed
         return res.json({
-          success: true,
-          holders: [{
-            address: "Bonding Curve (Unsold Supply)",
-            balance: token.totalSupply || 1000000000,
-            percentage: 100,
-            isBondingCurve: true
-          }],
-          totalHolders: 1,
-          totalSupplyHeld: token.totalSupply || 1000000000,
-          note: "Token not yet deployed on-chain or invalid mint address"
+          success: false,
+          holders: [],
+          totalHolders: 0,
+          totalSupplyHeld: 0,
+          notDeployed: true,
+          message: "Token not deployed on-chain"
         });
       }
 
@@ -3559,16 +3551,16 @@ export async function registerRoutes(
         }
       }
 
-      // If no holders found, show bonding curve as holding all supply
-      const totalSupply = Number(token.totalSupply) || 1000000000;
+      // If no holders found, indicate no trading yet
       if (holders.length === 0) {
-        holders.push({
-          address: "Bonding Curve (Unsold Supply)",
-          balance: totalSupply,
-          percentage: 100,
-          isBondingCurve: true
+        return res.json({
+          success: true,
+          holders: [],
+          totalHolders: 0,
+          totalSupplyHeld: 0,
+          noTradesYet: true,
+          message: "No token holders yet - tokens are available via bonding curve"
         });
-        totalSupplyHeld = totalSupply;
       }
 
       // Calculate percentages and sort by balance
