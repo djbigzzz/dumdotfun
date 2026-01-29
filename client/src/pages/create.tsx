@@ -44,6 +44,17 @@ export default function CreateToken() {
   const [enableStealth, setEnableStealth] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
+  const { data: solPriceData } = useQuery({
+    queryKey: ["sol-price"],
+    queryFn: async () => {
+      const res = await fetch("/api/price/sol");
+      if (!res.ok) return { price: 0 };
+      return res.json();
+    },
+    refetchInterval: 30000,
+  });
+  const solPrice = solPriceData?.price || 0;
+
   const fetchBalance = async () => {
     if (connectedWallet) {
       setIsLoadingBalance(true);
@@ -387,7 +398,7 @@ export default function CreateToken() {
             <div className="flex gap-3 justify-center flex-wrap">
               <div className={`w-full mb-4 p-4 border-2 rounded-lg ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]" : "bg-white border-black text-gray-900"}`}>
                 <p className="text-sm font-bold opacity-70 mb-1 uppercase">Estimated Market Cap</p>
-                <p className="text-2xl font-black">$6,000.00</p>
+                <p className="text-2xl font-black">{solPrice ? `$${(30 * solPrice).toFixed(2)}` : "$0.00"}</p>
                 <p className="text-xs opacity-50 font-mono mt-1">Initial bonding curve market cap (30 SOL)</p>
               </div>
               <Link href={`/token/${createdToken.mint}`}>

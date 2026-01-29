@@ -99,9 +99,8 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   const usdValue = solPrice ? mcSol * solPrice : null;
   if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
-  if (usdValue) return `$${usdValue.toFixed(0)}`;
-  const lastPrice = (window as any).lastSolPrice || 200;
-  return `$${(mcSol * lastPrice).toFixed(2)}`;
+  if (usdValue) return `$${usdValue.toFixed(2)}`;
+  return "$0.00";
 }
 
 export default function TokenPage() {
