@@ -47,23 +47,23 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
   return (
     <div className={`rounded-xl overflow-hidden ${
       privateMode 
-        ? "bg-zinc-900/80 border border-zinc-700" 
+        ? "bg-black/80 border border-[#4ADE80]/30 shadow-[0_0_15px_rgba(57,255,20,0.1)]" 
         : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
     }`}>
       <button
         onClick={() => setExpanded(!expanded)}
         className={`w-full px-4 py-3 flex items-center justify-between ${
-          privateMode ? "hover:bg-zinc-800/50" : "hover:bg-gray-50"
+          privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
         }`}
         data-testid="button-expand-holders-card"
       >
-        <span className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>
-          Top holders
+        <span className={`font-bold text-sm ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
+          {privateMode ? "// TOP_HOLDERS" : "Top holders"}
         </span>
         {expanded ? (
-          <ChevronUp className={`w-4 h-4 ${privateMode ? "text-zinc-400" : "text-gray-400"}`} />
+          <ChevronUp className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} />
         ) : (
-          <ChevronDown className={`w-4 h-4 ${privateMode ? "text-zinc-400" : "text-gray-400"}`} />
+          <ChevronDown className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} />
         )}
       </button>
 
@@ -76,13 +76,13 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
             transition={{ duration: 0.15 }}
             className="overflow-hidden"
           >
-            <div className={`px-4 pb-3 ${privateMode ? "border-t border-zinc-700" : "border-t border-gray-100"}`}>
+            <div className={`px-4 pb-3 ${privateMode ? "border-t border-[#4ADE80]/20" : "border-t border-gray-100"}`}>
               {isLoading ? (
                 <div className="flex items-center justify-center py-4">
-                  <Loader2 className={`w-5 h-5 animate-spin ${privateMode ? "text-zinc-400" : "text-gray-400"}`} />
+                  <Loader2 className={`w-5 h-5 animate-spin ${privateMode ? "text-[#4ADE80]" : "text-gray-400"}`} />
                 </div>
               ) : error ? (
-                <div className={`text-center py-4 text-sm ${privateMode ? "text-zinc-500" : "text-gray-400"}`}>
+                <div className={`text-center py-4 text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
                   Failed to load
                 </div>
               ) : data?.notDeployed ? (
@@ -91,12 +91,14 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                 </div>
               ) : data?.noTradesYet || holders.length === 0 ? (
                 <div className="py-3 space-y-1">
-                  <div className={`flex items-center justify-between text-sm ${privateMode ? "text-zinc-300" : "text-gray-700"}`}>
+                  <div className={`flex items-center justify-between text-sm ${privateMode ? "text-[#4ADE80]/70" : "text-gray-700"}`}>
                     <div className="flex items-center gap-2">
-                      <Droplets className={`w-4 h-4 ${privateMode ? "text-purple-400" : "text-purple-500"}`} />
-                      <span>Bonding curve</span>
+                      <Droplets className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-purple-500"}`} />
+                      <span className={privateMode ? "font-mono" : ""}>
+                        {privateMode ? "bonding_curve" : "Bonding curve"}
+                      </span>
                     </div>
-                    <span className={`font-medium ${privateMode ? "text-white" : "text-gray-900"}`}>100.00%</span>
+                    <span className={`font-medium ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>100.00%</span>
                   </div>
                 </div>
               ) : (
@@ -109,27 +111,27 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                       <div className="flex items-center gap-2">
                         {holder.isBondingCurve ? (
                           <>
-                            <Droplets className={`w-4 h-4 ${privateMode ? "text-purple-400" : "text-purple-500"}`} />
-                            <span className={privateMode ? "text-zinc-300" : "text-gray-700"}>
-                              Liquidity pool
+                            <Droplets className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-purple-500"}`} />
+                            <span className={privateMode ? "text-[#4ADE80]/70 font-mono" : "text-gray-700"}>
+                              {privateMode ? "liquidity_pool" : "Liquidity pool"}
                             </span>
                           </>
                         ) : (
                           <Link href={`/user/${holder.address}`}>
-                            <span className={`font-mono hover:underline cursor-pointer ${privateMode ? "text-zinc-300 hover:text-white" : "text-gray-700 hover:text-gray-900"}`}>
+                            <span className={`font-mono hover:underline cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80]" : "text-gray-700 hover:text-gray-900"}`}>
                               {holder.address.slice(0, 4)}...{holder.address.slice(-4)}
                             </span>
                           </Link>
                         )}
                       </div>
-                      <span className={`font-medium ${privateMode ? "text-white" : "text-gray-900"}`}>
+                      <span className={`font-medium ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
                         {holder.percentage.toFixed(2)}%
                       </span>
                     </div>
                   ))}
                   
                   {holders.length > (compact ? 8 : 15) && (
-                    <div className={`text-center pt-2 text-xs ${privateMode ? "text-zinc-500" : "text-gray-400"}`}>
+                    <div className={`text-center pt-2 text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
                       +{holders.length - (compact ? 8 : 15)} more
                     </div>
                   )}
