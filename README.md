@@ -50,7 +50,7 @@ When you pay someone on Solana, Ethereum, or Bitcoin:
 
 **dum.fun** is a **token launchpad + prediction market platform** with **enterprise-grade privacy built into every layer**.
 
-We've integrated **8 different privacy protocols** from the Solana ecosystem into a single, cohesive platform where:
+We've integrated **7 privacy protocols** from the Solana ecosystem into a single, cohesive platform where:
 
 ✅ **ShadowWire Bulletproofs** hide transfer amounts with zero-knowledge proofs
 ✅ **Token-2022 Confidential Transfers** encrypt balances on-chain
@@ -180,7 +180,7 @@ We've integrated **8 different privacy protocols** from the Solana ecosystem int
 
 ## 🏆 Hackathon Bounty Breakdown
 
-**Target: $75,500+ across 9 bounties**
+**Target: $79,500 across 9 bounties**
 
 | Sponsor | Bounty | Status | Integration |
 |---------|--------|--------|-------------|
@@ -190,7 +190,7 @@ We've integrated **8 different privacy protocols** from the Solana ecosystem int
 | **Arcium** | $10,000 | ✅ Active | MPC confidential token operations |
 | **Privacy Cash** | $15,000 | ✅ Active | Private deposits/withdrawals |
 | **Helius** | $5,000 | ✅ Active | All Solana connections use Helius RPC |
-| **Inco Lightning** | $2,000 | ✅ Active | Confidential prediction market betting |
+| **Inco Lightning** | $6,000 | ✅ Active | Confidential prediction market betting |
 | **PNP Exchange** | $2,500 | ✅ Active | AI agent prediction markets |
 | **encrypt.trade** | $1,000 | ✅ Active | Privacy education documentation |
 
@@ -213,7 +213,7 @@ We've integrated **8 different privacy protocols** from the Solana ecosystem int
 - **Blockchain**: Solana Devnet + Token-2022 ready + SPL Token SDKs
 - **Privacy Crypto**: Bulletproofs (ZK proofs) + Pedersen Commitments + ElGamal + ECDH stealth keys + SHA-256 commitments
 
-**Total codebase**: ~10,000 lines TypeScript (100% type-safe), 2,255 lines privacy implementations
+**Total codebase**: ~10,000 lines TypeScript (100% type-safe), 2,636 lines privacy implementations
 
 ---
 
@@ -228,7 +228,7 @@ We've integrated **8 different privacy protocols** from the Solana ecosystem int
 | **Fee Recipient** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` | Devnet |
 | **Platform Config PDA** | `Eh2U3Es7rHzMx62GFRoGQWfGXXrakd3A3rx5Tk1iAzDB` | Devnet |
 | **Inco Lightning Program** | `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj` | Devnet |
-| **Arcium C-SPL Program** | `Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX` | Devnet |
+| **Arcium C-SPL Program** | `Arcj82pX7HxYKLR92qvgZUAd7vGS1k4hQvAFcPATFdEQ` | Devnet |
 
 ---
 

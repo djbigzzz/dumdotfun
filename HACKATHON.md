@@ -9,7 +9,7 @@
 
 ## 📋 Executive Summary
 
-dum.fun is a **privacy-first platform** combining anonymous token creation with confidential prediction markets. We integrate **9 cutting-edge privacy technologies** on Solana, enabling users to:
+dum.fun is a **privacy-first platform** combining anonymous token creation with confidential prediction markets. We integrate **7 privacy protocols** (plus infrastructure and education) across **9 bounty categories** on Solana, enabling users to:
 
 - Create tokens anonymously with stealth addresses
 - Trade with confidential balances (Token-2022)
@@ -17,8 +17,8 @@ dum.fun is a **privacy-first platform** combining anonymous token creation with 
 - Transfer funds privately using zero-knowledge proofs (ShadowWire)
 - Execute confidential computations via MPC (Arcium)
 
-**Total Privacy Code**: 2,620 lines
-**Privacy Features**: 9 major integrations (7 SDKs + Helius RPC + Education)
+**Total Privacy Code**: 2,636 lines
+**Privacy Features**: 9 bounty integrations (7 privacy protocols + infrastructure + education)
 **On-chain Proofs**: Yes (see [PROOF_OF_PRIVACY.md](./PROOF_OF_PRIVACY.md))
 
 ---
@@ -53,7 +53,7 @@ dum.fun is a **privacy-first platform** combining anonymous token creation with 
 - External on-chain withdrawals with proof verification
 
 **Technical Details**:
-- SDK: radr-shadowwire-sdk v1.1.1
+- SDK: radr-shadowwire-sdk v1.1.15
 - Proof System: Bulletproofs (range proofs for amounts)
 - Features: Deposit, withdraw, internal transfers
 - Code: `server/privacy/shadowwire.ts` (519 lines)
@@ -105,7 +105,7 @@ curl http://localhost:5000/api/privacy/shadowwire/status
 
 **Technical Details**:
 - SDK: privacycash@1.1.11 (verified via npm list)
-- Version: 1.1.7 (SDK version)
+- SDK Internal Version: 1.1.7
 - Fees: 0.35% + 0.006 SOL (withdrawal), 0.35% + 0.008 SOL (swap)
 - Code: `server/privacy/privacy-cash.ts` (280 lines)
 - Documentation: https://github.com/Privacy-Cash/privacy-cash-sdk
@@ -459,7 +459,7 @@ server/privacy/
 ├── inco-lightning.ts             # Inco SDK ✅ (218 lines)
 └── np-exchange.ts                # PNP SDK ✅ (220 lines)
 
-Total: 2,620 lines of privacy code
+Total: 2,636 lines of privacy code
 ```
 
 ---

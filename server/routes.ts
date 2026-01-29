@@ -3489,9 +3489,32 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Token not found" });
       }
 
+      // Validate mint is a valid base58 public key
+      let mintPubkey: PublicKey;
+      try {
+        mintPubkey = new PublicKey(mint);
+        // Additional validation - check it's on curve
+        if (!PublicKey.isOnCurve(mintPubkey.toBytes())) {
+          throw new Error("Not on curve");
+        }
+      } catch (e) {
+        // Not a valid on-chain token - show bonding curve as holder
+        return res.json({
+          success: true,
+          holders: [{
+            address: "Bonding Curve (Unsold Supply)",
+            balance: token.totalSupply || 1000000000,
+            percentage: 100,
+            isBondingCurve: true
+          }],
+          totalHolders: 1,
+          totalSupplyHeld: token.totalSupply || 1000000000,
+          note: "Token not yet deployed on-chain or invalid mint address"
+        });
+      }
+
       const { getPublicConnection } = await import("./helius-rpc");
       const connection = getPublicConnection();
-      const mintPubkey = new PublicKey(mint);
       
       // Get token accounts for this mint
       const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
@@ -3509,6 +3532,7 @@ export async function registerRoutes(
         address: string;
         balance: number;
         percentage: number;
+        isBondingCurve?: boolean;
       }
       
       const holders: TokenHolder[] = [];
@@ -3519,15 +3543,32 @@ export async function registerRoutes(
         if (parsedData?.parsed?.info) {
           const info = parsedData.parsed.info;
           const balance = parseFloat(info.tokenAmount?.uiAmountString || "0");
+          const totalSupply = Number(token.totalSupply) || 1000000000;
           if (balance > 0) {
+            // Check if this is the bonding curve account
+            const isBondingCurve = info.owner === token.creatorAddress || 
+              balance >= totalSupply * 0.9;
             holders.push({
-              address: info.owner,
+              address: isBondingCurve ? "Bonding Curve" : info.owner,
               balance,
-              percentage: 0
+              percentage: 0,
+              isBondingCurve
             });
             totalSupplyHeld += balance;
           }
         }
+      }
+
+      // If no holders found, show bonding curve as holding all supply
+      const totalSupply = Number(token.totalSupply) || 1000000000;
+      if (holders.length === 0) {
+        holders.push({
+          address: "Bonding Curve (Unsold Supply)",
+          balance: totalSupply,
+          percentage: 100,
+          isBondingCurve: true
+        });
+        totalSupplyHeld = totalSupply;
       }
 
       // Calculate percentages and sort by balance

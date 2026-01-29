@@ -9,6 +9,7 @@ interface TokenHolder {
   address: string;
   balance: number;
   percentage: number;
+  isBondingCurve?: boolean;
 }
 
 interface TokenHoldersResponse {
@@ -120,29 +121,41 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                     <div
                       key={holder.address}
                       className={`p-3 rounded-lg transition-all flex items-center justify-between ${
-                        privateMode 
-                          ? "bg-black/50 border border-[#4ADE80]/20 hover:border-[#4ADE80]/40" 
-                          : "bg-white border-2 border-gray-200 hover:border-black"
+                        holder.isBondingCurve
+                          ? privateMode 
+                            ? "bg-purple-900/30 border border-purple-500/30" 
+                            : "bg-purple-50 border-2 border-purple-300"
+                          : privateMode 
+                            ? "bg-black/50 border border-[#4ADE80]/20 hover:border-[#4ADE80]/40" 
+                            : "bg-white border-2 border-gray-200 hover:border-black"
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                          index === 0 
-                            ? privateMode ? "bg-[#4ADE80] text-black" : "bg-yellow-400 text-black"
-                            : index === 1
-                              ? privateMode ? "bg-[#4ADE80]/70 text-black" : "bg-gray-300 text-black"
-                              : index === 2
-                                ? privateMode ? "bg-[#4ADE80]/50 text-black" : "bg-amber-600 text-white"
-                                : privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-100 text-gray-600"
+                          holder.isBondingCurve
+                            ? "bg-purple-500 text-white"
+                            : index === 0 
+                              ? privateMode ? "bg-[#4ADE80] text-black" : "bg-yellow-400 text-black"
+                              : index === 1
+                                ? privateMode ? "bg-[#4ADE80]/70 text-black" : "bg-gray-300 text-black"
+                                : index === 2
+                                  ? privateMode ? "bg-[#4ADE80]/50 text-black" : "bg-amber-600 text-white"
+                                  : privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-100 text-gray-600"
                         }`}>
-                          {index + 1}
+                          {holder.isBondingCurve ? "BC" : index + 1}
                         </div>
                         <div>
-                          <Link href={`/user/${holder.address}`}>
-                            <span className={`font-mono text-sm hover:underline cursor-pointer ${privateMode ? "text-[#4ADE80]" : "text-gray-800"}`}>
-                              {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                          {holder.isBondingCurve ? (
+                            <span className={`font-mono text-sm ${privateMode ? "text-purple-400" : "text-purple-700"}`}>
+                              {holder.address}
                             </span>
-                          </Link>
+                          ) : (
+                            <Link href={`/user/${holder.address}`}>
+                              <span className={`font-mono text-sm hover:underline cursor-pointer ${privateMode ? "text-[#4ADE80]" : "text-gray-800"}`}>
+                                {holder.address.slice(0, 6)}...{holder.address.slice(-4)}
+                              </span>
+                            </Link>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
@@ -154,15 +167,17 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                             {holder.percentage.toFixed(2)}%
                           </div>
                         </div>
-                        <a
-                          href={`https://solscan.io/account/${holder.address}?cluster=devnet`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`p-1 rounded hover:bg-gray-100 ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-400 hover:text-gray-600"}`}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
+                        {!holder.isBondingCurve && (
+                          <a
+                            href={`https://solscan.io/account/${holder.address}?cluster=devnet`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`p-1 rounded hover:bg-gray-100 ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-400 hover:text-gray-600"}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
                       </div>
                     </div>
                   ))}
