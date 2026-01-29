@@ -25,6 +25,8 @@ interface TokenHoldersResponse {
 interface TokenHoldersCardProps {
   tokenMint: string;
   compact?: boolean;
+  tokenPriceInSol?: number;
+  solPriceUsd?: number;
 }
 
 function formatBalance(balance: number): string {
@@ -34,7 +36,16 @@ function formatBalance(balance: number): string {
   return balance.toFixed(2);
 }
 
-export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCardProps) {
+function formatUsdValue(balance: number, tokenPriceInSol: number, solPriceUsd: number): string {
+  const usdValue = balance * tokenPriceInSol * solPriceUsd;
+  if (usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue >= 1000) return `$${(usdValue / 1000).toFixed(2)}K`;
+  if (usdValue >= 1) return `$${usdValue.toFixed(2)}`;
+  if (usdValue >= 0.01) return `$${usdValue.toFixed(4)}`;
+  return `$${usdValue.toFixed(6)}`;
+}
+
+export function TokenHoldersCard({ tokenMint, compact = false, tokenPriceInSol = 0, solPriceUsd = 0 }: TokenHoldersCardProps) {
   const { privateMode } = usePrivacy();
   const [expanded, setExpanded] = useState(!compact);
 
@@ -184,6 +195,11 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                           <div className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>
                             {formatBalance(holder.balance)}
                           </div>
+                          {tokenPriceInSol > 0 && solPriceUsd > 0 && (
+                            <div className={`text-xs font-medium ${privateMode ? "text-green-400" : "text-green-600"}`}>
+                              {formatUsdValue(holder.balance, tokenPriceInSol, solPriceUsd)}
+                            </div>
+                          )}
                           <div className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
                             {holder.percentage.toFixed(2)}%
                           </div>
