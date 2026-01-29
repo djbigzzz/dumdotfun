@@ -3,7 +3,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw } from "lucide-react";
+import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -40,6 +40,8 @@ export default function CreateToken() {
   const [createdToken, setCreatedToken] = useState<CreatedToken | null>(null);
   const [walletBalance, setWalletBalance] = useState<number | null>(null);
   const [creationStep, setCreationStep] = useState<string>("");
+  const [enableConfidential, setEnableConfidential] = useState(false);
+  const [enableStealth, setEnableStealth] = useState(false);
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
 
   const { data: solPriceData } = useQuery({
@@ -596,6 +598,74 @@ export default function CreateToken() {
               )}
             </div>
           </div>
+
+          {/* Privacy Options Section - Only visible in encrypted mode */}
+          {privateMode && (
+            <div className="bg-black border-[#4ADE80] border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-2 mb-4">
+                <Shield className="w-5 h-5 text-[#4ADE80]" />
+                <h2 className="text-sm font-black uppercase text-[#4ADE80] font-mono">
+                  // PRIVACY_CONFIG
+                </h2>
+              </div>
+              
+              <div className="space-y-4">
+                <div 
+                  onClick={() => setEnableConfidential(!enableConfidential)}
+                  className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    enableConfidential 
+                      ? "bg-[#4ADE80]/10 border-[#4ADE80]" 
+                      : "bg-zinc-900/50 border-[#4ADE80]/30 hover:border-[#4ADE80]/50"
+                  }`}
+                  data-testid="toggle-confidential-transfers"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${enableConfidential ? "bg-[#4ADE80]/20" : "bg-zinc-800"}`}>
+                      <Lock className={`w-4 h-4 ${enableConfidential ? "text-[#4ADE80]" : "text-[#4ADE80]/40"}`} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white font-mono">TOKEN-2022_CONFIDENTIAL</p>
+                      <p className="text-xs text-[#4ADE80]/60 font-mono">// HIDDEN_BALANCES_AND_AMOUNTS</p>
+                    </div>
+                  </div>
+                  <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
+                    enableConfidential ? "bg-[#4ADE80]" : "bg-zinc-700"
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableConfidential ? "translate-x-6" : ""}`} />
+                  </div>
+                </div>
+
+                <div 
+                  onClick={() => setEnableStealth(!enableStealth)}
+                  className={`flex items-center justify-between p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    enableStealth 
+                      ? "bg-[#4ADE80]/10 border-[#4ADE80]" 
+                      : "bg-zinc-900/50 border-[#4ADE80]/30 hover:border-[#4ADE80]/50"
+                  }`}
+                  data-testid="toggle-stealth-addresses"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${enableStealth ? "bg-[#4ADE80]/20" : "bg-zinc-800"}`}>
+                      <Eye className={`w-4 h-4 ${enableStealth ? "text-[#4ADE80]" : "text-[#4ADE80]/40"}`} />
+                    </div>
+                    <div>
+                      <p className="font-bold text-white font-mono">STEALTH_RECEIVING</p>
+                      <p className="text-xs text-[#4ADE80]/60 font-mono">// UNLINKABLE_TOKEN_RECEIVING</p>
+                    </div>
+                  </div>
+                  <div className={`w-12 h-6 rounded-full p-1 transition-colors ${
+                    enableStealth ? "bg-[#4ADE80]" : "bg-zinc-700"
+                  }`}>
+                    <div className={`w-4 h-4 rounded-full bg-white transition-transform ${enableStealth ? "translate-x-6" : ""}`} />
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-xs mt-4 text-[#4ADE80]/40 font-mono">
+                // PRIVACY_FEATURES_USE_TOKEN-2022_EXTENSIONS
+              </p>
+            </div>
+          )}
 
           {/* Creation Step Display */}
           {creationStep && (
