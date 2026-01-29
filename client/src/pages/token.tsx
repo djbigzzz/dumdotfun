@@ -868,12 +868,7 @@ export default function TokenPage() {
             </div>
 
             {/* Token Holders */}
-            <TokenHoldersCard 
-              tokenMint={token.mint} 
-              compact 
-              tokenPriceInSol={token.priceInSol} 
-              solPriceUsd={solPrice?.price || 0} 
-            />
+            <TokenHoldersCard tokenMint={token.mint} compact />
           </div>
         </div>
       </div>
