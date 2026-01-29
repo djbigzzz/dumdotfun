@@ -317,6 +317,18 @@ export default function CreateToken() {
                     Balance: {walletBalance.toFixed(4)} SOL
                   </p>
                 )}
+                
+                {parseFloat(devBuyAmount) >= 0.2 && (
+                  <div className={`mt-4 p-3 rounded-lg ${privateMode ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" : "bg-zinc-700/50"}`}>
+                    <p className="text-zinc-400 text-xs">You will receive approximately:</p>
+                    <p className={`text-lg font-bold ${privateMode ? "text-[#4ADE80]" : "text-white"}`}>
+                      {(parseFloat(devBuyAmount) / 0.000001).toLocaleString()} {formData.symbol || 'tokens'}
+                    </p>
+                    <p className="text-zinc-500 text-xs mt-1">
+                      @ initial price of 0.000001 SOL per token
+                    </p>
+                  </div>
+                )}
               </div>
 
               <button
