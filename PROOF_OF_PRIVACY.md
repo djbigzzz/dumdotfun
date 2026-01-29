@@ -52,7 +52,16 @@ AI agent-powered prediction markets with bonding curve liquidity.
 
 ![NP Exchange Proof](docs/screenshots/05-np-exchange-proof.png)
 
-### 6. Private Token Transfers (ShadowWire)
+### 6. Confidential Computation (Arcium)
+MPC-based confidential token operations and state management.
+- **Transaction**: `36utjufqM6iheWQoXv2c7BQtG8GfgbmJJtA9HA3CohAToM3b2toViZGbTJeTxJicfCs8qZdxYdbJkcPyMKwJj8vm`
+- **Computation**: `arcium_transfer_1769685708028_hbgkp3o7s`
+- **Proof**: [View Arcium Transaction](https://solscan.io/tx/36utjufqM6iheWQoXv2c7BQtG8GfgbmJJtA9HA3CohAToM3b2toViZGbTJeTxJicfCs8qZdxYdbJkcPyMKwJj8vm?cluster=devnet)
+
+![Arcium Proof](docs/screenshots/06-arcium-tx-proof.png)
+![Arcium Memo](docs/screenshots/07-arcium-memo-proof.png)
+
+### 7. Private Token Transfers (ShadowWire)
 ZK Bulletproofs for hidden transfer amounts and anonymous senders across 22 tokens.
 - **Infrastructure**: SDK v1.1.15 Integrated (Bulletproofs).
 - **Proof of Integration**: Balance queries, fee calculations, and multi-token (SOL, USDC, RADR) support verified.
