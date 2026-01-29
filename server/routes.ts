@@ -3480,6 +3480,74 @@ export async function registerRoutes(
     }
   });
 
+  // Fetch token holders from blockchain
+  app.get("/api/tokens/:mint/holders", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const token = await storage.getTokenByMint(mint);
+      if (!token) {
+        return res.status(404).json({ error: "Token not found" });
+      }
+
+      const { getPublicConnection } = await import("./helius-rpc");
+      const connection = getPublicConnection();
+      const mintPubkey = new PublicKey(mint);
+      
+      // Get token accounts for this mint
+      const { TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+      const tokenAccounts = await connection.getParsedProgramAccounts(
+        TOKEN_PROGRAM_ID,
+        {
+          filters: [
+            { dataSize: 165 },
+            { memcmp: { offset: 0, bytes: mint } }
+          ]
+        }
+      );
+
+      interface TokenHolder {
+        address: string;
+        balance: number;
+        percentage: number;
+      }
+      
+      const holders: TokenHolder[] = [];
+      let totalSupplyHeld = 0;
+      
+      for (const account of tokenAccounts) {
+        const parsedData = account.account.data as any;
+        if (parsedData?.parsed?.info) {
+          const info = parsedData.parsed.info;
+          const balance = parseFloat(info.tokenAmount?.uiAmountString || "0");
+          if (balance > 0) {
+            holders.push({
+              address: info.owner,
+              balance,
+              percentage: 0
+            });
+            totalSupplyHeld += balance;
+          }
+        }
+      }
+
+      // Calculate percentages and sort by balance
+      holders.forEach(h => {
+        h.percentage = totalSupplyHeld > 0 ? (h.balance / totalSupplyHeld) * 100 : 0;
+      });
+      holders.sort((a, b) => b.balance - a.balance);
+
+      return res.json({
+        success: true,
+        holders: holders.slice(0, 20),
+        totalHolders: holders.length,
+        totalSupplyHeld
+      });
+    } catch (error: any) {
+      console.error("Error fetching token holders:", error);
+      return res.status(500).json({ error: "Failed to fetch holders", holders: [] });
+    }
+  });
+
   // Fetch real blockchain transactions for a token
   app.post("/api/tokens/:mint/sync-blockchain", async (req, res) => {
     try {

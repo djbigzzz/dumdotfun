@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
 import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock } from "lucide-react";
-import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
+import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
@@ -867,8 +867,8 @@ export default function TokenPage() {
               </a>
             </div>
 
-            {/* Privacy Integrations */}
-            <PrivacyIntegrationsCard compact />
+            {/* Token Holders */}
+            <TokenHoldersCard tokenMint={token.mint} compact />
           </div>
         </div>
       </div>
