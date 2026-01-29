@@ -322,10 +322,10 @@ export default function CreateToken() {
                   <div className={`mt-4 p-3 rounded-lg ${privateMode ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" : "bg-zinc-700/50"}`}>
                     <p className="text-zinc-400 text-xs">You will receive approximately:</p>
                     <p className={`text-lg font-bold ${privateMode ? "text-[#4ADE80]" : "text-white"}`}>
-                      {(parseFloat(devBuyAmount) / 0.000001).toLocaleString()} {formData.symbol || 'tokens'}
+                      {((parseFloat(devBuyAmount) / 30) * 800000000).toLocaleString(undefined, {maximumFractionDigits: 0})} {formData.symbol || 'tokens'}
                     </p>
                     <p className="text-zinc-500 text-xs mt-1">
-                      @ initial price of 0.000001 SOL per token
+                      {(((parseFloat(devBuyAmount) / 30) * 800000000) / 1000000000 * 100).toFixed(2)}% of total 1B supply
                     </p>
                   </div>
                 )}
