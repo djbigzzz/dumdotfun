@@ -3413,14 +3413,14 @@ export async function registerRoutes(
 
       const activity = await storage.getActivityByToken(mint, 100);
       const now = Date.now();
-      const priceHistory: { time: number; price: number; volume: number }[] = [];
+      const keyPoints: { time: number; price: number; volume: number }[] = [];
       const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 60 * 60 * 1000;
       
       // Initial bonding curve price (at launch)
       const initialPrice = 0.0000000375; // 30 SOL / 800M tokens
       
       // Add starting point at token creation
-      priceHistory.push({
+      keyPoints.push({
         time: createdAt,
         price: initialPrice,
         volume: 0
@@ -3450,7 +3450,7 @@ export async function registerRoutes(
           // Price = SOL reserve / token reserve (800M)
           const priceAtTrade = cumulativeSol / 800000000;
           
-          priceHistory.push({
+          keyPoints.push({
             time: tradeTime,
             price: priceAtTrade,
             volume: amount
@@ -3458,14 +3458,47 @@ export async function registerRoutes(
         });
       }
 
-      // Ensure current price is at the end
-      priceHistory.push({
+      // Add current price at the end
+      keyPoints.push({
         time: now,
         price: currentPrice,
         volume: 0
       });
 
-      return res.json(priceHistory.sort((a, b) => a.time - b.time));
+      // Sort key points by time
+      keyPoints.sort((a, b) => a.time - b.time);
+
+      // Interpolate between key points to create smooth chart data
+      const priceHistory: { time: number; price: number; volume: number }[] = [];
+      
+      for (let i = 0; i < keyPoints.length - 1; i++) {
+        const start = keyPoints[i];
+        const end = keyPoints[i + 1];
+        const timeDiff = end.time - start.time;
+        
+        // Add the start point
+        priceHistory.push(start);
+        
+        // Add interpolated points between key points (every 30 seconds for recent, every 5 minutes for older)
+        const intervalMs = timeDiff > 3600000 ? 300000 : 30000; // 5 min for >1hr gaps, 30sec otherwise
+        const numPoints = Math.min(Math.floor(timeDiff / intervalMs), 100);
+        
+        for (let j = 1; j < numPoints; j++) {
+          const progress = j / numPoints;
+          const interpTime = start.time + (timeDiff * progress);
+          // Price stays flat between trades (no fake movements)
+          priceHistory.push({
+            time: interpTime,
+            price: start.price,
+            volume: 0
+          });
+        }
+      }
+      
+      // Add the final point
+      priceHistory.push(keyPoints[keyPoints.length - 1]);
+
+      return res.json(priceHistory);
     } catch (error: any) {
       console.error("Error fetching price history:", error);
       return res.status(500).json({ error: "Failed to fetch price history" });
