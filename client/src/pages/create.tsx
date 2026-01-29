@@ -387,8 +387,8 @@ export default function CreateToken() {
             <div className="flex gap-3 justify-center flex-wrap">
               <div className={`w-full mb-4 p-4 border-2 rounded-lg ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]" : "bg-white border-black text-gray-900"}`}>
                 <p className="text-sm font-bold opacity-70 mb-1 uppercase">Estimated Market Cap</p>
-                <p className="text-2xl font-black">$0.00</p>
-                <p className="text-xs opacity-50 font-mono mt-1">Initial bonding curve market cap</p>
+                <p className="text-2xl font-black">$6,000.00</p>
+                <p className="text-xs opacity-50 font-mono mt-1">Initial bonding curve market cap (30 SOL)</p>
               </div>
               <Link href={`/token/${createdToken.mint}`}>
                 <motion.button
