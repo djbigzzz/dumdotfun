@@ -95,12 +95,9 @@ function formatPrice(price: number): string {
   return `$${price.toFixed(6)}`;
 }
 
-function formatMarketCap(mcSol: number, solPrice: number | null): string {
-  const usdValue = solPrice ? mcSol * solPrice : null;
-  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
-  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
-  if (usdValue) return `$${usdValue.toFixed(0)}`;
-  return `$${(mcSol * (window as any).lastSolPrice || 0).toFixed(2)}`;
+function formatMarketCap(mcSol: number): string {
+  if (mcSol >= 1000) return `${(mcSol / 1000).toFixed(2)}k SOL`;
+  return `${mcSol.toFixed(2)} SOL`;
 }
 
 export default function TokenPage() {
@@ -526,7 +523,7 @@ export default function TokenPage() {
                 </div>
                 <div className="text-right">
                   <div className={`text-2xl font-black ${privateMode ? "text-white" : "text-gray-900"}`}>
-                    {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+                    {formatMarketCap(token.marketCapSol)}
                   </div>
                   <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
                     {token.bondingCurveProgress.toFixed(1)}% bonded
