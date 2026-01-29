@@ -3414,56 +3414,48 @@ export async function registerRoutes(
       const activity = await storage.getActivityByToken(mint, 100);
       const now = Date.now();
       const priceHistory: { time: number; price: number; volume: number }[] = [];
+      const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 60 * 60 * 1000;
       
-      // If we have real activity, use it
+      // Initial bonding curve price (at launch)
+      const initialPrice = 0.0000000375; // 30 SOL / 800M tokens
+      
+      // Add starting point at token creation
+      priceHistory.push({
+        time: createdAt,
+        price: initialPrice,
+        volume: 0
+      });
+      
+      // If we have real trades, calculate price at each trade
       if (activity.length > 0) {
         const trades = activity.filter(a => a.activityType === 'buy' || a.activityType === 'sell');
-        trades.reverse().forEach((trade) => {
+        
+        // Sort trades by time (oldest first)
+        trades.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        
+        // Calculate cumulative SOL in bonding curve to derive price
+        let cumulativeSol = 30; // Virtual SOL reserve starts at 30
+        
+        trades.forEach((trade) => {
           const tradeTime = new Date(trade.createdAt).getTime();
           const amount = parseFloat(trade.amount || "0");
+          
+          // Update cumulative SOL based on trade type
+          if (trade.activityType === 'buy') {
+            cumulativeSol += amount;
+          } else if (trade.activityType === 'sell') {
+            cumulativeSol = Math.max(30, cumulativeSol - amount);
+          }
+          
+          // Price = SOL reserve / token reserve (800M)
+          const priceAtTrade = cumulativeSol / 800000000;
+          
           priceHistory.push({
             time: tradeTime,
-            price: currentPrice,
+            price: priceAtTrade,
             volume: amount
           });
         });
-      }
-      
-      // Generate realistic price movement based on bonding curve progress
-      if (priceHistory.length < 5) {
-        const createdAt = token.createdAt ? new Date(token.createdAt).getTime() : now - 24 * 60 * 60 * 1000;
-        const timeSpan = Math.max(now - createdAt, 60 * 60 * 1000);
-        const numPoints = 24;
-        const interval = timeSpan / numPoints;
-        
-        // Initial price based on bonding curve (lower at start)
-        const initialPrice = 0.000001;
-        // Price progression factor based on bonding progress
-        const priceFactor = 1 + (bondingProgress / 100) * 0.5;
-        
-        // Generate price points with realistic movement
-        // Use seeded random based on mint to ensure consistency
-        const seedValue = mint.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-        
-        for (let i = 0; i <= numPoints; i++) {
-          const time = createdAt + (i * interval);
-          const progress = i / numPoints;
-          
-          // Base price progression from initial to current
-          const basePrice = initialPrice + (currentPrice - initialPrice) * progress;
-          
-          // Add some variation using deterministic "randomness" based on mint and index
-          const variationSeed = (seedValue * (i + 1) * 17) % 1000;
-          const variation = 1 + ((variationSeed / 1000) - 0.5) * 0.15; // ±7.5% variation
-          
-          const price = Math.max(0.0000001, basePrice * variation);
-          
-          priceHistory.push({
-            time,
-            price,
-            volume: Math.random() * 0.5
-          });
-        }
       }
 
       // Ensure current price is at the end
