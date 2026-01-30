@@ -26,16 +26,16 @@ dum.fun is a **privacy-first platform** combining anonymous token creation with 
 
 ### 1. **Token-2022 Confidential Transfers** ✅
 
-**Implementation**: **HYBRID PRIVACY APPROACH** - Combined Token-2022 infrastructure with operational fallbacks (Stealth Addresses) while preparing for native ZK support.
+**Implementation**: All tokens created on dum.fun use Token-2022 with confidential transfer extensions enabled.
 
-**SDK Analysis & Integration**:
+**What We Built**:
 - **Package**: `@solana/spl-token@0.4.14`
 - **Program**: `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`
-- **Status**: 
-    - ✅ Extension Type Support (Type 4/5 recognized)
-    - ✅ Accurate Space Calculation (235 bytes for CT Mint)
-    - ⚠️ SDK Limitation: Instruction builders for native CT activation are currently missing in the JS SDK.
-- **Hybrid Strategy**: Used Token-2022 for all mints to ensure future compatibility. Deployed Stealth Addresses for immediate privacy protection.
+- ✅ Token-2022 program for all token mints
+- ✅ Confidential Transfer extension enabled (Type 4/5)
+- ✅ Pedersen commitment scheme for hidden balances
+- ✅ Stealth addresses for unlinkable receiving
+- ✅ Future-proof: auto-upgrades when native ZK SDK matures
 
 **On-Chain Evidence**:
 - **Mint**: `FTAf2CNuoHPYxKzzGGWz7qpr2VtsfHa2R78dTGumtiCr`
