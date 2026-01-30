@@ -115,7 +115,12 @@ export default function CreateToken() {
         throw new Error("Phantom wallet required for devnet deployment");
       }
 
-      setCreationStep("Building bonding curve transaction...");
+      const devBuySol = parseFloat(devBuyAmount);
+      if (isNaN(devBuySol) || devBuySol < 0.2) {
+        throw new Error("Minimum dev buy is 0.2 SOL");
+      }
+
+      setCreationStep("Building token creation transaction...");
       
       const buildRes = await fetch("/api/bonding-curve/create-token", {
         method: "POST",
@@ -138,14 +143,14 @@ export default function CreateToken() {
 
       const { transaction: txBase64, mint } = await buildRes.json();
       
-      setCreationStep("Please sign the transaction in your wallet...");
+      setCreationStep("Sign to create token...");
       
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
       
       const signedTx = await phantom.signTransaction(transaction);
       
-      setCreationStep("Submitting to Solana devnet bonding curve...");
+      setCreationStep("Creating token on-chain...");
       
       const connection = new Connection(SOLANA_RPC, "confirmed");
       const signature = await connection.sendRawTransaction(signedTx.serialize(), {
@@ -153,9 +158,43 @@ export default function CreateToken() {
         preflightCommitment: "confirmed",
       });
 
-      setCreationStep("Confirming transaction...");
-      
       await connection.confirmTransaction(signature, "confirmed");
+      
+      setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
+      
+      const buyRes = await fetch("/api/bonding-curve/buy", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          buyer: connectedWallet,
+          mint: mint,
+          solAmount: devBuySol.toString(),
+          minTokensOut: "0",
+        }),
+      });
+
+      if (!buyRes.ok) {
+        const error = await buyRes.json();
+        throw new Error(error.error || "Failed to build dev buy transaction");
+      }
+
+      const { transaction: buyTxBase64 } = await buyRes.json();
+      
+      setCreationStep(`Sign to buy ${devBuySol} SOL worth of tokens...`);
+      
+      const buyTxBytes = Buffer.from(buyTxBase64, "base64");
+      const buyTransaction = Transaction.from(buyTxBytes);
+      
+      const signedBuyTx = await phantom.signTransaction(buyTransaction);
+      
+      setCreationStep("Executing dev buy...");
+      
+      const buySignature = await connection.sendRawTransaction(signedBuyTx.serialize(), {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+
+      await connection.confirmTransaction(buySignature, "confirmed");
       
       setCreationStep("Saving token to database...");
       
@@ -179,12 +218,25 @@ export default function CreateToken() {
       }
 
       const { token } = await confirmRes.json();
-      setCreationStep("Token deployed on bonding curve!");
       
-      return { token, signature };
+      await fetch("/api/bonding-curve/confirm-trade", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          walletAddress: connectedWallet,
+          tokenMint: mint,
+          side: "buy",
+          amount: devBuySol,
+          signature: buySignature,
+        }),
+      });
+      
+      setCreationStep("Token launched with dev buy!");
+      
+      return { token, signature, buySignature, devBuyAmount: devBuySol };
     },
     onSuccess: (data) => {
-      toast.success(`Token ${data.token.name} deployed on Solana devnet!`);
+      toast.success(`Token ${data.token.name} launched with ${data.devBuyAmount} SOL dev buy!`);
       setCreatedToken({ ...data.token, signature: data.signature });
       setCreationStep("");
       fetchBalance();
