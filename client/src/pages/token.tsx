@@ -127,8 +127,12 @@ export default function TokenPage() {
       
       setIsQuoting(true);
       try {
-        const lamports = Math.floor(amount * 1e9);
-        const res = await fetch(`/api/trade/quote?tokenMint=${mint}&amount=${lamports}&isBuy=${tradeType === "buy"}`);
+        // For buy: amount is SOL (9 decimals = lamports)
+        // For sell: amount is tokens (6 decimals)
+        const smallestUnit = tradeType === "buy" 
+          ? Math.floor(amount * 1e9)  // SOL to lamports
+          : Math.floor(amount * 1e6); // tokens to smallest unit
+        const res = await fetch(`/api/trade/quote?tokenMint=${mint}&amount=${smallestUnit}&isBuy=${tradeType === "buy"}`);
         const data = await res.json();
         if (data.success && data.quote?.quote) {
           const innerQuote = data.quote.quote;

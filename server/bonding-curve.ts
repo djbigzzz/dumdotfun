@@ -107,19 +107,30 @@ export function calculateSellQuote(
   const feeAmount = solOut.mul(new BN(BONDING_CURVE_CONSTANTS.TRADING_FEE_BPS)).div(new BN(10000));
   const solAfterFee = solOut.sub(feeAmount);
 
-  // Calculate price impact
-  const oldPrice = virtualSolReserves.toNumber() / virtualTokenReserves.toNumber();
+  // Calculate price impact using BN division to avoid overflow
+  // Scale down by 1e9 to fit in 53 bits safely
+  const SCALE = new BN(1_000_000_000);
+  const scaledOldSol = virtualSolReserves.div(SCALE);
+  const scaledOldToken = virtualTokenReserves.div(SCALE);
   const newVirtualSol = virtualSolReserves.sub(solOut);
   const newVirtualToken = virtualTokenReserves.add(tokenAmount);
-  const newPrice = newVirtualSol.toNumber() / newVirtualToken.toNumber();
-  const priceImpact = ((oldPrice - newPrice) / oldPrice) * 100;
+  const scaledNewSol = newVirtualSol.div(SCALE);
+  const scaledNewToken = newVirtualToken.div(SCALE);
+  
+  // Safe price calculation (ratio scaled to avoid overflow)
+  const oldPriceScaled = scaledOldSol.muln(1_000_000).div(scaledOldToken.isZero() ? new BN(1) : scaledOldToken);
+  const newPriceScaled = scaledNewSol.muln(1_000_000).div(scaledNewToken.isZero() ? new BN(1) : scaledNewToken);
+  
+  const oldPriceNum = oldPriceScaled.toNumber() / 1_000_000;
+  const newPriceNum = newPriceScaled.toNumber() / 1_000_000;
+  const priceImpact = oldPriceNum > 0 ? ((oldPriceNum - newPriceNum) / oldPriceNum) * 100 : 0;
 
   return {
     inputAmount: tokenAmount,
     outputAmount: solAfterFee,
     priceImpact,
     fee: feeAmount,
-    newPrice,
+    newPrice: newPriceNum,
   };
 }
 
