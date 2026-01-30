@@ -129,7 +129,7 @@ We've integrated **7 privacy protocols** from the Solana ecosystem into a single
 
 ### 3. **Privacy Infrastructure** (8 Integrations)
 
-#### **ShadowWire (Radr) — $15K Bounty Target**
+#### **ShadowWire (Radr)**
 - **Bulletproof zero-knowledge proofs** for hidden transfer amounts
 - **22 token support** (SOL, RADR, USDC, BONK, etc.)
 - **Two privacy modes:**
@@ -138,29 +138,29 @@ We've integrated **7 privacy protocols** from the Solana ecosystem into a single
 - **Client-side WASM proof generation**
 - **~20ms on-chain verification, 672-byte proofs**
 
-#### **Token-2022 Confidential Transfers — $15K Bounty Target**
+#### **Token-2022 Confidential Transfers**
 - **Pedersen commitments** for balance encryption
 - **Range proofs** for amount validation
 - **Hybrid strategy:** Works today (fallback mode), auto-upgrades to v0.5.x+
 - **Zero code changes** required for future API
 
-#### **Stealth Addresses (Anoncoin) — $10K Bounty Target**
+#### **Stealth Addresses (Anoncoin)**
 - **One-time receive addresses** — unlinkable to your main wallet
 - **View tag optimization** for efficient transaction scanning
 - **Ephemeral keys** prevent address reuse
 - **Sweep functionality** to claim received funds
 
-#### **Privacy Cash SDK — $15K Prize Pool**
+#### **Privacy Cash SDK**
 - **Private deposits/withdrawals** that break on-chain links
 - **Nullifier scheme** prevents double-spending
 - **Multi-token support** (SOL, USDC, USDT)
 
-#### **Arcium C-SPL (MPC) — $10K Bounty Target**
+#### **Arcium C-SPL (MPC)**
 - **Multi-Party Computation** for confidential DeFi
 - **Hidden balances during computation**
 - **Program ID:** `Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX`
 
-#### **Inco Lightning SDK — $2K Bounty Target**
+#### **Inco Lightning SDK**
 - **Confidential betting** with client-side encryption
 - **Commitment scheme:** SHA-256(amount:side:nonce:address)
 - **Aggregated proofs** for gas efficiency
@@ -171,28 +171,26 @@ We've integrated **7 privacy protocols** from the Solana ecosystem into a single
 - **Internal balance tracking** (no on-chain record)
 - **Deposit/withdraw mixing**
 
-#### **PNP Exchange AI Agents — $2.5K Bounty Target**
+#### **PNP Exchange AI Agents**
 - **LLM-powered market creation**
 - **Autonomous market makers**
 - **Natural language market descriptions**
 
 ---
 
-## 🏆 Hackathon Bounty Breakdown
+## 🏆 Hackathon Bounty Submissions
 
-**Target: $79,500 across 9 bounties**
-
-| Sponsor | Bounty | Status | Integration |
-|---------|--------|--------|-------------|
-| **Radr (ShadowWire)** | $15,000 | ✅ Active | Bulletproof ZK private transfers (22 tokens) |
-| **Token-2022** | $15,000 | ✅ Active | Hybrid confidential transfers (fallback + real) |
-| **Anoncoin** | $10,000 | ✅ Active | Stealth addresses with view tags |
-| **Arcium** | $10,000 | ✅ Active | MPC confidential token operations |
-| **Privacy Cash** | $15,000 | ✅ Active | Private deposits/withdrawals |
-| **Helius** | $5,000 | ✅ Active | All Solana connections use Helius RPC |
-| **Inco Lightning** | $6,000 | ✅ Active | Confidential prediction market betting |
-| **PNP Exchange** | $2,500 | ✅ Active | AI agent prediction markets |
-| **encrypt.trade** | $1,000 | ✅ Active | Privacy education documentation |
+| Sponsor | Status | Integration |
+|---------|--------|-------------|
+| **Radr (ShadowWire)** | ✅ Active | Bulletproof ZK private transfers (22 tokens) |
+| **Token-2022** | ✅ Active | Hybrid confidential transfers (fallback + real) |
+| **Anoncoin** | ✅ Active | Stealth addresses with view tags |
+| **Arcium** | ✅ Active | MPC confidential token operations |
+| **Privacy Cash** | ✅ Active | Private deposits/withdrawals |
+| **Helius** | ✅ Active | All Solana connections use Helius RPC |
+| **Inco Lightning** | ✅ Active | Confidential prediction market betting |
+| **PNP Exchange** | ✅ Active | AI agent prediction markets |
+| **encrypt.trade** | ✅ Active | Privacy education documentation |
 
 **Why we chose each sponsor tech:**
 - **ShadowWire**: Best-in-class Bulletproofs, no trusted setup, production-ready

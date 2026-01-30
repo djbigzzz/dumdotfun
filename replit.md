@@ -43,7 +43,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 ## Features
 
 - **Real On-Chain Token Creation** - SPL tokens deployed to Solana devnet
-- **Helius RPC Integration** ($5K bounty) - All server-side Solana connections use Helius RPC
+- **Helius RPC Integration** - All server-side Solana connections use Helius RPC
 - **Wallet Balance Display** - Shows devnet SOL balance with airdrop button
 - **Prediction Markets** - Bet on token survival
 
@@ -59,7 +59,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Commitment-based privacy scheme: SHA-256(amount:side:nonce:address)
    - Client: `client/src/lib/inco-client.ts`
    - API: `/api/markets/:id/confidential-bet`
-   - Bounty target: $6K (Consumer, Gaming, Prediction Markets)
+   - Category: Consumer, Gaming, Prediction Markets
 
 2. **Stealth Addresses** (`server/privacy/stealth-addresses.ts`) - ✅ ACTIVE
    - One-time receive addresses for each token transfer
@@ -67,7 +67,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - View tag scanning optimization for efficient detection
    - Client: `client/src/lib/stealth-client.ts`
    - API: `/api/privacy/stealth-address`, `/api/privacy/verify-stealth-ownership`
-   - Contributes to $10K Anoncoin bounty
+   - Contributes to Anoncoin bounty
 
 3. **Token-2022 Confidential Transfers** (`server/privacy/token2022-confidential.ts`) - ✅ ACTIVE
    - Program ID: `TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb`
@@ -76,7 +76,6 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Using commitment fallback while ZK ElGamal program is in audit
    - Client: `client/src/lib/token2022-client.ts`
    - API: `/api/privacy/confidential-transfer`
-   - Bounty target: $15K
 
 4. **Privacy Cash SDK** (`server/privacy/privacy-cash.ts`) - ✅ ACTIVE
    - Package: `privacycash@1.1.7`
@@ -84,21 +83,18 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Zero-knowledge proofs for breaking on-chain links
    - OFAC compliant with selective disclosure
    - API: `/api/privacy/cash/deposit`, `/api/privacy/cash/withdraw`, `/api/privacy/cash/balance/:wallet`
-   - Bounty target: $15K
 
 5. **Radr ShadowWire SDK** (`server/privacy/shadowwire.ts`) - ✅ ACTIVE
    - Hidden transfer amounts using Bulletproofs ZK proofs
    - 17 supported tokens (SOL, USDC, RADR, BONK, etc.)
    - Internal transfers (fully private) and external (anonymous sender)
    - API: `/api/privacy/shadowwire/transfer`, `/api/privacy/shadowwire/balance/:wallet`, `/api/privacy/shadowwire/deposit`, `/api/privacy/shadowwire/withdraw`
-   - Bounty target: $15K
 
 6. **NP Exchange (PNP)** (`server/privacy/np-exchange.ts`) - ✅ ACTIVE
    - AI agent-based prediction market creation
    - Bonding curve pricing (no orderbook needed)
    - Privacy-focused token collateral
    - API: `/api/privacy/pnp/ai-market`, `/api/privacy/pnp/status`
-   - Bounty target: $2.5K
 
 7. **Arcium C-SPL** (`server/privacy/arcium-cspl.ts`) - ✅ ACTIVE (476 lines)
    - Full SDK: `@arcium-hq/client@0.6.5`, `@arcium-hq/reader@0.6.5`
@@ -107,7 +103,6 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
    - Rescue cipher (ZK-friendly, on-chain)
    - Rescue Prime hash (commitments)
    - MXE session management
-   - Bounty target: $10K
 
 **Pending Integrations:**
 - **DFlow API** - Tokenized Kalshi prediction markets (awaiting API key)
@@ -186,15 +181,13 @@ Auto-configured:
 
 ## Hackathon Bounty Status (Feb 1 Deadline)
 
-| Bounty | Prize | Status | Integration |
-|--------|-------|--------|-------------|
-| Inco Lightning | $6K | ✅ Ready | Confidential betting with encrypted amounts |
-| Helius RPC | $5K | ✅ Active | All Solana connections use Helius |
-| Anoncoin | $10K | ✅ Active | Stealth addresses for private receiving |
-| Token-2022 | $15K | ✅ Active | Commitment-based confidential transfers |
-| Privacy Cash | $15K | ✅ Active | Private deposits/withdrawals breaking links |
-| ShadowWire | $15K | ✅ Active | Bulletproof ZK private transfers |
-| NP Exchange | $2.5K | ✅ Active | PNP SDK v0.2.4 for devnet markets |
-| encrypt.trade | $1K | ✅ Active | Privacy education docs |
-
-**Total Bounty Potential: ~$79.5K+**
+| Bounty | Status | Integration |
+|--------|--------|-------------|
+| Inco Lightning | ✅ Ready | Confidential betting with encrypted amounts |
+| Helius RPC | ✅ Active | All Solana connections use Helius |
+| Anoncoin | ✅ Active | Stealth addresses for private receiving |
+| Token-2022 | ✅ Active | Commitment-based confidential transfers |
+| Privacy Cash | ✅ Active | Private deposits/withdrawals breaking links |
+| ShadowWire | ✅ Active | Bulletproof ZK private transfers |
+| NP Exchange | ✅ Active | PNP SDK v0.2.4 for devnet markets |
+| encrypt.trade | ✅ Active | Privacy education docs |
