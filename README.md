@@ -24,25 +24,24 @@ Quick test: Connect Phantom (Devnet) → Privacy Hub → Place confidential bet
 
 ## 💡 The Problem
 
-**Traditional blockchain payments are completely transparent.**
+**Meme token trading is completely transparent — and that's a problem.**
 
-When you pay someone on Solana, Ethereum, or Bitcoin:
-- ❌ **Everyone** can see the exact amount
-- ❌ Competitors know your salary rates
-- ❌ Your financial history is public forever
-- ❌ Privacy is impossible without centralized solutions
+When you launch or trade tokens on Solana:
+- ❌ **Whales get front-run** — bots see your buys before they confirm
+- ❌ **Dev wallets are tracked** — your trading strategy is public
+- ❌ **Prediction bets are visible** — others can copy or counter your positions
+- ❌ **Your portfolio is exposed** — anyone can see exactly what you hold
 
-**For job marketplaces**, this creates serious problems:
-- Workers don't want their salaries exposed
-- Employers don't want to reveal what they pay
-- Freelancers lose negotiating power
-- GDPR compliance is nearly impossible
+**For token launchers and traders**, this kills edge:
+- Snipers front-run new token launches
+- Large holders get targeted by copy-traders
+- Market predictions become self-defeating when visible
+- No privacy means no alpha
 
-**Existing solutions** fall short:
+**Existing solutions** don't work for Solana DeFi:
 - Centralized mixers can steal your funds
-- Monero/Zcash require separate chains
-- Ethereum privacy solutions have $10-50 gas fees
-- No production-ready privacy on Solana... until now
+- Monero/Zcash are separate chains, not SPL tokens
+- No production-ready privacy for Solana prediction markets... until now
 
 ---
 
