@@ -5,49 +5,32 @@ import { usePrivacy } from "@/lib/privacy-context";
 
 const sections = [
   {
-    id: "hackathon-summary",
-    icon: Trophy,
-    title: "Hackathon Bounty Summary",
-    content: `**🏆 Solana Privacy Hackathon 2026 - dum.fun Submission**
+    id: "what-is-dumfun",
+    icon: Rocket,
+    title: "What is dum.fun?",
+    content: `**The Privacy-First Meme Token Launchpad**
 
-dum.fun is a privacy-first token launchpad with integrated prediction markets. We're targeting **9 bounties** with fully working implementations on Solana devnet.
+dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with built-in privacy features that protect your trading activity.
 
-**Active Bounty Integrations:**
+**Core Features:**
 
-| Bounty | Status | Feature |
-|--------|--------|---------|
-| Inco Lightning | ✅ LIVE | Confidential betting with encrypted amounts |
-| Helius RPC | ✅ LIVE | All Solana connections use Helius |
-| Anoncoin | ✅ LIVE | Stealth addresses for private receiving |
-| Token-2022 | ✅ LIVE | Confidential transfers with commitments |
-| Privacy Cash | ✅ LIVE | Private deposits/withdrawals |
-| ShadowWire | ✅ LIVE | Bulletproof ZK private transfers |
-| NP Exchange | ✅ LIVE | AI agent prediction markets |
-| Arcium MPC | ✅ LIVE | Multi-party computation for confidential DeFi |
-| encrypt.trade | ✅ LIVE | Privacy education documentation |
+| Feature | Description |
+|---------|-------------|
+| Token Launchpad | Create SPL tokens with bonding curve pricing |
+| Prediction Markets | Bet on whether tokens will succeed |
+| Privacy Mode | Hide your bet amounts and trading activity |
+| Stealth Addresses | Receive tokens without revealing your wallet |
 
-**How to Test (For Judges):**
+**How It Works:**
 
 1. **Connect Phantom Wallet** - Click "LOG IN" in header
-2. **Get Devnet SOL** - Use the airdrop button or visit faucet.solana.com
-3. **Enable Privacy Mode** - Click the 🔒 toggle in the header (turns green)
-4. **Create Private Token** - Go to Launch, enable confidential transfers
-5. **Place Confidential Bet** - Go to Predictions, toggle privacy on, place bet
-6. **Generate Stealth Address** - Go to Profile, use Privacy Wallet section
-7. **View on Solscan** - All transactions are real on-chain devnet transactions
+2. **Get Devnet SOL** - Use the airdrop button (we're on Solana devnet)
+3. **Launch a Token** - Go to Launch, fill in details, deploy on-chain
+4. **Trade on Bonding Curve** - Buy and sell tokens with automatic pricing
+5. **Enable Privacy Mode** - Click the 👁 toggle for encrypted betting
+6. **Bet on Predictions** - Each token has prediction markets you can bet on
 
-**Key Verification Points:**
-
-- Program ID: \`6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh\`
-- Inco Program: \`5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj\`
-- Token-2022: \`TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb\`
-- Network: Solana Devnet
-
-**API Test Endpoints:**
-
-- GET \`/api/privacy/status\` - View all privacy integrations
-- POST \`/api/privacy/test/inco-encrypt\` - Test Inco encryption
-- POST \`/api/privacy/stealth-address\` - Generate stealth address`
+**Network:** Solana Devnet (testnet - no real money)`
   },
   {
     id: "why-privacy",
@@ -258,80 +241,66 @@ Dum.fun is a platform for meme tokens and prediction markets. All tokens are lau
     id: "privacy",
     icon: Lock,
     title: "Privacy Features",
-    content: `**Solana Privacy Hackathon Submission**
+    content: `**Your Trading Activity, Your Business**
 
-dum.fun is a comprehensive privacy platform for the Solana Privacy Hackathon (Feb 1, 2025). We've integrated multiple privacy technologies.
+dum.fun integrates multiple privacy technologies so you can trade without exposing your strategy.
 
-**1. Inco Lightning - Confidential Betting** ✅
-- 🔒 Encrypted bet amounts using Inco Lightning SDK
-- ⚡ Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
-- 📝 SHA-256 commitment scheme: hash(amount:side:nonce:address)
+**Confidential Betting**
+- 🔒 Your bet amounts are encrypted — nobody can see how much you wagered
+- 📝 Uses SHA-256 commitment scheme for cryptographic privacy
+- ⚡ Bets are still verified on-chain, just hidden from observers
 
-**2. Stealth Addresses - Private Receiving** ✅
-- 🕵️ One-time receive addresses for each transfer
-- 🔗 Unlinkable transactions - nobody can trace your holdings
-- 🏷️ View tag scanning for efficient detection
+**Stealth Addresses**
+- 🕵️ Generate one-time receive addresses for each transfer
+- 🔗 Payments are unlinkable — nobody can trace your holdings back to you
+- 🏷️ Only you can detect and claim funds sent to your stealth addresses
 
-**3. Token-2022 Confidential Transfers** ✅
+**Confidential Transfers**
 - 💳 Hidden transfer amounts using Pedersen commitments
 - 🔐 Range proofs verify amounts without revealing them
-- ✅ Future-proof: auto-upgrades when native ZK SDK matures
+- ✅ Built on Token-2022, Solana's native token standard
 
-**How to Use Privacy Features:**
+**How to Use:**
 1. Enable "Private Mode" toggle (👁 icon in header)
 2. Bet amounts are automatically encrypted
-3. Generate stealth addresses for private token receiving
+3. Generate stealth addresses in your Profile
 4. All transactions maintain your financial privacy`
   },
   {
     id: "integrations",
     icon: Cpu,
     title: "Platform Integrations",
-    content: `**Active Privacy Integrations:**
+    content: `**Built on Cutting-Edge Privacy Tech**
 
-**Inco Lightning SDK** ✅
-- Confidential prediction betting
-- Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
-- SHA-256 commitment scheme for bet privacy
+dum.fun integrates 7 privacy protocols from the Solana ecosystem:
 
-**Stealth Addresses** ✅
+**Confidential Betting (Inco Lightning)**
+- Encrypted bet amounts using zero-knowledge proofs
+- Nobody can see how much you wagered
+
+**Stealth Addresses (Anoncoin)**
 - One-time receive addresses for private token receiving
-- Unlinkable token transfers - nobody can trace holdings
-- View tag scanning for efficient detection
+- Unlinkable — nobody can trace your holdings
 
-**Token-2022 Confidential Transfers** ✅
-- Pedersen commitments for balance hiding
-- Range proofs for amount validation
-- Future-proof design for native ZK support
+**Confidential Transfers (Token-2022)**
+- Hidden transfer amounts using Pedersen commitments
+- Built on Solana's native token standard
 
-**Privacy Cash SDK** ✅
-- Private SOL/USDC/USDT deposits & withdrawals
-- Zero-knowledge proofs for privacy
-- OFAC compliant with selective disclosure
-- Breaks on-chain link between deposit/withdrawal
+**Private Deposits (Privacy Cash)**
+- Break on-chain links between deposits and withdrawals
+- Zero-knowledge proofs for full privacy
 
-**Radr ShadowWire** ✅
+**ZK Transfers (ShadowWire)**
 - Hidden transfer amounts using Bulletproofs
-- 22 supported tokens (SOL, USDC, RADR, etc.)
-- Internal transfers: fully private amounts
-- External transfers: anonymous sender
+- 22 supported tokens (SOL, USDC, etc.)
 
-**NP Exchange (PNP)** ✅
-- AI agent-based prediction market creation
-- Bonding curve pricing (no orderbook)
-- Privacy-focused token collateral
+**AI Prediction Markets (NP Exchange)**
+- AI-powered market creation
+- Bonding curve pricing without orderbooks
 
-**Arcium C-SPL (MPC)** ✅
-- Multi-party computation for confidential DeFi
-- AES-256-CTR encryption + Rescue cipher
-- Hidden balances during computation
-
-**Active Infrastructure:**
-
-**Helius RPC** ✅
-- All Solana connections use Helius
-- Real-time transaction processing
-- Enriched transaction data`
+**Infrastructure (Helius RPC)**
+- Enterprise-grade Solana connections
+- Real-time transaction processing`
   }
 ];
 
