@@ -67,6 +67,28 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
+  // Check for expired markets on startup and log them
+  const checkExpiredMarkets = async () => {
+    try {
+      const { storage } = await import("./storage");
+      const expiredMarkets = await storage.getExpiredMarkets();
+      if (expiredMarkets.length > 0) {
+        log(`[Markets] Found ${expiredMarkets.length} expired market(s) awaiting resolution:`, "startup");
+        for (const market of expiredMarkets.slice(0, 5)) {
+          log(`  - "${market.question}" (expired: ${new Date(market.resolutionDate).toLocaleDateString()})`, "startup");
+        }
+        if (expiredMarkets.length > 5) {
+          log(`  ... and ${expiredMarkets.length - 5} more. Use GET /api/markets/expired to see all.`, "startup");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check expired markets:", error);
+    }
+  };
+  
+  // Run after brief delay to let server finish starting
+  setTimeout(checkExpiredMarkets, 2000);
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, type Market, type InsertMarket, type Position, type InsertPosition, type Activity, type InsertActivity, users, tokens, walletAnalysis, waitlist, predictionMarkets, positions, activityFeed } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, lt, and } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -34,6 +34,7 @@ export interface IStorage {
   getOpenMarkets(limit?: number): Promise<Market[]>;
   updateMarketPools(id: string, yesPool: string, noPool: string, volumeAdd: string): Promise<Market | undefined>;
   resolveMarket(id: string, outcome: string): Promise<Market | undefined>;
+  getExpiredMarkets(): Promise<Market[]>;
   
   // Position methods
   createPosition(position: InsertPosition): Promise<Position>;
@@ -238,6 +239,15 @@ export class DatabaseStorage implements IStorage {
       .where(eq(predictionMarkets.id, id))
       .returning();
     return market || undefined;
+  }
+
+  async getExpiredMarkets(): Promise<Market[]> {
+    return db.select().from(predictionMarkets).where(
+      and(
+        eq(predictionMarkets.status, "open"),
+        lt(predictionMarkets.resolutionDate, new Date())
+      )
+    );
   }
 
   async createPosition(insertPosition: InsertPosition): Promise<Position> {

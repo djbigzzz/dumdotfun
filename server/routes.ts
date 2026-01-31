@@ -2661,6 +2661,44 @@ export async function registerRoutes(
     }
   });
 
+  // Get expired markets ready for resolution (must be before :id route)
+  app.get("/api/markets/expired", async (req, res) => {
+    try {
+      const expiredMarkets = await storage.getExpiredMarkets();
+      
+      const marketsWithStats = await Promise.all(
+        expiredMarkets.map(async (market) => {
+          const positions = await storage.getPositionsByMarket(market.id);
+          const yesBets = positions.filter(p => p.side === "yes").length;
+          const noBets = positions.filter(p => p.side === "no").length;
+          
+          return {
+            id: market.id,
+            question: market.question,
+            tokenMint: market.tokenMint,
+            resolutionDate: market.resolutionDate,
+            creatorAddress: market.creatorAddress,
+            yesPool: market.yesPool,
+            noPool: market.noPool,
+            totalVolume: market.totalVolume,
+            yesBets,
+            noBets,
+            totalBets: positions.length,
+            expiredSince: new Date(market.resolutionDate).toISOString(),
+          };
+        })
+      );
+
+      return res.json({
+        count: marketsWithStats.length,
+        markets: marketsWithStats,
+      });
+    } catch (error: any) {
+      console.error("Error fetching expired markets:", error);
+      return res.status(500).json({ error: "Failed to fetch expired markets" });
+    }
+  });
+
   // Get single market
   app.get("/api/markets/:id", async (req, res) => {
     try {
@@ -3346,6 +3384,122 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error placing confidential bet:", error);
       return res.status(500).json({ error: "Failed to place confidential bet" });
+    }
+  });
+
+  // Resolve a prediction market and calculate payouts
+  app.post("/api/markets/:id/resolve", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { outcome, resolverAddress } = req.body;
+
+      if (!outcome || (outcome !== "yes" && outcome !== "no")) {
+        return res.status(400).json({ error: "Outcome must be 'yes' or 'no'" });
+      }
+
+      if (!resolverAddress || typeof resolverAddress !== "string") {
+        return res.status(400).json({ error: "Resolver wallet address is required" });
+      }
+
+      const market = await storage.getMarket(id);
+      if (!market) {
+        return res.status(404).json({ error: "Market not found" });
+      }
+
+      if (market.status === "resolved") {
+        return res.status(400).json({ error: "Market is already resolved", outcome: market.outcome });
+      }
+
+      // Only market creator can resolve (or allow any address for now during hackathon)
+      const isCreator = market.creatorAddress.toLowerCase() === resolverAddress.toLowerCase();
+      if (!isCreator) {
+        console.log(`[Resolution] Non-creator ${resolverAddress} resolving market ${id} (creator: ${market.creatorAddress})`);
+      }
+
+      // Get all positions for this market
+      const positions = await storage.getPositionsByMarket(id);
+      
+      // Calculate total pools
+      const totalYesPool = Number(market.yesPool);
+      const totalNoPool = Number(market.noPool);
+      const totalPool = totalYesPool + totalNoPool;
+
+      // Separate winners and losers
+      const winningPositions = positions.filter(p => p.side === outcome);
+      const losingPositions = positions.filter(p => p.side !== outcome);
+
+      // Calculate winnings for each winner
+      // Winners split the total pool proportionally based on their shares
+      const totalWinningShares = winningPositions.reduce((sum, p) => sum + Number(p.shares), 0);
+      
+      const payouts: Array<{
+        walletAddress: string;
+        originalAmount: string;
+        shares: string;
+        payout: number;
+        profit: number;
+        isConfidential: boolean;
+      }> = [];
+
+      for (const position of winningPositions) {
+        const shareRatio = totalWinningShares > 0 ? Number(position.shares) / totalWinningShares : 0;
+        const payout = shareRatio * totalPool;
+        const profit = payout - Number(position.amount);
+        
+        payouts.push({
+          walletAddress: position.walletAddress,
+          originalAmount: position.isConfidential ? "🔒 Hidden" : position.amount,
+          shares: position.shares,
+          payout: Math.round(payout * 1e9) / 1e9,
+          profit: Math.round(profit * 1e9) / 1e9,
+          isConfidential: position.isConfidential,
+        });
+      }
+
+      // Resolve the market in database
+      const resolvedMarket = await storage.resolveMarket(id, outcome);
+
+      // Log activity
+      await storage.addActivity({
+        activityType: "market_resolved",
+        tokenMint: market.tokenMint,
+        marketId: id,
+        walletAddress: resolverAddress,
+        amount: totalPool.toString(),
+        metadata: JSON.stringify({
+          question: market.question,
+          outcome,
+          totalPool,
+          winnerCount: winningPositions.length,
+          loserCount: losingPositions.length,
+        }),
+      });
+
+      console.log(`[Resolution] Market ${id} resolved: ${outcome.toUpperCase()} wins | Pool: ${totalPool} SOL | Winners: ${winningPositions.length} | Losers: ${losingPositions.length}`);
+
+      return res.json({
+        success: true,
+        market: {
+          id: resolvedMarket?.id,
+          question: market.question,
+          status: "resolved",
+          outcome,
+          resolvedAt: resolvedMarket?.resolvedAt,
+        },
+        stats: {
+          totalPool,
+          yesPool: totalYesPool,
+          noPool: totalNoPool,
+          winnerCount: winningPositions.length,
+          loserCount: losingPositions.length,
+          totalWinningShares,
+        },
+        payouts,
+        message: `Market resolved with "${outcome.toUpperCase()}" as the winning outcome. ${winningPositions.length} winner(s) will share ${totalPool.toFixed(4)} SOL.`,
+      });
+    } catch (error: any) {
+      console.error("Error resolving market:", error);
+      return res.status(500).json({ error: "Failed to resolve market" });
     }
   });
 
