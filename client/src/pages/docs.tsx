@@ -10,20 +10,21 @@ const sections = [
     title: "Hackathon Bounty Summary",
     content: `**🏆 Solana Privacy Hackathon 2026 - dum.fun Submission**
 
-dum.fun is a privacy-first token launchpad with integrated prediction markets. We're targeting **8 bounties totaling $65K+** with fully working implementations on Solana devnet.
+dum.fun is a privacy-first token launchpad with integrated prediction markets. We're targeting **9 bounties** with fully working implementations on Solana devnet.
 
 **Active Bounty Integrations:**
 
-| Bounty | Prize | Status | Feature |
-|--------|-------|--------|---------|
-| Inco Lightning | $2,000 | ✅ LIVE | Confidential betting with encrypted amounts |
-| Helius RPC | $5,000 | ✅ LIVE | All Solana connections use Helius |
-| Anoncoin | $10,000 | ✅ LIVE | Stealth addresses for private receiving |
-| Token-2022 | $15,000 | ✅ LIVE | Confidential transfers with commitments |
-| Privacy Cash | $15,000 | ✅ LIVE | Private deposits/withdrawals |
-| ShadowWire | $15,000 | ✅ LIVE | Bulletproof ZK private transfers |
-| NP Exchange | $2,500 | ✅ LIVE | AI agent prediction markets |
-| encrypt.trade | $1,000 | ✅ LIVE | Privacy education documentation |
+| Bounty | Status | Feature |
+|--------|--------|---------|
+| Inco Lightning | ✅ LIVE | Confidential betting with encrypted amounts |
+| Helius RPC | ✅ LIVE | All Solana connections use Helius |
+| Anoncoin | ✅ LIVE | Stealth addresses for private receiving |
+| Token-2022 | ✅ LIVE | Confidential transfers with commitments |
+| Privacy Cash | ✅ LIVE | Private deposits/withdrawals |
+| ShadowWire | ✅ LIVE | Bulletproof ZK private transfers |
+| NP Exchange | ✅ LIVE | AI agent prediction markets |
+| Arcium MPC | ✅ LIVE | Multi-party computation for confidential DeFi |
+| encrypt.trade | ✅ LIVE | Privacy education documentation |
 
 **How to Test (For Judges):**
 
@@ -265,32 +266,22 @@ dum.fun is a comprehensive privacy platform for the Solana Privacy Hackathon (Fe
 - 🔒 Encrypted bet amounts using Inco Lightning SDK
 - ⚡ Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
 - 📝 SHA-256 commitment scheme: hash(amount:side:nonce:address)
-- 💰 Bounty: $2,000
 
 **2. Stealth Addresses - Private Receiving** ✅
 - 🕵️ One-time receive addresses for each transfer
 - 🔗 Unlinkable transactions - nobody can trace your holdings
 - 🏷️ View tag scanning for efficient detection
-- 💰 Contributes to $10K Anoncoin bounty
 
 **3. Token-2022 Confidential Transfers** ✅
 - 💳 Hidden transfer amounts using Pedersen commitments
 - 🔐 Range proofs verify amounts without revealing them
-- ⚠️ Note: Using commitment fallback while ZK program is in audit
-- 💰 Bounty: $15,000
+- ✅ Future-proof: auto-upgrades when native ZK SDK matures
 
 **How to Use Privacy Features:**
 1. Enable "Private Mode" toggle (👁 icon in header)
 2. Bet amounts are automatically encrypted
 3. Generate stealth addresses for private token receiving
-4. All transactions maintain your financial privacy
-
-**Hackathon Bounties:**
-- Inco Lightning: $2K (Consumer, Gaming)
-- Helius RPC: $5K (Infrastructure)
-- Anoncoin: $10K (Privacy apps)
-- Token-2022: $15K (Confidential transfers)
-- Track 03 Open: $18K (Innovation)`
+4. All transactions maintain your financial privacy`
   },
   {
     id: "integrations",
@@ -298,51 +289,49 @@ dum.fun is a comprehensive privacy platform for the Solana Privacy Hackathon (Fe
     title: "Platform Integrations",
     content: `**Active Privacy Integrations:**
 
-**Inco Lightning SDK** ✅ ($2K Bounty)
+**Inco Lightning SDK** ✅
 - Confidential prediction betting
 - Program ID: 5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj
 - SHA-256 commitment scheme for bet privacy
 
-**Stealth Addresses** ✅ (Anoncoin $10K)
+**Stealth Addresses** ✅
 - One-time receive addresses for private token receiving
 - Unlinkable token transfers - nobody can trace holdings
 - View tag scanning for efficient detection
 
-**Token-2022 Confidential Transfers** ✅ ($15K Bounty)
+**Token-2022 Confidential Transfers** ✅
 - Pedersen commitments for balance hiding
 - Range proofs for amount validation
-- Commitment-based privacy (ZK program in audit)
+- Future-proof design for native ZK support
 
-**Privacy Cash SDK** ✅ ($15K Bounty)
+**Privacy Cash SDK** ✅
 - Private SOL/USDC/USDT deposits & withdrawals
 - Zero-knowledge proofs for privacy
 - OFAC compliant with selective disclosure
 - Breaks on-chain link between deposit/withdrawal
 
-**Radr ShadowWire** ✅ ($15K Bounty)
+**Radr ShadowWire** ✅
 - Hidden transfer amounts using Bulletproofs
-- 17 supported tokens (SOL, USDC, RADR, etc.)
+- 22 supported tokens (SOL, USDC, RADR, etc.)
 - Internal transfers: fully private amounts
 - External transfers: anonymous sender
 
-**NP Exchange (PNP)** ✅ ($2.5K Bounty)
+**NP Exchange (PNP)** ✅
 - AI agent-based prediction market creation
 - Bonding curve pricing (no orderbook)
 - Privacy-focused token collateral
 
+**Arcium C-SPL (MPC)** ✅
+- Multi-party computation for confidential DeFi
+- AES-256-CTR encryption + Rescue cipher
+- Hidden balances during computation
+
 **Active Infrastructure:**
 
-**Helius RPC** ($5K Bounty)
+**Helius RPC** ✅
 - All Solana connections use Helius
 - Real-time transaction processing
-- Enriched transaction data
-
-**Planned Integrations:**
-
-**Arcium C-SPL** - $10K Bounty
-**Aztec Noir ZK** - $10K Bounty
-**MagicBlock Rollups** - $5K Bounty
-**Light Protocol** - $3K Open Track`
+- Enriched transaction data`
   }
 ];
 
