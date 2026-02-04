@@ -137,9 +137,9 @@ Deploy real SPL tokens on Solana devnet with integrated prediction markets.
 - Token graduation to Raydium DEX`
   },
   {
-    id: "what-is-dumfun",
+    id: "platform-overview",
     icon: Zap,
-    title: "What is dum.fun?",
+    title: "Platform Overview",
     content: `dum.fun is a Solana-based token launchpad with integrated prediction markets. Unlike other launchpads, every token launched here automatically gets prediction markets attached - so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
 
 We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens.`
