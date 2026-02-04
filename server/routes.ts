@@ -2699,6 +2699,56 @@ export async function registerRoutes(
     }
   });
 
+  // Get resolution status for a market (before :id route)
+  app.get("/api/markets/:id/resolution-status", async (req, res) => {
+    try {
+      const { getMarketResolutionPreview } = await import("./services/auto-resolver");
+      const preview = await getMarketResolutionPreview(req.params.id);
+      
+      if (!preview) {
+        return res.status(404).json({ error: "Market not found" });
+      }
+      
+      const now = new Date();
+      const resolutionDate = new Date(preview.market.resolutionDate);
+      const isExpired = resolutionDate <= now;
+      const timeRemaining = resolutionDate.getTime() - now.getTime();
+      const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
+      
+      return res.json({
+        ...preview,
+        isExpired,
+        daysRemaining,
+        canResolve: isExpired && preview.market.status === "open",
+        resolutionInfo: {
+          type: preview.market.resolutionType || "survival",
+          criteria: preview.market.criteria || "token_exists",
+          autoResolve: preview.market.autoResolve !== false,
+        },
+      });
+    } catch (error: any) {
+      console.error("Error fetching resolution status:", error);
+      return res.status(500).json({ error: "Failed to fetch resolution status" });
+    }
+  });
+
+  // Trigger auto-resolution for all expired markets (admin endpoint)
+  app.post("/api/markets/auto-resolve", async (req, res) => {
+    try {
+      const { autoResolveExpiredMarkets } = await import("./services/auto-resolver");
+      const results = await autoResolveExpiredMarkets();
+      
+      return res.json({
+        success: true,
+        resolved: results.length,
+        results,
+      });
+    } catch (error: any) {
+      console.error("Error in auto-resolution:", error);
+      return res.status(500).json({ error: "Failed to auto-resolve markets" });
+    }
+  });
+
   // Get single market
   app.get("/api/markets/:id", async (req, res) => {
     try {

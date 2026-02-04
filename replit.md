@@ -4,6 +4,15 @@
 
 Dum.fun is a Solana-based token launchpad with integrated prediction markets. The platform offers a neo-brutalist aesthetic and combines meme token launches with bonding curves and prediction markets.
 
+## Recent Changes (February 2026)
+
+- **Market Auto-Resolution** - Implemented prediction market resolution with token health checks
+  - Token health checker: Verifies on-chain status (existence, liquidity, trades, graduation)
+  - Auto-resolver: Evaluates survival criteria and calculates payouts
+  - Resolution status API: `/api/markets/:id/resolution-status`
+  - Admin endpoint: `POST /api/markets/auto-resolve`
+  - Services: `server/services/token-health.ts`, `server/services/auto-resolver.ts`
+
 ## Recent Changes (January 2026)
 
 - **Arcium C-SPL (MPC)** - Implemented confidential token operations using MPC

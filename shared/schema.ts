@@ -72,6 +72,10 @@ export const predictionMarkets = pgTable("prediction_markets", {
   totalVolume: decimal("total_volume", { precision: 20, scale: 9 }).notNull().default("0"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at"),
+  resolutionType: text("resolution_type").notNull().default("survival"),
+  survivalCriteria: text("survival_criteria").default("token_exists"),
+  resolutionSource: text("resolution_source"),
+  autoResolve: boolean("auto_resolve").notNull().default(true),
 });
 
 export const positions = pgTable("positions", {
