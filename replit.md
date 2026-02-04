@@ -6,6 +6,14 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (February 2026)
 
+- **SEO Optimization** - Comprehensive SEO for search engine ranking
+  - Enhanced meta tags: title, description, keywords, robots, canonical
+  - Open Graph and Twitter Card tags for social sharing
+  - JSON-LD structured data (WebApplication, Organization schemas)
+  - Dynamic sitemap at `/sitemap.xml` (tokens, markets, static pages)
+  - robots.txt for crawler guidance
+  - Mobile web app meta tags
+
 - **Market Auto-Resolution** - Implemented prediction market resolution with token health checks
   - Token health checker: Verifies on-chain status (existence, liquidity, trades, graduation)
   - Auto-resolver: Evaluates survival criteria and calculates payouts

@@ -29,6 +29,67 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  // SEO: Dynamic sitemap
+  app.get("/sitemap.xml", async (_req, res) => {
+    try {
+      const tokens = await db.select().from(tokensTable).limit(100);
+      const markets = await storage.getMarkets(100);
+      const baseUrl = "https://dum.fun";
+      const now = new Date().toISOString().split('T')[0];
+
+      const staticPages = [
+        { url: "/", priority: "1.0", changefreq: "daily" },
+        { url: "/tokens", priority: "0.9", changefreq: "hourly" },
+        { url: "/predictions", priority: "0.9", changefreq: "hourly" },
+        { url: "/create", priority: "0.8", changefreq: "weekly" },
+        { url: "/docs", priority: "0.7", changefreq: "weekly" },
+      ];
+
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+`;
+      for (const page of staticPages) {
+        xml += `  <url>
+    <loc>${baseUrl}${page.url}</loc>
+    <lastmod>${now}</lastmod>
+    <changefreq>${page.changefreq}</changefreq>
+    <priority>${page.priority}</priority>
+  </url>
+`;
+      }
+
+      for (const token of tokens.slice(0, 100)) {
+        const tokenDate = token.createdAt ? new Date(token.createdAt).toISOString().split('T')[0] : now;
+        xml += `  <url>
+    <loc>${baseUrl}/token/${token.mint}</loc>
+    <lastmod>${tokenDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+`;
+      }
+
+      for (const market of markets.slice(0, 100)) {
+        const marketDate = market.createdAt ? new Date(market.createdAt).toISOString().split('T')[0] : now;
+        xml += `  <url>
+    <loc>${baseUrl}/market/${market.id}</loc>
+    <lastmod>${marketDate}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.6</priority>
+  </url>
+`;
+      }
+
+      xml += `</urlset>`;
+
+      res.header("Content-Type", "application/xml");
+      res.send(xml);
+    } catch (error) {
+      console.error("Error generating sitemap:", error);
+      res.status(500).send("Error generating sitemap");
+    }
+  });
+
   app.get("/api/privacy/status", async (_req, res) => {
     try {
       const { getPrivacySummary, getAllPrivacyIntegrations } = await import("./privacy");

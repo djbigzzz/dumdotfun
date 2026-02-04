@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+Sitemap: https://dum.fun/sitemap.xml
+
+# Crawl-delay for bots
+User-agent: *
+Crawl-delay: 1
