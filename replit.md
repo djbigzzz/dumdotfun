@@ -6,6 +6,14 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (February 2026)
 
+- **Mobile App (Capacitor)** - Set up native Android app for Solana dApp Store
+  - Capacitor framework wraps React web app as native APK
+  - @solana-mobile/wallet-adapter-mobile for Saga wallet support
+  - Mobile utilities: `client/src/lib/mobile-utils.ts`
+  - Android project: `android/` directory
+  - Build guide: `MOBILE_BUILD.md`
+  - App ID: `fun.dum.app`
+
 - **SEO Optimization** - Comprehensive SEO for search engine ranking
   - Enhanced meta tags: title, description, keywords, robots, canonical
   - Open Graph and Twitter Card tags for social sharing
