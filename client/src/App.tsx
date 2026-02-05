@@ -1,4 +1,5 @@
 import { Switch, Route } from "wouter";
+import { useEffect } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +7,7 @@ import { Toaster as SonnerToaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WalletProvider } from "@/lib/wallet-context";
 import { PrivacyProvider } from "@/lib/privacy-context";
+import { initMobileApp } from "@/lib/mobile-utils";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import TokensPage from "@/pages/tokens";
@@ -41,6 +43,10 @@ function Router() {
 }
 
 function App() {
+  useEffect(() => {
+    initMobileApp();
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
+import { isMobileDevice, openExternalLink } from "./mobile-utils";
 
 declare global {
   interface Window {
@@ -64,7 +65,11 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connectWallet = async (referralCode?: string) => {
     if (!window.solana?.isPhantom) {
-      window.open("https://phantom.app/", "_blank");
+      if (isMobileDevice()) {
+        openExternalLink("https://phantom.app/download");
+      } else {
+        window.open("https://phantom.app/", "_blank");
+      }
       return;
     }
 
