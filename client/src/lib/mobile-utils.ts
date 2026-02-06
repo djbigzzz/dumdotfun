@@ -47,11 +47,20 @@ export const initMobileApp = async (): Promise<void> => {
 
     App.addListener('appUrlOpen', (event) => {
       const url = event.url;
-      if (url.includes('dum.fun') || url.includes('solana:')) {
-        const path = url.split('/').slice(3).join('/');
-        if (path) {
-          window.location.href = `/${path}`;
+      try {
+        if (url.startsWith('dumfun://')) {
+          const path = url.replace('dumfun://', '');
+          if (path) window.location.href = `/${path}`;
+        } else if (url.startsWith('https://dum.fun')) {
+          const parsed = new URL(url);
+          if (parsed.pathname && parsed.pathname !== '/') {
+            window.location.href = parsed.pathname + parsed.search;
+          }
+        } else if (url.startsWith('solana:') || url.includes('solana-wallet')) {
+          console.log('Solana wallet callback:', url);
         }
+      } catch (err) {
+        console.error('Failed to handle deep link:', err);
       }
     });
   } catch (error) {
@@ -66,6 +75,45 @@ export const openExternalLink = async (url: string): Promise<void> => {
   } else {
     window.open(url, '_blank');
   }
+};
+
+export const hapticFeedback = (style: 'light' | 'medium' | 'heavy' = 'medium'): void => {
+  if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+    const durations = { light: 10, medium: 25, heavy: 50 };
+    navigator.vibrate(durations[style]);
+  }
+};
+
+export const shareContent = async (data: {
+  title: string;
+  text?: string;
+  url?: string;
+}): Promise<boolean> => {
+  if (typeof navigator !== 'undefined' && 'share' in navigator) {
+    try {
+      await navigator.share(data);
+      return true;
+    } catch (err) {
+      if ((err as Error).name !== 'AbortError') {
+        console.error('Share failed:', err);
+      }
+      return false;
+    }
+  }
+
+  if (data.url) {
+    try {
+      const nav = globalThis.navigator as Navigator & { clipboard?: { writeText(text: string): Promise<void> } };
+      if (nav?.clipboard) {
+        await nav.clipboard.writeText(data.url);
+        return true;
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 };
 
 export const getMobileWalletDeepLink = (action: 'connect' | 'sign', data?: string): string => {

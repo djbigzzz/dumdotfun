@@ -5,7 +5,8 @@ import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock } from "lucide-react";
+import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock, Share2 } from "lucide-react";
+import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
@@ -537,6 +538,23 @@ export default function TokenPage() {
                     <button onClick={handleCopyAddress} className={`text-xs flex items-center gap-1 ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-gray-600"}`}>
                       {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                       {token.mint.slice(0, 6)}...
+                    </button>
+                    <button 
+                      onClick={async () => {
+                        hapticFeedback('light');
+                        const baseUrl = window.location.origin?.startsWith('http') ? window.location.origin : 'https://dum.fun';
+                        const shared = await shareContent({
+                          title: `${token.name} ($${token.symbol}) on Dum.fun`,
+                          text: `Check out $${token.symbol} on Dum.fun - ${token.description?.slice(0, 100) || 'A meme token on Solana'}`,
+                          url: `${baseUrl}/token/${token.mint}`
+                        });
+                        if (shared) toast.success("Shared!");
+                        else toast.success("Link copied!");
+                      }}
+                      className={`text-xs flex items-center gap-1 p-1.5 rounded ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80] hover:bg-[#4ADE80]/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"}`}
+                      data-testid="button-share-token"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
                     </button>
                   </div>
                   <div className={`flex items-center gap-3 mt-1 text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>

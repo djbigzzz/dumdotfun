@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
 import { PrivacyDrawer } from "./privacy-drawer";
+import { MobileBottomNav } from "./mobile-bottom-nav";
 
 const Marquee = () => {
   return (
@@ -228,8 +229,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           `}</style>
         </>
       )}
-      <Marquee />
-      <header className={`p-4 border-b-2 flex justify-between items-center transition-colors duration-300 relative z-20 ${
+      <div className="hidden md:block">
+        <Marquee />
+      </div>
+      <header className={`p-3 md:p-4 border-b-2 flex justify-between items-center transition-colors duration-300 relative z-20 ${
         privateMode ? "bg-black/90 border-[#4ADE80]/30 backdrop-blur-sm" : "bg-white border-black"
       } ${privateMode ? "scanline-effect" : ""}`}>
         <div className="flex items-center gap-6">
@@ -339,13 +342,15 @@ export function Layout({ children }: { children: React.ReactNode }) {
         onClose={() => setShowPrivacyDrawer(false)}
       />
 
-      <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative">
+      <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative pb-20 md:pb-8">
         <div className="relative z-10">
           {children}
         </div>
       </main>
 
-      <footer className={`p-8 border-t-2 text-center font-mono text-sm transition-colors duration-300 relative z-20 ${
+      <MobileBottomNav />
+
+      <footer className={`hidden md:block p-8 border-t-2 text-center font-mono text-sm transition-colors duration-300 relative z-20 ${
         privateMode 
           ? "bg-black/90 border-[#4ADE80]/20 text-[#4ADE80]/50" 
           : "bg-white border-black text-gray-500"

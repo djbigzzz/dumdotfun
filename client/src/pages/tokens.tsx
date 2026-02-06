@@ -238,12 +238,12 @@ export default function TokensPage() {
 
         {/* Filter Tabs and View Toggle */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {filterTabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveFilter(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold border-2 transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2.5 md:py-1.5 text-sm font-bold border-2 transition-all flex-shrink-0 ${
                   activeFilter === tab.id
                     ? privateMode 
                       ? "bg-[#4ADE80] text-black border-[#4ADE80]" 
