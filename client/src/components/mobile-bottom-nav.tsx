@@ -1,14 +1,14 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Coins, TrendingUp, Plus, User, BookOpen } from "lucide-react";
+import { Coins, Flame, Plus, User, Search } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useWallet } from "@/lib/wallet-context";
 
 const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins, privateLabel: "TKNS" },
-  { path: "/predictions", label: "Markets", icon: TrendingUp, privateLabel: "MKTS" },
+  { path: "/trending", label: "Trending", icon: Flame, privateLabel: "HOT" },
   { path: "/create", label: "Create", icon: Plus, privateLabel: "DEPLOY", isAction: true },
-  { path: "/docs", label: "Docs", icon: BookOpen, privateLabel: "DOCS" },
+  { path: "/search", label: "Search", icon: Search, privateLabel: "SRCH" },
   { path: "/profile", label: "Profile", icon: User, privateLabel: "PRFL" },
 ];
 
