@@ -1,0 +1,60 @@
+publisher:
+  name: "Dum.fun"
+  website: "https://dum.fun"
+  email: "team@dum.fun"
+  media:
+    - purpose: icon
+      uri: "./media/publisher-icon.png"
+
+app:
+  name: "Dum.fun"
+  android_package: "fun.dum.app"
+  urls:
+    license_url: "https://dum.fun/legal/eula"
+    privacy_policy_url: "https://dum.fun/legal/privacy"
+    copyright_url: "https://dum.fun/legal/copyright"
+  media:
+    - purpose: icon
+      uri: "./media/app-icon-512.png"
+
+release:
+  catalog:
+    en-US:
+      short_description: "Privacy-first Solana token launchpad with prediction markets"
+      long_description: |
+        Dum.fun is a privacy-first token launchpad built on Solana with integrated prediction markets.
+
+        Launch meme tokens on-chain with bonding curves, bet on token survival with encrypted prediction markets, and trade with full privacy using cutting-edge Solana privacy technology.
+
+        Privacy Features:
+        - Confidential betting with Inco Lightning SDK
+        - Stealth addresses for unlinkable transactions
+        - Token-2022 confidential transfers
+        - Privacy Cash for breaking on-chain links
+        - ShadowWire ZK transfers with Bulletproofs
+        - Arcium MPC for confidential operations
+
+        Key Features:
+        - Real SPL token creation on Solana devnet
+        - Bonding curve pricing for fair launches
+        - Prediction markets on token survival
+        - Mobile Wallet Adapter (MWA) support
+        - Neo-brutalist UI design
+
+        Built for the Solana Privacy Hackathon.
+      new_in_version: "Initial release with full privacy integration suite"
+  media:
+    - purpose: icon
+      uri: "./media/app-icon-512.png"
+    - purpose: banner
+      uri: "./media/banner.png"
+  files:
+    - purpose: release
+      uri: "./app-release.apk"
+  testing_instructions: |
+    1. Install the APK on a Solana mobile device (Saga or Seeker)
+    2. Open the app - you'll see the token listing page
+    3. Tap "Connect Wallet" in the header to connect via MWA
+    4. Browse tokens, prediction markets, and try creating a token
+    5. Toggle privacy mode (eye icon) to see confidential betting
+    6. All transactions are on Solana devnet - use airdrop for test SOL
