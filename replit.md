@@ -22,9 +22,11 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
   - robots.txt for crawler guidance
   - Mobile web app meta tags
 
-- **Market Auto-Resolution** - Implemented prediction market resolution with token health checks
-  - Token health checker: Verifies on-chain status (existence, liquidity, trades, graduation)
-  - Auto-resolver: Evaluates survival criteria and calculates payouts
+- **Smart Market Resolution** - Intelligent prediction market resolution with on-chain verification
+  - **Dev Holdings Check**: Verifies creator's on-chain token balance (rug = sold 80%+, survived = holds 20%+)
+  - **Auto-Criteria Detection**: Parses market question to assign criteria (rug → `dev_sells`, survive → `dev_holds`, graduate → `graduated`)
+  - Resolution criteria types: `dev_sells`, `dev_holds`, `has_liquidity`, `recent_activity`, `graduated`, `high_survival`
+  - Uses `getParsedTokenAccountsByOwner` for safe cross-program balance checking (SPL Token + Token-2022)
   - Resolution status API: `/api/markets/:id/resolution-status`
   - Admin endpoint: `POST /api/markets/auto-resolve`
   - Services: `server/services/token-health.ts`, `server/services/auto-resolver.ts`

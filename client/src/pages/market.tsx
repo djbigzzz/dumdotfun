@@ -37,23 +37,27 @@ interface Market {
 
 function getCriteriaLabel(criteria: string): string {
   switch (criteria) {
-    case "token_exists": return "Token Exists On-Chain";
+    case "dev_sells": return "Dev Rug Check";
+    case "dev_holds": return "Dev Still Holds";
     case "has_liquidity": return "Token Has Liquidity";
     case "recent_activity": return "Recent Trading Activity";
     case "graduated": return "Token Graduated to DEX";
     case "high_survival": return "High Survival Score (75+)";
-    default: return "Token Exists On-Chain";
+    case "token_exists": return "Token Health Check";
+    default: return "Token Health Check";
   }
 }
 
 function getCriteriaDescription(criteria: string): string {
   switch (criteria) {
-    case "token_exists": return "The token's mint account must still exist on the Solana blockchain at resolution time.";
-    case "has_liquidity": return "The token must exist AND have active liquidity (multiple holders with non-zero balances).";
-    case "recent_activity": return "The token must exist AND have at least one on-chain transaction within the last 7 days.";
-    case "graduated": return "The token must have 10+ holders with active liquidity, qualifying as 'graduated' to a DEX.";
-    case "high_survival": return "The token must score 75/100 or higher on the survival score (checks existence, liquidity, activity, and graduation).";
-    default: return "The token's mint account must still exist on the Solana blockchain at resolution time.";
+    case "dev_sells": return "YES wins if the token creator sold 80%+ of the supply (rugged). NO wins if the dev still holds a significant portion.";
+    case "dev_holds": return "YES wins if the creator still holds 20%+ of the supply and the token has liquidity. NO wins if the dev dumped their tokens.";
+    case "has_liquidity": return "YES wins if the token has active liquidity with multiple holders. NO wins if liquidity dried up.";
+    case "recent_activity": return "YES wins if the token had on-chain transactions within the last 7 days. NO wins if there was no activity.";
+    case "graduated": return "YES wins if the token has 10+ holders with active liquidity (graduated to DEX). NO wins if it didn't graduate.";
+    case "high_survival": return "YES wins if the token scores 75/100+ on the survival score (checks liquidity, activity, dev holdings, and graduation).";
+    case "token_exists": return "YES wins if the token has liquidity and the dev still holds their tokens. NO wins if the token is dead or the dev dumped.";
+    default: return "YES wins if the token has liquidity and the dev still holds their tokens. NO wins if the token is dead or the dev dumped.";
   }
 }
 
@@ -402,8 +406,8 @@ export default function MarketDetail() {
                   <span className="text-sm font-bold text-white block mb-2">How Settlement Works</span>
                   <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
                     <li>When the countdown reaches zero, the market closes for new bets</li>
-                    <li>The system checks the token's on-chain status against the criteria above</li>
-                    <li>If the token meets the criteria, <span className="text-green-400 font-bold">YES wins</span>. Otherwise, <span className="text-red-400 font-bold">NO wins</span></li>
+                    <li>The system checks the token on-chain: dev holdings, liquidity, holder count, and activity</li>
+                    <li>The outcome is determined based on the resolution criteria above</li>
                     <li>Winnings are calculated proportionally from the total pool</li>
                   </ol>
                 </div>

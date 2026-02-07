@@ -17,6 +17,7 @@ import { getConnection as getHeliusConnection, createNewConnection } from "./hel
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 import * as bondingCurve from "./bonding-curve-client";
 import { getPrivacySummary } from "./privacy";
+import { detectMarketCriteria } from "./services/token-health";
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -2140,14 +2141,16 @@ export async function registerRoutes(
 
       // Auto-create a prediction market for the token
       try {
+        const marketQuestion = `Will $${token.symbol} survive 7 days?`;
         await storage.createMarket({
-          question: `Will $${token.symbol} survive 7 days?`,
-          description: `Prediction on whether ${token.name} will still be trading in 7 days.`,
+          question: marketQuestion,
+          description: `Prediction on whether ${token.name} will still be trading in 7 days. Resolved by checking if the dev still holds their tokens and the token has liquidity.`,
           imageUri: token.imageUri,
           creatorAddress: displayAddress,
           predictionType: "survival",
           tokenMint: demoMint,
           resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          survivalCriteria: detectMarketCriteria(marketQuestion),
         });
         console.log(`[DEMO] Auto-created prediction market for ${token.symbol}`);
       } catch (marketError) {
@@ -2245,14 +2248,16 @@ export async function registerRoutes(
 
       // Auto-create prediction market
       try {
+        const marketQuestion = `Will $${token.symbol} survive 7 days?`;
         await storage.createMarket({
-          question: `Will $${token.symbol} survive 7 days?`,
-          description: `Prediction on whether ${token.name} will still be trading in 7 days.`,
+          question: marketQuestion,
+          description: `Prediction on whether ${token.name} will still be trading in 7 days. Resolved by checking if the dev still holds their tokens and the token has liquidity.`,
           imageUri: token.imageUri,
           creatorAddress,
           predictionType: "survival",
           tokenMint: mint,
           resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          survivalCriteria: detectMarketCriteria(marketQuestion),
         });
         console.log(`[DEVNET] Auto-created prediction market for ${token.symbol}`);
       } catch (marketError) {
@@ -2626,14 +2631,16 @@ export async function registerRoutes(
       // Auto-create the standard "Will it graduate?" prediction market
       let graduationMarket = null;
       try {
+        const gradQuestion = `Will $${token.symbol} graduate to DEX?`;
         graduationMarket = await storage.createMarket({
-          question: `Will $${token.symbol} graduate to DEX?`,
+          question: gradQuestion,
           description: `Prediction on whether ${token.name} will reach the graduation threshold (~85 SOL raised) and migrate to Raydium DEX.`,
           imageUri: token.imageUri,
           creatorAddress,
           predictionType: "graduation",
           tokenMint: mintPublicKey,
           resolutionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          survivalCriteria: detectMarketCriteria(gradQuestion),
         });
         console.log(`Created graduation prediction for ${token.symbol}`);
       } catch (marketError) {
@@ -2992,6 +2999,7 @@ export async function registerRoutes(
         initialBetAmount: betAmount,
         totalCost,
         createdAt: Date.now(),
+        survivalCriteria: detectMarketCriteria(question.trim()),
       });
 
       console.log(`[Market Creation] Prepared: "${question.trim()}" - waiting for signature (${totalCost} SOL)`);
@@ -3120,6 +3128,7 @@ export async function registerRoutes(
           predictionType: pendingMarket.predictionType,
           tokenMint: pendingMarket.tokenMint,
           resolutionDate: pendingMarket.resolutionDate,
+          survivalCriteria: pendingMarket.survivalCriteria,
         },
         pendingMarket.initialBetSide,
         pendingMarket.initialBetAmount.toString(),
@@ -3202,6 +3211,7 @@ export async function registerRoutes(
     initialBetAmount: number;
     totalCost: number;
     createdAt: number;
+    survivalCriteria?: string;
   }>();
 
   // Track used signatures to prevent replay attacks

@@ -1,5 +1,5 @@
 import { storage } from "../storage";
-import { checkTokenHealth, evaluateSurvival } from "./token-health";
+import { checkTokenHealth, evaluateSurvival, detectMarketCriteria } from "./token-health";
 
 export interface ResolutionResult {
   marketId: string;
@@ -31,7 +31,11 @@ export async function autoResolveExpiredMarkets(): Promise<ResolutionResult[]> {
       
       try {
         const health = await checkTokenHealth(market.tokenMint);
-        const criteria = market.survivalCriteria || "token_exists";
+        let criteria = market.survivalCriteria || "token_exists";
+        if (criteria === "token_exists") {
+          criteria = detectMarketCriteria(market.question);
+          console.log(`[AutoResolver] Auto-detected criteria "${criteria}" from question: "${market.question}"`);
+        }
         const evaluation = evaluateSurvival(health, criteria);
         
         const outcome = evaluation.survived ? "yes" : "no";
@@ -109,7 +113,10 @@ export async function getMarketResolutionPreview(marketId: string): Promise<{
     if (!market) return null;
     
     const health = await checkTokenHealth(market.tokenMint);
-    const criteria = market.survivalCriteria || "token_exists";
+    let criteria = market.survivalCriteria || "token_exists";
+    if (criteria === "token_exists") {
+      criteria = detectMarketCriteria(market.question);
+    }
     const evaluation = evaluateSurvival(health, criteria);
     
     const positions = await storage.getPositionsByMarket(marketId);
