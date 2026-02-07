@@ -18,6 +18,7 @@ app:
       uri: "./media/app-icon-512.png"
 
 release:
+  version: "1.0.0"
   catalog:
     en-US:
       short_description: "Privacy-first Solana token launchpad with prediction markets"

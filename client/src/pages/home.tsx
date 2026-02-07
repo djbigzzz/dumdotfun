@@ -229,7 +229,7 @@ export default function Home() {
               </span>
             </motion.div>
 
-            <h1 className="text-5xl md:text-8xl font-black tracking-tighter leading-none">
+            <h1 className="text-4xl md:text-8xl font-black tracking-tighter leading-none">
               <span className="text-red-500">DUM</span>
               <span className="text-pink-400">.</span>
               <span className="text-pink-300">FUN</span>

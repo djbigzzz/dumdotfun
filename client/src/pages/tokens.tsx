@@ -350,32 +350,30 @@ export default function TokensPage() {
           /* Table View */
           <div className={`${cardStyle} overflow-hidden`}>
             <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className={`text-xs border-b-2 ${privateMode ? "text-[#4ADE80]/70 border-[#4ADE80]/30" : "text-gray-500 border-gray-200"}`}>
-                    <th className="text-left py-3 px-4">#</th>
-                    <th className="text-left py-3 px-4">COIN</th>
-                    <th className="text-right py-3 px-4">MCAP</th>
-                    <th className="text-right py-3 px-4">PROGRESS</th>
-                    <th className="text-right py-3 px-4">AGE</th>
-                    <th className="text-right py-3 px-4">CREATOR</th>
-                  </tr>
-                </thead>
-                <tbody>
+              <div className="w-full min-w-[600px]">
+                <div className={`flex text-xs border-b-2 ${privateMode ? "text-[#4ADE80]/70 border-[#4ADE80]/30" : "text-gray-500 border-gray-200"}`}>
+                  <div className="text-left py-3 px-4 w-12">#</div>
+                  <div className="text-left py-3 px-4 flex-1">COIN</div>
+                  <div className="text-right py-3 px-4 w-24">MCAP</div>
+                  <div className="text-right py-3 px-4 w-28">PROGRESS</div>
+                  <div className="text-right py-3 px-4 w-16">AGE</div>
+                  <div className="text-right py-3 px-4 w-24">CREATOR</div>
+                </div>
+                <div>
                   {sortedTokens.map((token, index) => (
                     <Link key={token.mint} href={`/token/${token.mint}`}>
-                      <tr 
-                        className={`cursor-pointer border-b transition-all ${
+                      <div 
+                        className={`flex items-center cursor-pointer border-b transition-all ${
                           privateMode 
                             ? "border-[#4ADE80]/20 hover:bg-[#4ADE80]/10" 
                             : "border-gray-100 hover:bg-gray-50"
                         }`}
                         data-testid={`table-row-${token.mint}`}
                       >
-                        <td className={`py-3 px-4 font-mono text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
+                        <div className={`py-3 px-4 w-12 font-mono text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
                           #{index + 1}
-                        </td>
-                        <td className="py-3 px-4">
+                        </div>
+                        <div className="py-3 px-4 flex-1">
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
                               {token.imageUri ? (
@@ -395,11 +393,11 @@ export default function TokensPage() {
                               </div>
                             </div>
                           </div>
-                        </td>
-                        <td className={`py-3 px-4 text-right font-mono text-sm font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>
+                        </div>
+                        <div className={`py-3 px-4 w-24 text-right font-mono text-sm font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>
                           {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
-                        </td>
-                        <td className="py-3 px-4 text-right">
+                        </div>
+                        <div className="py-3 px-4 w-28 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className={`w-16 h-2 rounded-full overflow-hidden ${privateMode ? "bg-black border border-[#4ADE80]/30" : "bg-gray-200"}`}>
                               <div 
@@ -415,18 +413,18 @@ export default function TokensPage() {
                               {token.bondingCurveProgress.toFixed(0)}%
                             </span>
                           </div>
-                        </td>
-                        <td className={`py-3 px-4 text-right text-sm ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                        </div>
+                        <div className={`py-3 px-4 w-16 text-right text-sm ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
                           {getTimeAgo(new Date(token.createdAt))}
-                        </td>
-                        <td className={`py-3 px-4 text-right text-sm font-mono ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
+                        </div>
+                        <div className={`py-3 px-4 w-24 text-right text-sm font-mono ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
                           {token.creatorAddress.slice(0, 6)}...
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     </Link>
                   ))}
-                </tbody>
-              </table>
+                </div>
+              </div>
             </div>
           </div>
         )}

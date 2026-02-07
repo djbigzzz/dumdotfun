@@ -401,6 +401,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <p className={privateMode ? "text-[#4ADE80]/30" : ""}>
           {privateMode ? "// © 2025 D/\\EMON NETWORK" : "© 2025 Dum.fun. All rights reserved."}
         </p>
+        <p className={`text-xs mt-1 ${privateMode ? "text-[#4ADE80]/20" : "text-gray-400"}`}>
+          {privateMode ? "v1.0.0-dev" : "v1.0.0"}
+        </p>
       </footer>
     </div>
   );

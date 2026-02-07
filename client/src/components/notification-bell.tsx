@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bell, CheckCircle, XCircle, Clock, Trophy, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 
@@ -22,6 +22,7 @@ interface Notification {
 export function NotificationBell() {
   const { connectedWallet } = useWallet();
   const { privateMode } = usePrivacy();
+  const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
 
@@ -97,10 +98,13 @@ export function NotificationBell() {
               ) : (
                 <div className="divide-y divide-zinc-800">
                   {notifications.map((notif) => (
-                    <Link key={notif.id} href={`/market/${notif.marketId}`}>
                       <motion.div
+                        key={notif.id}
                         whileTap={{ scale: 0.98 }}
-                        onClick={() => setOpen(false)}
+                        onClick={() => {
+                          setOpen(false);
+                          navigate(`/market/${notif.marketId}`);
+                        }}
                         className={`p-3 cursor-pointer transition-colors ${
                           privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
                         }`}
@@ -165,7 +169,6 @@ export function NotificationBell() {
                           </div>
                         )}
                       </motion.div>
-                    </Link>
                   ))}
                 </div>
               )}

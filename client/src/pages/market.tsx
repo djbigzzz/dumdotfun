@@ -109,6 +109,8 @@ export default function MarketDetail() {
     },
   });
 
+  const countdown = useCountdown(market?.resolutionDate || new Date().toISOString());
+
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
       const phantom = (window as any).phantom?.solana;
@@ -249,7 +251,6 @@ export default function MarketDetail() {
     );
   }
 
-  const countdown = useCountdown(market.resolutionDate);
   const isResolved = market.status === "resolved";
   const isExpired = countdown.total <= 0 && !isResolved;
   const canBet = !isResolved && !isExpired;
@@ -437,7 +438,7 @@ export default function MarketDetail() {
               <button
                 onClick={() => canBet && setSelectedSide("yes")}
                 disabled={!canBet}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
                   selectedSide === "yes"
                     ? "bg-green-600/30 border-green-500"
                     : canBet
@@ -450,13 +451,13 @@ export default function MarketDetail() {
                   <span className="text-green-400 font-bold text-lg">YES</span>
                   <TrendingUp className="w-5 h-5 text-green-400" />
                 </div>
-                <p className="text-4xl font-black text-green-400">{market.yesOdds}%</p>
+                <p className="text-2xl md:text-4xl font-black text-green-400">{market.yesOdds}%</p>
                 <p className="text-sm text-gray-500 mt-2">{market.yesPool.toFixed(2)} SOL in pool</p>
               </button>
               <button
                 onClick={() => canBet && setSelectedSide("no")}
                 disabled={!canBet}
-                className={`p-6 rounded-xl border-2 transition-all ${
+                className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
                   selectedSide === "no"
                     ? "bg-red-600/30 border-red-500"
                     : canBet
@@ -469,7 +470,7 @@ export default function MarketDetail() {
                   <span className="text-red-400 font-bold text-lg">NO</span>
                   <TrendingDown className="w-5 h-5 text-red-400" />
                 </div>
-                <p className="text-4xl font-black text-red-400">{market.noOdds}%</p>
+                <p className="text-2xl md:text-4xl font-black text-red-400">{market.noOdds}%</p>
                 <p className="text-sm text-gray-500 mt-2">{market.noPool.toFixed(2)} SOL in pool</p>
               </button>
             </div>
