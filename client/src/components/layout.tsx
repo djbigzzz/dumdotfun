@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
 import { PrivacyDrawer } from "./privacy-drawer";
 import { MobileBottomNav } from "./mobile-bottom-nav";
+import { NotificationBell } from "./notification-bell";
 
 const Marquee = () => {
   return (
@@ -277,6 +278,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               />
             </motion.div>
           )}
+          <NotificationBell />
           <div className="flex items-center">
             <PrivacyToggle onOpenDrawer={() => setShowPrivacyDrawer(true)} />
             <button

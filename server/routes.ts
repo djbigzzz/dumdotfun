@@ -2810,6 +2810,73 @@ export async function registerRoutes(
     }
   });
 
+  // Get notifications for a wallet (resolved markets they have positions in)
+  app.get("/api/notifications/:wallet", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const positions = await storage.getPositionsByWallet(wallet);
+      
+      if (positions.length === 0) {
+        return res.json({ notifications: [] });
+      }
+
+      const marketIds = Array.from(new Set(positions.map(p => p.marketId)));
+      const notifications = [];
+
+      for (const marketId of marketIds) {
+        const market = await storage.getMarket(marketId);
+        if (!market) continue;
+
+        if (market.status === "resolved" && market.outcome) {
+          const userPositions = positions.filter(p => p.marketId === marketId);
+          const winningPositions = userPositions.filter(p => p.side === market.outcome);
+          const winningAmount = winningPositions.reduce((sum, p) => sum + Number(p.amount), 0);
+          const totalBet = userPositions.reduce((sum, p) => sum + Number(p.amount), 0);
+          const won = winningAmount > 0;
+          const totalPool = Number(market.yesPool) + Number(market.noPool);
+          const winningPool = market.outcome === "yes" ? Number(market.yesPool) : Number(market.noPool);
+          const payout = won && winningPool > 0 ? (winningAmount / winningPool) * totalPool : 0;
+
+          notifications.push({
+            id: `resolved-${marketId}`,
+            type: "market_resolved",
+            marketId,
+            question: market.question,
+            outcome: market.outcome,
+            won,
+            betAmount: totalBet,
+            payout: won ? payout : 0,
+            resolvedAt: market.resolvedAt,
+            read: false,
+          });
+        }
+
+        const timeToResolution = market.resolutionDate ? new Date(market.resolutionDate).getTime() - Date.now() : null;
+        if (market.status === "open" && timeToResolution !== null && timeToResolution > 0 && timeToResolution < 60 * 60 * 1000) {
+          notifications.push({
+            id: `expiring-${marketId}`,
+            type: "market_expiring_soon",
+            marketId,
+            question: market.question,
+            minutesLeft: Math.ceil(timeToResolution / (1000 * 60)),
+            read: false,
+          });
+        }
+      }
+
+      notifications.sort((a: any, b: any) => {
+        const dateA = a.resolvedAt ? new Date(a.resolvedAt).getTime() : Date.now();
+        const dateB = b.resolvedAt ? new Date(b.resolvedAt).getTime() : Date.now();
+        return dateB - dateA;
+      });
+
+      return res.json({ notifications });
+    } catch (error: any) {
+      console.error("Error fetching notifications:", error);
+      return res.status(500).json({ error: "Failed to fetch notifications" });
+    }
+  });
+
   // Get single market
   app.get("/api/markets/:id", async (req, res) => {
     try {

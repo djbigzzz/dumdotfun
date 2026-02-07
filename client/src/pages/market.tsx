@@ -3,11 +3,12 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
-import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info } from "lucide-react";
+import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info, BookOpen, Zap, Scale, Timer } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy } from "@/lib/privacy-context";
 import { Transaction, Connection } from "@solana/web3.js";
+import { useEffect } from "react";
 
 const SOLANA_RPC = "https://api.devnet.solana.com";
 
@@ -29,6 +30,59 @@ interface Market {
   noOdds: number;
   totalPositions: number;
   createdAt: string;
+  survivalCriteria?: string;
+  resolutionType?: string;
+  autoResolve?: boolean;
+}
+
+function getCriteriaLabel(criteria: string): string {
+  switch (criteria) {
+    case "token_exists": return "Token Exists On-Chain";
+    case "has_liquidity": return "Token Has Liquidity";
+    case "recent_activity": return "Recent Trading Activity";
+    case "graduated": return "Token Graduated to DEX";
+    case "high_survival": return "High Survival Score (75+)";
+    default: return "Token Exists On-Chain";
+  }
+}
+
+function getCriteriaDescription(criteria: string): string {
+  switch (criteria) {
+    case "token_exists": return "The token's mint account must still exist on the Solana blockchain at resolution time.";
+    case "has_liquidity": return "The token must exist AND have active liquidity (multiple holders with non-zero balances).";
+    case "recent_activity": return "The token must exist AND have at least one on-chain transaction within the last 7 days.";
+    case "graduated": return "The token must have 10+ holders with active liquidity, qualifying as 'graduated' to a DEX.";
+    case "high_survival": return "The token must score 75/100 or higher on the survival score (checks existence, liquidity, activity, and graduation).";
+    default: return "The token's mint account must still exist on the Solana blockchain at resolution time.";
+  }
+}
+
+function useCountdown(targetDate: string) {
+  const [timeLeft, setTimeLeft] = useState({
+    days: 0, hours: 0, minutes: 0, seconds: 0, total: 0,
+  });
+
+  useEffect(() => {
+    const update = () => {
+      const diff = new Date(targetDate).getTime() - Date.now();
+      if (diff <= 0) {
+        setTimeLeft({ days: 0, hours: 0, minutes: 0, seconds: 0, total: 0 });
+        return;
+      }
+      setTimeLeft({
+        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((diff % (1000 * 60)) / 1000),
+        total: diff,
+      });
+    };
+    update();
+    const interval = setInterval(update, 1000);
+    return () => clearInterval(interval);
+  }, [targetDate]);
+
+  return timeLeft;
 }
 
 export default function MarketDetail() {
@@ -195,12 +249,12 @@ export default function MarketDetail() {
     );
   }
 
-  const timeLeft = new Date(market.resolutionDate).getTime() - Date.now();
-  const daysLeft = Math.max(0, Math.floor(timeLeft / (1000 * 60 * 60 * 24)));
-  const hoursLeft = Math.max(0, Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)));
+  const countdown = useCountdown(market.resolutionDate);
   const isResolved = market.status === "resolved";
-  const isExpired = timeLeft <= 0 && !isResolved;
+  const isExpired = countdown.total <= 0 && !isResolved;
   const canBet = !isResolved && !isExpired;
+  const criteria = (market as any).survivalCriteria || "token_exists";
+  const isAutoResolve = (market as any).autoResolve !== false;
 
   return (
     <Layout>
@@ -270,9 +324,110 @@ export default function MarketDetail() {
                 <Clock className="w-4 h-4" />
                 Time Left
               </div>
-              <p className="text-2xl font-black text-white">
-                {isResolved ? "Resolved" : isExpired ? "Expired" : daysLeft > 0 ? `${daysLeft}d ${hoursLeft}h` : `${hoursLeft}h`}
-              </p>
+              {isResolved ? (
+                <p className="text-2xl font-black text-white">Resolved</p>
+              ) : isExpired ? (
+                <p className="text-2xl font-black text-yellow-400">Resolving...</p>
+              ) : (
+                <div className="flex gap-2" data-testid="countdown-timer">
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-white">{countdown.days}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">days</p>
+                  </div>
+                  <span className="text-2xl font-black text-gray-600">:</span>
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-white">{String(countdown.hours).padStart(2, '0')}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">hrs</p>
+                  </div>
+                  <span className="text-2xl font-black text-gray-600">:</span>
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-white">{String(countdown.minutes).padStart(2, '0')}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">min</p>
+                  </div>
+                  <span className="text-2xl font-black text-gray-600">:</span>
+                  <div className="text-center">
+                    <p className="text-2xl font-black text-white">{String(countdown.seconds).padStart(2, '0')}</p>
+                    <p className="text-[10px] text-gray-500 uppercase">sec</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Market Rules & Settlement */}
+          <div className="p-6 border-b border-zinc-800" data-testid="section-market-rules">
+            <div className="flex items-center gap-2 mb-4">
+              <BookOpen className="w-5 h-5 text-yellow-500" />
+              <h2 className="text-lg font-bold text-white">Market Rules & Settlement</h2>
+            </div>
+            
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Scale className="w-4 h-4 text-blue-400" />
+                    <span className="text-sm font-bold text-white">Resolution Criteria</span>
+                  </div>
+                  <p className="text-sm text-yellow-400 font-bold">{getCriteriaLabel(criteria)}</p>
+                  <p className="text-xs text-gray-400 mt-1">{getCriteriaDescription(criteria)}</p>
+                </div>
+                
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Timer className="w-4 h-4 text-purple-400" />
+                    <span className="text-sm font-bold text-white">Resolution Date</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    {new Date(market.resolutionDate).toLocaleString(undefined, {
+                      dateStyle: "full",
+                      timeStyle: "short",
+                    })}
+                  </p>
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Zap className="w-4 h-4 text-green-400" />
+                    <span className="text-sm font-bold text-white">Resolution Method</span>
+                  </div>
+                  <p className="text-sm text-gray-300">
+                    {isAutoResolve ? "Automatic — resolved by on-chain verification" : "Manual — resolved by market creator"}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
+                <div>
+                  <span className="text-sm font-bold text-white block mb-2">How Settlement Works</span>
+                  <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
+                    <li>When the countdown reaches zero, the market closes for new bets</li>
+                    <li>The system checks the token's on-chain status against the criteria above</li>
+                    <li>If the token meets the criteria, <span className="text-green-400 font-bold">YES wins</span>. Otherwise, <span className="text-red-400 font-bold">NO wins</span></li>
+                    <li>Winnings are calculated proportionally from the total pool</li>
+                  </ol>
+                </div>
+                
+                <div className="border-t border-zinc-700 pt-3">
+                  <span className="text-sm font-bold text-white block mb-1">Payout Formula</span>
+                  <p className="text-xs text-gray-400">
+                    Your payout = (your bet / winning pool) x total pool
+                  </p>
+                  <div className="mt-2 bg-zinc-900 rounded p-2">
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-500">YES Pool</span>
+                      <span className="text-green-400 font-bold">{market.yesPool.toFixed(2)} SOL</span>
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span className="text-gray-500">NO Pool</span>
+                      <span className="text-red-400 font-bold">{market.noPool.toFixed(2)} SOL</span>
+                    </div>
+                    <div className="flex justify-between text-xs mt-1 border-t border-zinc-700 pt-1">
+                      <span className="text-gray-500">Total Pool</span>
+                      <span className="text-yellow-400 font-bold">{market.totalVolume.toFixed(2)} SOL</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
 

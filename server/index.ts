@@ -89,6 +89,24 @@ app.use((req, res, next) => {
   // Run after brief delay to let server finish starting
   setTimeout(checkExpiredMarkets, 2000);
 
+  // Scheduled auto-resolution: check every 5 minutes for expired markets
+  const AUTO_RESOLVE_INTERVAL = 5 * 60 * 1000;
+  setInterval(async () => {
+    try {
+      const { autoResolveExpiredMarkets } = await import("./services/auto-resolver");
+      const results = await autoResolveExpiredMarkets();
+      if (results.length > 0) {
+        log(`[AutoResolver] Resolved ${results.length} market(s)`, "auto-resolve");
+        for (const r of results) {
+          log(`  - "${r.question}" → ${r.outcome.toUpperCase()} (${r.reason})`, "auto-resolve");
+        }
+      }
+    } catch (error) {
+      console.error("[AutoResolver] Scheduled resolution error:", error);
+    }
+  }, AUTO_RESOLVE_INTERVAL);
+  log(`[AutoResolver] Scheduled every ${AUTO_RESOLVE_INTERVAL / 1000}s`, "startup");
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
