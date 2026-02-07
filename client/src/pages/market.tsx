@@ -113,6 +113,17 @@ export default function MarketDetail() {
     },
   });
 
+  const { data: resolutionData } = useQuery<any>({
+    queryKey: ["resolution-status", id],
+    queryFn: async () => {
+      const res = await fetch(`/api/markets/${id}/resolution-status`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!id,
+    staleTime: 60000,
+  });
+
   const countdown = useCountdown(market?.resolutionDate || new Date().toISOString());
 
   const placeBetMutation = useMutation({
@@ -359,77 +370,167 @@ export default function MarketDetail() {
             </div>
           </div>
 
-          {/* Market Rules & Settlement */}
+          {/* Market Rules & Settlement - Polymarket/Kalshi style */}
           <div className="p-6 border-b border-zinc-800" data-testid="section-market-rules">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-lg font-bold text-white">Market Rules & Settlement</h2>
+              <h2 className="text-lg font-bold text-white">Resolution Rules</h2>
             </div>
             
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Scale className="w-4 h-4 text-blue-400" />
-                    <span className="text-sm font-bold text-white">Resolution Criteria</span>
+            <div className="space-y-4">
+              {/* YES / NO Conditions */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
+                      <span className="text-green-400 text-xs font-black">Y</span>
+                    </div>
+                    <span className="text-sm font-bold text-green-400">YES Wins If</span>
                   </div>
-                  <p className="text-sm text-yellow-400 font-bold">{getCriteriaLabel(criteria)}</p>
-                  <p className="text-xs text-gray-400 mt-1">{getCriteriaDescription(criteria)}</p>
-                </div>
-                
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Timer className="w-4 h-4 text-purple-400" />
-                    <span className="text-sm font-bold text-white">Resolution Date</span>
-                  </div>
-                  <p className="text-sm text-gray-300">
-                    {new Date(market.resolutionDate).toLocaleString(undefined, {
-                      dateStyle: "full",
-                      timeStyle: "short",
-                    })}
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {resolutionData?.rules?.yesCondition || getCriteriaDescription(criteria)}
                   </p>
                 </div>
-
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <Zap className="w-4 h-4 text-green-400" />
-                    <span className="text-sm font-bold text-white">Resolution Method</span>
+                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
+                      <span className="text-red-400 text-xs font-black">N</span>
+                    </div>
+                    <span className="text-sm font-bold text-red-400">NO Wins If</span>
                   </div>
-                  <p className="text-sm text-gray-300">
-                    {isAutoResolve ? "Automatic — resolved by on-chain verification" : "Manual — resolved by market creator"}
+                  <p className="text-xs text-gray-300 leading-relaxed">
+                    {resolutionData?.rules?.noCondition || "The opposite condition is met at resolution time."}
                   </p>
                 </div>
               </div>
 
-              <div className="bg-zinc-800/50 rounded-lg p-4 space-y-3">
-                <div>
-                  <span className="text-sm font-bold text-white block mb-2">How Settlement Works</span>
-                  <ol className="text-xs text-gray-400 space-y-2 list-decimal list-inside">
-                    <li>When the countdown reaches zero, the market closes for new bets</li>
-                    <li>The system checks the token on-chain: dev holdings, liquidity, holder count, and activity</li>
-                    <li>The outcome is determined based on the resolution criteria above</li>
-                    <li>Winnings are calculated proportionally from the total pool</li>
-                  </ol>
+              {/* Thresholds & Live Data */}
+              <div className="bg-zinc-800/50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <Scale className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-bold text-white">Exact Thresholds</span>
                 </div>
-                
-                <div className="border-t border-zinc-700 pt-3">
-                  <span className="text-sm font-bold text-white block mb-1">Payout Formula</span>
-                  <p className="text-xs text-gray-400">
-                    Your payout = (your bet / winning pool) x total pool
+                <div className="space-y-2">
+                  {resolutionData?.rules?.thresholds?.map((t: { label: string; value: string }, i: number) => (
+                    <div key={i} className="flex justify-between items-center text-xs">
+                      <span className="text-gray-400">{t.label}</span>
+                      <span className="text-yellow-400 font-mono font-bold">{t.value}</span>
+                    </div>
+                  )) || (
+                    <>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Criteria</span>
+                        <span className="text-yellow-400 font-mono font-bold">{getCriteriaLabel(criteria)}</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Live on-chain data */}
+                {resolutionData?.health && (
+                  <div className="mt-3 pt-3 border-t border-zinc-700">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Zap className="w-3 h-3 text-blue-400" />
+                      <span className="text-xs font-bold text-blue-400">LIVE ON-CHAIN STATUS</span>
+                    </div>
+                    <div className="space-y-1.5">
+                      {resolutionData.health.creatorBalancePercent !== null && (
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-gray-400">Dev holdings</span>
+                          <span className={`font-mono font-bold ${
+                            criteria === "dev_sells"
+                              ? (resolutionData.health.creatorSoldPercent >= 80 ? "text-red-400" : "text-green-400")
+                              : (resolutionData.health.creatorBalancePercent >= 20 ? "text-green-400" : "text-red-400")
+                          }`}>
+                            {resolutionData.health.creatorBalancePercent}% of supply
+                            {criteria === "dev_sells" && ` (sold ${resolutionData.health.creatorSoldPercent}%)`}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Holders</span>
+                        <span className="text-white font-mono">{resolutionData.health.holderCount}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Liquidity</span>
+                        <span className={`font-mono font-bold ${resolutionData.health.hasLiquidity ? "text-green-400" : "text-red-400"}`}>
+                          {resolutionData.health.hasLiquidity ? "Active" : "None"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Recent activity</span>
+                        <span className={`font-mono font-bold ${resolutionData.health.criteria.recent_activity ? "text-green-400" : "text-red-400"}`}>
+                          {resolutionData.health.criteria.recent_activity 
+                            ? `${resolutionData.health.lastTradeAge}d ago` 
+                            : "No activity"}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="text-gray-400">Survival score</span>
+                        <span className={`font-mono font-bold ${
+                          resolutionData.health.survivalScore >= 75 ? "text-green-400" : 
+                          resolutionData.health.survivalScore >= 50 ? "text-yellow-400" : "text-red-400"
+                        }`}>
+                          {resolutionData.health.survivalScore}/100
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resolution Details */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Timer className="w-3.5 h-3.5 text-purple-400" />
+                    <span className="text-xs font-bold text-gray-300">Resolution Date</span>
+                  </div>
+                  <p className="text-xs text-white font-mono">
+                    {new Date(market.resolutionDate).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
                   </p>
-                  <div className="mt-2 bg-zinc-900 rounded p-2">
-                    <div className="flex justify-between text-xs">
-                      <span className="text-gray-500">YES Pool</span>
-                      <span className="text-green-400 font-bold">{market.yesPool.toFixed(2)} SOL</span>
-                    </div>
-                    <div className="flex justify-between text-xs mt-1">
-                      <span className="text-gray-500">NO Pool</span>
-                      <span className="text-red-400 font-bold">{market.noPool.toFixed(2)} SOL</span>
-                    </div>
-                    <div className="flex justify-between text-xs mt-1 border-t border-zinc-700 pt-1">
-                      <span className="text-gray-500">Total Pool</span>
-                      <span className="text-yellow-400 font-bold">{market.totalVolume.toFixed(2)} SOL</span>
-                    </div>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Zap className="w-3.5 h-3.5 text-green-400" />
+                    <span className="text-xs font-bold text-gray-300">Verification</span>
+                  </div>
+                  <p className="text-xs text-white">
+                    {isAutoResolve ? "Automatic — Solana on-chain data" : "Manual — market creator"}
+                  </p>
+                </div>
+                <div className="bg-zinc-800/50 rounded-lg p-3">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Scale className="w-3.5 h-3.5 text-blue-400" />
+                    <span className="text-xs font-bold text-gray-300">Source</span>
+                  </div>
+                  <p className="text-xs text-white">
+                    Solana RPC (Helius)
+                  </p>
+                </div>
+              </div>
+
+              {/* Pool & Payout */}
+              <div className="bg-zinc-800/50 rounded-lg p-4">
+                <span className="text-sm font-bold text-white block mb-2">Pool & Payout</span>
+                <p className="text-xs text-gray-400 mb-2">
+                  Your payout = (your bet / winning pool) x total pool
+                </p>
+                <div className="bg-zinc-900 rounded p-2">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-gray-500">YES Pool</span>
+                    <span className="text-green-400 font-bold">{market.yesPool.toFixed(2)} SOL</span>
+                  </div>
+                  <div className="flex justify-between text-xs mt-1">
+                    <span className="text-gray-500">NO Pool</span>
+                    <span className="text-red-400 font-bold">{market.noPool.toFixed(2)} SOL</span>
+                  </div>
+                  <div className="flex justify-between text-xs mt-1 border-t border-zinc-700 pt-1">
+                    <span className="text-gray-500">Total Pool</span>
+                    <span className="text-yellow-400 font-bold">{market.totalVolume.toFixed(2)} SOL</span>
                   </div>
                 </div>
               </div>

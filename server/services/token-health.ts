@@ -279,6 +279,118 @@ export function evaluateSurvival(
   }
 }
 
+export interface ResolutionRules {
+  criteria: string;
+  title: string;
+  yesCondition: string;
+  noCondition: string;
+  verificationSource: string;
+  thresholds: { label: string; value: string }[];
+  methodology: string;
+}
+
+export function getResolutionRules(criteria: string): ResolutionRules {
+  switch (criteria) {
+    case "dev_sells":
+      return {
+        criteria,
+        title: "Dev Rug Check",
+        yesCondition: `YES wins if the token creator has sold ${RUG_THRESHOLD}% or more of the total token supply by the resolution date.`,
+        noCondition: `NO wins if the token creator still holds more than ${100 - RUG_THRESHOLD}% of the total supply at resolution time.`,
+        verificationSource: "On-chain verification via Solana RPC (getParsedTokenAccountsByOwner). The creator's wallet is the address that deployed the token.",
+        thresholds: [
+          { label: "Rug threshold", value: `Creator sells ${RUG_THRESHOLD}%+ of supply` },
+          { label: "Safe threshold", value: `Creator holds >${100 - RUG_THRESHOLD}% of supply` },
+        ],
+        methodology: "The system checks the token creator's wallet balance on the Solana blockchain. Total supply is calculated from all token accounts. If the creator's balance divided by total supply is below " + (100 - RUG_THRESHOLD) + "%, the dev is considered to have rugged.",
+      };
+
+    case "dev_holds":
+      return {
+        criteria,
+        title: "Dev Holdings Check",
+        yesCondition: `YES wins if the token creator still holds ${DEV_HOLD_MIN}% or more of the total token supply AND the token has active liquidity (2+ holders).`,
+        noCondition: `NO wins if the creator holds less than ${DEV_HOLD_MIN}% of supply OR the token has no liquidity.`,
+        verificationSource: "On-chain verification via Solana RPC (getParsedTokenAccountsByOwner). The creator's wallet is the address that deployed the token.",
+        thresholds: [
+          { label: "Min dev holdings", value: `${DEV_HOLD_MIN}% of total supply` },
+          { label: "Min holders", value: "2+ unique token holders" },
+        ],
+        methodology: "The system checks the token creator's on-chain wallet balance and compares it to total supply. Additionally verifies the token has multiple holders with non-zero balances, confirming active liquidity.",
+      };
+
+    case "has_liquidity":
+      return {
+        criteria,
+        title: "Liquidity Check",
+        yesCondition: "YES wins if the token has 2 or more holders with non-zero balances at resolution time.",
+        noCondition: "NO wins if the token has only 1 holder or all balances are zero.",
+        verificationSource: "On-chain verification via Solana RPC (getTokenLargestAccounts).",
+        thresholds: [
+          { label: "Min holders", value: "2+ unique holders with balance > 0" },
+        ],
+        methodology: "The system queries the token's largest accounts on-chain and counts holders with non-zero balances.",
+      };
+
+    case "recent_activity":
+      return {
+        criteria,
+        title: "Trading Activity Check",
+        yesCondition: "YES wins if the token had at least one on-chain transaction within the last 7 days before the resolution date.",
+        noCondition: "NO wins if there were zero on-chain transactions involving the token in the 7 days before resolution.",
+        verificationSource: "On-chain verification via Solana RPC (getSignaturesForAddress).",
+        thresholds: [
+          { label: "Activity window", value: "7 days before resolution date" },
+          { label: "Min transactions", value: "1+ on-chain transaction" },
+        ],
+        methodology: "The system checks the most recent transaction signature for the token mint address and calculates the age in days.",
+      };
+
+    case "graduated":
+      return {
+        criteria,
+        title: "DEX Graduation Check",
+        yesCondition: "YES wins if the token has 10 or more unique holders AND active liquidity at resolution time.",
+        noCondition: "NO wins if the token has fewer than 10 holders or no active liquidity.",
+        verificationSource: "On-chain verification via Solana RPC (getTokenLargestAccounts).",
+        thresholds: [
+          { label: "Min holders for graduation", value: "10+ unique holders" },
+          { label: "Liquidity required", value: "Total supply > 0 with 2+ holders" },
+        ],
+        methodology: "The system queries the token's largest accounts to count holders. Graduation requires 10+ holders with active liquidity, indicating the token has reached meaningful distribution.",
+      };
+
+    case "high_survival":
+      return {
+        criteria,
+        title: "Survival Score Check",
+        yesCondition: "YES wins if the token achieves a survival score of 75 or higher out of 100.",
+        noCondition: "NO wins if the survival score is below 75 out of 100.",
+        verificationSource: "On-chain verification via Solana RPC — composite score from multiple checks.",
+        thresholds: [
+          { label: "Min survival score", value: "75/100" },
+          { label: "Score breakdown", value: "Existence (15) + Liquidity (20) + Dev Holdings (25) + Activity (20) + Graduation (20)" },
+        ],
+        methodology: "A composite score is calculated from five on-chain checks: token existence (15 pts), active liquidity (20 pts), dev still holding tokens (25 pts), recent trading activity (20 pts), and DEX graduation (20 pts).",
+      };
+
+    case "token_exists":
+    default:
+      return {
+        criteria: criteria || "token_exists",
+        title: "Token Health Check",
+        yesCondition: `YES wins if the token has active liquidity AND the creator still holds ${DEV_HOLD_MIN}%+ of supply.`,
+        noCondition: `NO wins if the token has no liquidity OR the creator holds less than ${DEV_HOLD_MIN}% of supply.`,
+        verificationSource: "On-chain verification via Solana RPC (getParsedTokenAccountsByOwner, getTokenLargestAccounts).",
+        thresholds: [
+          { label: "Min dev holdings", value: `${DEV_HOLD_MIN}% of total supply` },
+          { label: "Min holders", value: "2+ unique token holders" },
+        ],
+        methodology: "The system checks both the creator's token balance and overall liquidity on the Solana blockchain.",
+      };
+  }
+}
+
 export async function batchCheckTokenHealth(mints: string[]): Promise<Map<string, TokenHealthStatus>> {
   const results = new Map<string, TokenHealthStatus>();
   

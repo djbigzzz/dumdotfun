@@ -2771,6 +2771,7 @@ export async function registerRoutes(
   app.get("/api/markets/:id/resolution-status", async (req, res) => {
     try {
       const { getMarketResolutionPreview } = await import("./services/auto-resolver");
+      const { getResolutionRules } = await import("./services/token-health");
       const preview = await getMarketResolutionPreview(req.params.id);
       
       if (!preview) {
@@ -2783,14 +2784,18 @@ export async function registerRoutes(
       const timeRemaining = resolutionDate.getTime() - now.getTime();
       const daysRemaining = Math.max(0, Math.ceil(timeRemaining / (1000 * 60 * 60 * 24)));
       
+      const criteria = preview.market.criteria || "token_exists";
+      const rules = getResolutionRules(criteria);
+      
       return res.json({
         ...preview,
         isExpired,
         daysRemaining,
         canResolve: isExpired && preview.market.status === "open",
+        rules,
         resolutionInfo: {
           type: preview.market.resolutionType || "survival",
-          criteria: preview.market.criteria || "token_exists",
+          criteria,
           autoResolve: preview.market.autoResolve !== false,
         },
       });

@@ -1,11 +1,62 @@
 import { Layout } from "@/components/layout";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
-import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft, Coins } from "lucide-react";
+import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft, Coins, Scale } from "lucide-react";
 import { useWallet } from "@/lib/wallet-context";
 import { Link } from "wouter";
+
+function detectCriteria(question: string): string {
+  const q = question.toLowerCase();
+  if (q.includes("rug") || q.includes("dump") || q.includes("scam") || q.includes("dev sell")) return "dev_sells";
+  if (q.includes("graduate") || q.includes("graduation") || q.includes("dex")) return "graduated";
+  if (q.includes("survive") || q.includes("alive") || q.includes("last") || q.includes("make it")) return "dev_holds";
+  if (q.includes("trade") || q.includes("active") || q.includes("volume")) return "recent_activity";
+  if (q.includes("liquidity") || q.includes("liquid")) return "has_liquidity";
+  return "dev_holds";
+}
+
+function getRulesPreview(criteria: string): { title: string; yesCondition: string; noCondition: string; thresholds: string[] } {
+  switch (criteria) {
+    case "dev_sells": return {
+      title: "Dev Rug Check",
+      yesCondition: "YES wins if the token creator sold 80%+ of the total supply by the resolution date.",
+      noCondition: "NO wins if the creator still holds more than 20% of the total supply.",
+      thresholds: ["Rug threshold: creator sells 80%+ of supply", "Safe: creator holds >20%"],
+    };
+    case "dev_holds": return {
+      title: "Dev Holdings Check",
+      yesCondition: "YES wins if the creator still holds 20%+ of supply AND the token has 2+ holders.",
+      noCondition: "NO wins if the creator holds less than 20% of supply OR the token has no liquidity.",
+      thresholds: ["Min dev holdings: 20% of supply", "Min holders: 2+"],
+    };
+    case "graduated": return {
+      title: "DEX Graduation",
+      yesCondition: "YES wins if the token has 10+ holders with active liquidity.",
+      noCondition: "NO wins if the token has fewer than 10 holders.",
+      thresholds: ["Min holders: 10+", "Liquidity required: active"],
+    };
+    case "recent_activity": return {
+      title: "Trading Activity",
+      yesCondition: "YES wins if the token had on-chain activity in the last 7 days.",
+      noCondition: "NO wins if there was zero on-chain activity in 7 days.",
+      thresholds: ["Activity window: 7 days", "Min transactions: 1+"],
+    };
+    case "has_liquidity": return {
+      title: "Liquidity Check",
+      yesCondition: "YES wins if the token has 2+ holders with non-zero balances.",
+      noCondition: "NO wins if the token has only 1 holder or zero balances.",
+      thresholds: ["Min holders: 2+"],
+    };
+    default: return {
+      title: "Token Health",
+      yesCondition: "YES wins if the token has liquidity and the dev holds 20%+ of supply.",
+      noCondition: "NO wins if the token has no liquidity or the dev dumped tokens.",
+      thresholds: ["Min dev holdings: 20%", "Min holders: 2+"],
+    };
+  }
+}
 
 const CREATION_FEE = 0.05; // SOL
 const MIN_INITIAL_BET = 0.5; // SOL
@@ -41,6 +92,9 @@ export default function CreateMarket() {
   const [error, setError] = useState<string | null>(null);
   
   const totalCost = CREATION_FEE + formData.initialBetAmount;
+
+  const detectedCriteria = useMemo(() => detectCriteria(formData.question), [formData.question]);
+  const rulesPreview = useMemo(() => getRulesPreview(detectedCriteria), [detectedCriteria]);
 
   useEffect(() => {
     if (prefilledToken) {
@@ -250,6 +304,44 @@ export default function CreateMarket() {
                 {formData.question.length}/200 characters
               </p>
             </div>
+
+            {/* Auto-detected Resolution Rules Preview */}
+            {formData.question.length >= 5 && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                className="bg-zinc-800/50 border border-yellow-600/20 rounded-lg p-4 space-y-3"
+                data-testid="section-rules-preview"
+              >
+                <div className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-yellow-400" />
+                  <span className="text-sm font-bold text-yellow-400">AUTO-DETECTED RESOLUTION RULES</span>
+                </div>
+                <p className="text-xs text-gray-400">
+                  Based on your question, this market will use <span className="text-white font-bold">{rulesPreview.title}</span> criteria.
+                  These rules are shown to all bettors before they place a bet.
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div className="bg-green-500/5 border border-green-500/20 rounded p-3">
+                    <span className="text-xs font-bold text-green-400 block mb-1">YES Wins If</span>
+                    <p className="text-[11px] text-gray-300">{rulesPreview.yesCondition}</p>
+                  </div>
+                  <div className="bg-red-500/5 border border-red-500/20 rounded p-3">
+                    <span className="text-xs font-bold text-red-400 block mb-1">NO Wins If</span>
+                    <p className="text-[11px] text-gray-300">{rulesPreview.noCondition}</p>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-xs font-bold text-gray-400 block mb-1">Exact Thresholds</span>
+                  {rulesPreview.thresholds.map((t, i) => (
+                    <p key={i} className="text-[11px] text-yellow-400 font-mono">{t}</p>
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-500">
+                  Verification source: Solana on-chain data via Helius RPC. Resolution is automatic at the date you set.
+                </p>
+              </motion.div>
+            )}
 
             <div>
               <label className="block text-sm font-bold text-gray-300 mb-2">
