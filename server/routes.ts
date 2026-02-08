@@ -2139,20 +2139,19 @@ export async function registerRoutes(
 
       console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}${privacyMode ? ' [PRIVATE LAUNCH]' : ''}`);
 
-      // Auto-create a prediction market for the token
+      // Auto-create a default "Will it rug?" prediction market for the token (3 day resolution)
       try {
-        const marketQuestion = `Will $${token.symbol} survive 7 days?`;
         await storage.createMarket({
-          question: marketQuestion,
-          description: `Prediction on whether ${token.name} will still be trading in 7 days. Resolved by checking if the dev still holds their tokens and the token has liquidity.`,
+          question: `Will $${token.symbol} rug?`,
+          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
           imageUri: token.imageUri,
           creatorAddress: displayAddress,
           predictionType: "survival",
           tokenMint: demoMint,
-          resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          survivalCriteria: detectMarketCriteria(marketQuestion),
+          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          survivalCriteria: "dev_sells",
         });
-        console.log(`[DEMO] Auto-created prediction market for ${token.symbol}`);
+        console.log(`[DEMO] Auto-created "Will it rug?" market for ${token.symbol}`);
       } catch (marketError) {
         console.error("[DEMO] Failed to create prediction market:", marketError);
       }
@@ -2246,20 +2245,19 @@ export async function registerRoutes(
         creatorAddress,
       });
 
-      // Auto-create prediction market
+      // Auto-create a default "Will it rug?" prediction market (3 day resolution)
       try {
-        const marketQuestion = `Will $${token.symbol} survive 7 days?`;
         await storage.createMarket({
-          question: marketQuestion,
-          description: `Prediction on whether ${token.name} will still be trading in 7 days. Resolved by checking if the dev still holds their tokens and the token has liquidity.`,
+          question: `Will $${token.symbol} rug?`,
+          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
           imageUri: token.imageUri,
           creatorAddress,
           predictionType: "survival",
           tokenMint: mint,
-          resolutionDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-          survivalCriteria: detectMarketCriteria(marketQuestion),
+          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          survivalCriteria: "dev_sells",
         });
-        console.log(`[DEVNET] Auto-created prediction market for ${token.symbol}`);
+        console.log(`[DEVNET] Auto-created "Will it rug?" market for ${token.symbol}`);
       } catch (marketError) {
         console.error("[DEVNET] Failed to create prediction market:", marketError);
       }
@@ -2628,23 +2626,22 @@ export async function registerRoutes(
 
       console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
 
-      // Auto-create the standard "Will it graduate?" prediction market
+      // Auto-create a default "Will it rug?" prediction market (3 day resolution)
       let graduationMarket = null;
       try {
-        const gradQuestion = `Will $${token.symbol} graduate to DEX?`;
         graduationMarket = await storage.createMarket({
-          question: gradQuestion,
-          description: `Prediction on whether ${token.name} will reach the graduation threshold (~85 SOL raised) and migrate to Raydium DEX.`,
+          question: `Will $${token.symbol} rug?`,
+          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
           imageUri: token.imageUri,
           creatorAddress,
-          predictionType: "graduation",
+          predictionType: "survival",
           tokenMint: mintPublicKey,
-          resolutionDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-          survivalCriteria: detectMarketCriteria(gradQuestion),
+          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+          survivalCriteria: "dev_sells",
         });
-        console.log(`Created graduation prediction for ${token.symbol}`);
+        console.log(`Created "Will it rug?" prediction for ${token.symbol}`);
       } catch (marketError) {
-        console.error(`Failed to create graduation prediction for ${token.symbol}`, marketError);
+        console.error(`Failed to create prediction for ${token.symbol}`, marketError);
       }
 
       // Build platform fee transaction (separate from pump.fun tx)
