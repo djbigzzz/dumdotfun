@@ -11,6 +11,8 @@ const CRITERIA_OPTIONS = [
   {
     value: "dev_holds",
     label: "Will it survive?",
+    icon: "🛡️",
+    questionTemplate: (name: string) => `Will $${name} survive?`,
     description: "Checks if the creator still holds their tokens",
     yesCondition: "YES wins if the creator still holds 20%+ of supply AND the token has 2+ holders.",
     noCondition: "NO wins if the creator holds less than 20% of supply OR the token has no liquidity.",
@@ -19,6 +21,8 @@ const CRITERIA_OPTIONS = [
   {
     value: "dev_sells",
     label: "Will it rug?",
+    icon: "💀",
+    questionTemplate: (name: string) => `Will $${name} rug?`,
     description: "Checks if the creator dumps their tokens",
     yesCondition: "YES wins if the token creator sold 80%+ of the total supply by the resolution date.",
     noCondition: "NO wins if the creator still holds more than 20% of the total supply.",
@@ -27,6 +31,8 @@ const CRITERIA_OPTIONS = [
   {
     value: "graduated",
     label: "Will it graduate?",
+    icon: "🎓",
+    questionTemplate: (name: string) => `Will $${name} graduate to DEX?`,
     description: "Checks if token reaches enough holders and liquidity",
     yesCondition: "YES wins if the token has 10+ holders with active liquidity.",
     noCondition: "NO wins if the token has fewer than 10 holders.",
@@ -35,6 +41,8 @@ const CRITERIA_OPTIONS = [
   {
     value: "recent_activity",
     label: "Will it stay active?",
+    icon: "📊",
+    questionTemplate: (name: string) => `Will $${name} stay active?`,
     description: "Checks if token has recent trading activity",
     yesCondition: "YES wins if the token had on-chain activity in the last 7 days.",
     noCondition: "NO wins if there was zero on-chain activity in 7 days.",
@@ -43,6 +51,8 @@ const CRITERIA_OPTIONS = [
   {
     value: "has_liquidity",
     label: "Will it keep liquidity?",
+    icon: "💧",
+    questionTemplate: (name: string) => `Will $${name} keep liquidity?`,
     description: "Checks if token maintains liquidity",
     yesCondition: "YES wins if the token has 2+ holders with non-zero balances.",
     noCondition: "NO wins if the token has only 1 holder or zero balances.",
@@ -204,13 +214,8 @@ export default function CreateMarket() {
       return;
     }
 
-    if (formData.question.trim().length < 10) {
-      setError("Question must be at least 10 characters");
-      return;
-    }
-
     if (!formData.criteria) {
-      setError("Please select a resolution criteria");
+      setError("Please select what you want to predict");
       return;
     }
 
@@ -286,111 +291,113 @@ export default function CreateMarket() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label className="block text-sm font-bold text-gray-300 mb-2">
-                QUESTION *
-              </label>
-              <input
-                type="text"
-                value={formData.question}
-                onChange={(e) => setFormData({ ...formData, question: e.target.value })}
-                placeholder="Will Bitcoin hit $100,000 by end of 2025?"
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
-                data-testid="input-question"
-                maxLength={200}
-              />
-              <p className="mt-1 text-xs text-gray-500">
-                {formData.question.length}/200 characters
-              </p>
+            <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
+              <p className="text-xs text-gray-400 mb-1">CREATING PREDICTION FOR</p>
+              <p className="text-white font-bold text-lg">{prefilledTokenName || "Token"}</p>
+              <p className="text-xs text-gray-500 font-mono mt-1 truncate">{formData.tokenMint}</p>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-300 mb-2">
-                <Scale className="w-4 h-4 inline mr-1" />
-                RESOLUTION CRITERIA *
+                WHAT DO YOU WANT TO PREDICT? *
               </label>
               <p className="text-xs text-gray-400 mb-3">
-                Choose how this market will be resolved. The rules are verified on-chain automatically.
+                Pick a market type. The question and resolution rules are set automatically.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {CRITERIA_OPTIONS.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setFormData({ ...formData, criteria: option.value })}
-                    className={`text-left p-3 rounded-lg border transition-all ${
-                      formData.criteria === option.value
-                        ? "bg-yellow-500/10 border-yellow-500 ring-1 ring-yellow-500/30"
-                        : "bg-zinc-800 border-zinc-700 hover:border-zinc-500"
-                    }`}
-                    data-testid={`btn-criteria-${option.value}`}
-                  >
-                    <span className={`text-sm font-bold block ${
-                      formData.criteria === option.value ? "text-yellow-400" : "text-white"
-                    }`}>
-                      {option.label}
-                    </span>
-                    <span className="text-[11px] text-gray-400">{option.description}</span>
-                  </button>
-                ))}
+                {CRITERIA_OPTIONS.map((option) => {
+                  const isSelected = formData.criteria === option.value;
+                  const tokenSymbol = prefilledTokenName || "TOKEN";
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setFormData({ 
+                        ...formData, 
+                        criteria: option.value,
+                        question: option.questionTemplate(tokenSymbol),
+                      })}
+                      className={`text-left p-4 rounded-lg border transition-all ${
+                        isSelected
+                          ? "bg-yellow-500/10 border-yellow-500 ring-1 ring-yellow-500/30"
+                          : "bg-zinc-800 border-zinc-700 hover:border-zinc-500"
+                      }`}
+                      data-testid={`btn-criteria-${option.value}`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-lg">{option.icon}</span>
+                        <span className={`text-sm font-bold ${
+                          isSelected ? "text-yellow-400" : "text-white"
+                        }`}>
+                          {option.label}
+                        </span>
+                      </div>
+                      <span className="text-[11px] text-gray-400 block">{option.description}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {selectedCriteriaOption && (
               <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                className="bg-zinc-800/50 border border-yellow-600/20 rounded-lg p-4 space-y-3"
-                data-testid="section-rules-preview"
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="space-y-3"
               >
-                <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-bold text-yellow-400">RESOLUTION RULES</span>
+                <div className="bg-zinc-800/80 border border-yellow-600/30 rounded-lg p-4">
+                  <p className="text-xs text-gray-400 mb-1">MARKET QUESTION</p>
+                  <p className="text-white font-bold text-lg" data-testid="text-generated-question">
+                    {formData.question}
+                  </p>
                 </div>
-                <p className="text-xs text-gray-400">
-                  Bettors will see these exact rules before placing a bet.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div className="bg-green-500/5 border border-green-500/20 rounded p-3">
-                    <span className="text-xs font-bold text-green-400 block mb-1">YES Wins If</span>
-                    <p className="text-[11px] text-gray-300">{selectedCriteriaOption.yesCondition}</p>
+
+                <div className="bg-zinc-800/50 border border-yellow-600/20 rounded-lg p-4 space-y-3"
+                  data-testid="section-rules-preview"
+                >
+                  <div className="flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-yellow-400" />
+                    <span className="text-sm font-bold text-yellow-400">RESOLUTION RULES</span>
                   </div>
-                  <div className="bg-red-500/5 border border-red-500/20 rounded p-3">
-                    <span className="text-xs font-bold text-red-400 block mb-1">NO Wins If</span>
-                    <p className="text-[11px] text-gray-300">{selectedCriteriaOption.noCondition}</p>
+                  <p className="text-xs text-gray-400">
+                    Bettors will see these exact rules before placing a bet.
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="bg-green-500/5 border border-green-500/20 rounded p-3">
+                      <span className="text-xs font-bold text-green-400 block mb-1">YES Wins If</span>
+                      <p className="text-[11px] text-gray-300">{selectedCriteriaOption.yesCondition}</p>
+                    </div>
+                    <div className="bg-red-500/5 border border-red-500/20 rounded p-3">
+                      <span className="text-xs font-bold text-red-400 block mb-1">NO Wins If</span>
+                      <p className="text-[11px] text-gray-300">{selectedCriteriaOption.noCondition}</p>
+                    </div>
                   </div>
+                  <div>
+                    <span className="text-xs font-bold text-gray-400 block mb-1">Exact Thresholds</span>
+                    {selectedCriteriaOption.thresholds.map((t, i) => (
+                      <p key={i} className="text-[11px] text-yellow-400 font-mono">{t}</p>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-gray-500">
+                    Verified on-chain via Helius RPC. Resolution is automatic at the date you set.
+                  </p>
                 </div>
+
                 <div>
-                  <span className="text-xs font-bold text-gray-400 block mb-1">Exact Thresholds</span>
-                  {selectedCriteriaOption.thresholds.map((t, i) => (
-                    <p key={i} className="text-[11px] text-yellow-400 font-mono">{t}</p>
-                  ))}
+                  <label className="block text-sm font-bold text-gray-300 mb-2">
+                    EXTRA CONTEXT (optional)
+                  </label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    placeholder="Add any extra context for bettors..."
+                    rows={2}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors resize-none"
+                    data-testid="input-description"
+                  />
                 </div>
-                <p className="text-[10px] text-gray-500">
-                  Verified on-chain via Helius RPC. Resolution is automatic at the date you set.
-                </p>
               </motion.div>
             )}
-
-            <div>
-              <label className="block text-sm font-bold text-gray-300 mb-2">
-                DESCRIPTION (optional)
-              </label>
-              <textarea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                placeholder="Add more context about the prediction..."
-                rows={3}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors resize-none"
-                data-testid="input-description"
-              />
-            </div>
-
-            <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-4">
-              <p className="text-xs text-gray-400 mb-1">CREATING PREDICTION FOR</p>
-              <p className="text-white font-bold">{prefilledTokenName || "Token"}</p>
-              <p className="text-xs text-gray-500 font-mono mt-1 truncate">{formData.tokenMint}</p>
-            </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-300 mb-2">
