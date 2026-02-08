@@ -2919,7 +2919,7 @@ export async function registerRoutes(
     try {
       const { 
         question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate,
-        initialBetSide, initialBetAmount 
+        initialBetSide, initialBetAmount, criteria 
       } = req.body;
 
       const CREATION_FEE = PLATFORM_FEES.MARKET_CREATION;
@@ -3004,10 +3004,13 @@ export async function registerRoutes(
         initialBetAmount: betAmount,
         totalCost,
         createdAt: Date.now(),
-        survivalCriteria: detectMarketCriteria(question.trim()),
+        survivalCriteria: criteria && ["dev_holds", "dev_sells", "graduated", "recent_activity", "has_liquidity"].includes(criteria) 
+          ? criteria 
+          : detectMarketCriteria(question.trim()),
       });
 
-      console.log(`[Market Creation] Prepared: "${question.trim()}" - waiting for signature (${totalCost} SOL)`);
+      const usedCriteria = pendingMarkets.get(pendingMarketId)?.survivalCriteria;
+      console.log(`[Market Creation] Prepared: "${question.trim()}" criteria=${usedCriteria} - waiting for signature (${totalCost} SOL)`);
 
       return res.json({
         success: true,
