@@ -1,6 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Coins, Flame, Plus, User, Target } from "lucide-react";
+import { Coins, Flame, Plus, User } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useWallet } from "@/lib/wallet-context";
 
@@ -8,7 +8,6 @@ const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins, privateLabel: "TKNS" },
   { path: "/trending", label: "Trending", icon: Flame, privateLabel: "HOT" },
   { path: "/create", label: "Create", icon: Plus, privateLabel: "DEPLOY", isAction: true },
-  { path: "/predictions", label: "Markets", icon: Target, privateLabel: "MKTS" },
   { path: "/profile", label: "Profile", icon: User, privateLabel: "PRFL" },
 ];
 

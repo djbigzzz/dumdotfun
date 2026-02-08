@@ -17,7 +17,6 @@ import TokenPage from "@/pages/token";
 import CreateToken from "@/pages/create";
 import CreateMarket from "@/pages/create-market";
 import MarketDetail from "@/pages/market";
-import PredictionsPage from "@/pages/predictions";
 import PredictionDetail from "@/pages/prediction-detail";
 import DocsPage from "@/pages/docs";
 import AdminPage from "@/pages/admin";
@@ -30,7 +29,6 @@ function Router() {
     <Switch>
       <Route path="/" component={TokensPage} />
       <Route path="/tokens" component={TokensPage} />
-      <Route path="/predictions" component={PredictionsPage} />
       <Route path="/prediction/:ticker" component={PredictionDetail} />
       <Route path="/docs" component={DocsPage} />
       <Route path="/admin" component={AdminPage} />
