@@ -1838,6 +1838,19 @@ export async function registerRoutes(
         side,
         metadata: JSON.stringify({ signature, real: true, blockTime: Math.floor(Date.now() / 1000) }),
       });
+
+      if (side === "buy") {
+        try {
+          const { checkAndGraduateToken } = await import("./services/graduation");
+          const gradResult = await checkAndGraduateToken(tokenMint);
+          if (gradResult?.success) {
+            console.log(`[Auto-Graduation] Token ${tokenMint} graduated after trade! Pool: ${gradResult.poolId}`);
+            return res.json({ success: true, graduated: true, raydiumPoolId: gradResult.poolId, graduationTx: gradResult.txSignature });
+          }
+        } catch (gradErr) {
+          console.error("[Auto-Graduation] Check failed (non-blocking):", gradErr);
+        }
+      }
       
       return res.json({ success: true });
     } catch (error: any) {
@@ -2476,6 +2489,19 @@ export async function registerRoutes(
         metadata: JSON.stringify({ signature }),
       });
 
+      if (side === "buy") {
+        try {
+          const { checkAndGraduateToken } = await import("./services/graduation");
+          const gradResult = await checkAndGraduateToken(tokenMint);
+          if (gradResult?.success) {
+            console.log(`[Auto-Graduation] Token ${tokenMint} graduated after trade! Pool: ${gradResult.poolId}`);
+            return res.json({ success: true, graduated: true, raydiumPoolId: gradResult.poolId, graduationTx: gradResult.txSignature });
+          }
+        } catch (gradErr) {
+          console.error("[Auto-Graduation] Check failed (non-blocking):", gradErr);
+        }
+      }
+
       return res.json({ success: true });
     } catch (error: any) {
       console.error("Error logging trade activity:", error);
@@ -2799,6 +2825,42 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching resolution status:", error);
       return res.status(500).json({ error: "Failed to fetch resolution status" });
+    }
+  });
+
+  app.get("/api/tokens/:mint/graduation-status", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const { getGraduationStatus } = await import("./services/graduation");
+      const status = await getGraduationStatus(mint);
+      return res.json(status);
+    } catch (error: any) {
+      console.error("Error getting graduation status:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tokens/:mint/graduate", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const { graduateToken } = await import("./services/graduation");
+      const result = await graduateToken(mint);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error graduating token:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  app.post("/api/tokens/:mint/retry-graduation", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const { retryFailedGraduation } = await import("./services/graduation");
+      const result = await retryFailedGraduation(mint);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("Error retrying graduation:", error);
+      return res.status(500).json({ error: error.message });
     }
   });
 

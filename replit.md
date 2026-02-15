@@ -22,6 +22,15 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
   - robots.txt for crawler guidance
   - Mobile web app meta tags
 
+- **Raydium DEX Auto-Migration** - Automatic graduation to Raydium CPMM when bonding curve hits 85 SOL
+  - Raydium SDK V2 integration for CPMM pool creation on devnet
+  - Auto-triggers after trade confirmation when `is_graduated` flag is set
+  - Graduation status tracking: pending → migrating → completed/failed
+  - Database fields: `raydium_pool_id`, `graduated_at`, `graduation_tx`, `graduation_status`
+  - Service: `server/services/graduation.ts`
+  - API: `GET /api/tokens/:mint/graduation-status`, `POST /api/tokens/:mint/graduate`, `POST /api/tokens/:mint/retry-graduation`
+  - Frontend: graduation banner on token detail page with Raydium pool link
+
 - **Smart Market Resolution** - Intelligent prediction market resolution with on-chain verification
   - **Dev Holdings Check**: Verifies creator's on-chain token balance (rug = sold 80%+, survived = holds 20%+)
   - **Auto-Criteria Detection**: Parses market question to assign criteria (rug → `dev_sells`, survive → `dev_holds`, graduate → `graduated`)

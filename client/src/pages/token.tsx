@@ -196,6 +196,23 @@ export default function TokenPage() {
     refetchInterval: 10000,
   });
 
+  const { data: graduationStatus } = useQuery<{
+    isGraduated: boolean;
+    graduationStatus: string;
+    raydiumPoolId: string | null;
+    graduationTx: string | null;
+    graduatedAt: string | null;
+  }>({
+    queryKey: ["graduation-status", mint],
+    queryFn: async () => {
+      const res = await fetch(`/api/tokens/${mint}/graduation-status`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!mint,
+    refetchInterval: 15000,
+  });
+
   const { data: tokenActivity } = useQuery<TokenActivity[]>({
     queryKey: ["token-activity", mint],
     queryFn: async () => {
@@ -767,6 +784,65 @@ export default function TokenPage() {
 
           {/* Right Column - Trade Panel */}
           <div className="space-y-4">
+            {/* Graduation Banner */}
+            {graduationStatus?.isGraduated && (
+              <div className={`${cardStyle} p-4`} data-testid="graduation-banner">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🎓</span>
+                  <span className={`font-bold text-sm ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                    Token Graduated!
+                  </span>
+                </div>
+                {graduationStatus.graduationStatus === "completed" && graduationStatus.raydiumPoolId ? (
+                  <div className="space-y-2">
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`}>
+                      This token has been migrated to Raydium. Trade on the DEX for full liquidity.
+                    </p>
+                    <a
+                      href={`https://explorer.solana.com/address/${graduationStatus.raydiumPoolId}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={`flex items-center gap-2 w-full justify-center py-2 font-bold border-2 text-sm transition-all ${
+                        privateMode
+                          ? "bg-[#4ADE80] text-black border-[#4ADE80] hover:bg-[#4ADE80]/80"
+                          : "bg-purple-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      }`}
+                      data-testid="link-raydium-pool"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                      View on Raydium (Devnet)
+                    </a>
+                    {graduationStatus.graduationTx && (
+                      <a
+                        href={`https://explorer.solana.com/tx/${graduationStatus.graduationTx}?cluster=devnet`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className={`text-xs underline ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}
+                        data-testid="link-graduation-tx"
+                      >
+                        View graduation transaction
+                      </a>
+                    )}
+                  </div>
+                ) : graduationStatus.graduationStatus === "migrating" ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className={`w-4 h-4 animate-spin ${privateMode ? "text-[#4ADE80]" : "text-purple-500"}`} />
+                    <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`}>
+                      Migrating liquidity to Raydium...
+                    </p>
+                  </div>
+                ) : graduationStatus.graduationStatus === "failed" ? (
+                  <p className={`text-xs ${privateMode ? "text-red-400" : "text-red-500"}`}>
+                    Migration failed. An admin can retry.
+                  </p>
+                ) : (
+                  <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`}>
+                    Awaiting migration to Raydium DEX...
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Buy/Sell Panel */}
             <div className={`${cardStyle} p-4 sticky top-4`}>
               {/* Buy/Sell Toggle */}
