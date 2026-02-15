@@ -32,6 +32,10 @@ export const tokens = pgTable("tokens", {
   realSolReserves: text("real_sol_reserves").notNull().default("0"),
   realTokenReserves: text("real_token_reserves").notNull().default("800000000"),
   totalSupply: text("total_supply").notNull().default("1000000000"),
+  raydiumPoolId: text("raydium_pool_id"),
+  graduatedAt: timestamp("graduated_at"),
+  graduationTx: text("graduation_tx"),
+  graduationStatus: text("graduation_status").default("pending"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
