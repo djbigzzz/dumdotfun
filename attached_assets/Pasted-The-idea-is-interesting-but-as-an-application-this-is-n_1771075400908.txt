@@ -1,0 +1,51 @@
+The idea is interesting, but as an application this is not grant-ready yet. Right now it reads more like a narrative about memecoin psychology than a clearly specified protocol with defined components, risks, and deliverables.
+
+Here are the main gaps you need to address:
+
+• It’s not clear what the product actually is.
+Is MissOut a smart contract protocol, a consumer app, an SDK, or a platform?
+Is it permissionless infrastructure or an application users interact with directly?
+
+• The concrete components are missing.
+What contracts exist?
+What does the front end do, if any?
+What is on-chain vs off-chain?
+What are the actual primitives being built?
+
+• Who interacts with it and how.
+Who creates pools?
+Who joins them?
+Who settles them?
+What happens step-by-step from a user’s point of view?
+
+• There’s no clear “end state” for the grant.
+What exists at the end of funding?
+Is it a deployed protocol on mainnet?
+A working MVP with real users?
+Audited contracts?
+
+• There is no explicit “why grant funding” case.
+At the moment it reads as “we’re building a company and want help funding an MVP.”
+You need to explain why this should be funded as ecosystem infrastructure, not just a startup.
+
+• No risk section.
+There’s no discussion of technical risks (randomness, manipulation, griefing, oracle assumptions),
+no economic risks,
+and no compliance or consumer-risk considerations given this is effectively a wagering mechanic.
+
+• No budget breakdown.
+Grants require clarity on what money is actually being spent on.
+Engineering vs audits vs infra vs UX.
+
+• The milestones are framed narratively, not technically.
+They should be framed around protocol progress, similar to Coldstar:
+core contracts → security assumptions → usability → adoption → standardisation.
+
+• The “why this should exist” argument needs work.
+You need to answer:
+Why should this exist even if MissOut as a company disappears?
+What does the Solana ecosystem gain long-term from this primitive?
+
+Overall: the core mechanic might be valid, but the application needs to move from concept to specification. Once it’s concrete enough that a reviewer can clearly picture the protocol, the risks, and the outcome of funding, it becomes much easier to justify a grant.
+
+If you want, I’m happy to review a revised version once it’s been restructured along these lines.

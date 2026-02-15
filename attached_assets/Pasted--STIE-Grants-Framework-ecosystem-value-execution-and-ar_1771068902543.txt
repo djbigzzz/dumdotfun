@@ -1,0 +1,124 @@
+# STIE Grants Framework
+
+![ecosystem value, execution and architecture. Grand Fed and budget. Risks and constraints..png](attachment:177a18ed-0358-484d-bd0a-3a59522c6c3c:ecosystem_value_execution_and_architecture._Grand_Fed_and_budget._Risks_and_constraints..png)
+
+<aside>
+📖
+
+## **Project Details**
+
+**Ecosystem Value**
+
+- What problem this unlocks on Solana
+- Who benefits beyond your own team
+- Why this matters now
+
+**Execution + Architecture**
+
+- What you’re building
+- Who uses it and how
+- What the core components are
+
+**Grant Fit + Budget**
+
+- breakdown of the budget for how the grant will be used
+
+**Risks + Constraints**
+
+- The risks associated with your project (technical, compliance, adoption etc.)
+</aside>
+
+---
+
+<aside>
+📖
+
+## **Milestones / Goals section (next page):**
+
+**Goals & Ecosystem Milestones:**
+
+- milestones that are verifiable ecosystem outcomes (not “MVP/pilot/seed”)
+- End-of-Grant Outcome: one clean statement of what exists at the end and how the ecosystem can use it
+
+**KPIs:**
+
+avoid KPIs such as: growth/vanity metrics
+
+</aside>
+
+<aside>
+📌
+
+## **CASE STUDY EXAMPLE - ColdStar**
+
+**Project Title**
+
+Coldstar
+
+**One-Liner Description**
+
+CLI based program for turning any USB drive into a Solana cold wallet.
+
+**Project Details**
+
+Coldstar addresses a fundamental failure in how self-custody is implemented today. While cold wallets are positioned as the gold standard for security, most rely on proprietary hardware devices that store long-lived private keys. This creates vendor lock-in, introduces supply-chain risk, and imposes a high operational burden on individuals and teams. As a result, many Solana users either accept the risk of hot wallets or leave assets on custodial platforms because robust cold storage feels expensive, fragile, or inaccessible.
+Coldstar redefines what a cold wallet is. Instead of specialised hardware, Coldstar transforms any standard USB drive into a disposable, offline signing environment. Private keys are never stored long-term and are only decrypted briefly in memory during transaction signing. Once signing is complete, all sensitive material is destroyed. This approach materially reduces attack surface while removing the cost, complexity, and trust assumptions associated with traditional hardware wallets.
+By relying on commodity hardware and a CLI-first workflow, Coldstar eliminates supply-chain dependencies and makes secure self-custody reproducible, auditable, and accessible at scale. The product is designed for Solana users who manage real value—developers, DAOs, and treasuries—who require high-assurance cold storage without relying on opaque devices, closed firmware, or single-vendor trust models.
+Coldstar operates by treating private key material as ephemeral rather than persistent. Encrypted private keys are stored at rest using AES-256 and are never written to disk in plaintext. When a transaction requires signing, the encrypted key is loaded into memory and decrypted directly within RAM for the minimum duration necessary to perform the signing operation. The decrypted key exists only within the process memory space and is never persisted beyond that execution window. Once signing is complete, the memory region is explicitly zeroed and the process context is torn down, ensuring no residual key material remains accessible. This approach confines exposure to a narrowly scoped, offline execution window and significantly reduces the risk of key extraction through disk compromise or long-term memory persistence.
+Coldstar is being launched alongside a DAO to align long-term development with sustainable economic incentives. The Coldstar DAO will govern the protocol, fund ongoing security research, and reward contributors for audited code, tooling, and ecosystem integrations. Rather than relying purely on speculative incentives, the DAO is intended to be backed by real-world assets and protocol revenues, ensuring long-term maintenance while keeping Coldstar open, neutral, and community-driven. This structure gives developers a clear path to contribute, be compensated, and participate meaningfully in governance.
+Institutional adoption of Coldstar follows a path similar to how Linux became foundational infrastructure. Linux was not adopted because it was consumer-friendly, but because it was transparent, auditable, and free from vendor lock-in. Enterprises adopted it incrementally—first internally, then as a trusted base for mission-critical systems. Coldstar is designed for the same trajectory. Institutions can deploy it using their own hardware, audit the full signing and key-handling logic, and integrate it into existing custody or treasury workflows without depending on proprietary devices or firmware. This allows Coldstar to function as a neutral signing layer rather than a custodial product, making it suitable for conservative security environments.
+Coldstar’s impact on the Solana ecosystem is twofold. It lowers the barrier to proper self-custody for everyday users, and it provides teams with a secure, transparent alternative to custodial or hardware-locked solutions. By making cold storage affordable and operationally simple, Coldstar enables safer asset management across the ecosystem and reduces systemic risk from compromised hot wallets and centralised custody.
+
+**Core Development - $5,500
+-** Interface development
+- Product Engineer
+- Rust Developer
+
+**Security & Legal - $3,000**
+- Security Auditing & Threat Model Documentations
+- Legal Assistance for native RWA Compliance & Regulations
+
+**Testing - $1,000**
+- Device Flashing across multiple types of drives
+- Transaction testing (mainnet)
+
+**Twitter**
+
+[**x.com/devsyrem**](https://x.com/devsyrem)
+
+**Github**
+
+[**github.com/devsyrem**](https://github.com/devsyrem)
+
+**Deadline**
+
+11 April 2026
+
+**Proof of Work**
+
+[**https://github.com/devsyrem/coldstar**](https://github.com/devsyrem/coldstar)
+
+**Goals and Milestones**
+
+**Milestone 1: Core Protocol and Security Foundation**
+Establish Coldstar as a production-grade cold-signing protocol. Deliver a stable CLI and signing core that proves disposable USB-based cold wallets with RAM-only key exposure can securely operate on Solana mainnet. This milestone validates the core thesis and forms the security backbone upon which all future UX and adoption efforts depend.
+
+**Milestone 2: UX, Tooling, and Developer Experience Enhancements**
+Improve usability without compromising security. Introduce clearer workflows, improved CLI ergonomics, optional companion tooling, and better error handling. The goal is to reduce friction for non-expert users while preserving Coldstar’s explicit trust model. This milestone positions Coldstar as usable infrastructure rather than a proof-of-concept.
+
+**Milestone 3: Industry and Treasury Adoption**
+Drive adoption among DAOs, protocol treasuries, and advanced Solana users. Validate Coldstar as a preferred solution for high-value, low-frequency custody use cases. This includes demonstrating repeat treasury usage, standardized cold-signing workflows, and integrations into existing operational environments. Success here establishes Coldstar as trusted infrastructure rather than a niche experiment.
+
+**Milestone 4: Ecosystem Standardisation and Governance Maturity**
+Position Coldstar as a reference standard for creating and managing cold wallets on Solana. Through the DAO, fund audits, integrations, and external tooling that extend Coldstar’s signing model. This milestone focuses on ecosystem alignment, ensuring Coldstar becomes the default primitive developers and teams build around rather than a standalone product.
+
+**Milestone 5: Blue-Chip Infrastructure Positioning on Solana**
+Solidify Coldstar’s reputation as a blue-chip self-custody layer within the Solana ecosystem. At this stage, Coldstar is no longer viewed as “an alternative wallet,” but as the standard way cold wallets are created, rotated, and managed using commodity hardware. Adoption is driven by trust, auditability, and reproducibility, similar to how Linux became the default operating system for critical infrastructure.
+
+**Primary Key Performance Indicator**
+
+The primary key performance indicator for Coldstar is real-world adoption of its signing model, measured by the number of Coldstar-generated wallets that are actively used to sign transactions on Solana mainnet. Success is defined not by downloads or views, but by repeat signing activity over time, particularly for high-value or operational use cases such as DAO treasuries, protocol operations, and long-term asset storage. A clear success threshold is reached when Coldstar is being used by multiple independent users or teams to consistently sign real transactions, demonstrating sustained trust in the security model rather than one-off experimentation.
+
+A core secondary KPI is institutional and organisational custody. This is measured by DAOs, companies, or funds choosing to store treasury or balance-sheet assets in Coldstar-generated wallets and using them as their primary cold storage solution. Evidence includes recurring treasury movements, operational disbursements, or governance-approved workflows executed via Coldstar, indicating that the system is trusted for material asset custody rather than limited testing.
+
+</aside>

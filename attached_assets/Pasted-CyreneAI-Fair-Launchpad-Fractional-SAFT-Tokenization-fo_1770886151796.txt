@@ -1,0 +1,105 @@
+CyreneAI - Fair Launchpad & Fractional SAFT Tokenization for Early-Stage Builders
+Overview
+CyreneAI is a fair-launch fundraising platform that helps early-stage founders raise capital transparently by fractionalizing their SAFT/SAFE allocations and selling them through an open bonding-curve mechanism.
+
+In the last 12 weeks, CyreneAI has helped early teams raise over $1.5 Million, making it one of the Top 4 launchpads on Solana (supported by Solana Foundation).
+Our mission is to democratize access to early capital by allowing builders to tokenize their SAFT/SAFE allocation, raise instantly, and build in public - without relying on venture gatekeepers.
+
+The New Model: Fractional SAFT/SAFE Tokenization
+CyreneAI enables projects to tokenize a portion of their SAFT/SAFE allocation and sell it in fractional cliffs as capital is raised.
+Example:
+A project wants to raise $100K at a $10M valuation by selling 1% of their allocation.
+
+On CyreneAI, this 1% is broken into 100 fractional cliffs - each representing 0.01% of the token allocation.
+For every $1,000 raised, one cliff unlocks automatically and transfers ownership transparently to supporters.
+
+By the end of the raise, the full 1% allocation is distributed.
+This unlock model ensures:
+Full transparency
+
+
+No bulk dumping
+
+
+Continuous proof-of-progress
+
+
+Community-aligned vesting
+
+
+
+Bonding Curve Sale + Transparent Liquidity
+The fractional SAFT/SAFE tokens are sold through a bonding curve model, giving fair price discovery and guaranteed liquidity:
+Initial liquidity: 101–201 SOL locked in the pool (varies per project)
+
+
+Immediate trading: Fully open market from day one
+
+
+Fees = founder earnings
+1% → Project (revenue stream)
+This ensures founders don’t receive all capital at once. Instead, they earn continuously as the market grows - incentivizing long-term building.
+No upfront fees. No hidden charges. 100% transparent.
+
+Why CyreneAI
+Instant Capital Formation
+Raise seed capital in 7–10 days, validate demand, and bootstrap initial liquidity.
+Community-Driven Funding
+Projects get exposure to CyreneAI’s 20K+ investors, traders, and builders.
+Revenue Aligned with Growth
+Founders earn from Day 1 via 1% trading fee revenue - a sustainable, on-chain monetization model.
+Zero Upfront Cost
+No listing fees. No marketing fees. CyreneAI grows only when your project grows.
+
+What Founders Get
+Capital Access
+Direct exposure to early adopters and traders across the Solana & Other ecosystem.
+Marketing & Distribution
+Livestream AMAs, pre-launch hype, and coordinated X campaigns to boost visibility.
+Partnership & Ecosystem Support
+CyreneAI introduces projects to infra, DeFi, consumer apps, and other partner ecosystems to help acquire B2B integrations.
+Post-Launch Growth
+Amplification through trader communities, media accounts, and ecosystem accelerators.
+
+Impact & Traction
+$500K+ raised across early-stage projects
+
+
+Top 10 Solana launchpad, supported by Solana Foundation
+
+
+Successful launches including Scriptonia, Pranachain, LavaAI, and more
+
+
+Multiple projects recorded rapid user acquisition + real revenue post-launch
+
+
+
+
+
+How It Works
+Register your project at cyreneai.com/launch-projects
+
+
+Present live to the CyreneAI community for validation
+
+
+Tokenize your SAFT/SAFE allocation
+
+
+Launch via bonding curve with guaranteed liquidity
+
+
+Earn fees, scale users, and expand your project
+
+
+
+The CyreneAI Vision
+Capital formation should be as open as innovation.
+ By enabling founders to tokenize their allocations, raise instantly, and align incentives with their community, CyreneAI is redefining how early-stage teams go from idea → traction → revenue.
+We’re building the fastest and fairest way for founders to raise and grow on Solana.
+
+Website: https://cyreneai.com
+ Twitter: https://x.com/cyreneai
+ Contact: ashish@cyreneai.com
+
