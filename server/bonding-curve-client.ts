@@ -342,4 +342,96 @@ export async function fetchBondingCurveData(mint: PublicKey): Promise<{
   }
 }
 
+export async function buildWithdrawLiquidityTransaction(
+  authority: PublicKey,
+  mint: PublicKey,
+  destination: PublicKey,
+): Promise<{ transaction: Transaction }> {
+  const connection = getConnection();
+
+  const [bondingCurve] = getBondingCurvePDA(mint);
+  const [curveSolVault] = getCurveVaultPDA(mint);
+  const [platformConfig] = getPlatformConfigPDA();
+  const destinationTokenAccount = await getAssociatedTokenAddress(mint, destination);
+
+  const discriminator = Buffer.from([149, 158, 33, 185, 47, 243, 253, 31]);
+
+  const data = discriminator;
+
+  const keys = [
+    { pubkey: authority, isSigner: true, isWritable: false },
+    { pubkey: mint, isSigner: false, isWritable: true },
+    { pubkey: bondingCurve, isSigner: false, isWritable: true },
+    { pubkey: curveSolVault, isSigner: false, isWritable: true },
+    { pubkey: platformConfig, isSigner: false, isWritable: false },
+    { pubkey: destination, isSigner: false, isWritable: true },
+    { pubkey: destinationTokenAccount, isSigner: false, isWritable: true },
+    { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
+    { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+    { pubkey: ASSOCIATED_TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
+  ];
+
+  const instruction = new TransactionInstruction({
+    keys,
+    programId: PROGRAM_ID,
+    data,
+  });
+
+  const transaction = new Transaction().add(instruction);
+  const { blockhash } = await connection.getLatestBlockhash();
+  transaction.recentBlockhash = blockhash;
+  transaction.feePayer = authority;
+
+  return { transaction };
+}
+
+export async function sendWithdrawLiquidity(
+  authorityKeypair: Keypair,
+  mintAddress: string,
+  destinationKeypair: Keypair,
+): Promise<{ txSignature: string; solWithdrawn: number; tokensWithdrawn: number }> {
+  const connection = getConnection();
+  const mint = new PublicKey(mintAddress);
+
+  const curveData = await fetchBondingCurveData(mint);
+  if (!curveData) {
+    throw new Error("Bonding curve not found for mint: " + mintAddress);
+  }
+  if (!curveData.isGraduated) {
+    throw new Error("Token has not graduated yet - cannot withdraw liquidity");
+  }
+  if (curveData.realSolReserves === 0 && curveData.realTokenReserves === 0) {
+    throw new Error("Liquidity has already been withdrawn");
+  }
+
+  const solToWithdraw = curveData.realSolReserves / LAMPORTS_PER_SOL;
+  const tokensToWithdraw = curveData.realTokenReserves / 1_000_000;
+
+  console.log(`[WithdrawLiquidity] Withdrawing ${solToWithdraw} SOL + ${tokensToWithdraw} tokens from curve`);
+
+  const { transaction } = await buildWithdrawLiquidityTransaction(
+    authorityKeypair.publicKey,
+    mint,
+    destinationKeypair.publicKey,
+  );
+
+  transaction.sign(authorityKeypair);
+
+  const txSignature = await connection.sendRawTransaction(transaction.serialize(), {
+    skipPreflight: false,
+    preflightCommitment: "confirmed",
+  });
+
+  await connection.confirmTransaction(txSignature, "confirmed");
+
+  console.log(`[WithdrawLiquidity] Success! TX: ${txSignature}`);
+  console.log(`[WithdrawLiquidity] SOL: ${solToWithdraw}, Tokens: ${tokensToWithdraw}`);
+
+  return {
+    txSignature,
+    solWithdrawn: solToWithdraw,
+    tokensWithdrawn: tokensToWithdraw,
+  };
+}
+
 export { PROGRAM_ID, FEE_RECIPIENT };

@@ -25,11 +25,22 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 - **Raydium DEX Auto-Migration** - Automatic graduation to Raydium CPMM when bonding curve hits 85 SOL
   - Raydium SDK V2 integration for CPMM pool creation on devnet
   - Auto-triggers after trade confirmation when `is_graduated` flag is set
+  - **On-chain `withdraw_liquidity` instruction** added to bonding curve program
+    - Only callable by platform authority when `is_graduated == true`
+    - Transfers SOL from curve vault PDA to destination wallet
+    - Mints remaining curve tokens to destination token account
+    - Zeros out reserves to prevent double withdrawal
+    - Anchor program: `contracts/bonding-curve/programs/bonding-curve/src/lib.rs`
+    - Build instructions: `contracts/bonding-curve/BUILD_AND_DEPLOY.md`
+    - **Program must be redeployed** to devnet after building locally (Replit can't compile Solana BPF)
+  - TypeScript client: `buildWithdrawLiquidityTransaction` + `sendWithdrawLiquidity` in `server/bonding-curve-client.ts`
+  - Graduation flow: withdraw_liquidity (on-chain) → Raydium CPMM pool creation
   - Graduation status tracking: pending → migrating → completed/failed
   - Database fields: `raydium_pool_id`, `graduated_at`, `graduation_tx`, `graduation_status`
   - Service: `server/services/graduation.ts`
   - API: `GET /api/tokens/:mint/graduation-status`, `POST /api/tokens/:mint/graduate`, `POST /api/tokens/:mint/retry-graduation`
   - Frontend: graduation banner on token detail page with Raydium pool link
+  - Required secrets: `PLATFORM_AUTHORITY_SECRET_KEY` (base64 encoded 64-byte keypair), `POOL_AUTHORITY_SECRET_KEY` (optional)
 
 - **Smart Market Resolution** - Intelligent prediction market resolution with on-chain verification
   - **Dev Holdings Check**: Verifies creator's on-chain token balance (rug = sold 80%+, survived = holds 20%+)

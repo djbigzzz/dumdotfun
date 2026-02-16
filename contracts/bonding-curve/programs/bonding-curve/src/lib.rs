@@ -4,7 +4,7 @@ use anchor_spl::{
     token::{self, Mint, Token, TokenAccount, Transfer, MintTo, Burn},
 };
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh");
 
 pub const TOTAL_SUPPLY: u64 = 1_000_000_000_000_000;
 pub const BONDING_CURVE_SUPPLY: u64 = 800_000_000_000_000;
@@ -87,7 +87,6 @@ pub mod bonding_curve {
         require!(tokens_out >= min_tokens_out, ErrorCode::SlippageExceeded);
         require!(tokens_out <= curve.real_token_reserves, ErrorCode::InsufficientLiquidity);
 
-        // Transfer SOL to bonding curve vault (for trading liquidity)
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
@@ -97,7 +96,6 @@ pub mod bonding_curve {
         );
         anchor_lang::system_program::transfer(cpi_context, sol_after_fee)?;
 
-        // Send fee DIRECTLY to your wallet - no vault needed!
         let fee_cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
@@ -174,11 +172,9 @@ pub mod bonding_curve {
         );
         token::burn(cpi_ctx, token_amount)?;
 
-        // Pay seller from curve vault
         **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= sol_out;
         **ctx.accounts.seller.to_account_info().try_borrow_mut_lamports()? += sol_after_fee;
         
-        // Send fee DIRECTLY to your wallet!
         **ctx.accounts.fee_recipient.to_account_info().try_borrow_mut_lamports()? += fee;
 
         config.total_fees_collected += fee;
@@ -190,6 +186,66 @@ pub mod bonding_curve {
 
         msg!("Sell: {} tokens for {} lamports (fee: {} sent to {})", 
             token_amount, sol_after_fee, fee, ctx.accounts.fee_recipient.key());
+        
+        Ok(())
+    }
+
+    pub fn withdraw_liquidity(ctx: Context<WithdrawLiquidity>) -> Result<()> {
+        let curve = &mut ctx.accounts.bonding_curve;
+
+        require!(curve.is_graduated, ErrorCode::NotGraduated);
+        require!(curve.real_sol_reserves > 0 || curve.real_token_reserves > 0, ErrorCode::AlreadyWithdrawn);
+
+        let sol_to_withdraw = curve.real_sol_reserves;
+        let tokens_to_mint = curve.real_token_reserves;
+
+        msg!("Withdrawing liquidity for DEX migration");
+        msg!("SOL to withdraw: {} lamports", sol_to_withdraw);
+        msg!("Tokens to mint: {}", tokens_to_mint);
+
+        if sol_to_withdraw > 0 {
+            let vault_lamports = ctx.accounts.curve_sol_vault.to_account_info().lamports();
+            let rent = Rent::get()?;
+            let min_rent = rent.minimum_balance(0);
+            let available = vault_lamports.saturating_sub(min_rent);
+            let transfer_amount = std::cmp::min(sol_to_withdraw, available);
+
+            if transfer_amount > 0 {
+                **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= transfer_amount;
+                **ctx.accounts.destination.to_account_info().try_borrow_mut_lamports()? += transfer_amount;
+
+                msg!("Transferred {} lamports to destination", transfer_amount);
+            }
+        }
+
+        if tokens_to_mint > 0 {
+            let mint_key = curve.mint;
+            let seeds = &[
+                b"bonding_curve",
+                mint_key.as_ref(),
+                &[curve.bump],
+            ];
+            let signer = &[&seeds[..]];
+
+            let cpi_accounts = MintTo {
+                mint: ctx.accounts.mint.to_account_info(),
+                to: ctx.accounts.destination_token_account.to_account_info(),
+                authority: ctx.accounts.bonding_curve.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                cpi_accounts,
+                signer,
+            );
+            token::mint_to(cpi_ctx, tokens_to_mint)?;
+
+            msg!("Minted {} tokens to destination", tokens_to_mint);
+        }
+
+        curve.real_sol_reserves = 0;
+        curve.real_token_reserves = 0;
+
+        msg!("Liquidity withdrawn successfully. Ready for Raydium pool creation.");
         
         Ok(())
     }
@@ -420,6 +476,55 @@ pub struct Sell<'info> {
 }
 
 #[derive(Accounts)]
+pub struct WithdrawLiquidity<'info> {
+    #[account(
+        constraint = authority.key() == platform_config.authority @ ErrorCode::Unauthorized
+    )]
+    pub authority: Signer<'info>,
+
+    #[account(mut)]
+    pub mint: Account<'info, Mint>,
+
+    #[account(
+        mut,
+        seeds = [b"bonding_curve", mint.key().as_ref()],
+        bump = bonding_curve.bump,
+        constraint = bonding_curve.mint == mint.key() @ ErrorCode::InvalidMint,
+    )]
+    pub bonding_curve: Account<'info, BondingCurve>,
+
+    #[account(
+        mut,
+        seeds = [b"curve_vault", mint.key().as_ref()],
+        bump = bonding_curve.vault_bump,
+    )]
+    /// CHECK: SOL vault PDA for bonding curve
+    pub curve_sol_vault: AccountInfo<'info>,
+
+    #[account(
+        seeds = [b"platform_config"],
+        bump = platform_config.bump,
+    )]
+    pub platform_config: Account<'info, PlatformConfig>,
+
+    /// CHECK: Destination wallet to receive SOL liquidity for DEX pool creation
+    #[account(mut)]
+    pub destination: AccountInfo<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = authority,
+        associated_token::mint = mint,
+        associated_token::authority = destination,
+    )]
+    pub destination_token_account: Account<'info, TokenAccount>,
+
+    pub system_program: Program<'info, System>,
+    pub token_program: Program<'info, Token>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
+}
+
+#[derive(Accounts)]
 pub struct GetQuote<'info> {
     pub mint: Account<'info, Mint>,
 
@@ -475,4 +580,10 @@ pub enum ErrorCode {
     Unauthorized,
     #[msg("Invalid fee recipient")]
     InvalidFeeRecipient,
+    #[msg("Token has not graduated yet")]
+    NotGraduated,
+    #[msg("Liquidity has already been withdrawn")]
+    AlreadyWithdrawn,
+    #[msg("Invalid mint")]
+    InvalidMint,
 }

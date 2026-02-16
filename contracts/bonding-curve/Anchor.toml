@@ -3,13 +3,13 @@ seeds = false
 skip-lint = false
 
 [programs.localnet]
-bonding_curve = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+bonding_curve = "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh"
 
 [programs.devnet]
-bonding_curve = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+bonding_curve = "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh"
 
 [programs.mainnet]
-bonding_curve = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+bonding_curve = "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh"
 
 [registry]
 url = "https://api.apr.dev"

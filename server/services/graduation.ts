@@ -1,9 +1,9 @@
 import { Connection, PublicKey, Keypair, LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress, getAccount } from "@solana/spl-token";
 import { Raydium, DEVNET_PROGRAM_ID } from "@raydium-io/raydium-sdk-v2";
 import BN from "bn.js";
 import { getConnection } from "../helius-rpc";
-import { fetchBondingCurveData } from "../bonding-curve-client";
+import { fetchBondingCurveData, sendWithdrawLiquidity } from "../bonding-curve-client";
 import { db } from "../db";
 import { tokens } from "@shared/schema";
 import { eq } from "drizzle-orm";
@@ -14,6 +14,7 @@ export interface GraduationResult {
   success: boolean;
   poolId?: string;
   txSignature?: string;
+  withdrawTx?: string;
   error?: string;
   tokenMint?: string;
   solLiquidity?: number;
@@ -30,36 +31,53 @@ export interface GraduationStatus {
   tokenInPool: number | null;
 }
 
-function getPoolAuthorityKeypair(): Keypair | null {
-  const secretKey = process.env.POOL_AUTHORITY_SECRET_KEY;
+function getAuthorityKeypair(): Keypair | null {
+  const secretKey = process.env.PLATFORM_AUTHORITY_SECRET_KEY;
   if (!secretKey) {
-    console.log("[Graduation] No POOL_AUTHORITY_SECRET_KEY set, cannot sign pool creation transactions");
+    console.log("[Graduation] No PLATFORM_AUTHORITY_SECRET_KEY set");
     return null;
   }
   try {
-    const decoded = Buffer.from(secretKey, "base64");
-    if (decoded.length === 64) {
-      return Keypair.fromSecretKey(decoded);
-    }
-    const bytes = secretKey.split(",").map(Number);
+    const bytes = secretKey.includes(",")
+      ? new Uint8Array(secretKey.split(",").map(Number))
+      : new Uint8Array(Buffer.from(secretKey, "base64"));
     if (bytes.length === 64) {
-      return Keypair.fromSecretKey(new Uint8Array(bytes));
+      return Keypair.fromSecretKey(bytes);
     }
     return null;
   } catch (error) {
-    console.error("[Graduation] Failed to parse POOL_AUTHORITY_SECRET_KEY:", error);
+    console.error("[Graduation] Failed to parse PLATFORM_AUTHORITY_SECRET_KEY:", error);
     return null;
   }
 }
 
+function getPoolAuthorityKeypair(): Keypair {
+  const secretKey = process.env.POOL_AUTHORITY_SECRET_KEY;
+  if (secretKey) {
+    try {
+      const bytes = secretKey.includes(",")
+        ? new Uint8Array(secretKey.split(",").map(Number))
+        : new Uint8Array(Buffer.from(secretKey, "base64"));
+      if (bytes.length === 64) {
+        return Keypair.fromSecretKey(bytes);
+      }
+    } catch (error) {
+      console.error("[Graduation] Failed to parse POOL_AUTHORITY_SECRET_KEY, generating new one:", error);
+    }
+  }
+  const keypair = Keypair.generate();
+  console.log(`[Graduation] Generated pool authority keypair: ${keypair.publicKey.toBase58()}`);
+  console.log(`[Graduation] Save this as POOL_AUTHORITY_SECRET_KEY: ${Buffer.from(keypair.secretKey).toString("base64")}`);
+  return keypair;
+}
+
 async function initRaydium(connection: Connection, owner?: Keypair): Promise<Raydium> {
-  const raydium = await Raydium.load({
+  return await Raydium.load({
     connection,
     owner,
     cluster: "devnet",
     disableLoadToken: true,
   });
-  return raydium;
 }
 
 export async function checkGraduationEligibility(mintAddress: string): Promise<{
@@ -76,8 +94,7 @@ export async function checkGraduationEligibility(mintAddress: string): Promise<{
     }
 
     if (!curveData.isGraduated) {
-      const realSolLamports = curveData.realSolReserves;
-      const realSolAmount = realSolLamports / LAMPORTS_PER_SOL;
+      const realSolAmount = curveData.realSolReserves / LAMPORTS_PER_SOL;
       return {
         eligible: false,
         reason: `Token has not graduated yet. Current SOL reserves: ${realSolAmount.toFixed(2)} SOL (needs 85 SOL)`,
@@ -87,19 +104,10 @@ export async function checkGraduationEligibility(mintAddress: string): Promise<{
 
     const [token] = await db.select().from(tokens).where(eq(tokens.mint, mintAddress)).limit(1);
     if (token?.graduationStatus === "completed") {
-      return {
-        eligible: false,
-        reason: "Token has already been migrated to Raydium",
-        curveData,
-      };
+      return { eligible: false, reason: "Token has already been migrated to Raydium", curveData };
     }
-
     if (token?.graduationStatus === "migrating") {
-      return {
-        eligible: false,
-        reason: "Token migration is already in progress",
-        curveData,
-      };
+      return { eligible: false, reason: "Token migration is already in progress", curveData };
     }
 
     return { eligible: true, reason: "Token is eligible for graduation", curveData };
@@ -117,18 +125,19 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
     return { success: false, error: eligibility.reason, tokenMint: mintAddress };
   }
 
-  const poolAuthority = getPoolAuthorityKeypair();
-  if (!poolAuthority) {
-    console.log("[Graduation] No pool authority keypair available. Set POOL_AUTHORITY_SECRET_KEY to enable auto-migration.");
+  const authorityKeypair = getAuthorityKeypair();
+  if (!authorityKeypair) {
     await db.update(tokens)
       .set({ graduationStatus: "failed", updatedAt: new Date() })
       .where(eq(tokens.mint, mintAddress));
     return {
       success: false,
-      error: "Pool authority keypair not configured. Set POOL_AUTHORITY_SECRET_KEY environment variable.",
+      error: "Platform authority keypair not configured. Set PLATFORM_AUTHORITY_SECRET_KEY.",
       tokenMint: mintAddress,
     };
   }
+
+  const poolAuthority = getPoolAuthorityKeypair();
 
   await db.update(tokens)
     .set({ graduationStatus: "migrating", updatedAt: new Date() })
@@ -137,36 +146,61 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
   try {
     const connection = getConnection();
     const curveData = eligibility.curveData;
+    const hasLiquidityOnChain = curveData.realSolReserves > 0 || curveData.realTokenReserves > 0;
 
-    const realSolLamports = curveData.realSolReserves;
-    const realTokenAmount = curveData.realTokenReserves;
+    let withdrawTx: string | undefined;
+    let solAmount = curveData.realSolReserves / LAMPORTS_PER_SOL;
+    let tokenAmount = curveData.realTokenReserves / 1_000_000;
 
-    const solAmount = realSolLamports / LAMPORTS_PER_SOL;
-    const tokenAmount = realTokenAmount / 1_000_000;
+    if (hasLiquidityOnChain) {
+      console.log(`[Graduation] Step 1: Withdrawing liquidity from bonding curve`);
+      console.log(`[Graduation] SOL: ${solAmount}, Tokens: ${tokenAmount}`);
+      console.log(`[Graduation] Authority: ${authorityKeypair.publicKey.toBase58()}`);
+      console.log(`[Graduation] Destination (pool authority): ${poolAuthority.publicKey.toBase58()}`);
 
-    console.log(`[Graduation] Liquidity to migrate: ${solAmount} SOL + ${tokenAmount} tokens`);
+      try {
+        const result = await sendWithdrawLiquidity(
+          authorityKeypair,
+          mintAddress,
+          poolAuthority,
+        );
+        withdrawTx = result.txSignature;
+        solAmount = result.solWithdrawn;
+        tokenAmount = result.tokensWithdrawn;
+        console.log(`[Graduation] Liquidity withdrawn! TX: ${withdrawTx}`);
+      } catch (withdrawError: any) {
+        console.error(`[Graduation] Withdraw failed:`, withdrawError.message);
+        throw new Error(`Failed to withdraw liquidity from bonding curve: ${withdrawError.message}`);
+      }
+    } else {
+      console.log(`[Graduation] Liquidity already withdrawn, checking pool authority balances`);
+      const poolBalance = await connection.getBalance(poolAuthority.publicKey);
+      solAmount = poolBalance / LAMPORTS_PER_SOL;
 
-    if (solAmount < 0.1) {
-      throw new Error(`Insufficient SOL for pool creation: ${solAmount} SOL`);
+      try {
+        const mint = new PublicKey(mintAddress);
+        const ata = await getAssociatedTokenAddress(mint, poolAuthority.publicKey);
+        const tokenAccountInfo = await getAccount(connection, ata);
+        tokenAmount = Number(tokenAccountInfo.amount) / 1_000_000;
+      } catch {
+        tokenAmount = 0;
+      }
     }
 
-    const authorityBalance = await connection.getBalance(poolAuthority.publicKey);
-    const authorityBalanceSol = authorityBalance / LAMPORTS_PER_SOL;
-    console.log(`[Graduation] Pool authority balance: ${authorityBalanceSol} SOL`);
-
-    if (authorityBalanceSol < 0.1) {
-      throw new Error(`Pool authority has insufficient SOL (${authorityBalanceSol} SOL). Need at least 0.1 SOL for pool creation fees. Fund wallet: ${poolAuthority.publicKey.toBase58()}`);
+    if (solAmount < 0.01) {
+      throw new Error(`Pool authority has insufficient SOL: ${solAmount}. Wallet: ${poolAuthority.publicKey.toBase58()}`);
     }
 
-    const initialPrice = solAmount / tokenAmount;
-    console.log(`[Graduation] Initial price: ${initialPrice} SOL per token`);
+    console.log(`[Graduation] Step 2: Creating Raydium CPMM pool`);
+    console.log(`[Graduation] Pool authority: ${poolAuthority.publicKey.toBase58()}`);
+    console.log(`[Graduation] SOL for pool: ${solAmount}, Tokens for pool: ${tokenAmount}`);
 
     const poolResult = await createRaydiumPool(
       connection,
       poolAuthority,
       mintAddress,
       solAmount,
-      tokenAmount
+      tokenAmount,
     );
 
     if (!poolResult.poolId || poolResult.poolId === "unknown") {
@@ -184,14 +218,14 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
       })
       .where(eq(tokens.mint, mintAddress));
 
-    console.log(`[Graduation] Successfully graduated token ${mintAddress}`);
+    console.log(`[Graduation] Token ${mintAddress} graduated successfully!`);
     console.log(`[Graduation] Pool ID: ${poolResult.poolId}`);
-    console.log(`[Graduation] TX: ${poolResult.txSignature}`);
 
     return {
       success: true,
       poolId: poolResult.poolId,
       txSignature: poolResult.txSignature,
+      withdrawTx,
       tokenMint: mintAddress,
       solLiquidity: solAmount,
       tokenLiquidity: tokenAmount,
@@ -216,11 +250,9 @@ async function createRaydiumPool(
   owner: Keypair,
   mintAddress: string,
   solAmount: number,
-  tokenAmount: number
+  tokenAmount: number,
 ): Promise<{ poolId: string; txSignature: string }> {
   console.log(`[Graduation] Creating Raydium CPMM pool for ${mintAddress}`);
-  console.log(`[Graduation] Owner: ${owner.publicKey.toBase58()}`);
-  console.log(`[Graduation] SOL: ${solAmount}, Tokens: ${tokenAmount}`);
 
   try {
     const raydium = await initRaydium(connection, owner);
@@ -243,9 +275,9 @@ async function createRaydiumPool(
     let feeConfigs: any[];
     try {
       feeConfigs = await raydium.api.getCpmmConfigs();
-      console.log(`[Graduation] Fetched ${feeConfigs.length} fee configs from Raydium API`);
-    } catch (apiError) {
-      console.log("[Graduation] Raydium API not available for devnet, using default fee config");
+      console.log(`[Graduation] Fetched ${feeConfigs.length} fee configs`);
+    } catch {
+      console.log("[Graduation] Raydium API unavailable for devnet, using defaults");
       feeConfigs = [{
         id: "devnet_default",
         index: 0,
@@ -256,10 +288,6 @@ async function createRaydiumPool(
         creatorFeeRate: 0,
       }];
     }
-    const feeConfig = feeConfigs[0];
-
-    console.log(`[Graduation] Using fee config: ${JSON.stringify(feeConfig)}`);
-    console.log(`[Graduation] Preparing CPMM pool transaction...`);
 
     const createPoolResult = await raydium.cpmm.createPool({
       programId: DEVNET_PROGRAM_ID.CREATE_CPMM_POOL_PROGRAM,
@@ -269,15 +297,13 @@ async function createRaydiumPool(
       mintAAmount,
       mintBAmount,
       startTime: new BN(0),
-      feeConfig: feeConfig as any,
+      feeConfig: feeConfigs[0] as any,
       associatedOnly: false,
       ownerInfo: {
         useSOLBalance: true,
       },
       txVersion: 0 as any,
     });
-
-    console.log(`[Graduation] Pool transaction prepared, executing...`);
 
     const result = await createPoolResult.execute();
     const txSignature = (result as any).txId || "pending";
@@ -289,20 +315,13 @@ async function createRaydiumPool(
       throw new Error("Pool creation succeeded but returned no pool ID");
     }
 
-    console.log(`[Graduation] Pool created successfully!`);
-    console.log(`[Graduation] Pool ID: ${poolId}`);
-    console.log(`[Graduation] TX Signature: ${txSignature}`);
-
+    console.log(`[Graduation] Pool created: ${poolId}, TX: ${txSignature}`);
     return { poolId, txSignature };
   } catch (error: any) {
     console.error(`[Graduation] Raydium pool creation error:`, error);
 
     if (error.message?.includes("insufficient") || error.message?.includes("balance")) {
-      throw new Error(`Insufficient funds to create Raydium pool. The pool authority needs SOL + token balances. Fund wallet: ${owner.publicKey.toBase58()}. Error: ${error.message}`);
-    }
-
-    if (error.message?.includes("freeze") || error.message?.includes("authority")) {
-      throw new Error(`Token authority issue. Freeze authority may need to be revoked before pool creation. Error: ${error.message}`);
+      throw new Error(`Insufficient funds for pool. Fund wallet: ${owner.publicKey.toBase58()}. Error: ${error.message}`);
     }
 
     throw new Error(`Raydium CPMM pool creation failed: ${error.message}`);
@@ -324,33 +343,14 @@ export async function getGraduationStatus(mintAddress: string): Promise<Graduati
     };
   }
 
-  let solInPool: number | null = null;
-  let tokenInPool: number | null = null;
-
-  if (token.raydiumPoolId) {
-    try {
-      const connection = getConnection();
-      const raydium = await initRaydium(connection);
-      const poolInfos = await raydium.cpmm.getRpcPoolInfos([token.raydiumPoolId]);
-      const poolInfo = poolInfos[token.raydiumPoolId];
-
-      if (poolInfo) {
-        solInPool = (poolInfo as any).mintBAmount?.toNumber?.() / LAMPORTS_PER_SOL || null;
-        tokenInPool = (poolInfo as any).mintAAmount?.toNumber?.() / 1_000_000 || null;
-      }
-    } catch (error) {
-      console.log(`[Graduation] Could not fetch pool info for ${mintAddress}`);
-    }
-  }
-
   return {
     isGraduated: token.isGraduated,
     graduationStatus: (token.graduationStatus as any) || "pending",
     raydiumPoolId: token.raydiumPoolId || null,
     graduationTx: token.graduationTx || null,
     graduatedAt: token.graduatedAt || null,
-    solInPool,
-    tokenInPool,
+    solInPool: null,
+    tokenInPool: null,
   };
 }
 
@@ -392,10 +392,6 @@ export async function checkAndGraduateToken(mintAddress: string): Promise<Gradua
     console.error(`[Graduation] Auto-check failed for ${mintAddress}:`, error.message);
     return null;
   }
-}
-
-export function getRaydiumPoolUrl(poolId: string): string {
-  return `https://raydium.io/swap/?inputMint=sol&outputMint=${poolId}`;
 }
 
 export function getDevnetRaydiumUrl(poolId: string): string {
