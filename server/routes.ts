@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
@@ -18,6 +18,35 @@ import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } f
 import * as bondingCurve from "./bonding-curve-client";
 import { getPrivacySummary } from "./privacy";
 import { detectMarketCriteria } from "./services/token-health";
+import rateLimit from "express-rate-limit";
+
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
+
+const sensitiveLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: "Rate limit exceeded on sensitive endpoint" },
+});
+
+function requireAdmin(req: Request, res: Response, next: NextFunction) {
+  const adminKey = process.env.ADMIN_KEY;
+  if (!adminKey) {
+    return res.status(503).json({ error: "Admin access not configured" });
+  }
+  const provided = req.headers["x-admin-key"];
+  if (provided !== adminKey) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+  next();
+}
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -30,6 +59,25 @@ export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
+  app.use("/api/", generalLimiter);
+
+  app.use("/api/privacy/cash/deposit", sensitiveLimiter);
+  app.use("/api/privacy/cash/withdraw", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/transfer", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/execute-transfer", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/deposit", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/execute-deposit", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/withdraw", sensitiveLimiter);
+  app.use("/api/privacy/shadowwire/execute-withdraw", sensitiveLimiter);
+  app.use("/api/privacy/confidential-transfer", sensitiveLimiter);
+  app.use("/api/privacy/stealth-addresses/sweep", sensitiveLimiter);
+  app.use("/api/privacy/pool/create-deposit-tx", sensitiveLimiter);
+  app.use("/api/privacy/pool/create-withdraw-tx", sensitiveLimiter);
+  app.use("/api/privacy/pool/process-withdraw", sensitiveLimiter);
+  app.use("/api/privacy/pool/internal-transfer", sensitiveLimiter);
+  app.use("/api/privacy/pnp/trade", sensitiveLimiter);
+  app.use("/api/privacy/arcium/transfer", sensitiveLimiter);
+
   // SEO: Dynamic sitemap
   app.get("/sitemap.xml", async (_req, res) => {
     try {
@@ -1655,9 +1703,15 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Wallet address is required" });
       }
 
+      let sanitizedReferral = referralCode;
+      if (referralCode) {
+        if (typeof referralCode !== "string" || !/^[a-zA-Z0-9_-]{3,50}$/.test(referralCode)) {
+          sanitizedReferral = undefined;
+        }
+      }
+
       let existing = await storage.getUserByWallet(walletAddress);
       if (existing) {
-        // Ensure existing user has a referral code (backfill for users created before referral system)
         if (!existing.referralCode) {
           const newCode = generateUserReferralCode(walletAddress);
           const updated = await storage.updateUserReferralCode(walletAddress, newCode);
@@ -1669,7 +1723,7 @@ export async function registerRoutes(
         return res.json({ ...existing, referralCount });
       }
 
-      const newUser = await storage.createUserWithReferral(walletAddress, referralCode);
+      const newUser = await storage.createUserWithReferral(walletAddress, sanitizedReferral);
       return res.json({ ...newUser, referralCount: 0 });
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
@@ -2472,7 +2526,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/bonding-curve/confirm-trade", async (req, res) => {
+  app.post("/api/bonding-curve/confirm-trade", sensitiveLimiter, async (req, res) => {
     try {
       const { walletAddress, tokenMint, side, amount, signature } = req.body;
       
@@ -2583,7 +2637,7 @@ export async function registerRoutes(
   });
 
   // Token creation endpoint - now uses PumpPortal for real on-chain deployment
-  app.post("/api/tokens/create", async (req, res) => {
+  app.post("/api/tokens/create", sensitiveLimiter, async (req, res) => {
     try {
       const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, mintPublicKey, initialBuyAmount } = req.body;
 
@@ -2840,7 +2894,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tokens/:mint/graduate", async (req, res) => {
+  app.post("/api/tokens/:mint/graduate", requireAdmin, sensitiveLimiter, async (req, res) => {
     try {
       const { mint } = req.params;
       const { graduateToken } = await import("./services/graduation");
@@ -2864,8 +2918,7 @@ export async function registerRoutes(
     }
   });
 
-  // Trigger auto-resolution for all expired markets (admin endpoint)
-  app.post("/api/markets/auto-resolve", async (req, res) => {
+  app.post("/api/markets/auto-resolve", requireAdmin, sensitiveLimiter, async (req, res) => {
     try {
       const { autoResolveExpiredMarkets } = await import("./services/auto-resolver");
       const results = await autoResolveExpiredMarkets();
@@ -4078,7 +4131,7 @@ export async function registerRoutes(
   });
 
   // Seed activity for existing tokens from blockchain
-  app.post("/api/admin/seed-activity", async (req, res) => {
+  app.post("/api/admin/seed-activity", requireAdmin, sensitiveLimiter, async (req, res) => {
     try {
       const allTokens = await db.select().from(tokensTable);
       const { getPublicConnection } = await import("./helius-rpc");
