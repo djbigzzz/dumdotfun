@@ -1,0 +1,154 @@
+Graveyard Hackathon
+Crypto elites and the trenches left these for dead.
+But the best time to build is when everyone else has left.
+
+Sign Up
+Resources
+ready to build?
+Rise from the graveyard
+Resurrect "dead" categories and win prizes across 10 tracks.
+
+Timeline
+Phase
+Date
+Hacking Starts
+Feb 12, 2026
+Hacking Period
+Feb 12–27, 2026
+Submissions Due
+Feb 27, 2026
+Winners Announced
+Mar 5, 2026
+Prizes & Tracks
+Over $75,000 in total prizes — $30,000 overall + more than $45,000 in bounties across 11 tracks
+
+Overall Prizes
+$30,000 awarded to the top 3 projects
+
+Overall
+1st Place
+Solana Foundation
+
+$15,000
+Overall
+2nd Place
+Solana Foundation
+
+$10,000
+Overall
+3rd Place
+Solana Foundation
+
+$5,000
+Sponsor Bounties
+Additional prizes from our ecosystem partners
+
+Sponsors are responsible for prize distribution. These bounties are offered independently by ecosystem partners.
+
+Sunrise
+Migrations
+Help projects migrate to Solana from other ecosystems. Build bridges, migration tooling, or onboarding guides using Sunrise.
+
+$3,000 — 1st place
+$2,500 — 2nd place
+$1,500 — 3rd place
+
+$7,000prize
+Learn more about Sunrise
+Exchange Art
+Art
+Push the boundaries of digital art on Solana with new creative tools and experiences on Exchange Art.
+
+$2,500 — Most innovative art tool
+$1,500 — Open call (best in show). Also receives an opportunity to exhibit at Cycol Gallery
+$1,000 — Best BONK Artwork
+
+$5,000prize
+Learn more about Exchange Art
+Tapestry
+Onchain Social
+Build social apps and protocols that bring social experiences fully onchain with the Tapestry protocol.
+
+$2,500 — 1st place
+$1,500 — 2nd place
+$1,000 — 3rd place
+
+$5,000prize
+Learn more about Tapestry
+MagicBlock
+Gaming
+Build financialized games on Solana using MagicBlock's infrastructure.
+
+$2,500 — 1st place
+$1,500 — 2nd place
+$1,000 — 3rd place
+
+$5,000prize
+Learn more about MagicBlock
+KYD Labs
+Ticketing
+Build next-gen ticketing solutions on the KYD protocol — from event financing to new ticketing experiences.
+
+$2,500 — 1st place
+$1,500 — 2nd place
+$1,000 — 3rd place
+
+$5,000prize
+Learn more about KYD Labs
+Realms
+DAOs
+Build DAO tooling and governance solutions with Realms that make decentralized coordination on Solana easier.
+
+$2,500 — Governance Builders: tooling and governance systems on Realms
+$1,500 — Realms Extensions: integrations or plugins that expand Realms orgs
+$1,000 — Authority-First Orgs: organizations with strong onchain authority
+
+$5,000prize
+Learn more about Realms
+Portals
+Metaverse
+Build virtual worlds, 3D spaces, or spatial experiences on Portals.
+
+$2,500 — 1st place
+$1,000 — 2nd place
+
+$3,500prize
+Learn more about Portals
+DRiP
+NFTs
+Create a DRiP account as a creator, brand, or supporter. Get active, get creative, and jump in — prizes are up for grabs!
+
+$1,250 — Best New DRiP Channel
+$1,250 — Most Active Supporter
+Brands/projects that participate get 50% discount on a DRiP Sponsored Campaign
+
+$2,500prize
+Learn more about DRiP
+Torque
+Loyalty
+Build loyalty programs, rewards systems, or token-based incentive mechanisms using Torque.
+
+$750 — 1st place
+$250 — 2nd place
+
+$1,000prize
+Learn more about Torque
+BIO
+DeSci
+Build decentralized science applications on Solana using Bio — from research funding to open data sharing.
+
+$750 — 1st place
+$250 — 2nd place
+
+$1,000prize
+Learn more about BIO
+Audius
+Music
+Empower artists and creators using Audius tools such as our APIs and artist coins.
+
+$2,000 — 1st place
+$1,000 — 2nd place
+
+$3,000prize
+Learn more about Audius
+12–27 FEB
