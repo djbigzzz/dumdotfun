@@ -66,8 +66,8 @@ function getPoolAuthorityKeypair(): Keypair {
     }
   }
   const keypair = Keypair.generate();
-  console.log(`[Graduation] Generated pool authority keypair: ${keypair.publicKey.toBase58()}`);
-  console.log(`[Graduation] Save this as POOL_AUTHORITY_SECRET_KEY: ${Buffer.from(keypair.secretKey).toString("base64")}`);
+  console.log(`[Graduation] Generated ephemeral pool authority: ${keypair.publicKey.toBase58()}`);
+  console.warn(`[Graduation] No POOL_AUTHORITY_SECRET_KEY set. Generated ephemeral keypair - set the env var to persist.`);
   return keypair;
 }
 

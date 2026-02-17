@@ -406,22 +406,24 @@ export default function TokenPage() {
     }
     
     const isBuy = tradeType === "buy";
-    toast.info(`${isBuy ? "Buying" : "Selling"} ${tradeAmount} SOL worth of ${token.symbol}...`);
+    toast.info(isBuy 
+      ? `Buying ${tradeAmount} SOL worth of ${token.symbol}...` 
+      : `Selling ${tradeAmount} ${token.symbol}...`);
     
     try {
-      // Convert SOL to lamports for buy, or use token base units for sell
-      const lamports = Math.floor(amount * 1e9);
+      const amountInBaseUnits = isBuy
+        ? Math.floor(amount * 1e9).toString()
+        : Math.floor(amount * 1e6).toString();
       
-      // Build the transaction on the server
       const buildResponse = await fetch("/api/trade/build", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userWallet: connectedWallet,
           tokenMint: token.mint,
-          amount: lamports.toString(),
+          amount: amountInBaseUnits,
           isBuy,
-          slippageBps: 500, // 5% slippage
+          slippageBps: 500,
         }),
       });
       

@@ -1209,14 +1209,18 @@ export async function registerRoutes(
   // Internal pool transfer - NO ON-CHAIN RECORD (amount hidden)
   app.post("/api/privacy/pool/internal-transfer", async (req, res) => {
     try {
-      const { senderAddress, recipientAddress, amount } = req.body;
+      const { senderAddress, recipientAddress, amount, signature } = req.body;
       if (!senderAddress || !recipientAddress || !amount) {
         return res.status(400).json({ error: "senderAddress, recipientAddress, and amount are required" });
       }
 
+      if (!isValidSolanaAddress(senderAddress) || !isValidSolanaAddress(recipientAddress)) {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+
       const transferAmount = parseFloat(amount);
-      if (transferAmount <= 0) {
-        return res.status(400).json({ error: "Amount must be positive" });
+      if (transferAmount <= 0 || transferAmount > 1000000) {
+        return res.status(400).json({ error: "Amount must be between 0 and 1,000,000" });
       }
 
       const { poolBalances, poolTransfers, privacyActivity } = await import("@shared/schema");
@@ -1363,8 +1367,19 @@ export async function registerRoutes(
         return res.status(400).json({ error: "walletAddress and amount are required" });
       }
 
+      if (!isValidSolanaAddress(walletAddress)) {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+
       const destination = destinationAddress || walletAddress;
+      if (!isValidSolanaAddress(destination)) {
+        return res.status(400).json({ error: "Invalid destination address" });
+      }
+
       const withdrawAmount = parseFloat(amount);
+      if (withdrawAmount <= 0 || withdrawAmount > 1000000) {
+        return res.status(400).json({ error: "Amount must be between 0 and 1,000,000" });
+      }
 
       const { poolBalances, privacyActivity } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
@@ -3490,6 +3505,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bet ID and signature are required" });
       }
 
+      if (usedSignatures.has(signature)) {
+        return res.status(400).json({ error: "Transaction signature already used" });
+      }
+
       const pendingBet = pendingBets.get(betId);
       if (!pendingBet) {
         return res.status(404).json({ error: "Pending bet not found or expired" });
@@ -3499,8 +3518,6 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Market ID mismatch" });
       }
 
-      // Verify the transaction was confirmed on-chain
-      // Try Helius first, fall back to public RPC
       let txInfo;
       try {
         const connection = getHeliusConnection();
@@ -3525,6 +3542,30 @@ export async function registerRoutes(
       if (txInfo.meta?.err) {
         return res.status(400).json({ error: "Transaction failed on chain" });
       }
+
+      const txMessage = txInfo.transaction?.message;
+      if (txMessage) {
+        const accountKeys = 'getAccountKeys' in txMessage 
+          ? txMessage.getAccountKeys().staticAccountKeys 
+          : (txMessage as any).accountKeys;
+        if (accountKeys && accountKeys.length > 0) {
+          const feePayer = accountKeys[0].toString();
+          if (feePayer.toLowerCase() !== pendingBet.walletAddress.toLowerCase()) {
+            return res.status(403).json({ error: "Transaction sender does not match bet wallet" });
+          }
+        }
+      }
+
+      if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
+        const lamportsSent = txInfo.meta.preBalances[0] - txInfo.meta.postBalances[0] - (txInfo.meta.fee || 0);
+        const expectedLamports = pendingBet.amount * LAMPORTS_PER_SOL;
+        const tolerance = expectedLamports * 0.05;
+        if (lamportsSent < expectedLamports - tolerance) {
+          return res.status(400).json({ error: "Transaction amount does not match expected bet amount" });
+        }
+      }
+
+      usedSignatures.add(signature);
 
       // Record the bet in database
       const isConfidentialBet = isConfidential || pendingBet.isConfidential;
@@ -3718,10 +3759,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Market is already resolved", outcome: market.outcome });
       }
 
-      // Only market creator can resolve (or allow any address for now during hackathon)
       const isCreator = market.creatorAddress.toLowerCase() === resolverAddress.toLowerCase();
       if (!isCreator) {
-        console.log(`[Resolution] Non-creator ${resolverAddress} resolving market ${id} (creator: ${market.creatorAddress})`);
+        return res.status(403).json({ error: "Only the market creator can resolve this market" });
       }
 
       // Get all positions for this market

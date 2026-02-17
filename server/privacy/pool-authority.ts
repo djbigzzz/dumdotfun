@@ -29,8 +29,7 @@ export function getPoolKeypair(): Keypair {
   
   poolKeypair = Keypair.generate();
   console.log(`[Pool Authority] Generated new pool keypair: ${poolKeypair.publicKey.toBase58()}`);
-  console.log(`[Pool Authority] SECRET KEY (save this as POOL_AUTHORITY_SECRET_KEY):`);
-  console.log(bs58.encode(poolKeypair.secretKey));
+  console.warn(`[Pool Authority] No POOL_AUTHORITY_SECRET_KEY set. Generated ephemeral keypair - funds will be lost on restart. Set the env var to persist.`);
   
   return poolKeypair;
 }

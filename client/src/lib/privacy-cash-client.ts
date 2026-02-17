@@ -1,7 +1,6 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const HELIUS_RPC = `https://devnet.helius-rpc.com/?api-key=${import.meta.env.VITE_HELIUS_API_KEY || ""}`;
-const DEVNET_RPC = "https://api.devnet.solana.com";
+const DEVNET_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
 
 interface PrivateCashBalance {
   sol: number;
@@ -26,7 +25,7 @@ class PrivacyCashClient {
   private privateBalance: number = 0;
 
   constructor() {
-    this.connection = new Connection(HELIUS_RPC || DEVNET_RPC, "confirmed");
+    this.connection = new Connection(DEVNET_RPC, "confirmed");
   }
 
   setWallet(walletAddress: string) {
