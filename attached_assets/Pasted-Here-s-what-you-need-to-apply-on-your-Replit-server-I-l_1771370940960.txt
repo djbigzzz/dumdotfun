@@ -1,0 +1,130 @@
+Here's what you need to apply on your Replit server. I'll organize by file and priority:
+
+CRITICAL — Apply These First
+1. server/routes.ts — Add wallet signature verification + replay protection
+
+Add this near the top of the file:
+
+
+import nacl from "tweetnacl";
+
+const usedSignatures = new Set<string>();
+
+function verifyWalletSignature(walletAddress: string, message: string, signature: string): boolean {
+  try {
+    const msgBytes = new TextEncoder().encode(message);
+    const sigBytes = Buffer.from(signature, "base64");
+    const pubKeyBytes = new PublicKey(walletAddress).toBytes();
+    return nacl.sign.detached.verify(msgBytes, sigBytes, pubKeyBytes);
+  } catch {
+    return false;
+  }
+}
+Then add wallet signature verification to these endpoints:
+
+POST /api/privacy/cash/deposit — require signature + message in body, verify before processing
+POST /api/privacy/cash/withdraw — same
+POST /api/privacy/shadowwire/deposit — same
+POST /api/privacy/shadowwire/withdraw — same
+POST /api/stealth/sweep — same
+POST /api/markets/:id/resolve — same
+POST /api/pool/internal-transfer — same
+POST /api/pool/create-withdraw-tx — same
+For each, add before the main logic:
+
+
+const { signature, message } = req.body;
+if (!signature || !message || !verifyWalletSignature(walletAddress, message, signature)) {
+  return res.status(403).json({ error: "Invalid wallet signature" });
+}
+2. server/routes.ts — Add replay protection to confirm-bet and verify-deposit
+
+
+// In confirm-bet handler, after getting txSignature:
+if (usedSignatures.has(txSignature)) {
+  return res.status(409).json({ error: "Transaction already processed" });
+}
+usedSignatures.add(txSignature);
+
+// Same for verify-deposit
+3. server/routes.ts — Fix TOCTOU in internal-transfer
+
+Replace the balance check + update with an atomic SQL operation:
+
+
+// Instead of: check balance, then subtract
+// Use: UPDATE pools SET solBalance = solBalance - amount WHERE id = ? AND solBalance >= amount
+// If rows affected = 0, insufficient balance
+4. server/routes.ts — Fix TOCTOU in process-withdraw
+
+Same atomic pattern — debit first, credit after:
+
+
+// UPDATE pools SET solBalance = solBalance - amount WHERE id = ? AND solBalance >= amount
+HIGH Priority
+5. server/routes.ts — Add amount validation to all financial endpoints
+
+
+if (!Number.isFinite(amount) || amount <= 0) {
+  return res.status(400).json({ error: "Invalid amount" });
+}
+Add this to: deposit, withdraw, internal-transfer, confirm-bet, create-withdraw-tx, process-withdraw
+
+6. server/routes.ts — Add admin auth to unprotected admin endpoints
+
+These need requireAdmin middleware:
+
+POST /api/pool/airdrop
+POST /api/bonding-curve/initialize
+POST /api/sync-blockchain
+POST /api/markets/auto-resolve
+7. server/routes.ts — Disable confidential-bet endpoint
+
+
+// Replace the handler with:
+app.post("/api/markets/:id/confidential-bet", (_req, res) => {
+  res.status(503).json({ error: "Confidential betting temporarily disabled" });
+});
+8. server/routes.ts — Sanitize social link URLs in token creation
+
+
+function sanitizeUrl(url: string): string {
+  const trimmed = url.trim();
+  if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) return '';
+  try { new URL(trimmed); return trimmed; } catch { return ''; }
+}
+9. server/helius-rpc.ts — Remove API key logging
+
+Find and remove any console.log that contains partial API key output.
+
+10. server/index.ts — Truncate API response logging
+
+
+logLine += ` :: ${summary.length > 200 ? summary.slice(0, 200) + '...' : summary}`;
+MEDIUM Priority
+11. server/privacy/pool-authority.ts — Fix rent reserve
+
+
+// Change MIN_RENT_RESERVE from 5000 to 890880
+const MIN_RENT_RESERVE = 890880;
+12. server/privacy/stealth-addresses.ts — Remove shared secret from bundle
+
+Don't return sharedSecretHash in the response object.
+
+13. server/privacy/privacy-cash.ts — Add amount + token validation
+
+14. server/privacy/shadowwire.ts — Fix fallback auth bypass
+
+Ensure the fallback path also requires signMessage.
+
+15. server/privacy/inco-lightning.ts — Fix amount leak
+
+Use SHA-256 hash instead of base64 for the amount field.
+
+16. server/bonding-curve-client.ts — Add default slippage + remove hardcoded fee wallet
+
+
+// Add 5% default slippage if slippage = 0
+if (!slippage || slippage === 0) slippage = 5;
+
+// Remove any hardcoded fallback wallet in getFeeRecipient

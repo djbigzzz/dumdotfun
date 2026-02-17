@@ -8,7 +8,7 @@ import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction 
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
@@ -46,6 +46,14 @@ function requireAdmin(req: Request, res: Response, next: NextFunction) {
     return res.status(403).json({ error: "Unauthorized" });
   }
   next();
+}
+
+function sanitizeUrl(url: string | undefined | null): string | null {
+  if (!url) return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
+  try { new URL(trimmed); return trimmed; } catch { return null; }
 }
 
 function generateUserReferralCode(walletAddress: string): string {
@@ -778,6 +786,9 @@ export async function registerRoutes(
       // Fixed ShadowWire pool address - NOT client-controllable to prevent spoofing
       const SHADOWWIRE_POOL_ADDRESS = "ApfNmzrNXLUQ5yWpQVmrCB4MNsaRqjsFrLXViBq2rBU";
       const expectedAmount = parseFloat(amount);
+      if (!Number.isFinite(expectedAmount) || expectedAmount <= 0) {
+        return res.status(400).json({ error: "Invalid amount" });
+      }
       const LAMPORTS_PER_SOL = 1_000_000_000;
       
       // Reject if client tries to specify a different pool (security)
@@ -1053,8 +1064,8 @@ export async function registerRoutes(
       }
 
       const depositAmount = parseFloat(amount);
-      if (depositAmount < 0.01) {
-        return res.status(400).json({ error: "Minimum deposit is 0.01 SOL" });
+      if (!Number.isFinite(depositAmount) || depositAmount < 0.01 || depositAmount > 1000000) {
+        return res.status(400).json({ error: "Invalid amount" });
       }
 
       const { Connection, PublicKey, SystemProgram, Transaction, LAMPORTS_PER_SOL } = await import("@solana/web3.js");
@@ -1219,86 +1230,70 @@ export async function registerRoutes(
       }
 
       const transferAmount = parseFloat(amount);
-      if (transferAmount <= 0 || transferAmount > 1000000) {
-        return res.status(400).json({ error: "Amount must be between 0 and 1,000,000" });
+      if (!Number.isFinite(transferAmount) || transferAmount <= 0 || transferAmount > 1000000) {
+        return res.status(400).json({ error: "Invalid amount" });
       }
 
       const { poolBalances, poolTransfers, privacyActivity } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
 
-      // Check sender's pool balance
-      const [senderBalance] = await db.select().from(poolBalances)
-        .where(eq(poolBalances.walletAddress, senderAddress));
-
-      if (!senderBalance || senderBalance.solBalance < transferAmount) {
-        return res.status(400).json({ 
-          error: `Insufficient pool balance. You have ${senderBalance?.solBalance || 0} SOL in pool.`,
-          poolBalance: senderBalance?.solBalance || 0
-        });
-      }
-
-      // Generate commitment hash (for ZK proof reference)
       const crypto = await import("crypto");
       const commitment = crypto.createHash("sha256")
         .update(`${senderAddress}:${recipientAddress}:${transferAmount}:${Date.now()}`)
         .digest("hex");
 
-      // Debit sender
-      await db.update(poolBalances)
-        .set({ 
-          solBalance: senderBalance.solBalance - transferAmount,
-          updatedAt: new Date()
-        })
-        .where(eq(poolBalances.walletAddress, senderAddress));
+      let senderNewBalance = 0;
+      await db.transaction(async (tx) => {
+        const debitResult = await tx.execute(
+          sql`UPDATE pool_balances SET sol_balance = sol_balance - ${transferAmount}, updated_at = NOW() WHERE wallet_address = ${senderAddress} AND sol_balance >= ${transferAmount} RETURNING sol_balance`
+        );
+        if (!debitResult.rowCount || debitResult.rowCount === 0) {
+          throw new Error("INSUFFICIENT_BALANCE");
+        }
+        senderNewBalance = (debitResult.rows[0] as any)?.sol_balance ?? 0;
 
-      // Credit recipient
-      const [recipientBalance] = await db.select().from(poolBalances)
-        .where(eq(poolBalances.walletAddress, recipientAddress));
-
-      if (recipientBalance) {
-        await db.update(poolBalances)
-          .set({ 
-            solBalance: recipientBalance.solBalance + transferAmount,
-            updatedAt: new Date()
-          })
+        const [recipientBalance] = await tx.select().from(poolBalances)
           .where(eq(poolBalances.walletAddress, recipientAddress));
-      } else {
-        await db.insert(poolBalances).values({
-          walletAddress: recipientAddress,
-          solBalance: transferAmount
+
+        if (recipientBalance) {
+          await tx.execute(
+            sql`UPDATE pool_balances SET sol_balance = sol_balance + ${transferAmount}, updated_at = NOW() WHERE wallet_address = ${recipientAddress}`
+          );
+        } else {
+          await tx.insert(poolBalances).values({
+            walletAddress: recipientAddress,
+            solBalance: transferAmount
+          });
+        }
+
+        await tx.insert(poolTransfers).values({
+          senderAddress,
+          recipientAddress,
+          amount: transferAmount,
+          token: "SOL",
+          transferType: "internal",
+          commitment
         });
-      }
 
-      // Record transfer (internal record only - NOT on-chain!)
-      await db.insert(poolTransfers).values({
-        senderAddress,
-        recipientAddress,
-        amount: transferAmount,
-        token: "SOL",
-        transferType: "internal",
-        commitment
-      });
+        await tx.insert(privacyActivity).values({
+          walletAddress: senderAddress,
+          activityType: "shadowwire",
+          description: `Private transfer to ${recipientAddress.slice(0, 8)}... (amount hidden on-chain)`,
+          amount: transferAmount,
+          token: "SOL",
+          status: "success",
+          txSignature: commitment
+        });
 
-      // Record activity for sender
-      await db.insert(privacyActivity).values({
-        walletAddress: senderAddress,
-        activityType: "shadowwire",
-        description: `Private transfer to ${recipientAddress.slice(0, 8)}... (amount hidden on-chain)`,
-        amount: transferAmount,
-        token: "SOL",
-        status: "success",
-        txSignature: commitment
-      });
-
-      // Record activity for recipient
-      await db.insert(privacyActivity).values({
-        walletAddress: recipientAddress,
-        activityType: "shadowwire",
-        description: `Received private transfer (amount hidden on-chain)`,
-        amount: transferAmount,
-        token: "SOL",
-        status: "success",
-        txSignature: commitment
+        await tx.insert(privacyActivity).values({
+          walletAddress: recipientAddress,
+          activityType: "shadowwire",
+          description: `Received private transfer (amount hidden on-chain)`,
+          amount: transferAmount,
+          token: "SOL",
+          status: "success",
+          txSignature: commitment
+        });
       });
 
       res.json({
@@ -1307,9 +1302,12 @@ export async function registerRoutes(
         commitment,
         amountHidden: true,
         onChainRecord: false,
-        senderNewBalance: senderBalance.solBalance - transferAmount
+        senderNewBalance
       });
     } catch (error: any) {
+      if (error.message === "INSUFFICIENT_BALANCE") {
+        return res.status(400).json({ error: "Insufficient pool balance" });
+      }
       console.error("[Pool Internal Transfer] Error:", error);
       res.status(500).json({ error: error.message });
     }
@@ -1377,26 +1375,28 @@ export async function registerRoutes(
       }
 
       const withdrawAmount = parseFloat(amount);
-      if (withdrawAmount <= 0 || withdrawAmount > 1000000) {
-        return res.status(400).json({ error: "Amount must be between 0 and 1,000,000" });
+      if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0 || withdrawAmount > 1000000) {
+        return res.status(400).json({ error: "Invalid amount" });
       }
 
       const { poolBalances, privacyActivity } = await import("@shared/schema");
       const { eq } = await import("drizzle-orm");
 
-      const [balance] = await db.select().from(poolBalances)
-        .where(eq(poolBalances.walletAddress, walletAddress));
-
-      if (!balance || balance.solBalance < withdrawAmount) {
+      const debitResult = await db.execute(
+        sql`UPDATE pool_balances SET sol_balance = sol_balance - ${withdrawAmount}, updated_at = NOW() WHERE wallet_address = ${walletAddress} AND sol_balance >= ${withdrawAmount} RETURNING sol_balance`
+      );
+      if (!debitResult.rowCount || debitResult.rowCount === 0) {
         return res.status(400).json({ error: "Insufficient pool balance" });
       }
+      const newBalance = (debitResult.rows[0] as any)?.sol_balance ?? 0;
 
-      // Execute REAL on-chain withdrawal from pool
       console.log(`[Pool Withdraw] Sending ${withdrawAmount} SOL from pool to ${destination}...`);
       const withdrawResult = await withdrawFromPool(destination, withdrawAmount);
 
       if (!withdrawResult.success) {
-        // Check if pool needs funding
+        await db.execute(
+          sql`UPDATE pool_balances SET sol_balance = sol_balance + ${withdrawAmount}, updated_at = NOW() WHERE wallet_address = ${walletAddress}`
+        );
         const poolOnChainBalance = await getOnChainPoolBalance();
         if (poolOnChainBalance < withdrawAmount) {
           return res.status(400).json({ 
@@ -1407,14 +1407,6 @@ export async function registerRoutes(
         }
         return res.status(500).json({ error: withdrawResult.error || "Withdrawal failed" });
       }
-
-      // Debit user's pool balance AFTER successful on-chain tx
-      await db.update(poolBalances)
-        .set({ 
-          solBalance: balance.solBalance - withdrawAmount,
-          updatedAt: new Date()
-        })
-        .where(eq(poolBalances.walletAddress, walletAddress));
 
       // Record activity with real tx signature
       await db.insert(privacyActivity).values({
@@ -1434,7 +1426,7 @@ export async function registerRoutes(
         onChain: true,
         destination,
         amount: withdrawAmount,
-        newPoolBalance: balance.solBalance - withdrawAmount,
+        newPoolBalance: newBalance,
         txSignature: withdrawResult.signature,
         solscanUrl: `https://solscan.io/tx/${withdrawResult.signature}?cluster=devnet`
       });
@@ -2214,9 +2206,9 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress: displayAddress,
-        twitter: twitter?.trim() || null,
-        telegram: telegram?.trim() || null,
-        website: website?.trim() || null,
+        twitter: sanitizeUrl(twitter),
+        telegram: sanitizeUrl(telegram),
+        website: sanitizeUrl(website),
       });
 
       console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}${privacyMode ? ' [PRIVATE LAUNCH]' : ''}`);
@@ -2430,7 +2422,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/bonding-curve/initialize", async (req, res) => {
+  app.post("/api/bonding-curve/initialize", requireAdmin, async (req, res) => {
     try {
       const { authority } = req.body;
       if (!authority) {
@@ -2714,9 +2706,9 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress,
-        twitter: twitter?.trim() || null,
-        telegram: telegram?.trim() || null,
-        website: website?.trim() || null,
+        twitter: sanitizeUrl(twitter),
+        telegram: sanitizeUrl(telegram),
+        website: sanitizeUrl(website),
       });
 
       console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
@@ -3610,130 +3602,8 @@ export async function registerRoutes(
     }
   });
 
-  // Place CONFIDENTIAL bet on market using Inco Lightning
-  app.post("/api/markets/:id/confidential-bet", async (req, res) => {
-    try {
-      const { id } = req.params;
-      const { walletAddress, side, amount, encryptedAmount, commitment, nonce, isConfidential } = req.body;
-
-      if (!walletAddress || typeof walletAddress !== "string") {
-        return res.status(400).json({ error: "Wallet address is required" });
-      }
-
-      if (!side || (side !== "yes" && side !== "no")) {
-        return res.status(400).json({ error: "Side must be 'yes' or 'no'" });
-      }
-
-      if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
-        return res.status(400).json({ error: "Amount must be a positive number" });
-      }
-
-      // Auto-generate commitment if not provided (for demo/testing)
-      let betCommitment = commitment;
-      let betNonce = nonce;
-      let betEncryptedAmount = encryptedAmount;
-      
-      if (!commitment) {
-        const { createConfidentialBet } = await import("./privacy");
-        const confidentialData = await createConfidentialBet(id, Number(amount), side, walletAddress);
-        betCommitment = confidentialData.commitment;
-        betNonce = confidentialData.nonce;
-        betEncryptedAmount = confidentialData.encryptedAmount;
-      }
-
-      const market = await storage.getMarket(id);
-      if (!market) {
-        return res.status(404).json({ error: "Market not found" });
-      }
-
-      if (market.status !== "open") {
-        return res.status(400).json({ error: "Market is closed for betting" });
-      }
-
-      if (new Date(market.resolutionDate) <= new Date()) {
-        return res.status(400).json({ error: "Market has expired" });
-      }
-
-      const amountNum = Number(amount);
-      const { netAmount, fee } = calculateBettingFee(amountNum);
-      
-      const currentYes = Number(market.yesPool);
-      const currentNo = Number(market.noPool);
-
-      let newYes = currentYes;
-      let newNo = currentNo;
-      let shares: number;
-
-      if (side === "yes") {
-        newYes = currentYes + netAmount;
-        shares = netAmount * (currentNo + 1) / (currentYes + 1);
-      } else {
-        newNo = currentNo + netAmount;
-        shares = netAmount * (currentYes + 1) / (currentNo + 1);
-      }
-
-      // Build fee transaction
-      let feeTransaction = null;
-      try {
-        const connection = getHeliusConnection();
-        const { blockhash } = await connection.getLatestBlockhash();
-        const feeRecipient = getFeeRecipientWallet();
-        const feeLamports = Math.floor(fee * LAMPORTS_PER_SOL);
-        
-        const feeTx = new Transaction();
-        feeTx.add(SystemProgram.transfer({
-          fromPubkey: new PublicKey(walletAddress),
-          toPubkey: feeRecipient,
-          lamports: feeLamports,
-        }));
-        feeTx.recentBlockhash = blockhash;
-        feeTx.feePayer = new PublicKey(walletAddress);
-        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
-      } catch (feeError) {
-        console.error("Failed to build confidential betting fee transaction:", feeError);
-      }
-
-      // Execute confidential bet with encrypted data
-      const position = await storage.placeBetTransaction(
-        id,
-        walletAddress,
-        side,
-        netAmount.toString(),
-        shares.toString(),
-        newYes.toString(),
-        newNo.toString(),
-        {
-          isConfidential: true,
-          encryptedAmount: betEncryptedAmount || null,
-          commitment: betCommitment,
-          nonce: betNonce || null,
-        }
-      );
-
-      console.log(`[INCO] Confidential bet placed: commitment=${betCommitment.slice(0, 16)}... on ${side} for market ${id}`);
-
-      return res.json({
-        success: true,
-        position: {
-          ...position,
-          amount: "🔒 Hidden",
-        },
-        isConfidential: true,
-        commitment: betCommitment,
-        feeTransaction,
-        platformFee: fee,
-        feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
-        newOdds: {
-          yes: calculateOdds(newYes, newNo, "yes"),
-          no: calculateOdds(newYes, newNo, "no"),
-        },
-        privacyProvider: "Inco Lightning",
-        programId: "5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj",
-      });
-    } catch (error: any) {
-      console.error("Error placing confidential bet:", error);
-      return res.status(500).json({ error: "Failed to place confidential bet" });
-    }
+  app.post("/api/markets/:id/confidential-bet", (_req, res) => {
+    return res.status(503).json({ error: "Confidential betting temporarily disabled - use standard betting with privacy mode" });
   });
 
   // Resolve a prediction market and calculate payouts

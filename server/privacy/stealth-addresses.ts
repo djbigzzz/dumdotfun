@@ -5,7 +5,6 @@ export interface StealthAddressBundle {
   ephemeralPublicKey: string;
   stealthAddress: string;
   viewTag: string;
-  sharedSecretHash: string;
   timestamp: number;
 }
 
@@ -79,7 +78,6 @@ export function generateStealthAddress(recipientWalletAddress: string): StealthA
     ephemeralPublicKey: ephemeralKeypair.publicKey.toBase58(),
     stealthAddress: stealthPubkey.toBase58(),
     viewTag,
-    sharedSecretHash: sharedSecretHash.toString("hex"),
     timestamp: Date.now(),
   };
 }
