@@ -1,8 +1,8 @@
-# dum.fun — Satirical Anti-Launchpad for Solana Mobile
+# dum.fun — Token Launchpad with Built-in Prediction Markets
 
-> **Launch meme coins. Bet if they'll rug. All on your phone.** — Built for [MONOLITH: Solana Mobile Hackathon](https://solanamobile.radiant.nexus/?panel=hackathon)
+> **Launch tokens. Trade on bonding curves. Bet if they'll rug.** — Built for [MONOLITH: Solana Mobile Hackathon](https://solanamobile.radiant.nexus/?panel=hackathon)
 
-A mobile-first token launchpad and prediction market platform built natively for the Solana dApp Store and Solana Seeker device, featuring bonding curve trading, on-chain token creation, and integrated prediction markets.
+A mobile-first token launchpad with built-in prediction markets, built natively for the Solana dApp Store and Solana Seeker device. Create tokens, trade on bonding curves, and bet on outcomes — all with native on-device wallet signing.
 
 ---
 
@@ -16,7 +16,7 @@ A mobile-first token launchpad and prediction market platform built natively for
 
 ## What It Does
 
-**dum.fun** is a satirical take on meme coin launchpads. Users can:
+**dum.fun** is a token launchpad with built-in prediction markets. Users can:
 
 1. **Create tokens** — Deploy real SPL tokens on Solana devnet with one tap
 2. **Trade on bonding curves** — Automated price discovery from 0 to 85 SOL market cap
@@ -203,7 +203,7 @@ MIT License — See [LICENSE](LICENSE) for details.
 
 <div align="center">
 
-**dum.fun** — Where every token is a joke, and every joke is on-chain.
+**dum.fun** — Token Launchpad with Built-in Prediction Markets on Solana Mobile
 
 Built for the [MONOLITH Solana Mobile Hackathon](https://solanamobile.radiant.nexus/?panel=hackathon)
 
