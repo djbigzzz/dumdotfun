@@ -20,7 +20,7 @@ A mobile-first token launchpad with built-in prediction markets, built natively 
 
 1. **Create tokens** — Deploy real SPL tokens on Solana devnet with one tap
 2. **Trade on bonding curves** — Automated price discovery from 0 to 85 SOL market cap
-3. **Bet on rugs** — Every token gets a prediction market: "Will $TOKEN rug?"
+3. **Create & bet on prediction markets** — Every token gets a default market, plus users can create their own from pre-defined templates
 4. **Browse trending** — Leaderboards ranked by market cap, volume, and activity
 
 All transactions are signed natively on-device using **Solana Mobile Wallet Adapter (MWA)** — no browser extensions, no QR codes, just tap and sign.
@@ -96,7 +96,8 @@ This app is designed specifically for the Solana Seeker and the dApp Store:
 - 1% platform trading fee
 
 ### Prediction Markets
-- Every token automatically gets a "Will it rug?" prediction market
+- Every token automatically gets a default prediction market
+- Users can create additional markets from pre-defined templates
 - Binary YES/NO betting with SOL
 - Auto-resolution engine checks expired markets every 5 minutes
 - AI-powered market creation for custom questions
@@ -191,7 +192,8 @@ This project is submitted to the **MONOLITH Solana Mobile Hackathon** (Feb 2 —
 4. Create a token from the Create tab
 5. Trade tokens using Buy/Sell on any token detail page
 6. Place a prediction bet (YES/NO) on any token's market
-7. Browse trending tokens on the Trending tab
+7. Create a new prediction market from the token detail page
+8. Browse trending tokens on the Trending tab
 
 ---
 

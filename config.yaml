@@ -37,7 +37,7 @@ release:
     en-US:
       name: Dum.fun
       short_description: Meme coins & prediction bets
-      long_description: Dum.fun is a token launchpad with built-in prediction markets on Solana. Create and trade tokens with bonding curves, bet on prediction markets for each token, and explore trending coins — all powered by Solana devnet. Features include one-tap token creation, real-time trading with bonding curve pricing, prediction markets, trending leaderboards, and native Solana Mobile Wallet Adapter integration for seamless on-device signing with your Solana Seeker.
+      long_description: Dum.fun is a token launchpad with built-in prediction markets on Solana. Create and trade tokens with bonding curves, create and bet on prediction markets for each token, and explore trending coins — all powered by Solana devnet. Features include one-tap token creation, real-time trading with bonding curve pricing, user-created prediction markets from pre-defined templates, trending leaderboards, and native Solana Mobile Wallet Adapter integration for seamless on-device signing with your Solana Seeker.
       new_in_version: Initial release with token creation, trading, prediction markets, and trending leaderboards.
       saga_features: Native MWA integration for seamless wallet signing on Solana Mobile devices.
   android_details:
