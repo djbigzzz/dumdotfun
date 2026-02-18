@@ -107,7 +107,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const [, setLocation] = useLocation();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, signAndSendTransaction: walletSignAndSend } = useWallet();
   const { privateMode } = usePrivacy();
   const { shouldEncryptBets } = useIncoPrivacy();
   const queryClient = useQueryClient();
@@ -178,7 +178,7 @@ export default function TokenPage() {
       if (!res.ok) throw new Error("Failed to fetch SOL price");
       const data = await res.json();
       if (typeof window !== "undefined") {
-        (window as any).lastSolPrice = data.price;
+        try { Object.defineProperty(window, '__solPriceCache', { value: data.price, writable: true, configurable: true }); } catch {}
       }
       return data;
     },
@@ -242,11 +242,6 @@ export default function TokenPage() {
         return confidentialRes.json();
       }
       
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
       // Step 1: Prepare bet (get transaction to sign)
       const prepareRes = await fetch(`/api/markets/${marketId}/prepare-bet`, {
         method: "POST",
@@ -257,35 +252,19 @@ export default function TokenPage() {
           amount,
         }),
       });
-      
+
       if (!prepareRes.ok) {
         const errorData = await prepareRes.json();
         throw new Error(errorData.error || "Failed to prepare bet");
       }
-      
+
       const { transaction: txBase64, betId } = await prepareRes.json();
 
-      // Step 2: Sign transaction with Phantom
+      // Step 2: Sign and send transaction via wallet context
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
-      
-      let signedTx;
-      try {
-        signedTx = await phantom.signTransaction(transaction);
-      } catch (signError: any) {
-        if (signError.message?.includes("User rejected")) {
-          throw new Error("Transaction cancelled");
-        }
-        throw new Error("Failed to sign: " + signError.message);
-      }
 
-      // Step 3: Send signed transaction
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: true,
-        preflightCommitment: "confirmed",
-      });
-      await connection.confirmTransaction(signature, "confirmed");
+      const signature = await walletSignAndSend(transaction);
 
       // Step 4: Confirm bet with server
       const confirmRes = await fetch(`/api/markets/${marketId}/confirm-bet`, {
@@ -417,22 +396,14 @@ export default function TokenPage() {
       
       // Deserialize the transaction
       const transactionBytes = Uint8Array.from(atob(buildResult.transaction), c => c.charCodeAt(0));
-      
-      // Get Phantom wallet provider
-      const provider = (window as any).solana;
-      if (!provider || !provider.isPhantom) {
-        toast.error("Please install Phantom wallet");
-        return;
-      }
-      
+
       // Sign and send the transaction
       toast.info("Please approve the transaction in your wallet...");
-      
-      const { Connection, Transaction } = await import("@solana/web3.js");
+
+      const { Transaction } = await import("@solana/web3.js");
       const transaction = Transaction.from(transactionBytes);
-      
-      // Sign and send with Phantom
-      const { signature } = await provider.signAndSendTransaction(transaction);
+
+      const signature = await walletSignAndSend(transaction);
       
       toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
       
@@ -591,8 +562,8 @@ export default function TokenPage() {
                         </linearGradient>
                       </defs>
                       <XAxis dataKey="time" tickFormatter={formatChartTime} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || (window as any).lastSolPrice || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
-                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || (window as any).lastSolPrice || 200)), 'Price']} />
+                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || (window as any).__solPriceCache || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
+                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || (window as any).__solPriceCache || 200)), 'Price']} />
                       <Area type="monotone" dataKey="price" stroke={privateMode ? "#4ADE80" : "#ef4444"} strokeWidth={2} fill="url(#chartGradient)" />
                     </AreaChart>
                   </ResponsiveContainer>
@@ -625,7 +596,7 @@ export default function TokenPage() {
             {/* Stats Row */}
             <div className="grid grid-cols-4 gap-2">
               {[
-                { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || (window as any).lastSolPrice || 200)) },
+                { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || (window as any).__solPriceCache || 200)) },
                 { label: "Market Cap", value: formatMarketCap(token.marketCapSol, solPrice?.price || null) },
                 { label: "Holders", value: "-" },
                 { label: "Txns", value: tokenActivity?.length || 0 },

@@ -76,7 +76,7 @@ interface MarketFormData {
 export default function CreateMarket() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, signAndSendTransaction: walletSignAndSend } = useWallet();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   
@@ -152,33 +152,20 @@ export default function CreateMarket() {
       const prepareData = await prepareResponse.json();
       const { pendingMarketId, transaction, totalCost: cost } = prepareData;
 
-      // Step 2: Sign transaction with Phantom wallet
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
+      // Step 2: Sign and send transaction via wallet context (supports MWA + Phantom)
       const { Transaction } = await import("@solana/web3.js");
       const txBuffer = Buffer.from(transaction, "base64");
       const tx = Transaction.from(txBuffer);
-      
-      let signedTx;
+
+      let signature: string;
       try {
-        signedTx = await phantom.signTransaction(tx);
+        signature = await walletSignAndSend(tx);
       } catch (signError: any) {
         if (signError.message?.includes("User rejected")) {
           throw new Error("Transaction cancelled by user");
         }
         throw new Error("Failed to sign transaction: " + signError.message);
       }
-
-      // Step 3: Send signed transaction
-      const { Connection } = await import("@solana/web3.js");
-      const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize());
-      
-      // Wait for confirmation
-      await connection.confirmTransaction(signature, "confirmed");
 
       // Step 4: Confirm market creation with server
       const confirmResponse = await fetch("/api/markets/confirm-create", {

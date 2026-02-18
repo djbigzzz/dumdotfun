@@ -39,7 +39,7 @@ interface ResolutionResult {
 }
 
 export default function AdminPage() {
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, signAndSendTransaction: walletSignAndSend } = useWallet();
   const [isInitializing, setIsInitializing] = useState(false);
   const queryClient = useQueryClient();
 
@@ -89,11 +89,6 @@ export default function AdminPage() {
         throw new Error("Connect wallet first");
       }
 
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
-        throw new Error("Phantom wallet required");
-      }
-
       setIsInitializing(true);
 
       const res = await fetch("/api/bonding-curve/initialize", {
@@ -112,15 +107,7 @@ export default function AdminPage() {
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
 
-      const signedTx = await phantom.signTransaction(transaction);
-
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-
-      await connection.confirmTransaction(signature, "confirmed");
+      const signature = await walletSignAndSend(transaction);
 
       return { signature };
     },

@@ -1,13 +1,7 @@
-import { createContext, useContext, useEffect, useState, useMemo, ReactNode, useCallback } from "react";
+import { createContext, useContext, useEffect, useState, useMemo, ReactNode, useCallback, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Connection, clusterApiUrl, Transaction } from "@solana/web3.js";
+import { Connection, clusterApiUrl, PublicKey } from "@solana/web3.js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
-import { 
-  SolanaMobileWalletAdapter,
-  createDefaultAddressSelector,
-  createDefaultAuthorizationResultCache,
-  createDefaultWalletNotFoundHandler
-} from "@solana-mobile/wallet-adapter-mobile";
 import { isMobileDevice, isMobile, openExternalLink } from "./mobile-utils";
 
 declare global {
@@ -38,33 +32,26 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
+// Store MWA auth token and base64 address for reuse across transact() calls
+let mwaAuthToken: string | null = null;
+let mwaBase64Address: string | null = null;
+
+// Dynamic import to avoid crashing the app if the module has issues
+async function getMwaTransact() {
+  const mod = await import("@solana-mobile/mobile-wallet-adapter-protocol-web3js");
+  return mod.transact;
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
   const [hasPhantom, setHasPhantom] = useState(false);
-  const [mobileAdapter, setMobileAdapter] = useState<SolanaMobileWalletAdapter | null>(null);
   const [isMobileWallet, setIsMobileWallet] = useState(false);
+  const publicKeyRef = useRef<PublicKey | null>(null);
   const queryClient = useQueryClient();
 
   const shouldUseMobileAdapter = useMemo(() => {
     return isMobileDevice() || isMobile();
   }, []);
-
-  useEffect(() => {
-    if (shouldUseMobileAdapter) {
-      const adapter = new SolanaMobileWalletAdapter({
-        addressSelector: createDefaultAddressSelector(),
-        appIdentity: {
-          name: 'Dum.fun',
-          uri: typeof window !== 'undefined' ? window.location.origin : 'https://dum.fun',
-          icon: '/favicon.ico',
-        },
-        authorizationResultCache: createDefaultAuthorizationResultCache(),
-        cluster: WalletAdapterNetwork.Devnet,
-        onWalletNotFound: createDefaultWalletNotFoundHandler(),
-      });
-      setMobileAdapter(adapter);
-    }
-  }, [shouldUseMobileAdapter]);
 
   useEffect(() => {
     const checkPhantom = async () => {
@@ -103,7 +90,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ walletAddress, referralCode }),
       });
-      
+
       if (res.ok) {
         queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
       }
@@ -113,19 +100,44 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const connectWallet = async (referralCode?: string) => {
-    if (shouldUseMobileAdapter && mobileAdapter) {
+    // Use low-level MWA transact() on mobile — bypasses wallet-standard discovery
+    if (shouldUseMobileAdapter) {
       try {
-        await mobileAdapter.connect();
-        if (mobileAdapter.publicKey) {
-          const walletAddress = mobileAdapter.publicKey.toBase58();
+        const transact = await getMwaTransact();
+        const result = await transact(async (wallet: any) => {
+          const auth = await wallet.authorize({
+            chain: 'solana:devnet',
+            identity: {
+              name: 'Dum.fun',
+              uri: typeof window !== 'undefined' ? window.location.origin : 'https://dum.fun',
+              icon: '/favicon.ico',
+            },
+          });
+          mwaAuthToken = auth.auth_token;
+          mwaBase64Address = auth.accounts[0].address;
+          return {
+            address: auth.accounts[0].address,
+          };
+        });
+
+        if (result.address) {
+          // address from MWA is base64-encoded public key — validate before use
+          const pubkeyBytes = Uint8Array.from(atob(result.address), c => c.charCodeAt(0));
+          if (pubkeyBytes.length !== 32) {
+            throw new Error(`Invalid public key length: ${pubkeyBytes.length}`);
+          }
+          publicKeyRef.current = new PublicKey(pubkeyBytes);
+          const walletAddress = publicKeyRef.current.toBase58();
           await syncUserToDatabase(walletAddress, referralCode);
           setConnectedWallet(walletAddress);
           setIsMobileWallet(true);
         }
         return;
-      } catch (err) {
+      } catch (err: any) {
         console.error("Mobile wallet connection failed:", err);
-        return;
+        if (isMobile()) {
+          throw new Error("Failed to connect mobile wallet: " + (err.message || "Unknown error"));
+        }
       }
     }
 
@@ -151,10 +163,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signMessage = async (message: string): Promise<string> => {
     const messageBuffer = new TextEncoder().encode(message);
 
-    if (isMobileWallet && mobileAdapter) {
+    if (isMobileWallet) {
       try {
-        const signature = await mobileAdapter.signMessage(messageBuffer);
-        const signatureArray = Array.from(signature);
+        const transact = await getMwaTransact();
+        const result = await transact(async (wallet: any) => {
+          if (mwaAuthToken) {
+            await wallet.reauthorize({
+              auth_token: mwaAuthToken,
+              identity: {
+                name: 'Dum.fun',
+                uri: typeof window !== 'undefined' ? window.location.origin : 'https://dum.fun',
+                icon: '/favicon.ico',
+              },
+            });
+          }
+          const signed = await wallet.signMessages({
+            addresses: [mwaBase64Address!],
+            payloads: [messageBuffer],
+          });
+          return signed[0];
+        });
+        const signatureArray = Array.from(new Uint8Array(result));
         const binaryString = String.fromCharCode(...signatureArray);
         return btoa(binaryString);
       } catch (err) {
@@ -179,11 +208,52 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const signAndSendTransaction = async (transaction: any): Promise<string> => {
-    if (isMobileWallet && mobileAdapter) {
+    if (isMobileWallet) {
       try {
         const connection = new Connection(clusterApiUrl(WalletAdapterNetwork.Devnet));
-        const signedTx = await mobileAdapter.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signedTx.serialize());
+
+        // Use signTransactions (not signAndSendTransactions) to keep the MWA
+        // session short. signAndSendTransactions requires the wallet to sign,
+        // send to RPC, and wait — the long session causes WS drops (1001).
+        // Instead: sign quickly, then send ourselves with skipPreflight.
+        const transact = await getMwaTransact();
+        const signedTx = await transact(async (wallet: any) => {
+          if (mwaAuthToken) {
+            await wallet.reauthorize({
+              auth_token: mwaAuthToken,
+              identity: {
+                name: 'Dum.fun',
+                uri: typeof window !== 'undefined' ? window.location.origin : 'https://dum.fun',
+                icon: '/favicon.ico',
+              },
+            });
+          }
+
+          // Fetch fresh blockhash inside MWA session, right before signing
+          const { blockhash } = await connection.getLatestBlockhash('confirmed');
+          transaction.recentBlockhash = blockhash;
+
+          const signed = await wallet.signTransactions({
+            transactions: [transaction],
+          });
+          return signed[0];
+        });
+
+        // Send immediately after MWA returns — skip preflight to avoid
+        // stale blockhash simulation errors
+        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true,
+          maxRetries: 3,
+        });
+
+        // Poll for confirmation via HTTP (WebSocket doesn't work in WebView)
+        for (let i = 0; i < 30; i++) {
+          const { value } = await connection.getSignatureStatuses([signature]);
+          if (value?.[0]?.confirmationStatus === 'confirmed' || value?.[0]?.confirmationStatus === 'finalized') {
+            break;
+          }
+          await new Promise(r => setTimeout(r, 1000));
+        }
         return signature;
       } catch (err) {
         console.error("Mobile wallet transaction failed:", err);
@@ -205,18 +275,27 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const getPublicKey = () => {
-    if (isMobileWallet && mobileAdapter) {
-      return mobileAdapter.publicKey;
+    if (isMobileWallet) {
+      return publicKeyRef.current;
     }
     return window.solana?.publicKey;
   };
 
   const disconnectWallet = async () => {
-    if (isMobileWallet && mobileAdapter) {
+    if (isMobileWallet) {
       try {
-        await mobileAdapter.disconnect();
+        const transact = await getMwaTransact();
+        await transact(async (wallet: any) => {
+          if (mwaAuthToken) {
+            await wallet.deauthorize({ auth_token: mwaAuthToken });
+          }
+        });
       } catch (err) {
         console.error("Mobile wallet disconnect error:", err);
+      } finally {
+        // Always clear tokens regardless of deauthorize success/failure
+        mwaAuthToken = null;
+        mwaBase64Address = null;
       }
     } else if (window.solana?.isPhantom) {
       try {
@@ -227,18 +306,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     setConnectedWallet(null);
     setIsMobileWallet(false);
+    publicKeyRef.current = null;
   };
 
   return (
-    <WalletContext.Provider value={{ 
-      connectedWallet, 
-      hasPhantom, 
+    <WalletContext.Provider value={{
+      connectedWallet,
+      hasPhantom,
       isMobileWallet,
-      connectWallet, 
-      signMessage, 
-      signAndSendTransaction, 
-      getPublicKey, 
-      disconnectWallet 
+      connectWallet,
+      signMessage,
+      signAndSendTransaction,
+      getPublicKey,
+      disconnectWallet
     }}>
       {children}
     </WalletContext.Provider>

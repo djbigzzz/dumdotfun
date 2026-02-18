@@ -79,7 +79,8 @@ export function generateStealthAddress(recipientWalletAddress: string): StealthA
     ephemeralPublicKey: ephemeralKeypair.publicKey.toBase58(),
     stealthAddress: stealthPubkey.toBase58(),
     viewTag,
-    sharedSecretHash: sharedSecretHash.toString("hex"),
+    // sharedSecretHash intentionally omitted — never expose the shared secret
+    sharedSecretHash: "",
     timestamp: Date.now(),
   };
 }

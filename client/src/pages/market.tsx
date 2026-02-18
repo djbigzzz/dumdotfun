@@ -91,7 +91,7 @@ function useCountdown(targetDate: string) {
 
 export default function MarketDetail() {
   const { id } = useParams<{ id: string }>();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, signAndSendTransaction: walletSignAndSend } = useWallet();
   const { privateMode } = usePrivacy();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
@@ -128,11 +128,6 @@ export default function MarketDetail() {
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
       // Use confidential betting endpoint if privacy mode is on
       if (confidential) {
         const confidentialRes = await fetch(`/api/markets/${id}/confidential-bet`, {
@@ -171,27 +166,11 @@ export default function MarketDetail() {
       
       const { transaction: txBase64, betId } = await prepareRes.json();
 
-      // Step 2: Sign transaction with Phantom
+      // Step 2: Sign and send transaction
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
-      
-      let signedTx;
-      try {
-        signedTx = await phantom.signTransaction(transaction);
-      } catch (signError: any) {
-        if (signError.message?.includes("User rejected")) {
-          throw new Error("Transaction cancelled by user");
-        }
-        throw new Error("Failed to sign transaction: " + signError.message);
-      }
 
-      // Step 3: Send signed transaction
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-      await connection.confirmTransaction(signature, "confirmed");
+      const signature = await walletSignAndSend(transaction);
 
       // Step 4: Confirm bet with server
       const confirmRes = await fetch(`/api/markets/${id}/confirm-bet`, {

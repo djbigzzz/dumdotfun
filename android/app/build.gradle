@@ -3,6 +3,14 @@ apply plugin: 'com.android.application'
 android {
     namespace "fun.dum.app"
     compileSdk rootProject.ext.compileSdkVersion
+    signingConfigs {
+        release {
+            storeFile file('../dumfun-release.keystore')
+            storePassword 'DumFun2024'
+            keyAlias 'dumfun'
+            keyPassword 'DumFun2024'
+        }
+    }
     defaultConfig {
         applicationId "fun.dum.app"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -18,8 +26,17 @@ android {
     }
     buildTypes {
         release {
+            signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+    configurations.all {
+        resolutionStrategy {
+            force 'androidx.browser:browser:1.8.0'
+            force 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22'
+            force 'org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22'
         }
     }
 }

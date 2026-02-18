@@ -1,0 +1,58 @@
+publisher:
+  name: Dum.fun
+  website: https://dum.fun
+  email: dumdotfun@gmail.com
+  support_email: dumdotfun@gmail.com
+app:
+  name: Dum.fun
+  address: DmthUk62U449R9CTP7x9udtZYZfyMcSgSFWaZTRFi2Ko
+  android_package: fun.dum.app
+  urls:
+    license_url: https://dum.fun/legal/eula
+    copyright_url: https://dum.fun/legal/copyright
+    privacy_policy_url: https://dum.fun/legal/privacy
+    website: https://dum.fun
+  media:
+    - purpose: icon
+      uri: store-assets/icon-512.png
+release:
+  address: HXPiHurEsHPqPUHm5xu3XJhzZDt2reM4mgkMUSFSf3bA
+  media:
+    - purpose: icon
+      uri: store-assets/icon-512.png
+    - purpose: banner
+      uri: store-assets/banner.png
+    - purpose: screenshot
+      uri: store-assets/screenshot1.png
+    - purpose: screenshot
+      uri: store-assets/screenshot4.png
+    - purpose: screenshot
+      uri: store-assets/screenshot5.png
+    - purpose: screenshot
+      uri: store-assets/screenshot2.png
+  files:
+    - purpose: install
+      uri: android/app/build/outputs/apk/release/app-release.apk
+  catalog:
+    en-US:
+      name: Dum.fun
+      short_description: Meme coins & prediction bets
+      long_description: Dum.fun is a satirical anti-launchpad for Solana meme coins. Create and trade tokens with built-in bonding curves, bet on prediction markets for each token, and explore trending coins — all powered by Solana devnet. Features include one-tap token creation, real-time trading with bonding curve pricing, prediction markets (will it rug?), trending leaderboards, and native Solana Mobile Wallet Adapter integration for seamless on-device signing with your Solana Seeker.
+      new_in_version: Initial release with token creation, trading, prediction markets, and trending leaderboards.
+      saga_features: Native MWA integration for seamless wallet signing on Solana Mobile devices.
+  android_details:
+    cert_fingerprint: b64d9211cbe1e87cb42315af7f7f58ab9e3789e7d6dadd351d8c7f5efaba359a
+    min_sdk: 23
+    version: 1.0.0
+    version_code: 1
+    locales:
+      - en-US
+solana_mobile_dapp_publisher_portal:
+  google_store_package: ''
+  testing_instructions: 1. Open the app on a Solana Mobile device (Seeker/Saga). 2. Tap "Log In" to connect wallet via Mobile Wallet Adapter. 3. Request devnet SOL using the "Request More Devnet SOL" button. 4. Create a new token from the Create tab. 5. Trade tokens using the Buy/Sell interface on any token detail page. 6. Place a prediction bet (YES/NO) on any token's prediction market. 7. Browse trending tokens on the Trending tab.
+lastSubmittedVersionOnChain:
+  address: HXPiHurEsHPqPUHm5xu3XJhzZDt2reM4mgkMUSFSf3bA
+  version_code: 1
+  apk_hash: i71jaUrHezhsRHU2wnxSl+48yFw6ngZAuTZ/xy7ZidY=
+lastUpdatedVersionOnStore:
+  address: HXPiHurEsHPqPUHm5xu3XJhzZDt2reM4mgkMUSFSf3bA

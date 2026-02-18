@@ -87,7 +87,7 @@ export async function encryptBetAmount(amount: number, userPublicKey: string): P
       nonce,
       timestamp: Date.now(),
       programId: INCO_LIGHTNING_PROGRAM_ID.toBase58(),
-      amountHash: Buffer.from(`${amount}:${nonce}`).toString("base64"),
+      amountHash: require("crypto").createHash("sha256").update(`${amount}:${nonce}`).digest("hex"),
     };
     
     return { 

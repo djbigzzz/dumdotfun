@@ -12,7 +12,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
   if (usdValue) return `$${usdValue.toFixed(0)}`;
-  return `$${(mcSol * (window as any).lastSolPrice || 0).toFixed(2)}`;
+  return `$${(mcSol * (window as any).__solPriceCache || 0).toFixed(2)}`;
 }
 
 interface SolPrice {
@@ -59,7 +59,7 @@ export default function UserProfilePage() {
       if (!res.ok) throw new Error("Failed to fetch SOL price");
       const data = await res.json();
       if (typeof window !== "undefined") {
-        (window as any).lastSolPrice = data.price;
+        try { Object.defineProperty(window, '__solPriceCache', { value: data.price, writable: true, configurable: true }); } catch {}
       }
       return data;
     },

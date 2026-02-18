@@ -6,13 +6,10 @@ const config: CapacitorConfig = {
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
-    // For development, you can use your Replit URL
-    // url: 'https://your-replit-url.replit.app',
-    // cleartext: true
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 0,
       launchAutoHide: true,
       backgroundColor: '#18181b',
       androidSplashResourceName: 'splash',
@@ -22,6 +19,9 @@ const config: CapacitorConfig = {
     StatusBar: {
       style: 'dark',
       backgroundColor: '#18181b',
+    },
+    CapacitorHttp: {
+      enabled: true,
     },
   },
   android: {

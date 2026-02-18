@@ -26,7 +26,7 @@ interface CreatedToken {
 
 export default function CreateToken() {
   const { privateMode } = usePrivacy();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, signAndSendTransaction: walletSignAndSend } = useWallet();
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -110,11 +110,6 @@ export default function CreateToken() {
         throw new Error("Connect wallet to deploy on devnet");
       }
 
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
-        throw new Error("Phantom wallet required for devnet deployment");
-      }
-
       const devBuySol = parseFloat(devBuyAmount);
       if (isNaN(devBuySol) || devBuySol < 0.2) {
         throw new Error("Minimum dev buy is 0.2 SOL");
@@ -147,18 +142,10 @@ export default function CreateToken() {
       
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
-      
-      const signedTx = await phantom.signTransaction(transaction);
-      
-      setCreationStep("Creating token on-chain...");
-      
-      const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
 
-      await connection.confirmTransaction(signature, "confirmed");
+      setCreationStep("Creating token on-chain...");
+
+      const signature = await walletSignAndSend(transaction);
       
       setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
       
@@ -184,17 +171,10 @@ export default function CreateToken() {
       
       const buyTxBytes = Buffer.from(buyTxBase64, "base64");
       const buyTransaction = Transaction.from(buyTxBytes);
-      
-      const signedBuyTx = await phantom.signTransaction(buyTransaction);
-      
-      setCreationStep("Executing dev buy...");
-      
-      const buySignature = await connection.sendRawTransaction(signedBuyTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
 
-      await connection.confirmTransaction(buySignature, "confirmed");
+      setCreationStep("Executing dev buy...");
+
+      const buySignature = await walletSignAndSend(buyTransaction);
       
       setCreationStep("Saving token to database...");
       

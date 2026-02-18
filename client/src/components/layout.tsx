@@ -3,13 +3,14 @@ import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy, obfuscateWallet } from "@/lib/privacy-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Terminal, Lock, Unlock, Info, Shield } from "lucide-react";
+import { X, Terminal, Lock, Unlock, Info, Shield, Smartphone, Globe } from "lucide-react";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
 import { PrivacyDrawer } from "./privacy-drawer";
 import { MobileBottomNav } from "./mobile-bottom-nav";
 import { NotificationBell } from "./notification-bell";
+import { isMobile, isMobileDevice } from "@/lib/mobile-utils";
 
 const Marquee = () => {
   return (
@@ -89,18 +90,39 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
           </button>
         </div>
 
-        <motion.button
-          onClick={handleConnect}
-          disabled={loading}
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50"
-        >
-          {loading ? "Connecting..." : "Phantom"}
-        </motion.button>
-        <p className="text-xs text-gray-400 font-mono text-center">
-          Only Phantom supported for now
-        </p>
+        {(isMobile() || isMobileDevice()) ? (
+          <>
+            <motion.button
+              onClick={handleConnect}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Smartphone className="w-5 h-5" />
+              {loading ? "Connecting..." : "Connect Mobile Wallet"}
+            </motion.button>
+            <p className="text-xs text-gray-400 font-mono text-center">
+              Connects via Mobile Wallet Adapter — works with Phantom, Solflare, and built-in wallets
+            </p>
+          </>
+        ) : (
+          <>
+            <motion.button
+              onClick={handleConnect}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white font-black py-3 px-4 rounded-lg uppercase transition-all border border-red-400/50 disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Globe className="w-5 h-5" />
+              {loading ? "Connecting..." : "Phantom"}
+            </motion.button>
+            <p className="text-xs text-gray-400 font-mono text-center">
+              Connect with Phantom browser extension
+            </p>
+          </>
+        )}
       </motion.div>
     </div>
   );

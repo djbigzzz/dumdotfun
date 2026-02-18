@@ -1,6 +1,6 @@
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
-const HELIUS_RPC = `https://devnet.helius-rpc.com/?api-key=${import.meta.env.VITE_HELIUS_API_KEY || ""}`;
+// Use public devnet RPC — Helius API key should NOT be exposed client-side
 const DEVNET_RPC = "https://api.devnet.solana.com";
 
 interface PrivateCashBalance {
@@ -23,18 +23,13 @@ interface WithdrawResult {
 class PrivacyCashClient {
   private connection: Connection;
   private walletAddress: string | null = null;
-  private privateBalance: number = 0;
 
   constructor() {
-    this.connection = new Connection(HELIUS_RPC || DEVNET_RPC, "confirmed");
+    this.connection = new Connection(DEVNET_RPC, "confirmed");
   }
 
   setWallet(walletAddress: string) {
     this.walletAddress = walletAddress;
-    const stored = localStorage.getItem(`privacy_cash_balance_${walletAddress}`);
-    if (stored) {
-      this.privateBalance = parseFloat(stored);
-    }
   }
 
   async getPrivateBalance(): Promise<PrivateCashBalance> {
@@ -46,7 +41,7 @@ class PrivacyCashClient {
       const res = await fetch(`/api/privacy/cash/balance/${this.walletAddress}`);
       if (res.ok) {
         const data = await res.json();
-        const balance = data.balance?.privateBalance || this.privateBalance;
+        const balance = data.balance?.privateBalance || 0;
         return {
           sol: balance,
           lamports: balance * LAMPORTS_PER_SOL
@@ -57,8 +52,8 @@ class PrivacyCashClient {
     }
 
     return {
-      sol: this.privateBalance,
-      lamports: this.privateBalance * LAMPORTS_PER_SOL
+      sol: 0,
+      lamports: 0
     };
   }
 
@@ -80,10 +75,6 @@ class PrivacyCashClient {
 
       if (res.ok) {
         const data = await res.json();
-        
-        this.privateBalance += amountSol;
-        localStorage.setItem(`privacy_cash_balance_${this.walletAddress}`, this.privateBalance.toString());
-
         return {
           success: true,
           signature: data.signature || data.commitment || "demo_deposit_" + Date.now()
@@ -103,10 +94,6 @@ class PrivacyCashClient {
       return { success: false, error: "Wallet not connected" };
     }
 
-    if (amountSol > this.privateBalance) {
-      return { success: false, error: "Insufficient private balance" };
-    }
-
     try {
       const res = await fetch("/api/privacy/cash/withdraw", {
         method: "POST",
@@ -121,10 +108,6 @@ class PrivacyCashClient {
 
       if (res.ok) {
         const data = await res.json();
-        
-        this.privateBalance -= amountSol;
-        localStorage.setItem(`privacy_cash_balance_${this.walletAddress}`, this.privateBalance.toString());
-
         return {
           success: true,
           signature: data.signature || data.nullifier || "demo_withdraw_" + Date.now()
@@ -139,8 +122,9 @@ class PrivacyCashClient {
     }
   }
 
-  getStoredBalance(): number {
-    return this.privateBalance;
+  async getStoredBalance(): Promise<number> {
+    const bal = await this.getPrivateBalance();
+    return bal.sol;
   }
 }
 

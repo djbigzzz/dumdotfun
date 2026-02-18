@@ -82,7 +82,7 @@ export default function TokensPage() {
       if (!res.ok) throw new Error("Failed to fetch SOL price");
       const data = await res.json();
       if (typeof window !== "undefined") {
-        (window as any).lastSolPrice = data.price;
+        try { Object.defineProperty(window, '__solPriceCache', { value: data.price, writable: true, configurable: true }); } catch {}
       }
       return data;
     },

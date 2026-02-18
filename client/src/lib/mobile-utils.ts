@@ -48,17 +48,22 @@ export const initMobileApp = async (): Promise<void> => {
     App.addListener('appUrlOpen', (event) => {
       const url = event.url;
       try {
-        if (url.startsWith('dumfun://')) {
-          const path = url.replace('dumfun://', '');
-          if (path) window.location.href = `/${path}`;
+        // Validate deep link paths — block javascript:, data:, and external URLs
+        const isSafePath = (p: string) =>
+          p.startsWith('/') && !p.includes('://') && !p.toLowerCase().startsWith('/javascript:') && !p.toLowerCase().startsWith('/data:');
+
+        if (url.startsWith('dumfun://open/')) {
+          const path = url.replace('dumfun://open', '');
+          if (path && isSafePath(path)) window.location.href = path;
         } else if (url.startsWith('https://dum.fun')) {
           const parsed = new URL(url);
-          if (parsed.pathname && parsed.pathname !== '/') {
-            window.location.href = parsed.pathname + parsed.search;
+          if (parsed.pathname && parsed.pathname !== '/' && isSafePath(parsed.pathname)) {
+            // Only allow safe query parameters — strip anything that could be injected
+            const safeSearch = parsed.search.replace(/[<>"']/g, '');
+            window.location.href = parsed.pathname + safeSearch;
           }
-        } else if (url.startsWith('solana:') || url.includes('solana-wallet')) {
-          console.log('Solana wallet callback:', url);
         }
+        // solana: and solana-wallet callbacks are handled natively
       } catch (err) {
         console.error('Failed to handle deep link:', err);
       }

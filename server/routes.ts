@@ -18,6 +18,34 @@ import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } f
 import * as bondingCurve from "./bonding-curve-client";
 import { getPrivacySummary } from "./privacy";
 import { detectMarketCriteria } from "./services/token-health";
+import nacl from "tweetnacl";
+
+// Verify that a wallet signature matches the claimed wallet address
+function verifyWalletSignature(walletAddress: string, message: string, signatureBase64: string): boolean {
+  try {
+    const pubkey = new PublicKey(walletAddress);
+    const messageBytes = new TextEncoder().encode(message);
+    const sigBytes = Buffer.from(signatureBase64, 'base64');
+    return nacl.sign.detached.verify(messageBytes, sigBytes, pubkey.toBytes());
+  } catch {
+    return false;
+  }
+}
+
+// Sanitize user-submitted URLs — block javascript:, data:, and non-http(s) schemes
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url || typeof url !== 'string') return null;
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  try {
+    const parsed = new URL(trimmed);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return trimmed;
+  } catch {
+    // If it doesn't parse as URL, reject it
+    return null;
+  }
+}
 
 function generateUserReferralCode(walletAddress: string): string {
   const prefix = walletAddress.slice(0, 4).toUpperCase();
@@ -285,9 +313,16 @@ export async function registerRoutes(
 
   app.post("/api/privacy/cash/deposit", async (req, res) => {
     try {
-      const { walletAddress, amount, token } = req.body;
+      const { walletAddress, amount, token, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !amount || !token) {
         return res.status(400).json({ error: "walletAddress, amount, and token are required" });
+      }
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed" });
+      }
+      const depositAmount = Number(amount);
+      if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
       }
       const { preparePrivateDeposit, addPrivateBalance } = await import("./privacy");
       const result = await preparePrivateDeposit({ walletAddress, amount, token });
@@ -309,12 +344,19 @@ export async function registerRoutes(
 
   app.post("/api/privacy/cash/withdraw", async (req, res) => {
     try {
-      const { walletAddress, recipientAddress, amount, token } = req.body;
+      const { walletAddress, recipientAddress, amount, token, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !recipientAddress || !amount || !token) {
         return res.status(400).json({ error: "walletAddress, recipientAddress, amount, and token are required" });
       }
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed" });
+      }
+      const withdrawAmount = Number(amount);
+      if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
       const { preparePrivateWithdraw, subtractPrivateBalance } = await import("./privacy");
-      
+
       const canWithdraw = subtractPrivateBalance(walletAddress, amount, token);
       if (!canWithdraw) {
         return res.status(400).json({ error: "Insufficient private balance" });
@@ -515,13 +557,25 @@ export async function registerRoutes(
 
   app.post("/api/privacy/stealth-addresses/sweep", async (req, res) => {
     try {
-      const { walletAddress, stealthAddress, ephemeralPublicKey } = req.body;
+      const { walletAddress, stealthAddress, ephemeralPublicKey, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !stealthAddress || !ephemeralPublicKey) {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
+      // Validate wallet address format
+      try {
+        new PublicKey(walletAddress);
+      } catch {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+
+      // Verify wallet ownership via signature
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed. Sign a message to prove ownership." });
+      }
+
       const { verifyStealthOwnership, deriveStealthPrivateKey } = await import("./privacy/stealth-addresses");
-      
+
       const isOwner = verifyStealthOwnership(walletAddress, stealthAddress, ephemeralPublicKey);
       if (!isOwner) {
         return res.status(403).json({ error: "You do not own this stealth address" });
@@ -581,9 +635,16 @@ export async function registerRoutes(
 
   app.post("/api/privacy/shadowwire/deposit", async (req, res) => {
     try {
-      const { walletAddress, amount, token } = req.body;
+      const { walletAddress, amount, token, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !amount) {
         return res.status(400).json({ error: "walletAddress and amount are required" });
+      }
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed" });
+      }
+      const depAmount = Number(amount);
+      if (!Number.isFinite(depAmount) || depAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
       }
       const { prepareShadowWireDeposit } = await import("./privacy");
       const result = await prepareShadowWireDeposit(walletAddress, amount, token || "SOL");
@@ -641,11 +702,18 @@ export async function registerRoutes(
 
   app.post("/api/privacy/shadowwire/withdraw", async (req, res) => {
     try {
-      const { walletAddress, amount, token } = req.body;
+      const { walletAddress, amount, token, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !amount) {
         return res.status(400).json({ error: "walletAddress and amount are required" });
       }
-      
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed" });
+      }
+      const wdAmount = Number(amount);
+      if (!Number.isFinite(wdAmount) || wdAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+
       // Check ShadowWire SDK balance first
       const { prepareShadowWireWithdraw, getShadowWireBalance } = await import("./privacy");
       const balanceResult = await getShadowWireBalance(walletAddress);
@@ -1065,11 +1133,21 @@ export async function registerRoutes(
         return res.status(400).json({ error: "walletAddress, amount, and signature are required" });
       }
 
+      // Prevent replay: reject already-used deposit signatures
+      if (usedSignatures.has(signature)) {
+        return res.status(400).json({ error: "This deposit transaction has already been verified" });
+      }
+
+      const depositAmount = parseFloat(amount);
+      if (!Number.isFinite(depositAmount) || depositAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+
       const { Connection, PublicKey, LAMPORTS_PER_SOL } = await import("@solana/web3.js");
       const connection = new Connection(
-        process.env.HELIUS_API_KEY 
-          ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}` 
-          : "https://api.devnet.solana.com", 
+        process.env.HELIUS_API_KEY
+          ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+          : "https://api.devnet.solana.com",
         "confirmed"
       );
 
@@ -1133,6 +1211,9 @@ export async function registerRoutes(
         });
       }
 
+      // Mark signature as used to prevent replay
+      usedSignatures.add(signature);
+
       // Record activity
       const { privacyActivity } = await import("@shared/schema");
       await db.insert(privacyActivity).values({
@@ -1161,29 +1242,44 @@ export async function registerRoutes(
   // Internal pool transfer - NO ON-CHAIN RECORD (amount hidden)
   app.post("/api/privacy/pool/internal-transfer", async (req, res) => {
     try {
-      const { senderAddress, recipientAddress, amount } = req.body;
+      const { senderAddress, recipientAddress, amount, signature: walletSig, message: signedMsg } = req.body;
       if (!senderAddress || !recipientAddress || !amount) {
         return res.status(400).json({ error: "senderAddress, recipientAddress, and amount are required" });
       }
 
+      // Verify wallet ownership — sender must sign a message proving they own the wallet
+      if (!walletSig || !signedMsg || !verifyWalletSignature(senderAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed. Sign a message to prove ownership." });
+      }
+
       const transferAmount = parseFloat(amount);
-      if (transferAmount <= 0) {
-        return res.status(400).json({ error: "Amount must be positive" });
+      if (!Number.isFinite(transferAmount) || transferAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
       }
 
       const { poolBalances, poolTransfers, privacyActivity } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, sql } = await import("drizzle-orm");
 
-      // Check sender's pool balance
-      const [senderBalance] = await db.select().from(poolBalances)
-        .where(eq(poolBalances.walletAddress, senderAddress));
+      // Atomic debit: only succeeds if balance is sufficient (prevents TOCTOU race)
+      const debitResult = await db.update(poolBalances)
+        .set({
+          solBalance: sql`${poolBalances.solBalance} - ${transferAmount}`,
+          updatedAt: new Date()
+        })
+        .where(sql`${poolBalances.walletAddress} = ${senderAddress} AND ${poolBalances.solBalance} >= ${transferAmount}`)
+        .returning();
 
-      if (!senderBalance || senderBalance.solBalance < transferAmount) {
-        return res.status(400).json({ 
+      if (debitResult.length === 0) {
+        // Check actual balance to report in error
+        const [senderBalance] = await db.select().from(poolBalances)
+          .where(eq(poolBalances.walletAddress, senderAddress));
+        return res.status(400).json({
           error: `Insufficient pool balance. You have ${senderBalance?.solBalance || 0} SOL in pool.`,
           poolBalance: senderBalance?.solBalance || 0
         });
       }
+
+      const newSenderBalance = debitResult[0].solBalance;
 
       // Generate commitment hash (for ZK proof reference)
       const crypto = await import("crypto");
@@ -1191,22 +1287,14 @@ export async function registerRoutes(
         .update(`${senderAddress}:${recipientAddress}:${transferAmount}:${Date.now()}`)
         .digest("hex");
 
-      // Debit sender
-      await db.update(poolBalances)
-        .set({ 
-          solBalance: senderBalance.solBalance - transferAmount,
-          updatedAt: new Date()
-        })
-        .where(eq(poolBalances.walletAddress, senderAddress));
-
-      // Credit recipient
-      const [recipientBalance] = await db.select().from(poolBalances)
+      // Atomic credit recipient
+      const [existingRecipient] = await db.select().from(poolBalances)
         .where(eq(poolBalances.walletAddress, recipientAddress));
 
-      if (recipientBalance) {
+      if (existingRecipient) {
         await db.update(poolBalances)
-          .set({ 
-            solBalance: recipientBalance.solBalance + transferAmount,
+          .set({
+            solBalance: sql`${poolBalances.solBalance} + ${transferAmount}`,
             updatedAt: new Date()
           })
           .where(eq(poolBalances.walletAddress, recipientAddress));
@@ -1255,7 +1343,7 @@ export async function registerRoutes(
         commitment,
         amountHidden: true,
         onChainRecord: false,
-        senderNewBalance: senderBalance.solBalance - transferAmount
+        senderNewBalance: newSenderBalance
       });
     } catch (error: any) {
       console.error("[Pool Internal Transfer] Error:", error);
@@ -1266,9 +1354,14 @@ export async function registerRoutes(
   // Withdraw from pool - creates on-chain tx (sender is pool, not user = sender anonymous)
   app.post("/api/privacy/pool/create-withdraw-tx", async (req, res) => {
     try {
-      const { walletAddress, destinationAddress, amount } = req.body;
+      const { walletAddress, destinationAddress, amount, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !amount) {
         return res.status(400).json({ error: "walletAddress and amount are required" });
+      }
+
+      // Verify wallet ownership
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed. Sign a message to prove ownership." });
       }
 
       const destination = destinationAddress || walletAddress;
@@ -1310,22 +1403,39 @@ export async function registerRoutes(
   // Process withdrawal - REAL ON-CHAIN transaction from pool
   app.post("/api/privacy/pool/process-withdraw", async (req, res) => {
     try {
-      const { walletAddress, amount, destinationAddress } = req.body;
+      const { walletAddress, amount, destinationAddress, signature: walletSig, message: signedMsg } = req.body;
       if (!walletAddress || !amount) {
         return res.status(400).json({ error: "walletAddress and amount are required" });
       }
 
+      // Verify wallet ownership
+      if (!walletSig || !signedMsg || !verifyWalletSignature(walletAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed. Sign a message to prove ownership." });
+      }
+
       const destination = destinationAddress || walletAddress;
       const withdrawAmount = parseFloat(amount);
+      if (!Number.isFinite(withdrawAmount) || withdrawAmount <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
 
       const { poolBalances, privacyActivity } = await import("@shared/schema");
-      const { eq } = await import("drizzle-orm");
+      const { eq, sql } = await import("drizzle-orm");
 
-      const [balance] = await db.select().from(poolBalances)
-        .where(eq(poolBalances.walletAddress, walletAddress));
+      // Atomic debit BEFORE on-chain tx — prevents double-withdraw race condition
+      // If on-chain tx fails, we re-credit below
+      const debitResult = await db.update(poolBalances)
+        .set({
+          solBalance: sql`${poolBalances.solBalance} - ${withdrawAmount}`,
+          updatedAt: new Date()
+        })
+        .where(sql`${poolBalances.walletAddress} = ${walletAddress} AND ${poolBalances.solBalance} >= ${withdrawAmount}`)
+        .returning();
 
-      if (!balance || balance.solBalance < withdrawAmount) {
-        return res.status(400).json({ error: "Insufficient pool balance" });
+      if (debitResult.length === 0) {
+        const [balance] = await db.select().from(poolBalances)
+          .where(eq(poolBalances.walletAddress, walletAddress));
+        return res.status(400).json({ error: `Insufficient pool balance. You have ${balance?.solBalance || 0} SOL.` });
       }
 
       // Execute REAL on-chain withdrawal from pool
@@ -1333,10 +1443,17 @@ export async function registerRoutes(
       const withdrawResult = await withdrawFromPool(destination, withdrawAmount);
 
       if (!withdrawResult.success) {
-        // Check if pool needs funding
+        // Re-credit the balance since on-chain tx failed
+        await db.update(poolBalances)
+          .set({
+            solBalance: sql`${poolBalances.solBalance} + ${withdrawAmount}`,
+            updatedAt: new Date()
+          })
+          .where(eq(poolBalances.walletAddress, walletAddress));
+
         const poolOnChainBalance = await getOnChainPoolBalance();
         if (poolOnChainBalance < withdrawAmount) {
-          return res.status(400).json({ 
+          return res.status(400).json({
             error: `Pool has insufficient on-chain funds (${poolOnChainBalance.toFixed(4)} SOL). Pool needs to be funded.`,
             poolOnChainBalance,
             needsFunding: true
@@ -1344,14 +1461,6 @@ export async function registerRoutes(
         }
         return res.status(500).json({ error: withdrawResult.error || "Withdrawal failed" });
       }
-
-      // Debit user's pool balance AFTER successful on-chain tx
-      await db.update(poolBalances)
-        .set({ 
-          solBalance: balance.solBalance - withdrawAmount,
-          updatedAt: new Date()
-        })
-        .where(eq(poolBalances.walletAddress, walletAddress));
 
       // Record activity with real tx signature
       await db.insert(privacyActivity).values({
@@ -1384,6 +1493,10 @@ export async function registerRoutes(
   // Airdrop to pool (for testing)
   app.post("/api/privacy/pool/airdrop", async (req, res) => {
     try {
+      const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
       const { amount = 1 } = req.body;
       const signature = await airdropToPool(amount);
       const newBalance = await getOnChainPoolBalance();
@@ -2132,9 +2245,9 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress: displayAddress,
-        twitter: twitter?.trim() || null,
-        telegram: telegram?.trim() || null,
-        website: website?.trim() || null,
+        twitter: sanitizeUrl(twitter),
+        telegram: sanitizeUrl(telegram),
+        website: sanitizeUrl(website),
       });
 
       console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}${privacyMode ? ' [PRIVATE LAUNCH]' : ''}`);
@@ -2340,7 +2453,7 @@ export async function registerRoutes(
       const initialized = await bondingCurve.checkPlatformInitialized();
       return res.json({
         programId: bondingCurve.PROGRAM_ID.toBase58(),
-        feeRecipient: bondingCurve.FEE_RECIPIENT.toBase58(),
+        feeRecipient: bondingCurve.getFeeRecipient().toBase58(),
         platformInitialized: initialized,
       });
     } catch (error: any) {
@@ -2350,6 +2463,10 @@ export async function registerRoutes(
 
   app.post("/api/bonding-curve/initialize", async (req, res) => {
     try {
+      const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
       const { authority } = req.body;
       if (!authority) {
         return res.status(400).json({ error: "Authority wallet address is required" });
@@ -2619,9 +2736,9 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress,
-        twitter: twitter?.trim() || null,
-        telegram: telegram?.trim() || null,
-        website: website?.trim() || null,
+        twitter: sanitizeUrl(twitter),
+        telegram: sanitizeUrl(telegram),
+        website: sanitizeUrl(website),
       });
 
       console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
@@ -2804,6 +2921,10 @@ export async function registerRoutes(
 
   // Trigger auto-resolution for all expired markets (admin endpoint)
   app.post("/api/markets/auto-resolve", async (req, res) => {
+    const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
+    if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
     try {
       const { autoResolveExpiredMarkets } = await import("./services/auto-resolver");
       const results = await autoResolveExpiredMarkets();
@@ -3375,6 +3496,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bet ID and signature are required" });
       }
 
+      // Prevent replay: reject already-used transaction signatures
+      if (usedSignatures.has(signature)) {
+        return res.status(400).json({ error: "This transaction signature has already been used" });
+      }
+
       const pendingBet = pendingBets.get(betId);
       if (!pendingBet) {
         return res.status(404).json({ error: "Pending bet not found or expired" });
@@ -3431,6 +3557,9 @@ export async function registerRoutes(
         confidentialData
       );
 
+      // Mark signature as used to prevent replay
+      usedSignatures.add(signature);
+
       // Remove from pending
       pendingBets.delete(betId);
 
@@ -3455,7 +3584,13 @@ export async function registerRoutes(
   });
 
   // Place CONFIDENTIAL bet on market using Inco Lightning
-  app.post("/api/markets/:id/confidential-bet", async (req, res) => {
+  // DISABLED: This endpoint lacks on-chain payment verification.
+  // Use prepare-bet + confirm-bet flow instead.
+  app.post("/api/markets/:id/confidential-bet", async (_req, res) => {
+    return res.status(410).json({
+      error: "Confidential betting via this endpoint is disabled. Use the prepare-bet/confirm-bet flow.",
+    });
+    /* Original handler disabled for security — no on-chain payment verification
     try {
       const { id } = req.params;
       const { walletAddress, side, amount, encryptedAmount, commitment, nonce, isConfidential } = req.body;
@@ -3578,13 +3713,14 @@ export async function registerRoutes(
       console.error("Error placing confidential bet:", error);
       return res.status(500).json({ error: "Failed to place confidential bet" });
     }
+    */
   });
 
   // Resolve a prediction market and calculate payouts
   app.post("/api/markets/:id/resolve", async (req, res) => {
     try {
       const { id } = req.params;
-      const { outcome, resolverAddress } = req.body;
+      const { outcome, resolverAddress, signature: walletSig, message: signedMsg } = req.body;
 
       if (!outcome || (outcome !== "yes" && outcome !== "no")) {
         return res.status(400).json({ error: "Outcome must be 'yes' or 'no'" });
@@ -3592,6 +3728,11 @@ export async function registerRoutes(
 
       if (!resolverAddress || typeof resolverAddress !== "string") {
         return res.status(400).json({ error: "Resolver wallet address is required" });
+      }
+
+      // Verify wallet ownership — resolver must prove they own the wallet
+      if (!walletSig || !signedMsg || !verifyWalletSignature(resolverAddress, signedMsg, walletSig)) {
+        return res.status(403).json({ error: "Wallet signature verification failed. Sign a message to prove ownership." });
       }
 
       const market = await storage.getMarket(id);
@@ -3603,10 +3744,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Market is already resolved", outcome: market.outcome });
       }
 
-      // Only market creator can resolve (or allow any address for now during hackathon)
+      // Only market creator can resolve
       const isCreator = market.creatorAddress.toLowerCase() === resolverAddress.toLowerCase();
       if (!isCreator) {
-        console.log(`[Resolution] Non-creator ${resolverAddress} resolving market ${id} (creator: ${market.creatorAddress})`);
+        return res.status(403).json({ error: "Only the market creator can resolve this market" });
       }
 
       // Get all positions for this market
@@ -3956,6 +4097,10 @@ export async function registerRoutes(
   // Fetch real blockchain transactions for a token
   app.post("/api/tokens/:mint/sync-blockchain", async (req, res) => {
     try {
+      const adminKey = req.headers['x-admin-key'] || req.body?.adminKey;
+      if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+        return res.status(403).json({ error: "Unauthorized" });
+      }
       const { mint } = req.params;
       const token = await storage.getTokenByMint(mint);
       if (!token) {
@@ -4017,6 +4162,10 @@ export async function registerRoutes(
 
   // Seed activity for existing tokens from blockchain
   app.post("/api/admin/seed-activity", async (req, res) => {
+    const adminKey = req.headers['x-admin-key'] || req.body.adminKey;
+    if (!adminKey || adminKey !== process.env.ADMIN_KEY) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
     try {
       const allTokens = await db.select().from(tokensTable);
       const { getPublicConnection } = await import("./helius-rpc");

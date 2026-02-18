@@ -45,15 +45,29 @@ function getOrCreateBalance(walletAddress: string) {
 }
 
 export function addPrivateBalance(walletAddress: string, amount: number, token: "SOL" | "USDC" | "USDT") {
-  const balance = getOrCreateBalance(walletAddress);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    throw new Error("Amount must be a positive finite number");
+  }
+  const validTokens = ["sol", "usdc", "usdt"];
   const tokenKey = token.toLowerCase() as "sol" | "usdc" | "usdt";
+  if (!validTokens.includes(tokenKey)) {
+    throw new Error("Unsupported token type");
+  }
+  const balance = getOrCreateBalance(walletAddress);
   balance[tokenKey] += amount;
   return balance[tokenKey];
 }
 
 export function subtractPrivateBalance(walletAddress: string, amount: number, token: "SOL" | "USDC" | "USDT"): boolean {
-  const balance = getOrCreateBalance(walletAddress);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return false;
+  }
+  const validTokens = ["sol", "usdc", "usdt"];
   const tokenKey = token.toLowerCase() as "sol" | "usdc" | "usdt";
+  if (!validTokens.includes(tokenKey)) {
+    return false;
+  }
+  const balance = getOrCreateBalance(walletAddress);
   if (balance[tokenKey] < amount) {
     return false;
   }

@@ -9,10 +9,8 @@ function getHeliusApiKey(): string | undefined {
 export function getHeliusRpcUrl(): string {
   const apiKey = getHeliusApiKey();
   if (apiKey && apiKey.length > 0) {
-    console.log(`[Helius] Using Helius RPC with key: ${apiKey.substring(0, 8)}...`);
     return `https://${NETWORK}.helius-rpc.com/?api-key=${apiKey}`;
   }
-  console.log("[Helius] No API key found, using public RPC");
   return `https://api.${NETWORK}.solana.com`;
 }
 

@@ -104,9 +104,12 @@ async function callDeposit(
       amount: amountSmallest,
       token,
     });
-  } catch {
+  } catch (firstErr) {
+    // Fallback: still include signMessage to avoid bypassing auth
+    console.error("[ShadowWire] Primary deposit call failed, trying alternate format:", firstErr);
     return await client.deposit({
       wallet: walletAddress,
+      signMessage,
       amount: amountSmallest,
       token,
     });
@@ -126,9 +129,12 @@ async function callWithdraw(
       amount: amountSmallest,
       token,
     });
-  } catch {
+  } catch (firstErr) {
+    // Fallback: still include signMessage to avoid bypassing auth
+    console.error("[ShadowWire] Primary withdraw call failed, trying alternate format:", firstErr);
     return await client.withdraw({
       wallet: walletAddress,
+      signMessage,
       amount: amountSmallest,
       token,
     });

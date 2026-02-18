@@ -17,7 +17,11 @@ import BN from "bn.js";
 import { getConnection as getHeliusConnection } from "./helius-rpc";
 
 const PROGRAM_ID = new PublicKey(process.env.BONDING_CURVE_PROGRAM_ID || "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh");
-const FEE_RECIPIENT = new PublicKey(process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM");
+function getFeeRecipient(): PublicKey {
+  const wallet = process.env.FEE_RECIPIENT_WALLET;
+  if (!wallet) throw new Error("FEE_RECIPIENT_WALLET environment variable is not set");
+  return new PublicKey(wallet);
+}
 
 export function getConnection(): Connection {
   return getHeliusConnection();
@@ -68,7 +72,7 @@ export async function buildInitializePlatformTransaction(
 
   const keys = [
     { pubkey: authority, isSigner: true, isWritable: true },
-    { pubkey: FEE_RECIPIENT, isSigner: false, isWritable: false },
+    { pubkey: getFeeRecipient(), isSigner: false, isWritable: false },
     { pubkey: platformConfig, isSigner: false, isWritable: true },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
   ];
@@ -145,8 +149,13 @@ export async function buildBuyTransaction(
   buyer: PublicKey,
   mint: PublicKey,
   solAmount: number,
-  minTokensOut: number = 0
+  minTokensOut?: number
 ): Promise<{ transaction: string }> {
+  // Default 5% slippage protection if none specified — never allow 0
+  if (minTokensOut === undefined || minTokensOut <= 0) {
+    const quote = calculateBuyQuote(solAmount, 30_000_000_000, 800_000_000_000_000);
+    minTokensOut = Math.floor(quote * 0.95); // 5% slippage tolerance
+  }
   const connection = getConnection();
 
   const [bondingCurve] = getBondingCurvePDA(mint);
@@ -171,7 +180,7 @@ export async function buildBuyTransaction(
     { pubkey: bondingCurve, isSigner: false, isWritable: true },
     { pubkey: curveSolVault, isSigner: false, isWritable: true },
     { pubkey: platformConfig, isSigner: false, isWritable: true },
-    { pubkey: FEE_RECIPIENT, isSigner: false, isWritable: true },
+    { pubkey: getFeeRecipient(), isSigner: false, isWritable: true },
     { pubkey: buyerTokenAccount, isSigner: false, isWritable: true },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -198,8 +207,13 @@ export async function buildSellTransaction(
   seller: PublicKey,
   mint: PublicKey,
   tokenAmount: number,
-  minSolOut: number = 0
+  minSolOut?: number
 ): Promise<{ transaction: string }> {
+  // Default 5% slippage protection if none specified — never allow 0
+  if (minSolOut === undefined || minSolOut <= 0) {
+    const quote = calculateSellQuote(tokenAmount, 30_000_000_000, 800_000_000_000_000);
+    minSolOut = Math.floor(quote * 0.95); // 5% slippage tolerance
+  }
   const connection = getConnection();
 
   const [bondingCurve] = getBondingCurvePDA(mint);
@@ -224,7 +238,7 @@ export async function buildSellTransaction(
     { pubkey: bondingCurve, isSigner: false, isWritable: true },
     { pubkey: curveSolVault, isSigner: false, isWritable: true },
     { pubkey: platformConfig, isSigner: false, isWritable: true },
-    { pubkey: FEE_RECIPIENT, isSigner: false, isWritable: true },
+    { pubkey: getFeeRecipient(), isSigner: false, isWritable: true },
     { pubkey: sellerTokenAccount, isSigner: false, isWritable: true },
     { pubkey: SystemProgram.programId, isSigner: false, isWritable: false },
     { pubkey: TOKEN_PROGRAM_ID, isSigner: false, isWritable: false },
@@ -342,4 +356,4 @@ export async function fetchBondingCurveData(mint: PublicKey): Promise<{
   }
 }
 
-export { PROGRAM_ID, FEE_RECIPIENT };
+export { PROGRAM_ID, getFeeRecipient as getFeeRecipient };

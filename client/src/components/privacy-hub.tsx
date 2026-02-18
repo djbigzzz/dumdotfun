@@ -343,29 +343,16 @@ export function PrivacyHub() {
         description: "Approve the deposit in your Phantom wallet",
       });
       
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-      
-      const { Transaction, Connection } = await import("@solana/web3.js");
-      const connection = new Connection(SOLANA_RPC_URL, "confirmed");
-      
+      const { Transaction } = await import("@solana/web3.js");
       const tx = Transaction.from(Buffer.from(txData.serializedTransaction, "base64"));
-      const signedTx = await phantom.signTransaction(tx);
 
-      // Check if transaction was already processed before sending
       try {
-        const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-          skipPreflight: true, // Skip simulation to avoid "already processed" error during simulation
-        });
-        
+        const signature = await signAndSendTransaction(tx);
+
         toast({
           title: "Confirming on-chain...",
           description: "Waiting for transaction confirmation",
         });
-        
-        await connection.confirmTransaction(signature, "confirmed");
         
         // Step 3: Verify and credit pool balance
         const verifyRes = await fetch("/api/privacy/pool/verify-deposit", {

@@ -130,14 +130,15 @@ export default function Home() {
   const [referralCode, setReferralCode] = useState<string | null>(null);
 
   useEffect(() => {
+    const isValidReferral = (code: string) => /^[a-zA-Z0-9_-]{3,50}$/.test(code);
     const urlParams = new URLSearchParams(window.location.search);
     const ref = urlParams.get("ref");
-    if (ref) {
+    if (ref && isValidReferral(ref)) {
       setReferralCode(ref);
       localStorage.setItem("referralCode", ref);
     } else {
       const storedRef = localStorage.getItem("referralCode");
-      if (storedRef) {
+      if (storedRef && isValidReferral(storedRef)) {
         setReferralCode(storedRef);
       }
     }

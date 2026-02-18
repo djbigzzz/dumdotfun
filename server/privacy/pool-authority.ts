@@ -29,8 +29,7 @@ export function getPoolKeypair(): Keypair {
   
   poolKeypair = Keypair.generate();
   console.log(`[Pool Authority] Generated new pool keypair: ${poolKeypair.publicKey.toBase58()}`);
-  console.log(`[Pool Authority] SECRET KEY (save this as POOL_AUTHORITY_SECRET_KEY):`);
-  console.log(bs58.encode(poolKeypair.secretKey));
+  console.warn(`[Pool Authority] WARNING: New keypair generated. Set POOL_AUTHORITY_SECRET_KEY env var to persist it.`);
   
   return poolKeypair;
 }
@@ -75,7 +74,7 @@ export async function withdrawFromPool(
     const lamports = Math.floor(amountSol * LAMPORTS_PER_SOL);
     
     const poolBalance = await connection.getBalance(poolKp.publicKey);
-    const minRent = 5000;
+    const minRent = 890880; // Solana rent-exempt minimum for 0-data accounts
     
     if (poolBalance < lamports + minRent) {
       return {
@@ -111,10 +110,13 @@ export async function withdrawFromPool(
 }
 
 function getConnection(): Connection {
-  const rpcUrl = process.env.HELIUS_API_KEY 
-    ? `https://devnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
-    : "https://api.devnet.solana.com";
-  return new Connection(rpcUrl, "confirmed");
+  // Use centralized RPC helper to avoid duplicating API key handling
+  try {
+    const { getConnection: getCentralizedConnection } = require("../helius-rpc");
+    return getCentralizedConnection();
+  } catch {
+    return new Connection("https://api.devnet.solana.com", "confirmed");
+  }
 }
 
 export async function initializePool(): Promise<void> {
