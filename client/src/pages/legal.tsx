@@ -83,7 +83,7 @@ export function PrivacyPolicy() {
 
       <section>
         <h2 className="text-xl font-bold text-white mt-6 mb-3">8. Contact</h2>
-        <p>For privacy concerns, contact us at <a href="mailto:team@dum.fun" className="text-red-400 hover:text-red-300">team@dum.fun</a>.</p>
+        <p>For privacy concerns, contact us at <a href="mailto:dumdotfun@gmail.com" className="text-red-400 hover:text-red-300">dumdotfun@gmail.com</a>.</p>
       </section>
     </LegalLayout>
   );
@@ -175,7 +175,7 @@ export function Copyright() {
 
       <section>
         <h2 className="text-xl font-bold text-white mt-6 mb-3">Contact</h2>
-        <p>For copyright inquiries, contact <a href="mailto:team@dum.fun" className="text-red-400 hover:text-red-300">team@dum.fun</a>.</p>
+        <p>For copyright inquiries, contact <a href="mailto:dumdotfun@gmail.com" className="text-red-400 hover:text-red-300">dumdotfun@gmail.com</a>.</p>
       </section>
     </LegalLayout>
   );
