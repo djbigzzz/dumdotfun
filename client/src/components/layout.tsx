@@ -398,8 +398,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
         </div>
         
+        <div className="flex items-center justify-center gap-4 mb-3 text-xs">
+          <a href="/legal/privacy" className={`transition-colors underline ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="link-privacy-policy">
+            {privateMode ? "// privacy" : "Privacy Policy"}
+          </a>
+          <span>{privateMode ? "|" : "|"}</span>
+          <a href="/legal/eula" className={`transition-colors underline ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="link-terms">
+            {privateMode ? "// terms" : "Terms of Service"}
+          </a>
+          <span>{privateMode ? "|" : "|"}</span>
+          <a href="/legal/copyright" className={`transition-colors underline ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="link-copyright">
+            {privateMode ? "// copyright" : "Copyright"}
+          </a>
+        </div>
         <p className={privateMode ? "text-[#4ADE80]/30" : ""}>
-          {privateMode ? "// © 2025 D/\\EMON NETWORK" : "© 2025 Dum.fun. All rights reserved."}
+          {privateMode ? "// © 2026 D/\\EMON NETWORK" : "© 2026 Dum.fun. All rights reserved."}
         </p>
         <p className={`text-xs mt-1 ${privateMode ? "text-[#4ADE80]/20" : "text-gray-400"}`}>
           {privateMode ? "v1.0.0-dev" : "v1.0.0"}
