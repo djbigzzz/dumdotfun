@@ -22,10 +22,12 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const [interval, setInterval] = useState<string>("5m");
-  const [showBubbles, setShowBubbles] = useState(true);
-  const [priceMode, setPriceMode] = useState<"usd" | "sol">("usd");
-  const markersRef = useRef<any[]>([]);
+  const [priceMode, setPriceMode] = useState<"sol">("sol");
+  const [crosshairData, setCrosshairData] = useState<{
+    open: number; high: number; low: number; close: number; volume: number; time: number;
+  } | null>(null);
 
   const { data: ohlcData } = useQuery<OHLCData>({
     queryKey: ["ohlc", mint, interval],
@@ -38,7 +40,18 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
     refetchInterval: 10000,
   });
 
-  const multiplier = priceMode === "usd" && solPrice ? solPrice : 1;
+  const multiplier = 1;
+
+  const formatPrice = (price: number): string => {
+    if (price === 0) return "0";
+    if (price < 0.000001) {
+      const exp = price.toExponential(4);
+      return exp;
+    }
+    if (price < 0.01) return price.toFixed(8);
+    if (price < 1) return price.toFixed(6);
+    return price.toFixed(4);
+  };
 
   const initChart = useCallback(() => {
     if (!chartContainerRef.current) return;
@@ -48,43 +61,62 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
       chartRef.current = null;
     }
 
-    const bg = privateMode ? "#0a0a0a" : "#111111";
-    const textColor = privateMode ? "#4ADE80" : "#d1d5db";
-    const gridColor = privateMode ? "rgba(74, 222, 128, 0.06)" : "rgba(255,255,255,0.04)";
-    const upColor = privateMode ? "#4ADE80" : "#22c55e";
-    const downColor = "#ef4444";
-
     const chart = createChart(chartContainerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: bg },
-        textColor,
+        background: { type: ColorType.Solid, color: "#0e0e10" },
+        textColor: "#787b86",
         fontSize: 11,
+        fontFamily: "'SF Mono', 'Fira Code', 'Roboto Mono', monospace",
       },
       grid: {
-        vertLines: { color: gridColor },
-        horzLines: { color: gridColor },
+        vertLines: { color: "rgba(42, 46, 57, 0.5)" },
+        horzLines: { color: "rgba(42, 46, 57, 0.5)" },
       },
-      crosshair: { mode: CrosshairMode.Normal },
+      crosshair: {
+        mode: CrosshairMode.Normal,
+        vertLine: {
+          color: "rgba(255, 255, 255, 0.2)",
+          width: 1,
+          style: 3,
+          labelBackgroundColor: "#2a2e39",
+        },
+        horzLine: {
+          color: "rgba(255, 255, 255, 0.2)",
+          width: 1,
+          style: 3,
+          labelBackgroundColor: "#2a2e39",
+        },
+      },
       rightPriceScale: {
-        borderColor: gridColor,
-        scaleMargins: { top: 0.1, bottom: 0.25 },
+        borderColor: "rgba(42, 46, 57, 0.5)",
+        scaleMargins: { top: 0.05, bottom: 0.2 },
+        entireTextOnly: true,
       },
       timeScale: {
-        borderColor: gridColor,
+        borderColor: "rgba(42, 46, 57, 0.5)",
         timeVisible: true,
         secondsVisible: false,
+        rightOffset: 3,
+        barSpacing: 8,
+        minBarSpacing: 4,
       },
       width: chartContainerRef.current.clientWidth,
-      height: 340,
+      height: 400,
+      handleScale: { axisPressedMouseMove: true },
+      handleScroll: { vertTouchDrag: false },
     });
 
     const candleSeries = chart.addCandlestickSeries({
-      upColor,
-      downColor,
-      borderUpColor: upColor,
-      borderDownColor: downColor,
-      wickUpColor: upColor,
-      wickDownColor: downColor,
+      upColor: "#26a69a",
+      downColor: "#ef5350",
+      borderUpColor: "#26a69a",
+      borderDownColor: "#ef5350",
+      wickUpColor: "#26a69a",
+      wickDownColor: "#ef5350",
+      priceFormat: {
+        type: "custom",
+        formatter: formatPrice,
+      },
     });
 
     const volumeSeries = chart.addHistogramSeries({
@@ -93,7 +125,26 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
     });
 
     chart.priceScale("volume").applyOptions({
-      scaleMargins: { top: 0.8, bottom: 0 },
+      scaleMargins: { top: 0.85, bottom: 0 },
+    });
+
+    chart.subscribeCrosshairMove((param) => {
+      if (!param.time || !param.seriesData) {
+        setCrosshairData(null);
+        return;
+      }
+      const candleValue = param.seriesData.get(candleSeries) as any;
+      const volumeValue = param.seriesData.get(volumeSeries) as any;
+      if (candleValue) {
+        setCrosshairData({
+          open: candleValue.open,
+          high: candleValue.high,
+          low: candleValue.low,
+          close: candleValue.close,
+          volume: volumeValue?.value || 0,
+          time: param.time as number,
+        });
+      }
     });
 
     chartRef.current = chart;
@@ -123,9 +174,6 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
   useEffect(() => {
     if (!ohlcData || !candleSeriesRef.current || !volumeSeriesRef.current) return;
 
-    const upColor = privateMode ? "#4ADE80" : "#22c55e";
-    const downColor = "#ef4444";
-
     const candleData = ohlcData.candles.map(c => ({
       time: c.time as any,
       open: c.open * multiplier,
@@ -138,50 +186,58 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
       time: c.time as any,
       value: c.volume,
       color: c.close >= c.open
-        ? (privateMode ? "rgba(74,222,128,0.3)" : "rgba(34,197,94,0.3)")
-        : "rgba(239,68,68,0.3)",
+        ? "rgba(38, 166, 154, 0.25)"
+        : "rgba(239, 83, 80, 0.25)",
     }));
 
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
 
-    if (showBubbles && ohlcData.devTrades.length > 0) {
+    if (ohlcData.devTrades.length > 0) {
       const markers = ohlcData.devTrades.map(t => ({
         time: t.time as any,
         position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-        color: t.type === "buy" ? upColor : downColor,
+        color: t.type === "buy" ? "#26a69a" : "#ef5350",
         shape: "circle" as const,
-        size: Math.min(3, Math.max(1, t.solAmount / 0.5)),
-        text: `DEV ${t.type.toUpperCase()} ${t.solAmount.toFixed(2)} SOL`,
+        size: Math.min(2, Math.max(1, t.solAmount / 0.5)),
+        text: `${t.solAmount.toFixed(2)} SOL`,
       }));
-      markersRef.current = markers;
       candleSeriesRef.current.setMarkers(markers);
     } else {
-      markersRef.current = [];
       candleSeriesRef.current.setMarkers([]);
     }
 
     if (candleData.length > 0) {
       chartRef.current?.timeScale().fitContent();
     }
-  }, [ohlcData, showBubbles, multiplier, privateMode]);
+  }, [ohlcData, multiplier, privateMode]);
 
   const hasCandles = ohlcData && ohlcData.candles.length > 0;
-  const hasDevTrades = ohlcData && ohlcData.devTrades.length > 0;
   const lastCandle = hasCandles ? ohlcData.candles[ohlcData.candles.length - 1] : null;
+  const displayData = crosshairData || (lastCandle ? {
+    open: lastCandle.open * multiplier,
+    high: lastCandle.high * multiplier,
+    low: lastCandle.low * multiplier,
+    close: lastCandle.close * multiplier,
+    volume: lastCandle.volume,
+    time: lastCandle.time,
+  } : null);
+
+  const priceChange = displayData ? ((displayData.close - displayData.open) / displayData.open) * 100 : 0;
+  const isUp = priceChange >= 0;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
-        <div className="flex items-center gap-1">
+    <div className="bg-[#0e0e10] rounded-lg overflow-hidden" data-testid="trading-chart">
+      <div className="flex items-center justify-between px-3 pt-3 pb-1">
+        <div className="flex items-center gap-0.5">
           {INTERVALS.map(i => (
             <button
               key={i}
               onClick={() => setInterval(i)}
-              className={`px-2 py-0.5 text-xs font-bold transition-all ${
+              className={`px-2.5 py-1 text-[11px] font-medium rounded transition-all ${
                 interval === i
-                  ? privateMode ? "bg-[#4ADE80] text-black" : "bg-white text-black"
-                  : privateMode ? "text-[#4ADE80]/60 hover:text-[#4ADE80]" : "text-gray-500 hover:text-white"
+                  ? "bg-[#2a2e39] text-white"
+                  : "text-[#787b86] hover:text-[#d1d4dc]"
               }`}
               data-testid={`button-interval-${i}`}
             >
@@ -189,68 +245,31 @@ export function TradingChart({ mint, solPrice }: TradingChartProps) {
             </button>
           ))}
         </div>
-        <div className="flex items-center gap-2">
-          {hasDevTrades && (
-            <button
-              onClick={() => setShowBubbles(!showBubbles)}
-              className={`px-2 py-0.5 text-xs font-bold transition-all ${
-                showBubbles
-                  ? privateMode ? "text-[#4ADE80]" : "text-white"
-                  : privateMode ? "text-[#4ADE80]/40" : "text-gray-600"
-              }`}
-              data-testid="button-toggle-bubbles"
-            >
-              {showBubbles ? "Hide Bubbles" : "Show Bubbles"}
-            </button>
-          )}
-          <div className="flex text-xs font-bold">
-            <button
-              onClick={() => setPriceMode("usd")}
-              className={`px-2 py-0.5 ${priceMode === "usd" ? (privateMode ? "text-[#4ADE80]" : "text-white") : (privateMode ? "text-[#4ADE80]/40" : "text-gray-600")}`}
-              data-testid="button-price-usd"
-            >
-              USD
-            </button>
-            <button
-              onClick={() => setPriceMode("sol")}
-              className={`px-2 py-0.5 ${priceMode === "sol" ? (privateMode ? "text-[#4ADE80]" : "text-white") : (privateMode ? "text-[#4ADE80]/40" : "text-gray-600")}`}
-              data-testid="button-price-sol"
-            >
-              SOL
-            </button>
-          </div>
+        <div className="flex items-center gap-1 text-[11px]">
+          <span className="text-[#787b86]">SOL</span>
         </div>
       </div>
 
-      {lastCandle && (
-        <div className={`flex items-center gap-3 text-xs mb-1 font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-400"}`}>
-          <span>O <span className="text-white">{(lastCandle.open * multiplier).toFixed(8)}</span></span>
-          <span>H <span className="text-white">{(lastCandle.high * multiplier).toFixed(8)}</span></span>
-          <span>L <span className="text-white">{(lastCandle.low * multiplier).toFixed(8)}</span></span>
-          <span>C <span className={lastCandle.close >= lastCandle.open ? "text-green-400" : "text-red-400"}>{(lastCandle.close * multiplier).toFixed(8)}</span></span>
-          <span>Vol <span className="text-white">{lastCandle.volume.toFixed(2)}</span></span>
+      {displayData && (
+        <div className="flex items-center gap-3 px-3 pb-1 text-[11px] font-mono">
+          <span className="text-[#787b86]">O <span className="text-[#d1d4dc]">{formatPrice(displayData.open)}</span></span>
+          <span className="text-[#787b86]">H <span className="text-[#d1d4dc]">{formatPrice(displayData.high)}</span></span>
+          <span className="text-[#787b86]">L <span className="text-[#d1d4dc]">{formatPrice(displayData.low)}</span></span>
+          <span className="text-[#787b86]">C <span className={isUp ? "text-[#26a69a]" : "text-[#ef5350]"}>{formatPrice(displayData.close)}</span></span>
+          <span className={`${isUp ? "text-[#26a69a]" : "text-[#ef5350]"}`}>
+            {isUp ? "+" : ""}{priceChange.toFixed(2)}%
+          </span>
         </div>
       )}
 
-      <div ref={chartContainerRef} className="w-full" style={{ minHeight: 340 }}>
+      <div ref={chartContainerRef} className="w-full relative" style={{ minHeight: 400 }}>
         {!hasCandles && (
-          <div className={`h-[340px] flex items-center justify-center text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-            No trade data yet — chart will appear after first trade
+          <div className="h-[400px] flex items-center justify-center text-sm text-[#787b86]">
+            No trade data yet
           </div>
         )}
+        <div ref={tooltipRef} />
       </div>
-
-      {hasDevTrades && showBubbles && (
-        <div className={`flex items-center gap-3 mt-2 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-green-500 inline-block"></span> Dev Buy
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Dev Sell
-          </span>
-          <span className="ml-auto">Creator: {ohlcData?.creatorAddress?.slice(0, 6)}...</span>
-        </div>
-      )}
     </div>
   );
 }

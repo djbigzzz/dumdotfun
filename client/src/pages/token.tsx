@@ -574,7 +574,7 @@ export default function TokenPage() {
             </div>
 
             {/* TradingView Chart */}
-            <div className={`${cardStyle} p-4`}>
+            <div className="rounded-lg overflow-hidden">
               <TradingChart mint={mint!} solPrice={solPrice?.price || null} />
             </div>
 
