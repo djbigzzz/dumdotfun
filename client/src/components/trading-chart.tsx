@@ -7,6 +7,7 @@ interface OHLCData {
   candles: { time: number; open: number; high: number; low: number; close: number; volume: number }[];
   devTrades: { time: number; type: string; solAmount: number; price: number }[];
   creatorAddress?: string;
+  tooManyCandles?: boolean;
 }
 
 interface TradingChartProps {
@@ -65,7 +66,15 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     queryFn: async () => {
       const res = await fetch(`/api/tokens/${mint}/ohlc?interval=${interval}`);
       if (!res.ok) return { candles: [], devTrades: [] };
-      return res.json();
+      const data = await res.json();
+      if (data.tooManyCandles) {
+        const idx = INTERVALS.indexOf(interval as any);
+        if (idx < INTERVALS.length - 1) {
+          setInterval(INTERVALS[idx + 1]);
+        }
+        return { candles: [], devTrades: [] };
+      }
+      return data;
     },
     enabled: !!mint,
     refetchInterval: 10000,

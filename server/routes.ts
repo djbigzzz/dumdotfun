@@ -4401,13 +4401,12 @@ export async function registerRoutes(
         const firstBucket = sortedBuckets[0][0];
         const now = Date.now();
         const endBucket = Math.floor(now / bucketMs) * bucketMs;
-        const maxCandles = 500;
-        const startBucket = Math.max(firstBucket, endBucket - (maxCandles * bucketMs));
+        const startBucket = firstBucket;
         let prevClose = initialPrice;
 
-        const beforeStart = sortedBuckets.filter(([t]) => t < startBucket);
-        if (beforeStart.length > 0) {
-          prevClose = beforeStart[beforeStart.length - 1][1].close;
+        const totalCandles = Math.floor((endBucket - startBucket) / bucketMs) + 1;
+        if (totalCandles > 5000) {
+          return res.json({ candles: [], devTrades: [], creatorAddress: token.creatorAddress, tooManyCandles: true });
         }
 
         for (let t = startBucket; t <= endBucket; t += bucketMs) {
