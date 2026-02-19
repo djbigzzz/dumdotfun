@@ -236,14 +236,16 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     volumeSeriesRef.current.setData(volumeData);
 
     if (showBubbles && ohlcData.devTrades.length > 0) {
-      const markers = ohlcData.devTrades.map(t => ({
-        time: t.time as any,
-        position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-        color: t.type === "buy" ? "#26a69a" : "#ef5350",
-        shape: "arrowUp" as const,
-        size: 1,
-        text: `${t.solAmount.toFixed(1)}`,
-      }));
+      const markers = ohlcData.devTrades
+        .map(t => ({
+          time: t.time as any,
+          position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
+          color: t.type === "buy" ? "#26a69a" : "#ef5350",
+          shape: "circle" as const,
+          size: 2,
+          text: t.type === "buy" ? `DB ${t.solAmount.toFixed(1)}` : `DS ${t.solAmount.toFixed(1)}`,
+        }))
+        .sort((a, b) => (a.time as number) - (b.time as number));
       candleSeriesRef.current.setMarkers(markers);
     } else {
       candleSeriesRef.current.setMarkers([]);
@@ -313,7 +315,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
             }`}
             data-testid="button-toggle-bubbles"
           >
-            Trades
+            DB/DS
           </button>
         </div>
         <div className="flex items-center gap-1">
