@@ -4326,16 +4326,43 @@ export async function registerRoutes(
     try {
       const { mint } = req.params;
       const interval = (req.query.interval as string) || "5m";
-      const { trades: tradesTable } = await import("@shared/schema");
-      const { desc: descOrder } = await import("drizzle-orm");
 
-      const allTrades = await db.select().from(tradesTable)
-        .where(eq(tradesTable.tokenMint, mint))
-        .orderBy(descOrder(tradesTable.createdAt))
-        .limit(2000);
-
-      if (allTrades.length === 0) {
+      const token = await storage.getTokenByMint(mint);
+      if (!token) {
         return res.json({ candles: [], devTrades: [] });
+      }
+
+      const activity = await storage.getActivityByToken(mint, 500);
+      const trades = activity.filter(a => a.activityType === "buy" || a.activityType === "sell");
+
+      if (trades.length === 0) {
+        return res.json({ candles: [], devTrades: [], creatorAddress: token.creatorAddress });
+      }
+
+      trades.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+
+      const initialPrice = 0.0000000375;
+      let cumulativeSol = 30;
+      const tradePoints: { time: number; price: number; volume: number; wallet: string; type: string }[] = [];
+
+      for (const trade of trades) {
+        const tradeTime = new Date(trade.createdAt).getTime();
+        const amount = parseFloat(trade.amount || "0");
+
+        if (trade.activityType === "buy") {
+          cumulativeSol += amount;
+        } else {
+          cumulativeSol = Math.max(30, cumulativeSol - amount);
+        }
+
+        const price = cumulativeSol / 800000000;
+        tradePoints.push({
+          time: tradeTime,
+          price,
+          volume: amount,
+          wallet: trade.walletAddress || "",
+          type: trade.activityType,
+        });
       }
 
       const intervalMs: Record<string, number> = {
@@ -4344,55 +4371,45 @@ export async function registerRoutes(
       };
       const bucketMs = intervalMs[interval] || 300000;
 
-      const sortedTrades = allTrades.reverse();
-      const candles: any[] = [];
-      let bucketStart = Math.floor(new Date(sortedTrades[0].createdAt).getTime() / bucketMs) * bucketMs;
-      let open = 0, high = 0, low = Infinity, close = 0, volume = 0;
-      let hasData = false;
+      const bucketMap = new Map<number, { open: number; high: number; low: number; close: number; volume: number }>();
+      let lastPrice = initialPrice;
 
-      for (const trade of sortedTrades) {
-        const tradeTime = new Date(trade.createdAt).getTime();
-        const price = Number(trade.pricePerToken);
-        const vol = Number(trade.solAmount);
-
-        while (tradeTime >= bucketStart + bucketMs) {
-          if (hasData) {
-            candles.push({ time: Math.floor(bucketStart / 1000), open, high, low, close, volume });
-          }
-          bucketStart += bucketMs;
-          open = close;
-          high = close;
-          low = close;
-          volume = 0;
-          hasData = open > 0;
+      for (const tp of tradePoints) {
+        const bucketKey = Math.floor(tp.time / bucketMs) * bucketMs;
+        const existing = bucketMap.get(bucketKey);
+        if (existing) {
+          existing.high = Math.max(existing.high, tp.price);
+          existing.low = Math.min(existing.low, tp.price);
+          existing.close = tp.price;
+          existing.volume += tp.volume;
+        } else {
+          bucketMap.set(bucketKey, {
+            open: lastPrice,
+            high: Math.max(lastPrice, tp.price),
+            low: Math.min(lastPrice, tp.price),
+            close: tp.price,
+            volume: tp.volume,
+          });
         }
-
-        if (!hasData) {
-          open = price;
-          high = price;
-          low = price;
-          hasData = true;
-        }
-        high = Math.max(high, price);
-        low = Math.min(low, price);
-        close = price;
-        volume += vol;
+        lastPrice = tp.price;
       }
 
-      if (hasData) {
-        candles.push({ time: Math.floor(bucketStart / 1000), open, high, low, close, volume });
-      }
+      const candles = Array.from(bucketMap.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([time, c]) => ({
+          time: Math.floor(time / 1000),
+          ...c,
+        }));
 
-      const token = await storage.getTokenByMint(mint);
-      const creatorAddress = token?.creatorAddress;
+      const creatorAddress = token.creatorAddress;
       const devTrades = creatorAddress
-        ? allTrades
-            .filter(t => t.walletAddress === creatorAddress)
+        ? tradePoints
+            .filter(t => t.wallet === creatorAddress)
             .map(t => ({
-              time: Math.floor(new Date(t.createdAt).getTime() / 1000),
-              type: t.tradeType,
-              solAmount: Number(t.solAmount),
-              price: Number(t.pricePerToken),
+              time: Math.floor(t.time / 1000),
+              type: t.type,
+              solAmount: t.volume,
+              price: t.price,
             }))
         : [];
 
