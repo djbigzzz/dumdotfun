@@ -575,7 +575,12 @@ export default function TokenPage() {
 
             {/* TradingView Chart */}
             <div className="rounded-lg overflow-hidden">
-              <TradingChart mint={mint!} solPrice={solPrice?.price || null} />
+              <TradingChart
+                mint={mint!}
+                solPrice={solPrice?.price || null}
+                tokenSymbol={token.symbol}
+                totalSupply={token.totalSupply || 1_000_000_000}
+              />
             </div>
 
             {/* Stats Row */}
