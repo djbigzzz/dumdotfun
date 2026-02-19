@@ -4394,12 +4394,42 @@ export async function registerRoutes(
         lastPrice = tp.price;
       }
 
-      const candles = Array.from(bucketMap.entries())
-        .sort(([a], [b]) => a - b)
-        .map(([time, c]) => ({
-          time: Math.floor(time / 1000),
-          ...c,
-        }));
+      const sortedBuckets = Array.from(bucketMap.entries()).sort(([a], [b]) => a - b);
+      const candles: any[] = [];
+
+      if (sortedBuckets.length > 0) {
+        const firstBucket = sortedBuckets[0][0];
+        const now = Date.now();
+        const endBucket = Math.floor(now / bucketMs) * bucketMs;
+        const maxCandles = 500;
+        const startBucket = Math.max(firstBucket, endBucket - (maxCandles * bucketMs));
+        let prevClose = initialPrice;
+
+        const beforeStart = sortedBuckets.filter(([t]) => t < startBucket);
+        if (beforeStart.length > 0) {
+          prevClose = beforeStart[beforeStart.length - 1][1].close;
+        }
+
+        for (let t = startBucket; t <= endBucket; t += bucketMs) {
+          const existing = bucketMap.get(t);
+          if (existing) {
+            candles.push({
+              time: Math.floor(t / 1000),
+              ...existing,
+            });
+            prevClose = existing.close;
+          } else {
+            candles.push({
+              time: Math.floor(t / 1000),
+              open: prevClose,
+              high: prevClose,
+              low: prevClose,
+              close: prevClose,
+              volume: 0,
+            });
+          }
+        }
+      }
 
       const creatorAddress = token.creatorAddress;
       const devTrades = creatorAddress
