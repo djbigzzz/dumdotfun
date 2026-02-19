@@ -1727,11 +1727,25 @@ export async function registerRoutes(
           }
         }
         const referralCount = await storage.getReferralCount(walletAddress);
-        return res.json({ ...existing, referralCount });
+        let pointsAwarded: { action: string; points: number }[] = [];
+        try {
+          const { awardQuest, awardDailyLogin } = await import("./services/points");
+          const connectResult = await awardQuest(walletAddress, "connect_wallet");
+          if (connectResult.awarded) pointsAwarded.push({ action: "connect_wallet", points: connectResult.points });
+          const dailyResult = await awardDailyLogin(walletAddress);
+          if (dailyResult.awarded) pointsAwarded.push({ action: "daily_login", points: dailyResult.points });
+        } catch {}
+        return res.json({ ...existing, referralCount, pointsAwarded });
       }
 
       const newUser = await storage.createUserWithReferral(walletAddress, sanitizedReferral);
-      return res.json({ ...newUser, referralCount: 0 });
+      let pointsAwarded: { action: string; points: number }[] = [];
+      try {
+        const { awardQuest } = await import("./services/points");
+        const r = await awardQuest(walletAddress, "connect_wallet");
+        if (r.awarded) pointsAwarded.push({ action: "connect_wallet", points: r.points });
+      } catch {}
+      return res.json({ ...newUser, referralCount: 0, pointsAwarded });
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
       return res.status(500).json({ error: "Failed to connect wallet" });
@@ -1900,20 +1914,27 @@ export async function registerRoutes(
         metadata: JSON.stringify({ signature, real: true, blockTime: Math.floor(Date.now() / 1000) }),
       });
 
+      let pointsAwarded: { action: string; points: number }[] = [];
+      try {
+        const { awardQuest } = await import("./services/points");
+        const r = await awardQuest(walletAddress, "first_trade");
+        if (r.awarded) pointsAwarded.push({ action: "first_trade", points: r.points });
+      } catch {}
+
       if (side === "buy") {
         try {
           const { checkAndGraduateToken } = await import("./services/graduation");
           const gradResult = await checkAndGraduateToken(tokenMint);
           if (gradResult?.success) {
             console.log(`[Auto-Graduation] Token ${tokenMint} graduated after trade! Pool: ${gradResult.poolId}`);
-            return res.json({ success: true, graduated: true, raydiumPoolId: gradResult.poolId, graduationTx: gradResult.txSignature });
+            return res.json({ success: true, graduated: true, raydiumPoolId: gradResult.poolId, graduationTx: gradResult.txSignature, pointsAwarded });
           }
         } catch (gradErr) {
           console.error("[Auto-Graduation] Check failed (non-blocking):", gradErr);
         }
       }
       
-      return res.json({ success: true });
+      return res.json({ success: true, pointsAwarded });
     } catch (error: any) {
       console.error("Error recording trade:", error);
       return res.status(500).json({ error: "Failed to record trade" });
@@ -2335,6 +2356,11 @@ export async function registerRoutes(
       } catch (marketError) {
         console.error("[DEVNET] Failed to create prediction market:", marketError);
       }
+
+      try {
+        const { awardQuest } = await import("./services/points");
+        await awardQuest(creatorAddress, "first_token");
+      } catch {}
 
       return res.json({
         success: true,
@@ -3270,6 +3296,12 @@ export async function registerRoutes(
 
       console.log(`[Market Creation] Confirmed: "${market.question}" by ${pendingMarket.creatorAddress} (tx: ${signature})`);
 
+      try {
+        const { awardQuest } = await import("./services/points");
+        await awardQuest(pendingMarket.creatorAddress, "first_market");
+        await awardQuest(pendingMarket.creatorAddress, "first_bet");
+      } catch {}
+
       // Use actual pool values from the created market
       const actualYesPool = Number(market.yesPool);
       const actualNoPool = Number(market.noPool);
@@ -3583,6 +3615,11 @@ export async function registerRoutes(
       pendingBets.delete(betId);
 
       console.log(`Bet confirmed: ${pendingBet.amount} SOL on ${pendingBet.side} for market ${id} (tx: ${signature})`);
+
+      try {
+        const { awardQuest } = await import("./services/points");
+        await awardQuest(pendingBet.walletAddress, "first_bet");
+      } catch {}
 
       return res.json({
         success: true,
@@ -4235,6 +4272,136 @@ export async function registerRoutes(
     }
   });
 
+
+  // ========== POINTS SYSTEM ==========
+  app.get("/api/points/:wallet", async (req, res) => {
+    try {
+      const { getUserPointsData, getUserRank } = await import("./services/points");
+      const data = await getUserPointsData(req.params.wallet);
+      const rank = await getUserRank(req.params.wallet);
+      return res.json({ ...data, rank });
+    } catch (error: any) {
+      console.error("Error fetching points:", error);
+      return res.status(500).json({ error: "Failed to fetch points" });
+    }
+  });
+
+  app.post("/api/points/daily-login", async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+      if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
+      const { awardDailyLogin } = await import("./services/points");
+      const result = await awardDailyLogin(walletAddress);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to process daily login" });
+    }
+  });
+
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const period = (req.query.period as "daily" | "weekly" | "all") || "all";
+      const { getLeaderboard } = await import("./services/points");
+      const leaderboard = await getLeaderboard(period);
+      return res.json(leaderboard);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
+
+  app.post("/api/points/og-nft", async (req, res) => {
+    try {
+      const { walletAddress, mintAddress } = req.body;
+      if (!walletAddress || !mintAddress) return res.status(400).json({ error: "walletAddress and mintAddress required" });
+      const { setOgNftMint } = await import("./services/points");
+      const result = await setOgNftMint(walletAddress, mintAddress);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to register OG NFT" });
+    }
+  });
+
+  // OHLC candle data for TradingView chart
+  app.get("/api/tokens/:mint/ohlc", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const interval = (req.query.interval as string) || "5m";
+      const { trades: tradesTable } = await import("@shared/schema");
+      const { desc: descOrder } = await import("drizzle-orm");
+
+      const allTrades = await db.select().from(tradesTable)
+        .where(eq(tradesTable.tokenMint, mint))
+        .orderBy(descOrder(tradesTable.createdAt))
+        .limit(2000);
+
+      if (allTrades.length === 0) {
+        return res.json({ candles: [], devTrades: [] });
+      }
+
+      const intervalMs: Record<string, number> = {
+        "1m": 60000, "5m": 300000, "15m": 900000,
+        "1h": 3600000, "4h": 14400000, "1D": 86400000,
+      };
+      const bucketMs = intervalMs[interval] || 300000;
+
+      const sortedTrades = allTrades.reverse();
+      const candles: any[] = [];
+      let bucketStart = Math.floor(new Date(sortedTrades[0].createdAt).getTime() / bucketMs) * bucketMs;
+      let open = 0, high = 0, low = Infinity, close = 0, volume = 0;
+      let hasData = false;
+
+      for (const trade of sortedTrades) {
+        const tradeTime = new Date(trade.createdAt).getTime();
+        const price = Number(trade.pricePerToken);
+        const vol = Number(trade.solAmount);
+
+        while (tradeTime >= bucketStart + bucketMs) {
+          if (hasData) {
+            candles.push({ time: Math.floor(bucketStart / 1000), open, high, low, close, volume });
+          }
+          bucketStart += bucketMs;
+          open = close;
+          high = close;
+          low = close;
+          volume = 0;
+          hasData = open > 0;
+        }
+
+        if (!hasData) {
+          open = price;
+          high = price;
+          low = price;
+          hasData = true;
+        }
+        high = Math.max(high, price);
+        low = Math.min(low, price);
+        close = price;
+        volume += vol;
+      }
+
+      if (hasData) {
+        candles.push({ time: Math.floor(bucketStart / 1000), open, high, low, close, volume });
+      }
+
+      const token = await storage.getTokenByMint(mint);
+      const creatorAddress = token?.creatorAddress;
+      const devTrades = creatorAddress
+        ? allTrades
+            .filter(t => t.walletAddress === creatorAddress)
+            .map(t => ({
+              time: Math.floor(new Date(t.createdAt).getTime() / 1000),
+              type: t.tradeType,
+              solAmount: Number(t.solAmount),
+              price: Number(t.pricePerToken),
+            }))
+        : [];
+
+      return res.json({ candles, devTrades, creatorAddress });
+    } catch (error: any) {
+      console.error("Error fetching OHLC:", error);
+      return res.status(500).json({ error: "Failed to fetch OHLC data" });
+    }
+  });
 
   return httpServer;
 }

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode, use
 import { useQueryClient } from "@tanstack/react-query";
 import { Connection, clusterApiUrl, Transaction } from "@solana/web3.js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+import { toast } from "sonner";
 import { 
   SolanaMobileWalletAdapter,
   createDefaultAddressSelector,
@@ -105,7 +106,18 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       });
       
       if (res.ok) {
-        queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
+        try {
+          const data = await res.json();
+          queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
+          if (data?.pointsAwarded && Array.isArray(data.pointsAwarded)) {
+            for (const p of data.pointsAwarded) {
+              const label = p.action === "connect_wallet" ? "Wallet Connected" : p.action === "daily_login" ? "Daily Check-in" : p.action;
+              toast.success(`+${p.points} pts — ${label}`, { duration: 3000 });
+            }
+          }
+        } catch {
+          queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
+        }
       }
     } catch (err) {
       console.error("Failed to create user:", err);

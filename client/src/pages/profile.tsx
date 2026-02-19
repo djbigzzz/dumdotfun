@@ -2,10 +2,10 @@ import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
 import { usePrivacy } from "@/lib/privacy-context";
-import { motion } from "framer-motion";
-import { useLocation } from "wouter";
+import { motion, AnimatePresence } from "framer-motion";
+import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2 } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2, Trophy, Star, Zap, Crown, ChevronRight } from "lucide-react";
 import { PrivacyHub } from "@/components/privacy-hub";
 
 interface UserWithReferrals {
@@ -16,6 +16,42 @@ interface UserWithReferrals {
   referralCount: number;
   createdAt: string;
 }
+
+interface QuestDef {
+  action: string;
+  points: number;
+  completed: boolean;
+  repeatable: boolean;
+}
+
+interface PointsData {
+  totalPoints: number;
+  tier: string;
+  ogNftMint: string | null;
+  lastDailyLogin: string | null;
+  completedQuests: string[];
+  history: { action: string; points: number; createdAt: string; referralSource: string | null }[];
+  questDefinitions: QuestDef[];
+  rank: number;
+}
+
+const TIER_CONFIG: Record<string, { color: string; icon: React.ReactNode; bg: string; border: string; next: string; nextPoints: number }> = {
+  bronze: { color: "#CD7F32", icon: <Star className="w-5 h-5" />, bg: "bg-amber-900/20", border: "border-amber-700", next: "Silver", nextPoints: 500 },
+  silver: { color: "#C0C0C0", icon: <Trophy className="w-5 h-5" />, bg: "bg-gray-300/20", border: "border-gray-400", next: "Gold", nextPoints: 2000 },
+  gold: { color: "#FFD700", icon: <Crown className="w-5 h-5" />, bg: "bg-yellow-500/20", border: "border-yellow-500", next: "Diamond", nextPoints: 10000 },
+  diamond: { color: "#B9F2FF", icon: <Crown className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400", next: "", nextPoints: Infinity },
+};
+
+const QUEST_LABELS: Record<string, { label: string; description: string }> = {
+  connect_wallet: { label: "Connect Wallet", description: "Connect your Phantom wallet" },
+  first_token: { label: "Token Creator", description: "Launch your first token" },
+  first_market: { label: "Market Maker", description: "Create a prediction market" },
+  first_trade: { label: "First Trade", description: "Buy or sell a token" },
+  first_bet: { label: "Place a Bet", description: "Bet on a prediction market" },
+  first_win: { label: "Winner", description: "Win a prediction market bet" },
+  mint_og_nft: { label: "OG Badge", description: "Mint the OG NFT (1.5x boost)" },
+  daily_login: { label: "Daily Check-in", description: "Log in daily for bonus points" },
+};
 
 export default function Profile() {
   const { privateMode } = usePrivacy();
@@ -59,6 +95,17 @@ export default function Profile() {
     enabled: !!connectedWallet,
   });
 
+  const { data: pointsData } = useQuery<PointsData>({
+    queryKey: ["points", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+    refetchInterval: 30000,
+  });
+
   const handleLogout = async () => {
     await disconnectWallet();
     setLocation("/");
@@ -84,6 +131,16 @@ export default function Profile() {
     );
   }
 
+  const tier = TIER_CONFIG[pointsData?.tier || "bronze"] || TIER_CONFIG.bronze;
+  const totalPoints = pointsData?.totalPoints || 0;
+  const progressToNext = tier.nextPoints === Infinity ? 100 : Math.min(100, (totalPoints / tier.nextPoints) * 100);
+  const completedCount = pointsData?.questDefinitions?.filter(q => q.completed).length || 0;
+  const totalQuests = pointsData?.questDefinitions?.length || 8;
+
+  const cardStyle = privateMode
+    ? "border-2 border-[#4ADE80]/50 bg-zinc-900/50 rounded-xl shadow-[4px_4px_0px_0px_rgba(74,222,128,0.3)]"
+    : "border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
+
   return (
     <Layout>
       <div className="py-8">
@@ -99,184 +156,303 @@ export default function Profile() {
                   {privateMode ? "> USER_PROFILE" : "Your Profile"}
                 </h1>
                 <p className={`text-sm ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-500"}`}>
-                  {privateMode ? "// IDENTITY_VERIFIED" : "Manage your wallet and referrals"}
+                  {privateMode ? "// IDENTITY_VERIFIED" : "Manage your wallet, points, and quests"}
                 </p>
               </div>
+              <div className="flex gap-2">
+                <Link href="/leaderboard">
+                  <motion.span
+                    whileHover={{ y: -2, x: -2 }}
+                    whileTap={{ y: 0, x: 0 }}
+                    className={`px-4 py-2 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all cursor-pointer inline-flex items-center gap-1 ${
+                      privateMode
+                        ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono"
+                        : "bg-yellow-400 text-black"
+                    }`}
+                    data-testid="link-leaderboard"
+                  >
+                    <Trophy className="w-4 h-4" />
+                    {privateMode ? "RANKS" : "Leaderboard"}
+                  </motion.span>
+                </Link>
                 <motion.button
                   onClick={handleLogout}
                   whileHover={{ y: -2, x: -2 }}
                   whileTap={{ y: 0, x: 0 }}
                   className={`px-4 py-2 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                    privateMode 
-                      ? "bg-black border-[#FF1744] text-[#FF1744] hover:bg-[#FF1744]/10 font-mono" 
+                    privateMode
+                      ? "bg-black border-[#FF1744] text-[#FF1744] hover:bg-[#FF1744]/10 font-mono"
                       : "bg-red-500 text-white"
                   }`}
                   data-testid="button-logout"
                 >
                   {privateMode ? "TERMINATE_SESSION" : "Log Out"}
                 </motion.button>
+              </div>
             </div>
 
-            <div className={`border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white shadow-[4px_4px_0px_0px_rgba(239,68,68,1)]"
-            }`}>
-              <div className="flex items-center gap-2">
-                <Wallet className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} />
-                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                  {privateMode ? "WALLET_ADDR" : "Wallet Address"}
+            {/* Points & Tier Card */}
+            <div className={`${cardStyle} p-6`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl flex items-center justify-center border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" style={{ backgroundColor: tier.color + "30", borderColor: tier.color }}>
+                    <span style={{ color: tier.color }}>{tier.icon}</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className={`text-2xl font-black ${privateMode ? "text-white font-mono" : "text-black"}`} data-testid="text-total-points">
+                        {totalPoints.toLocaleString()}
+                      </span>
+                      <span className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>pts</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-black uppercase" style={{ color: tier.color }} data-testid="text-tier">
+                        {pointsData?.tier || "Bronze"} Tier
+                      </span>
+                      {pointsData?.ogNftMint && (
+                        <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
+                          1.5x OG
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                    Rank #{pointsData?.rank || "—"}
+                  </span>
+                </div>
+              </div>
+
+              {tier.next && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className={`font-bold ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+                      Progress to {tier.next}
+                    </span>
+                    <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-black"}`}>
+                      {totalPoints} / {tier.nextPoints.toLocaleString()}
+                    </span>
+                  </div>
+                  <div className={`h-3 rounded-full overflow-hidden border-2 border-black ${privateMode ? "bg-black" : "bg-gray-200"}`}>
+                    <motion.div
+                      initial={{ width: 0 }}
+                      animate={{ width: `${progressToNext}%` }}
+                      transition={{ duration: 1, ease: "easeOut" }}
+                      className="h-full rounded-full"
+                      style={{ backgroundColor: tier.color }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quests Grid */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className={`text-lg font-black ${privateMode ? "text-white font-mono" : "text-black"}`}>
+                  {privateMode ? "> QUESTS" : "Quests"}
                 </h2>
+                <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                  {completedCount}/{totalQuests} completed
+                </span>
               </div>
-              <div className={`flex items-center justify-between gap-4 border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-black border-[#4ADE80]/30" : "bg-gray-100"
-              }`}>
-                <p className={`font-mono text-sm break-all flex-1 font-bold ${privateMode ? "text-white" : "text-red-500"}`}>
-                  {user.walletAddress}
-                </p>
-                <motion.button
-                  onClick={copyWallet}
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`flex-shrink-0 transition-colors ${privateMode ? "text-[#4ADE80] hover:text-white" : "text-gray-600 hover:text-gray-900"}`}
-                  data-testid="button-copy-wallet"
-                >
-                  {copiedWallet ? (
-                    <Check className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-green-500"}`} />
-                  ) : (
-                    <Copy className="w-5 h-5" />
-                  )}
-                </motion.button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {pointsData?.questDefinitions?.map(quest => {
+                  const meta = QUEST_LABELS[quest.action] || { label: quest.action, description: "" };
+                  return (
+                    <motion.div
+                      key={quest.action}
+                      whileHover={{ y: -1 }}
+                      className={`p-4 rounded-xl border-2 transition-all ${
+                        quest.completed
+                          ? privateMode
+                            ? "border-[#4ADE80]/50 bg-[#4ADE80]/5"
+                            : "border-green-500 bg-green-50"
+                          : privateMode
+                            ? "border-[#4ADE80]/20 bg-zinc-900/30"
+                            : "border-gray-300 bg-gray-50"
+                      }`}
+                      data-testid={`quest-${quest.action}`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
+                            quest.completed
+                              ? privateMode ? "bg-[#4ADE80] text-black" : "bg-green-500 text-white"
+                              : privateMode ? "bg-zinc-800 text-[#4ADE80]/50" : "bg-gray-200 text-gray-500"
+                          }`}>
+                            {quest.completed ? <Check className="w-4 h-4" /> : <Zap className="w-4 h-4" />}
+                          </div>
+                          <div>
+                            <p className={`text-sm font-bold ${
+                              quest.completed
+                                ? privateMode ? "text-[#4ADE80]" : "text-green-700"
+                                : privateMode ? "text-white" : "text-black"
+                            }`}>
+                              {meta.label}
+                            </p>
+                            <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>
+                              {meta.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className={`text-sm font-black ${
+                            quest.completed
+                              ? privateMode ? "text-[#4ADE80]/50" : "text-green-500"
+                              : privateMode ? "text-white" : "text-black"
+                          }`}>
+                            +{quest.points}
+                          </span>
+                          {quest.repeatable && (
+                            <p className={`text-[10px] font-bold uppercase ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                              repeatable
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
-              <div className="flex gap-2">
+            </div>
+
+            {/* Wallet & Referral Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className={`${cardStyle} p-5 space-y-3`}>
+                <div className="flex items-center gap-2">
+                  <Wallet className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} />
+                  <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                    Wallet
+                  </h2>
+                </div>
+                <div className={`flex items-center gap-2 border-2 border-black rounded-lg p-3 ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-gray-100"}`}>
+                  <p className={`font-mono text-xs break-all flex-1 font-bold ${privateMode ? "text-white" : "text-red-500"}`}>
+                    {user.walletAddress}
+                  </p>
+                  <button onClick={copyWallet} className={`flex-shrink-0 ${privateMode ? "text-[#4ADE80]" : "text-gray-600"}`} data-testid="button-copy-wallet">
+                    {copiedWallet ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
                 <a
                   href={`https://solscan.io/account/${user.walletAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className={`flex items-center gap-2 px-3 py-2 border-2 border-black text-xs font-mono rounded-lg transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                    privateMode 
-                      ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10" 
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  }`}
+                  className={`flex items-center gap-2 text-xs font-mono font-bold ${privateMode ? "text-[#4ADE80] hover:text-white" : "text-gray-700 hover:text-black"}`}
                   data-testid="link-solscan"
                 >
-                  {privateMode ? "SOLSCAN_EXPLORER" : "View on Solscan"}
-                  <ExternalLink className="w-3 h-3" />
+                  View on Solscan <ExternalLink className="w-3 h-3" />
                 </a>
+              </div>
+
+              <div className={`${cardStyle} p-5 space-y-3`}>
+                <div className="flex items-center gap-2">
+                  <Share2 className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-pink-500"}`} />
+                  <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                    Referral Link
+                  </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 px-3 py-2 border-2 border-black rounded-lg text-xs font-mono truncate ${privateMode ? "bg-black border-[#4ADE80]/30 text-white" : "bg-gray-100 text-gray-700"}`}>
+                    {user.referralCode ? `dum.fun?ref=${user.referralCode}` : "Generating..."}
+                  </div>
+                  <button
+                    onClick={copyReferralLink}
+                    disabled={!user.referralCode}
+                    className={`px-3 py-2 font-bold rounded-lg border-2 border-black ${privateMode ? "bg-black border-[#4ADE80] text-[#4ADE80]" : "bg-pink-400 text-black"}`}
+                    data-testid="button-copy-referral"
+                  >
+                    {copiedReferral ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  </button>
+                </div>
+                <div className="flex justify-between items-center">
+                  <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
+                    Earn 10% of your referrals' points
+                  </p>
+                  <span className={`text-sm font-black ${privateMode ? "text-white" : "text-black"}`} data-testid="text-referral-count">
+                    {user.referralCount} referred
+                  </span>
+                </div>
               </div>
             </div>
 
-            <div className={`border-2 border-black rounded-xl p-6 space-y-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-              privateMode ? "bg-black border-[#4ADE80]" : "bg-white shadow-[4px_4px_0px_0px_rgba(251,113,133,1)]"
-            }`}>
-              <div className="flex items-center gap-2">
-                <Share2 className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-pink-500"}`} />
-                <h2 className={`text-sm font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                  {privateMode ? "REFERRAL_LINK" : "Your Referral Link"}
-                </h2>
-              </div>
-              
-              <div className="flex items-center gap-2">
-                <div className={`flex-1 px-4 py-3 border-2 border-black rounded-lg text-sm font-mono truncate shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-black border-[#4ADE80]/30 text-white" : "bg-gray-100 text-gray-700"
-                }`}>
-                  {user.referralCode 
-                    ? `https://dum.fun?ref=${user.referralCode}`
-                    : "Generating..."
-                  }
-                </div>
-                <motion.button
-                  onClick={copyReferralLink}
-                  whileHover={{ y: -1, x: -1 }}
-                  whileTap={{ y: 0, x: 0 }}
-                  disabled={!user.referralCode}
-                  className={`px-4 py-3 font-bold rounded-lg border-2 border-black transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                    privateMode 
-                      ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:bg-[#4ADE80]/10" 
-                      : "bg-pink-400 text-black hover:bg-pink-500"
-                  }`}
-                  data-testid="button-copy-referral"
-                >
-                  {copiedReferral ? <Check className="w-5 h-5" /> : <Copy className="w-5 h-5" />}
-                </motion.button>
-              </div>
-
-              <p className={`text-xs font-medium ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
-                {privateMode ? "// SHARE_FOR_REWARDS" : "Share this link to earn rewards for every friend who joins!"}
-              </p>
+            {/* Stats Cards */}
+            <div className="grid grid-cols-3 gap-3">
+              <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
+                <Calendar className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
+                <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                  Joined
+                </p>
+                <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
+                  {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                </p>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
+                <Users className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
+                <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                  Referrals
+                </p>
+                <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
+                  {user.referralCount}
+                </p>
+              </motion.div>
+              <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
+                <Zap className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
+                <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                  Quests Done
+                </p>
+                <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
+                  {completedCount}
+                </p>
+              </motion.div>
             </div>
 
             {privateMode && <PrivacyHub />}
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <motion.div
-                whileHover={{ y: -2 }}
-                className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-yellow-300"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Calendar className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-black/70"}`}>
-                    {privateMode ? "MINT_DATE" : "Joined"}
-                  </span>
+            {/* Recent Points History */}
+            {pointsData?.history && pointsData.history.length > 0 && (
+              <div className={`${cardStyle} p-5`}>
+                <h2 className={`text-sm font-black uppercase mb-3 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                  Recent Points
+                </h2>
+                <div className="space-y-2">
+                  {pointsData.history.slice(0, 10).map((entry, i) => (
+                    <div key={i} className={`flex items-center justify-between py-2 border-b last:border-0 ${privateMode ? "border-[#4ADE80]/10" : "border-gray-100"}`}>
+                      <div>
+                        <span className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>
+                          {QUEST_LABELS[entry.action]?.label || entry.action}
+                        </span>
+                        {entry.referralSource && (
+                          <span className={`text-xs ml-2 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                            from {entry.referralSource.slice(0, 6)}...
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm font-black ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                          +{entry.points}
+                        </span>
+                        <span className={`text-xs ${privateMode ? "text-[#4ADE80]/30" : "text-gray-400"}`}>
+                          {new Date(entry.createdAt).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-                <p className={`text-xl font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
-                  {new Date(user.createdAt).toLocaleDateString()}
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -2 }}
-                className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-green-400"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Users className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-black/70"}`}>
-                    {privateMode ? "NETWORK_NODES" : "Referrals"}
-                  </span>
-                </div>
-                <p className={`text-xl font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
-                  {user.referralCount}
-                </p>
-              </motion.div>
-
-              <motion.div
-                whileHover={{ y: -2 }}
-                className={`border-2 border-black rounded-xl p-4 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${
-                  privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-pink-300"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-3">
-                  <Gift className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                  <span className={`text-xs font-black uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-black/70"}`}>
-                    {privateMode ? "INCENTIVES" : "Rewards"}
-                  </span>
-                </div>
-                <p className={`text-xl font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>???</p>
-                <p className={`text-xs mt-1 font-medium ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-black/60"}`}>
-                  {privateMode ? "// UNLOCK_ON_LAUNCH" : "Coming at launch"}
-                </p>
-              </motion.div>
-            </div>
+              </div>
+            )}
 
             {user.referredBy && (
               <div className={`border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
                 privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]" : "bg-white text-gray-600"
               }`}>
                 <p className={`text-sm font-medium ${privateMode ? "font-mono" : ""}`}>
-                  {privateMode ? "REFERRER_ID: " : "You were referred by: "}
+                  {privateMode ? "REFERRER_ID: " : "Referred by: "}
                   <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-pink-500"}`}>{user.referredBy}</span>
                 </p>
               </div>
             )}
-
-            <div className="text-center pt-4">
-              <p className={`text-xs font-medium ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
-                {privateMode ? "SESSION_CODE: " : "Your referral code: "}
-                <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-pink-500"}`}>{user.referralCode || "—"}</span>
-              </p>
-            </div>
           </div>
         </motion.div>
       </div>

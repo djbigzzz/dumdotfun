@@ -295,3 +295,26 @@ export type InsertPosition = z.infer<typeof insertPositionSchema>;
 export type Position = typeof positions.$inferSelect;
 export type InsertActivity = z.infer<typeof insertActivitySchema>;
 export type Activity = typeof activityFeed.$inferSelect;
+
+export const userPoints = pgTable("user_points", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull().unique(),
+  totalPoints: integer("total_points").notNull().default(0),
+  tier: text("tier").notNull().default("bronze"),
+  ogNftMint: text("og_nft_mint"),
+  lastDailyLogin: timestamp("last_daily_login"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const pointsHistory = pgTable("points_history", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  action: text("action").notNull(),
+  points: integer("points").notNull(),
+  referralSource: text("referral_source"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export type UserPoints = typeof userPoints.$inferSelect;
+export type PointsHistoryEntry = typeof pointsHistory.$inferSelect;

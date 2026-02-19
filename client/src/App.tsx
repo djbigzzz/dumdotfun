@@ -23,6 +23,7 @@ import AdminPage from "@/pages/admin";
 import { PrivacyPolicy, EULA, Copyright } from "@/pages/legal";
 import TrendingPage from "@/pages/trending";
 import SearchPage from "@/pages/search";
+import Leaderboard from "@/pages/leaderboard";
 
 function Router() {
   return (
@@ -40,6 +41,7 @@ function Router() {
       <Route path="/market/:id" component={MarketDetail} />
       <Route path="/trending" component={TrendingPage} />
       <Route path="/search" component={SearchPage} />
+      <Route path="/leaderboard" component={Leaderboard} />
       <Route path="/legal/privacy" component={PrivacyPolicy} />
       <Route path="/legal/eula" component={EULA} />
       <Route path="/legal/copyright" component={Copyright} />

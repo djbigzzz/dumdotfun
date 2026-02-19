@@ -300,7 +300,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
                   : "bg-purple-100 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
               }`}>
                 <span className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-purple-700"}`}>
-                  {solBalance !== null ? `${privateMode ? "◈ " : ""}${solBalance.toFixed(2)} SOL` : '---'}
+                  {solBalance != null ? `${privateMode ? "◈ " : ""}${Number(solBalance).toFixed(2)} SOL` : '---'}
                 </span>
                 <span className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-purple-500"}`}>{privateMode ? "[DEV]" : "(devnet)"}</span>
               </div>

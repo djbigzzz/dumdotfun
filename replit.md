@@ -6,6 +6,32 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets. Th
 
 ## Recent Changes (February 2026)
 
+- **TradingView Charts** - Professional candlestick charts on token detail pages
+  - lightweight-charts v4 for OHLC candlestick + volume histograms
+  - Dev trade bubble overlay (green=buy, red=sell) sized by SOL amount
+  - Interval switching: 1m, 5m, 15m, 1h, 4h, 1D
+  - USD/SOL price toggle, privacy mode support
+  - Component: `client/src/components/trading-chart.tsx`
+
+- **Points & Quests UI** - Enhanced profile page with gamification
+  - Points total, tier badge (Bronze/Silver/Gold/Diamond) with progress bar
+  - Quests grid showing completion status for all 8 quests
+  - Recent points history log
+  - Rank display from leaderboard position
+  - OG NFT 1.5x multiplier badge
+  - Page: `client/src/pages/profile.tsx`
+
+- **Leaderboard Page** - Rankings by points
+  - All-time, weekly, daily period filters
+  - Tier badges, OG multiplier indicators
+  - Highlights current user's position
+  - Route: `/leaderboard`, Page: `client/src/pages/leaderboard.tsx`
+
+- **Point-Earned Notifications** - Toast notifications on quest completion
+  - Wallet connect: shows +pts for connect_wallet and daily_login quests
+  - Trade confirm: shows +pts for first_trade quest
+  - Defensive JSON parsing to avoid runtime errors
+
 - **Mobile App (Capacitor)** - Set up native Android app for Solana dApp Store
   - Capacitor framework wraps React web app as native APK
   - @solana-mobile/wallet-adapter-mobile for Saga wallet support

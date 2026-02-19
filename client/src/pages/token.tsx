@@ -10,7 +10,7 @@ import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { TradingChart } from "@/components/trading-chart";
 import { Buffer } from "buffer";
 import { Transaction, Connection } from "@solana/web3.js";
 
@@ -157,7 +157,7 @@ export default function TokenPage() {
   });
   const [activeBet, setActiveBet] = useState<{ predictionId: string; side: "yes" | "no" } | null>(null);
   const [betAmount, setBetAmount] = useState("");
-  const [chartInterval, setChartInterval] = useState<"1m" | "5m" | "1h" | "all">("all");
+
   const [copied, setCopied] = useState(false);
 
   const { data: token, isLoading, error } = useQuery<TokenDetail>({
@@ -327,37 +327,6 @@ export default function TokenPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
-  const filteredPriceHistory = useMemo(() => {
-    if (!priceHistory) return [];
-    const now = Date.now();
-    switch (chartInterval) {
-      case "1m": return priceHistory.filter(p => now - p.time < 60000);
-      case "5m": return priceHistory.filter(p => now - p.time < 300000);
-      case "1h": return priceHistory.filter(p => now - p.time < 3600000);
-      default: return priceHistory;
-    }
-  }, [priceHistory, chartInterval]);
-
-  const formatChartTime = (timestamp: number) => {
-    const date = new Date(timestamp);
-    const now = new Date();
-    const diffMs = now.getTime() - timestamp;
-    const diffDays = diffMs / (1000 * 60 * 60 * 24);
-    
-    switch (chartInterval) {
-      case "1m":
-      case "5m":
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      case "1h":
-        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      default:
-        if (diffDays > 1) {
-          return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
-        } else {
-          return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-    }
-  };
 
   const handleQuickBuy = (amount: number) => {
     setTradeAmount(amount.toString());
@@ -455,8 +424,7 @@ export default function TokenPage() {
       
       toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
       
-      // Record the trade in our database
-      await fetch("/api/trade/record", {
+      const recordRes = await fetch("/api/trade/record", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -467,6 +435,14 @@ export default function TokenPage() {
           signature,
         }),
       });
+      try {
+        const recordData = await recordRes.json();
+        if (recordData.pointsAwarded && Array.isArray(recordData.pointsAwarded)) {
+          for (const p of recordData.pointsAwarded) {
+            toast.success(`+${p.points} pts — First Trade!`, { duration: 3000 });
+          }
+        }
+      } catch {}
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
@@ -597,48 +573,9 @@ export default function TokenPage() {
               </div>
             </div>
 
-            {/* Chart */}
+            {/* TradingView Chart */}
             <div className={`${cardStyle} p-4`}>
-              <div className="h-56">
-                {filteredPriceHistory && filteredPriceHistory.length > 0 ? (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={filteredPriceHistory} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
-                      <defs>
-                        <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={privateMode ? "#4ADE80" : "#ef4444"} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={privateMode ? "#4ADE80" : "#ef4444"} stopOpacity={0} />
-                        </linearGradient>
-                      </defs>
-                      <XAxis dataKey="time" tickFormatter={formatChartTime} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} />
-                      <YAxis domain={['auto', 'auto']} tickFormatter={(v) => formatPrice(v * (solPrice?.price || (window as any).lastSolPrice || 200))} stroke={privateMode ? "#4ADE80" : "#888"} fontSize={10} tickLine={false} axisLine={false} width={60} orientation="right" />
-                      <Tooltip contentStyle={{ backgroundColor: privateMode ? '#000' : '#fff', border: privateMode ? '1px solid #4ADE80' : '2px solid #000', borderRadius: '4px', fontSize: '12px' }} labelFormatter={(t) => new Date(t).toLocaleString()} formatter={(value: number) => [formatPrice(value * (solPrice?.price || (window as any).lastSolPrice || 200)), 'Price']} />
-                      <Area type="monotone" dataKey="price" stroke={privateMode ? "#4ADE80" : "#ef4444"} strokeWidth={2} fill="url(#chartGradient)" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                ) : (
-                  <div className={`h-full flex items-center justify-center text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
-                    No price data yet
-                  </div>
-                )}
-              </div>
-              
-              {/* Chart Intervals */}
-              <div className="flex items-center gap-2 mt-3">
-                {(["1m", "5m", "1h", "all"] as const).map((interval) => (
-                  <button
-                    key={interval}
-                    onClick={() => setChartInterval(interval)}
-                    className={`px-3 py-1 text-xs font-bold border-2 transition-all ${
-                      chartInterval === interval
-                        ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-black text-white border-black"
-                        : privateMode ? "bg-black text-[#4ADE80]/70 border-[#4ADE80]/30 hover:border-[#4ADE80]" : "bg-white text-gray-500 border-gray-300 hover:border-black"
-                    }`}
-                    data-testid={`button-interval-${interval}`}
-                  >
-                    {interval === "all" ? "All" : interval.toUpperCase()}
-                  </button>
-                ))}
-              </div>
+              <TradingChart mint={mint!} solPrice={solPrice?.price || null} />
             </div>
 
             {/* Stats Row */}
