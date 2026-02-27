@@ -1,0 +1,108 @@
+Dum.fun — Points & Quests System
+What We're Building
+Add a points and quests system to dum.fun that rewards users for everything they do on the platform. The goal is three things: give users a reason to come back every day (streaks), reward them for real activity (quests), and monetize through a premium OG Card NFT that boosts all their points.
+
+The Points System
+Users earn points by completing actions on the platform. Points accumulate into tiers. There's no way to spend points — they're purely a reputation/rank score.
+
+Tiers:
+
+Pill Popper: 0–499 pts
+Bonding Curve: 500–1,999 pts
+Degen: 2,000–4,999 pts
+Rug Proof: 5,000–9,999 pts
+Solana God: 10,000+ pts
+Quests
+There are 26 quests across 5 categories. Each quest has a progress counter and a point reward that fires when it's completed. Some are one-time, some are milestones (trigger at specific counts), some are repeating.
+
+Onboarding (one-time each):
+
+Connect your wallet — 50 pts
+Make your first trade — 100 pts
+Place your first bet — 100 pts
+Create your first token — 500 pts
+Create your first prediction market — 300 pts
+Trading (milestone-based):
+
+Complete 10 trades — 250 pts
+Complete 50 trades — 500 pts
+Complete 100 trades — 1,000 pts
+Trade 10 different tokens — 200 pts
+Trade 25 different tokens — 400 pts
+Creation (milestone-based):
+
+Add full metadata to a token (image + a social link) — 150 pts
+Launch 5 tokens total — 300 pts
+Launch 10 tokens total — 500 pts
+Create 3 prediction markets — 400 pts
+Your token gets 10 trades from wallets that aren't yours — 300 pts
+Predictions:
+
+Win 1 prediction — 200 pts
+Win 3 predictions total — 500 pts
+Win 5 predictions in a row — 1,000 pts
+Streaks:
+
+7-day check-in streak bonus — 150 pts
+30-day check-in streak bonus — 600 pts
+Referrals:
+
+Each basic referral (referred user makes their first trade) — 100 pts, repeating
+Each OG referral (referred user buys OG Card) — 500 pts, repeating
+3 OG referrals milestone — 700 pts
+10 OG referrals milestone — 2,500 pts
+25 OG referrals milestone — 6,000 pts
+OG Exclusive (only unlocked if user owns OG Card):
+
+Make 5 trades as an OG holder — 500 pts
+Daily Check-in
+Every day the user opens the app, they can tap a check-in banner on the home page to earn 10 pts. The banner appears at the top of the token feed and disappears after tapping. It resets the next day.
+
+Streak tracking: consecutive daily check-ins build a streak. There is one grace day per week — if a user misses a single day, their streak doesn't break (but only once per 7-day period). Miss two days in a row and the streak resets to 1.
+
+Streak bonuses fire automatically when the user hits 7 and 30 consecutive days.
+
+OG Card NFT
+The OG Card is a one-time purchase for 1 SOL on Solana mainnet. It gives the buyer a permanent +50% bonus on all base points they earn from that point forward (not retroactive). It also shows an OG badge next to their name on the leaderboard, and unlocks the OG Exclusive quest.
+
+The platform is currently on devnet, but the OG Card purchase is a real mainnet transaction to our platform wallet. The backend verifies the transaction on-chain and marks the user as an OG Card holder in the database.
+
+The mint flow: user clicks "MINT OG CARD" in their profile → wallet asks them to sign a 1 SOL transfer on mainnet → frontend sends the tx signature to the backend → backend verifies it on-chain → user is marked as OG holder immediately.
+
+Referral Logic
+The existing referral system tracks referredBy on each user. Extend it with two types:
+
+Basic referral: fires when a referred user makes their first trade. Gives the referrer 100 pts.
+OG referral: fires when a referred user successfully buys the OG Card. Gives the referrer 500 pts. These are the ones that count toward the milestone bonuses (3/10/25).
+This means milestone bonus points (700/2,500/6,000) are only reachable by convincing real people to spend 1 SOL — making the system abuse-resistant.
+
+Frontend — Profile Page
+Replace the current profile page with a tabbed layout:
+
+Always visible (above tabs): Four stat cards — Total Points + tier, Current Streak, OG/Basic referral counts, OG Boost % (0% or +50%).
+
+Below that, a tier progress bar showing current tier and how many points to the next one.
+
+Overview tab: Wallet address with copy button, referral link with copy button, referral stats, and the OG Card section (shows purchase CTA if not owned, or "Active — +50%" if owned).
+
+Quests tab: All 26 quests grouped by category. Each card shows the title, description, a progress bar if it's a milestone quest, and a points badge. Filter pills for All / In Progress / Completed. The OG Exclusive quest shows a lock icon for non-holders.
+
+History tab: A table of every point award event — action name, base points, OG bonus, total, and timestamp. Most recent first.
+
+Leaderboard tab: Top 50 wallets ranked by total points. Shows OG badge for card holders. Current user is always visible, highlighted in red, even if they're outside the top 50 (shown pinned at the bottom with their actual rank).
+
+Implementation Notes for Replit
+Three new database tables are needed:
+
+user_points — stores total points, streak info, last check-in date, grace day tracking, and OG card status per wallet
+quest_progress — one row per wallet per quest, tracks progress count and completion
+points_history — log of every point event with base pts, bonus pts, and label
+A central awardPoints(walletAddress, action) function should handle all the logic — checking quest thresholds, applying OG boost, writing to history. This function gets called from existing routes whenever a user completes an action (token created, trade confirmed, bet confirmed, market created, market resolved with winner, wallet connected).
+
+New API endpoints needed:
+
+POST /api/checkin — handles daily check-in and streak logic
+GET /api/points/:wallet — full profile data (points, tier, quests, streak, rank)
+GET /api/leaderboard — top 50 + current user rank
+GET /api/points/:wallet/history — last 20 point events
+POST /api/og-card/verify — verifies mainnet tx and marks user as OG holder
