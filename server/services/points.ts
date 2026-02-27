@@ -282,19 +282,64 @@ export async function setOgNftMint(walletAddress: string, mintAddress: string) {
   return awardQuest(walletAddress, "mint_og_nft");
 }
 
-export async function claimOgCard(walletAddress: string): Promise<{ success: boolean; message: string; points?: number }> {
+export const OG_CARD_PRICE_SOL = 0.2;
+export const OG_CARD_PRICE_LAMPORTS = OG_CARD_PRICE_SOL * 1_000_000_000;
+
+export async function claimOgCard(walletAddress: string, txSignature: string): Promise<{ success: boolean; message: string; points?: number }> {
   const up = await getOrCreateUserPoints(walletAddress);
   if (up.ogNftMint) {
     return { success: false, message: "OG Card already claimed" };
   }
 
-  const ogId = `og_${walletAddress.slice(0, 8)}_${Date.now()}`;
+  const { Connection, PublicKey } = await import("@solana/web3.js");
+  const { getHeliusRpcUrl } = await import("../helius-rpc");
+  const connection = new Connection(getHeliusRpcUrl());
+
+  const tx = await connection.getTransaction(txSignature, {
+    commitment: "confirmed",
+    maxSupportedTransactionVersion: 0,
+  });
+
+  if (!tx || !tx.meta) {
+    return { success: false, message: "Transaction not found or not confirmed. Please wait and try again." };
+  }
+
+  if (tx.meta.err) {
+    return { success: false, message: "Transaction failed on-chain." };
+  }
+
+  const platformWallet = process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM";
+  const message = tx.transaction.message;
+  const accountKeys = message.getAccountKeys ? message.getAccountKeys().staticKeys : (message as any).accountKeys;
+  const staticKeys = accountKeys.map((k: any) => k.toBase58 ? k.toBase58() : String(k));
+
+  const senderIndex = 0;
+  const senderKey = staticKeys[senderIndex];
+  if (senderKey !== walletAddress) {
+    return { success: false, message: "Transaction sender does not match your wallet." };
+  }
+
+  const platformIndex = staticKeys.indexOf(platformWallet);
+  if (platformIndex === -1) {
+    return { success: false, message: "Transaction does not pay to the platform wallet." };
+  }
+
+  const preBalances = tx.meta.preBalances;
+  const postBalances = tx.meta.postBalances;
+  const amountReceived = (postBalances[platformIndex] || 0) - (preBalances[platformIndex] || 0);
+  const tolerance = OG_CARD_PRICE_LAMPORTS * 0.05;
+
+  if (amountReceived < OG_CARD_PRICE_LAMPORTS - tolerance) {
+    return { success: false, message: `Insufficient payment. Expected ${OG_CARD_PRICE_SOL} SOL, received ${(amountReceived / 1_000_000_000).toFixed(4)} SOL.` };
+  }
+
+  const ogId = `og_${txSignature.slice(0, 16)}_${Date.now()}`;
   await db.update(userPoints)
     .set({ ogNftMint: ogId, updatedAt: new Date() })
     .where(eq(userPoints.walletAddress, walletAddress));
 
   const result = await awardQuest(walletAddress, "mint_og_nft");
-  return { success: true, message: "OG Card claimed! You now earn 1.5x points on all actions.", points: result.points };
+  return { success: true, message: "OG Card minted! You now earn 1.5x points on all actions.", points: result.points };
 }
 
 export async function getUserRank(walletAddress: string): Promise<number> {

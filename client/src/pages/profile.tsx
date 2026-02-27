@@ -7,6 +7,8 @@ import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2, Trophy, Star, Zap, Crown, ChevronRight, Flame, Shield, Diamond, Award, Target, TrendingUp, Filter } from "lucide-react";
 import { PrivacyHub } from "@/components/privacy-hub";
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { toast } from "sonner";
 
 interface UserWithReferrals {
   id: string;
@@ -63,7 +65,7 @@ const QUEST_LABELS: Record<string, { label: string; description: string; icon: R
   daily_login: { label: "Daily Check-in", description: "Log in daily for bonus points", icon: <Calendar className="w-4 h-4" /> },
   streak_7: { label: "7-Day Streak", description: "Check in 7 days in a row", icon: <Flame className="w-4 h-4" /> },
   streak_30: { label: "30-Day Streak", description: "Check in 30 days in a row", icon: <Flame className="w-4 h-4" /> },
-  mint_og_nft: { label: "OG Card", description: "Claim your free OG Card (1.5x boost)", icon: <Gift className="w-4 h-4" /> },
+  mint_og_nft: { label: "OG Card NFT", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", icon: <Gift className="w-4 h-4" /> },
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -144,16 +146,54 @@ export default function Profile() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/points/claim-og", {
+      const infoRes = await fetch("/api/points/og-card-info");
+      if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
+      const { priceSol, platformWallet } = await infoRes.json();
+
+      if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
+
+      const connection = new Connection("https://api.devnet.solana.com");
+      const fromPubkey = new PublicKey(connectedWallet!);
+      const toPubkey = new PublicKey(platformWallet);
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: Math.round(priceSol * LAMPORTS_PER_SOL),
+        })
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = fromPubkey;
+
+      const { signature } = await window.solana.signAndSendTransaction(transaction);
+
+      toast.info("Transaction sent! Verifying on-chain...");
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      const verifyRes = await fetch("/api/points/claim-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
+        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
       });
-      if (!res.ok) throw new Error("Failed to claim OG Card");
-      return res.json();
+
+      const result = await verifyRes.json();
+      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
+      return result;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      toast.success(data.message || "OG Card minted!");
       queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
+    },
+    onError: (error: Error) => {
+      if (error.message.includes("User rejected")) {
+        toast.error("Transaction cancelled");
+      } else {
+        toast.error(error.message || "Failed to mint OG Card");
+      }
     },
   });
 
@@ -451,8 +491,8 @@ export default function Profile() {
                         privateMode ? "border-[#4ADE80]/30 bg-zinc-800/50" : "border-gray-300 bg-gray-50"
                       }`}>
                         <div>
-                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Claim your free OG Card</p>
-                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>Get a permanent 1.5x points multiplier — only gas fee required</p>
+                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Mint OG Card NFT</p>
+                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>0.2 SOL — permanent 1.5x points multiplier on all actions</p>
                         </div>
                         <motion.button
                           whileHover={{ y: -2, x: -2 }}
@@ -466,7 +506,7 @@ export default function Profile() {
                           }`}
                           data-testid="button-claim-og"
                         >
-                          {ogClaimMutation.isPending ? "Claiming..." : "Claim Free"}
+                          {ogClaimMutation.isPending ? "Minting..." : "Mint 0.2 SOL"}
                         </motion.button>
                       </div>
                     )}
