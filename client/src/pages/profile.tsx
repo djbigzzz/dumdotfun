@@ -152,7 +152,7 @@ export default function Profile() {
 
       if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
 
-      const connection = new Connection("https://api.devnet.solana.com");
+      const connection = new Connection("https://api.mainnet-beta.solana.com");
       const fromPubkey = new PublicKey(connectedWallet!);
       const toPubkey = new PublicKey(platformWallet);
 

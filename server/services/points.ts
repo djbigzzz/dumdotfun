@@ -292,8 +292,10 @@ export async function claimOgCard(walletAddress: string, txSignature: string): P
   }
 
   const { Connection, PublicKey } = await import("@solana/web3.js");
-  const { getHeliusRpcUrl } = await import("../helius-rpc");
-  const connection = new Connection(getHeliusRpcUrl());
+  const mainnetRpc = process.env.HELIUS_API_KEY
+    ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+    : "https://api.mainnet-beta.solana.com";
+  const connection = new Connection(mainnetRpc);
 
   const tx = await connection.getTransaction(txSignature, {
     commitment: "confirmed",
