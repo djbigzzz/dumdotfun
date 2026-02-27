@@ -3,21 +3,24 @@ import { userPoints, pointsHistory, users } from "@shared/schema";
 import { eq, desc, sql } from "drizzle-orm";
 
 const QUEST_POINTS: Record<string, number> = {
-  connect_wallet: 10,
-  first_token: 100,
-  first_market: 200,
-  first_trade: 25,
-  first_bet: 50,
-  first_win: 150,
-  mint_og_nft: 50,
+  connect_wallet: 50,
+  first_trade: 100,
+  first_bet: 100,
+  first_token: 500,
+  first_market: 300,
+  first_win: 200,
   daily_login: 10,
+  streak_7: 150,
+  streak_30: 600,
+  mint_og_nft: 50,
 };
 
 const TIERS = [
-  { name: "diamond", minPoints: 10000 },
-  { name: "gold", minPoints: 2000 },
-  { name: "silver", minPoints: 500 },
-  { name: "bronze", minPoints: 0 },
+  { name: "solana_god", minPoints: 10000 },
+  { name: "rug_proof", minPoints: 5000 },
+  { name: "degen", minPoints: 2000 },
+  { name: "bonding_curve", minPoints: 500 },
+  { name: "pill_popper", minPoints: 0 },
 ];
 
 const REFERRAL_PERCENT = 0.1;
@@ -27,7 +30,7 @@ function calculateTier(points: number): string {
   for (const tier of TIERS) {
     if (points >= tier.minPoints) return tier.name;
   }
-  return "bronze";
+  return "pill_popper";
 }
 
 async function getOrCreateUserPoints(walletAddress: string) {
@@ -133,20 +136,58 @@ export async function awardQuest(walletAddress: string, action: string): Promise
   return { awarded: true, points: finalPoints };
 }
 
-export async function awardDailyLogin(walletAddress: string): Promise<{ awarded: boolean; points: number }> {
-  const up = await getOrCreateUserPoints(walletAddress);
+function isSameDay(d1: Date, d2: Date): boolean {
+  return d1.getUTCFullYear() === d2.getUTCFullYear() &&
+    d1.getUTCMonth() === d2.getUTCMonth() &&
+    d1.getUTCDate() === d2.getUTCDate();
+}
 
-  if (up.lastDailyLogin) {
-    const hoursSinceLast = (Date.now() - new Date(up.lastDailyLogin).getTime()) / (1000 * 60 * 60);
-    if (hoursSinceLast < 24) return { awarded: false, points: 0 };
+function isYesterday(last: Date, now: Date): boolean {
+  const yesterday = new Date(now);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  return isSameDay(last, yesterday);
+}
+
+export async function awardDailyLogin(walletAddress: string): Promise<{ awarded: boolean; points: number; streak?: number }> {
+  const up = await getOrCreateUserPoints(walletAddress);
+  const now = new Date();
+
+  if (up.lastDailyLogin && isSameDay(new Date(up.lastDailyLogin), now)) {
+    return { awarded: false, points: 0, streak: up.streak };
+  }
+
+  let newStreak = 1;
+  if (up.lastStreakDate) {
+    const lastDate = new Date(up.lastStreakDate);
+    if (isYesterday(lastDate, now)) {
+      newStreak = up.streak + 1;
+    }
   }
 
   await db.update(userPoints)
-    .set({ lastDailyLogin: new Date() })
+    .set({
+      lastDailyLogin: now,
+      streak: newStreak,
+      lastStreakDate: now,
+    })
     .where(eq(userPoints.walletAddress, walletAddress));
 
   const finalPoints = await awardPointsInternal(walletAddress, "daily_login", QUEST_POINTS.daily_login);
-  return { awarded: true, points: finalPoints };
+
+  if (newStreak === 7) {
+    const alreadyGot7 = await hasCompletedQuest(walletAddress, "streak_7");
+    if (!alreadyGot7) {
+      await awardPointsInternal(walletAddress, "streak_7", QUEST_POINTS.streak_7);
+    }
+  }
+  if (newStreak === 30) {
+    const alreadyGot30 = await hasCompletedQuest(walletAddress, "streak_30");
+    if (!alreadyGot30) {
+      await awardPointsInternal(walletAddress, "streak_30", QUEST_POINTS.streak_30);
+    }
+  }
+
+  return { awarded: true, points: finalPoints, streak: newStreak };
 }
 
 export async function getUserPointsData(walletAddress: string) {
@@ -157,26 +198,38 @@ export async function getUserPointsData(walletAddress: string) {
     .limit(50);
 
   const completedQuests: string[] = [];
-  const questActions = ["connect_wallet", "first_token", "first_market", "first_trade", "first_bet", "first_win", "mint_og_nft"];
+  const questActions = Object.keys(QUEST_POINTS).filter(a => a !== "daily_login");
   for (const action of questActions) {
     const done = await hasCompletedQuest(walletAddress, action);
     if (done) completedQuests.push(action);
   }
+
+  const dailyDone = up.lastDailyLogin && isSameDay(new Date(up.lastDailyLogin), new Date());
 
   return {
     totalPoints: up.totalPoints,
     tier: up.tier,
     ogNftMint: up.ogNftMint,
     lastDailyLogin: up.lastDailyLogin,
+    streak: up.streak,
     completedQuests,
     history,
     questDefinitions: Object.entries(QUEST_POINTS).map(([action, points]) => ({
       action,
       points,
-      completed: completedQuests.includes(action),
+      completed: action === "daily_login" ? !!dailyDone : completedQuests.includes(action),
       repeatable: action === "daily_login",
+      category: getQuestCategory(action),
     })),
   };
+}
+
+function getQuestCategory(action: string): string {
+  if (["connect_wallet", "first_trade", "first_bet"].includes(action)) return "onboarding";
+  if (["first_token", "first_market", "first_win"].includes(action)) return "activity";
+  if (["daily_login", "streak_7", "streak_30"].includes(action)) return "streaks";
+  if (["mint_og_nft"].includes(action)) return "special";
+  return "other";
 }
 
 export async function getLeaderboard(period: "daily" | "weekly" | "all" = "all", limit: number = 50) {
@@ -212,7 +265,7 @@ export async function getLeaderboard(period: "daily" | "weekly" | "all" = "all",
       walletAddress: r.walletAddress,
       totalPoints: up?.totalPoints || 0,
       periodPoints: Number(r.periodPoints),
-      tier: up?.tier || "bronze",
+      tier: up?.tier || "pill_popper",
       ogNftMint: up?.ogNftMint || null,
     };
   }));
@@ -227,6 +280,21 @@ export async function setOgNftMint(walletAddress: string, mintAddress: string) {
     .where(eq(userPoints.walletAddress, walletAddress));
 
   return awardQuest(walletAddress, "mint_og_nft");
+}
+
+export async function claimOgCard(walletAddress: string): Promise<{ success: boolean; message: string; points?: number }> {
+  const up = await getOrCreateUserPoints(walletAddress);
+  if (up.ogNftMint) {
+    return { success: false, message: "OG Card already claimed" };
+  }
+
+  const ogId = `og_${walletAddress.slice(0, 8)}_${Date.now()}`;
+  await db.update(userPoints)
+    .set({ ogNftMint: ogId, updatedAt: new Date() })
+    .where(eq(userPoints.walletAddress, walletAddress));
+
+  const result = await awardQuest(walletAddress, "mint_og_nft");
+  return { success: true, message: "OG Card claimed! You now earn 1.5x points on all actions.", points: result.points };
 }
 
 export async function getUserRank(walletAddress: string): Promise<number> {

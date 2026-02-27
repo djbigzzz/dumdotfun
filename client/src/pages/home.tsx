@@ -1,9 +1,9 @@
 import { Layout } from "@/components/layout";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
-import { useQuery } from "@tanstack/react-query";
-import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight, Flame, CalendarCheck } from "lucide-react";
 import { ScrollVideo, ScrollVideoPlaceholder } from "@/components/scroll-video";
 
 interface UserWithReferrals {
@@ -118,6 +118,144 @@ function FeatureCard({ icon: Icon, title, description, color }: {
   );
 }
 
+function DailyCheckInBanner() {
+  const { connectedWallet } = useWallet();
+  const queryClient = useQueryClient();
+  const [claiming, setClaiming] = useState(false);
+  const [claimed, setClaimed] = useState(false);
+  const [streakCount, setStreakCount] = useState(0);
+  const [pointsAwarded, setPointsAwarded] = useState(0);
+
+  const { data: pointsData, isLoading } = useQuery<{
+    lastDailyLogin: string | null;
+    streak: number;
+  } | null>({
+    queryKey: ["points-checkin", connectedWallet],
+    queryFn: async () => {
+      if (!connectedWallet) return null;
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+  });
+
+  const alreadyCheckedIn = (() => {
+    if (!pointsData?.lastDailyLogin) return false;
+    const last = new Date(pointsData.lastDailyLogin);
+    const now = new Date();
+    return last.getUTCFullYear() === now.getUTCFullYear() &&
+      last.getUTCMonth() === now.getUTCMonth() &&
+      last.getUTCDate() === now.getUTCDate();
+  })();
+
+  const handleCheckIn = async () => {
+    if (!connectedWallet || claiming) return;
+    setClaiming(true);
+    try {
+      const res = await fetch("/api/points/daily-login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: connectedWallet }),
+      });
+      const data = await res.json();
+      if (data.awarded) {
+        setPointsAwarded(data.points);
+        setStreakCount(data.streak || 1);
+        setClaimed(true);
+        queryClient.invalidateQueries({ queryKey: ["points-checkin", connectedWallet] });
+        queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
+      }
+    } catch {
+    } finally {
+      setClaiming(false);
+    }
+  };
+
+  if (!connectedWallet || isLoading || alreadyCheckedIn) return null;
+
+  return (
+    <AnimatePresence>
+      {!claimed ? (
+        <motion.div
+          key="checkin-banner"
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="mb-6"
+          data-testid="banner-daily-checkin"
+        >
+          <motion.button
+            onClick={handleCheckIn}
+            disabled={claiming}
+            whileHover={{ y: -2, x: -2 }}
+            whileTap={{ y: 0, x: 0 }}
+            className="w-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-black rounded-xl p-4 md:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-3 transition-all disabled:opacity-70"
+            data-testid="button-daily-checkin"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <CalendarCheck className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-black font-black text-sm md:text-base">Daily Check-in</p>
+                <p className="text-black/60 text-xs md:text-sm font-medium">
+                  {claiming ? "Claiming..." : "Tap to claim +10 pts"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {pointsData?.streak && pointsData.streak > 0 && (
+                <div className="flex items-center gap-1 bg-black/10 rounded-lg px-2 py-1">
+                  <Flame className="w-4 h-4 text-orange-600" />
+                  <span className="text-black font-black text-xs">{pointsData.streak}d</span>
+                </div>
+              )}
+              <div className="bg-white border-2 border-black rounded-lg px-3 py-1.5 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <span className="text-green-600 font-black text-sm">+10</span>
+              </div>
+            </div>
+          </motion.button>
+        </motion.div>
+      ) : (
+        <motion.div
+          key="checkin-success"
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.9 }}
+          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          className="mb-6"
+          data-testid="banner-checkin-success"
+        >
+          <div className="w-full bg-gradient-to-r from-emerald-500 to-green-400 border-2 border-black rounded-xl p-4 md:p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg bg-white border-2 border-black flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+                <Check className="w-5 h-5 md:w-6 md:h-6 text-green-600" />
+              </div>
+              <div className="text-left">
+                <p className="text-black font-black text-sm md:text-base">Checked in! +{pointsAwarded} pts</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Flame className="w-3.5 h-3.5 text-orange-600" />
+                  <span className="text-black/70 text-xs font-bold">{streakCount} day streak</span>
+                </div>
+              </div>
+            </div>
+            <motion.div
+              initial={{ scale: 0, rotate: -180 }}
+              animate={{ scale: 1, rotate: 0 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15, delay: 0.2 }}
+              className="text-2xl"
+            >
+              🔥
+            </motion.div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export default function Home() {
   const { connectedWallet, connectWallet } = useWallet();
   const [email, setEmail] = useState("");
@@ -210,7 +348,9 @@ export default function Home() {
     <Layout>
       <div className="min-h-[calc(100vh-120px)] py-8 md:py-16">
         <div className="max-w-5xl mx-auto px-4 space-y-12">
-          
+
+          <DailyCheckInBanner />
+
           {/* Hero Section */}
           <motion.section
             initial={{ opacity: 0, y: 30 }}

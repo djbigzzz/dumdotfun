@@ -5,7 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { useState } from "react";
-import { Trophy, Crown, Star, ArrowLeft, Zap } from "lucide-react";
+import { Trophy, Crown, Star, ArrowLeft, Zap, Diamond, Shield, Flame, TrendingUp } from "lucide-react";
 
 interface LeaderboardEntry {
   walletAddress: string;
@@ -13,20 +13,31 @@ interface LeaderboardEntry {
   periodPoints?: number;
   tier: string;
   ogNftMint: string | null;
+  rank?: number;
 }
 
 const TIER_COLORS: Record<string, string> = {
-  diamond: "#B9F2FF",
-  gold: "#FFD700",
-  silver: "#C0C0C0",
-  bronze: "#CD7F32",
+  solana_god: "#00E5FF",
+  rug_proof: "#4ADE80",
+  degen: "#FACC15",
+  bonding_curve: "#3B82F6",
+  pill_popper: "#EC4899",
+};
+
+const TIER_LABELS: Record<string, string> = {
+  solana_god: "Solana God",
+  rug_proof: "Rug Proof",
+  degen: "Degen",
+  bonding_curve: "Bonding Curve",
+  pill_popper: "Pill Popper",
 };
 
 const TIER_ICONS: Record<string, React.ReactNode> = {
-  diamond: <Crown className="w-4 h-4" />,
-  gold: <Crown className="w-4 h-4" />,
-  silver: <Trophy className="w-4 h-4" />,
-  bronze: <Star className="w-4 h-4" />,
+  solana_god: <Diamond className="w-4 h-4" />,
+  rug_proof: <Shield className="w-4 h-4" />,
+  degen: <Flame className="w-4 h-4" />,
+  bonding_curve: <TrendingUp className="w-4 h-4" />,
+  pill_popper: <Star className="w-4 h-4" />,
 };
 
 type Period = "all" | "weekly" | "daily";
@@ -45,6 +56,25 @@ export default function Leaderboard() {
     },
     refetchInterval: 60000,
   });
+
+  const { data: currentUserPoints } = useQuery({
+    queryKey: ["user-points", connectedWallet],
+    queryFn: async () => {
+      if (!connectedWallet) return null;
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+  });
+
+  const isCurrentUserInList = entries?.some(e => e.walletAddress === connectedWallet);
+  const currentUserEntry: LeaderboardEntry | null = (!isCurrentUserInList && connectedWallet && currentUserPoints) ? {
+    walletAddress: connectedWallet,
+    totalPoints: currentUserPoints.totalPoints || 0,
+    tier: currentUserPoints.tier || "pill_popper",
+    ogNftMint: currentUserPoints.ogNftMint || null,
+  } : null;
 
   const cardStyle = privateMode
     ? "border-2 border-[#4ADE80]/50 bg-zinc-900/50 rounded-xl"
@@ -115,7 +145,7 @@ export default function Leaderboard() {
                 {entries.map((entry, i) => {
                   const rank = getRankDisplay(i);
                   const isYou = entry.walletAddress === connectedWallet;
-                  const tierColor = TIER_COLORS[entry.tier] || TIER_COLORS.bronze;
+                  const tierColor = TIER_COLORS[entry.tier] || TIER_COLORS.pill_popper;
                   return (
                     <motion.div
                       key={entry.walletAddress}
@@ -149,9 +179,9 @@ export default function Leaderboard() {
                         </Link>
                       </div>
                       <div className="col-span-2 text-center">
-                        <span className="inline-flex items-center gap-1 text-xs font-black uppercase" style={{ color: tierColor }}>
+                        <span className="inline-flex items-center gap-1 text-xs font-black" style={{ color: tierColor }}>
                           {TIER_ICONS[entry.tier]}
-                          {entry.tier}
+                          {TIER_LABELS[entry.tier] || entry.tier}
                         </span>
                       </div>
                       <div className="col-span-2 text-center">
@@ -173,6 +203,57 @@ export default function Leaderboard() {
                     </motion.div>
                   );
                 })}
+                {currentUserEntry && (
+                  <>
+                    <div className={`px-4 py-1 text-center text-xs font-mono ${privateMode ? "text-[#4ADE80]/30 bg-black/30" : "text-gray-400 bg-gray-50"}`}>
+                      ··· your position ···
+                    </div>
+                    <motion.div
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      className={`grid grid-cols-12 gap-2 px-4 py-3 items-center border-t ${
+                        privateMode ? "bg-[#4ADE80]/10 border-[#4ADE80]/30" : "bg-yellow-50 border-yellow-200"
+                      }`}
+                      data-testid="leaderboard-entry-current-user"
+                    >
+                      <div className="col-span-1">
+                        <span className={`text-sm font-black ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+                          50+
+                        </span>
+                      </div>
+                      <div className="col-span-5">
+                        <Link href={`/user/${currentUserEntry.walletAddress}`}>
+                          <span className={`font-mono text-sm font-bold cursor-pointer hover:underline ${
+                            privateMode ? "text-[#4ADE80]" : "text-red-500"
+                          }`}>
+                            {currentUserEntry.walletAddress.slice(0, 6)}...{currentUserEntry.walletAddress.slice(-4)}
+                            <span className="ml-1 text-xs opacity-60">(you)</span>
+                          </span>
+                        </Link>
+                      </div>
+                      <div className="col-span-2 text-center">
+                        <span className="inline-flex items-center gap-1 text-xs font-black" style={{ color: TIER_COLORS[currentUserEntry.tier] || TIER_COLORS.pill_popper }}>
+                          {TIER_ICONS[currentUserEntry.tier]}
+                          {TIER_LABELS[currentUserEntry.tier] || currentUserEntry.tier}
+                        </span>
+                      </div>
+                      <div className="col-span-2 text-center">
+                        {currentUserEntry.ogNftMint ? (
+                          <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
+                            1.5x
+                          </span>
+                        ) : (
+                          <span className={`text-xs ${privateMode ? "text-[#4ADE80]/20" : "text-gray-300"}`}>-</span>
+                        )}
+                      </div>
+                      <div className="col-span-2 text-right">
+                        <span className={`text-sm font-black font-mono ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>
+                          {currentUserEntry.totalPoints.toLocaleString()}
+                        </span>
+                      </div>
+                    </motion.div>
+                  </>
+                )}
               </div>
             ) : (
               <div className={`${cardStyle} p-12 text-center`}>

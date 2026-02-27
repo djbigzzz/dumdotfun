@@ -300,9 +300,11 @@ export const userPoints = pgTable("user_points", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletAddress: text("wallet_address").notNull().unique(),
   totalPoints: integer("total_points").notNull().default(0),
-  tier: text("tier").notNull().default("bronze"),
+  tier: text("tier").notNull().default("pill_popper"),
   ogNftMint: text("og_nft_mint"),
   lastDailyLogin: timestamp("last_daily_login"),
+  streak: integer("streak").notNull().default(0),
+  lastStreakDate: timestamp("last_streak_date"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

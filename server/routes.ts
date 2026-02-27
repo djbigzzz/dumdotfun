@@ -4321,6 +4321,19 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/points/claim-og", async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+      if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
+      const { claimOgCard } = await import("./services/points");
+      const result = await claimOgCard(walletAddress);
+      if (!result.success) return res.status(400).json(result);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to claim OG Card" });
+    }
+  });
+
   // OHLC candle data for TradingView chart
   app.get("/api/tokens/:mint/ohlc", async (req, res) => {
     try {
