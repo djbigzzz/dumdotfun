@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
 import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp } from "lucide-react";
+import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
 
 interface UserWithReferrals {
@@ -152,21 +153,54 @@ export default function Profile() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/points/claim-og", {
+      const infoRes = await fetch("/api/points/og-card-info");
+      if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
+      const { priceSol, platformWallet } = await infoRes.json();
+
+      if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
+
+      const connection = new Connection("https://api.mainnet-beta.solana.com");
+      const fromPubkey = new PublicKey(connectedWallet!);
+      const toPubkey = new PublicKey(platformWallet);
+
+      const transaction = new Transaction().add(
+        SystemProgram.transfer({
+          fromPubkey,
+          toPubkey,
+          lamports: Math.round(priceSol * LAMPORTS_PER_SOL),
+        })
+      );
+
+      const { blockhash } = await connection.getLatestBlockhash();
+      transaction.recentBlockhash = blockhash;
+      transaction.feePayer = fromPubkey;
+
+      const { signature } = await window.solana.signAndSendTransaction(transaction);
+
+      toast.info("Transaction sent! Verifying on-chain...");
+
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      const verifyRes = await fetch("/api/points/claim-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
+        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to claim OG Card");
+
+      const result = await verifyRes.json();
+      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
       return result;
     },
     onSuccess: (data) => {
-      toast.success(data.message || "OG Card activated!");
+      toast.success(data.message || "OG Card minted!");
       queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
     },
     onError: (error: Error) => {
-      toast.error(error.message || "Failed to claim OG Card");
+      if (error.message.includes("User rejected")) {
+        toast.error("Transaction cancelled");
+      } else {
+        toast.error(error.message || "Failed to mint OG Card");
+      }
     },
   });
 
@@ -463,8 +497,8 @@ export default function Profile() {
                         privateMode ? "border-[#4ADE80]/20 bg-zinc-900" : "border-gray-300 bg-gray-50"
                       }`}>
                         <div>
-                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Claim OG Card</p>
-                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>Free! Permanent 1.5x boost on all points</p>
+                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Mint OG Card NFT</p>
+                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>0.2 SOL on mainnet — Permanent 1.5x boost</p>
                         </div>
                         <motion.button
                           onClick={() => ogClaimMutation.mutate()}
@@ -476,7 +510,7 @@ export default function Profile() {
                           } disabled:opacity-50`}
                           data-testid="button-claim-og"
                         >
-                          {ogClaimMutation.isPending ? "Claiming..." : "Claim Free"}
+                          {ogClaimMutation.isPending ? "Minting..." : "Mint for 0.2 SOL"}
                         </motion.button>
                       </div>
                     )}

@@ -32,7 +32,7 @@ const QUESTS: QuestDefinition[] = [
   { id: "daily_login", action: "daily_login", category: "streaks", title: "Daily Check-in", description: "Log in daily for bonus points", points: 10, repeatable: true },
   { id: "streak_7", action: "streak_7", category: "streaks", title: "7-Day Streak", description: "Check in 7 days in a row", points: 150, repeatable: false },
   { id: "streak_30", action: "streak_30", category: "streaks", title: "30-Day Streak", description: "Check in 30 days in a row", points: 600, repeatable: false },
-  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Claim your free OG Card (1.5x boost)", points: 50, repeatable: false },
+  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", points: 50, repeatable: false },
 ];
 
 function calculateTier(points: number): string {
@@ -303,23 +303,130 @@ export async function getUserRank(walletAddress: string): Promise<number> {
   return Number(result?.rank) || 1;
 }
 
-export async function claimFreeOgCard(walletAddress: string): Promise<{ success: boolean; message: string; points?: number }> {
+export const OG_CARD_PRICE_SOL = 0.2;
+export const OG_CARD_PRICE_LAMPORTS = OG_CARD_PRICE_SOL * 1_000_000_000;
+
+function getMainnetConnection() {
+  const { Connection } = require("@solana/web3.js");
+  const mainnetRpc = process.env.MAINNET_RPC_URL
+    || (process.env.HELIUS_API_KEY ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}` : "https://api.mainnet-beta.solana.com");
+  return new Connection(mainnetRpc);
+}
+
+export function isMintOpen(): boolean {
+  return process.env.OG_CARD_MINT_OPEN !== "false";
+}
+
+export async function claimOgCard(walletAddress: string, txSignature: string): Promise<{ success: boolean; message: string; points?: number; nftMint?: string }> {
   const up = await getOrCreateUserPoints(walletAddress);
   if (up.ogNftMint) {
     return { success: false, message: "OG Card already claimed" };
   }
 
-  const ogId = `og_free_${walletAddress.slice(0, 8)}_${Date.now()}`;
+  if (!isMintOpen()) {
+    return { success: false, message: "OG Card minting is currently closed." };
+  }
+
+  const connection = getMainnetConnection();
+
+  const tx = await connection.getTransaction(txSignature, {
+    commitment: "confirmed",
+    maxSupportedTransactionVersion: 0,
+  });
+
+  if (!tx || !tx.meta) {
+    return { success: false, message: "Transaction not found or not confirmed. Please wait and try again." };
+  }
+
+  if (tx.meta.err) {
+    return { success: false, message: "Transaction failed on-chain." };
+  }
+
+  const txTime = tx.blockTime ? tx.blockTime * 1000 : 0;
+  const now = Date.now();
+  if (txTime > 0 && (now - txTime) > 10 * 60 * 1000) {
+    return { success: false, message: "Transaction is too old (must be within 10 minutes). Please try again." };
+  }
+
+  const platformWallet = process.env.PLATFORM_TREASURY_WALLET || process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM";
+  const message = tx.transaction.message;
+  const accountKeys = message.getAccountKeys ? message.getAccountKeys().staticKeys : (message as any).accountKeys;
+  const staticKeys = accountKeys.map((k: any) => k.toBase58 ? k.toBase58() : String(k));
+
+  if (staticKeys[0] !== walletAddress) {
+    return { success: false, message: "Transaction sender does not match your wallet." };
+  }
+
+  const platformIndex = staticKeys.indexOf(platformWallet);
+  if (platformIndex === -1) {
+    return { success: false, message: "Transaction does not pay to the platform wallet." };
+  }
+
+  const preBalances = tx.meta.preBalances;
+  const postBalances = tx.meta.postBalances;
+  const amountReceived = (postBalances[platformIndex] || 0) - (preBalances[platformIndex] || 0);
+  const tolerance = OG_CARD_PRICE_LAMPORTS * 0.05;
+
+  if (amountReceived < OG_CARD_PRICE_LAMPORTS - tolerance) {
+    return { success: false, message: `Insufficient payment. Expected ${OG_CARD_PRICE_SOL} SOL, received ${(amountReceived / 1_000_000_000).toFixed(4)} SOL.` };
+  }
+
+  let nftMintAddress: string | undefined;
+
+  if (process.env.CROSSMINT_API_KEY && process.env.CROSSMINT_COLLECTION_ID) {
+    try {
+      const crossmintRes = await fetch(
+        `https://www.crossmint.com/api/2022-06-09/collections/${process.env.CROSSMINT_COLLECTION_ID}/nfts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY": process.env.CROSSMINT_API_KEY,
+          },
+          body: JSON.stringify({
+            recipient: `solana:${walletAddress}`,
+            metadata: {
+              name: "Dum.fun OG Card",
+              symbol: "DUMOG",
+              description: "Early supporter of dum.fun. Grants permanent 1.5x points boost and OG status on the leaderboard.",
+              image: process.env.OG_CARD_IMAGE_URL || "",
+              attributes: [
+                { trait_type: "Boost", value: "+50%" },
+                { trait_type: "Status", value: "OG" },
+                { trait_type: "Minted", value: new Date().toISOString().split("T")[0] },
+              ],
+            },
+          }),
+        }
+      );
+
+      if (crossmintRes.ok) {
+        const crossmintData = await crossmintRes.json();
+        nftMintAddress = crossmintData.id || crossmintData.onChain?.mintHash;
+        console.log(`[OG Card] Crossmint NFT minted for ${walletAddress}: ${nftMintAddress}`);
+      } else {
+        const errText = await crossmintRes.text();
+        console.error(`[OG Card] Crossmint mint failed: ${errText}`);
+      }
+    } catch (err) {
+      console.error("[OG Card] Crossmint error:", err);
+    }
+  }
+
+  const ogId = nftMintAddress || `og_${txSignature.slice(0, 16)}_${Date.now()}`;
 
   await db.update(userPoints)
     .set({ ogNftMint: ogId, ogCardVerifiedAt: new Date(), updatedAt: new Date() })
     .where(eq(userPoints.walletAddress, walletAddress));
 
-  const questResult = await awardQuest(walletAddress, "mint_og_nft");
+  await awardQuest(walletAddress, "mint_og_nft");
 
   return {
     success: true,
-    message: "OG Card activated! You now earn 1.5x points on all actions.",
-    points: questResult.points,
+    message: nftMintAddress
+      ? "OG Card NFT minted to your wallet! You now earn 1.5x points on all actions."
+      : "OG Card activated! NFT will be minted once Crossmint is configured. You now earn 1.5x points.",
+    points: 50,
+    nftMint: ogId,
   };
 }
