@@ -302,9 +302,22 @@ export const userPoints = pgTable("user_points", {
   totalPoints: integer("total_points").notNull().default(0),
   tier: text("tier").notNull().default("pill_popper"),
   ogNftMint: text("og_nft_mint"),
+  ogCardVerifiedAt: timestamp("og_card_verified_at"),
+  ogReferralCount: integer("og_referral_count").notNull().default(0),
   lastDailyLogin: timestamp("last_daily_login"),
   streak: integer("streak").notNull().default(0),
   lastStreakDate: timestamp("last_streak_date"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const questProgress = pgTable("quest_progress", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  walletAddress: text("wallet_address").notNull(),
+  questId: text("quest_id").notNull(),
+  progress: integer("progress").notNull().default(0),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
@@ -314,9 +327,12 @@ export const pointsHistory = pgTable("points_history", {
   walletAddress: text("wallet_address").notNull(),
   action: text("action").notNull(),
   points: integer("points").notNull(),
+  basePoints: integer("base_points"),
+  bonusPoints: integer("bonus_points"),
   referralSource: text("referral_source"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
 export type UserPoints = typeof userPoints.$inferSelect;
+export type QuestProgress = typeof questProgress.$inferSelect;
 export type PointsHistoryEntry = typeof pointsHistory.$inferSelect;

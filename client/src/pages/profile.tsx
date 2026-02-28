@@ -3,11 +3,9 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePrivacy } from "@/lib/privacy-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation, Link } from "wouter";
+import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Users, Gift, Share2, Trophy, Star, Zap, Crown, ChevronRight, Flame, Shield, Diamond, Award, Target, TrendingUp, Filter } from "lucide-react";
-import { PrivacyHub } from "@/components/privacy-hub";
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 
 interface UserWithReferrals {
@@ -25,17 +23,24 @@ interface QuestDef {
   completed: boolean;
   repeatable: boolean;
   category: string;
+  title: string;
+  description: string;
 }
 
 interface PointsData {
   totalPoints: number;
   tier: string;
+  tierLabel: string;
+  nextTier: { name: string; label: string; minPoints: number } | null;
   ogNftMint: string | null;
+  hasOgCard: boolean;
+  ogBoost: string;
   lastDailyLogin: string | null;
   streak: number;
+  dailyCheckedIn: boolean;
   completedQuests: string[];
-  history: { action: string; points: number; createdAt: string; referralSource: string | null }[];
   questDefinitions: QuestDef[];
+  history: { action: string; points: number; createdAt: string; referralSource: string | null }[];
   rank: number;
 }
 
@@ -47,25 +52,25 @@ interface LeaderboardEntry {
   periodPoints?: number;
 }
 
-const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; bg: string; border: string; next: string; nextPoints: number }> = {
-  pill_popper: { label: "Pill Popper", color: "#EC4899", icon: <Star className="w-5 h-5" />, bg: "bg-pink-500/20", border: "border-pink-500", next: "Bonding Curve", nextPoints: 500 },
-  bonding_curve: { label: "Bonding Curve", color: "#3B82F6", icon: <TrendingUp className="w-5 h-5" />, bg: "bg-blue-500/20", border: "border-blue-500", next: "Degen", nextPoints: 2000 },
-  degen: { label: "Degen", color: "#EAB308", icon: <Flame className="w-5 h-5" />, bg: "bg-yellow-500/20", border: "border-yellow-500", next: "Rug Proof", nextPoints: 5000 },
-  rug_proof: { label: "Rug Proof", color: "#22C55E", icon: <Shield className="w-5 h-5" />, bg: "bg-green-500/20", border: "border-green-500", next: "Solana God", nextPoints: 10000 },
-  solana_god: { label: "Solana God", color: "#06B6D4", icon: <Diamond className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400", next: "", nextPoints: Infinity },
+const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; bg: string; border: string }> = {
+  pill_popper: { label: "Pill Popper", color: "#EC4899", icon: <Star className="w-5 h-5" />, bg: "bg-pink-500/20", border: "border-pink-500" },
+  bonding_curve: { label: "Bonding Curve", color: "#3B82F6", icon: <TrendingUp className="w-5 h-5" />, bg: "bg-blue-500/20", border: "border-blue-500" },
+  degen: { label: "Degen", color: "#EAB308", icon: <Flame className="w-5 h-5" />, bg: "bg-yellow-500/20", border: "border-yellow-500" },
+  rug_proof: { label: "Rug Proof", color: "#22C55E", icon: <Shield className="w-5 h-5" />, bg: "bg-green-500/20", border: "border-green-500" },
+  solana_god: { label: "Solana God", color: "#06B6D4", icon: <Diamond className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400" },
 };
 
-const QUEST_LABELS: Record<string, { label: string; description: string; icon: React.ReactNode }> = {
-  connect_wallet: { label: "Connect Wallet", description: "Connect your Phantom wallet", icon: <Wallet className="w-4 h-4" /> },
-  first_trade: { label: "First Trade", description: "Buy or sell a token", icon: <TrendingUp className="w-4 h-4" /> },
-  first_bet: { label: "Place a Bet", description: "Bet on a prediction market", icon: <Target className="w-4 h-4" /> },
-  first_token: { label: "Token Creator", description: "Launch your first token", icon: <Star className="w-4 h-4" /> },
-  first_market: { label: "Market Maker", description: "Create a prediction market", icon: <Award className="w-4 h-4" /> },
-  first_win: { label: "Winner", description: "Win a prediction market bet", icon: <Trophy className="w-4 h-4" /> },
-  daily_login: { label: "Daily Check-in", description: "Log in daily for bonus points", icon: <Calendar className="w-4 h-4" /> },
-  streak_7: { label: "7-Day Streak", description: "Check in 7 days in a row", icon: <Flame className="w-4 h-4" /> },
-  streak_30: { label: "30-Day Streak", description: "Check in 30 days in a row", icon: <Flame className="w-4 h-4" /> },
-  mint_og_nft: { label: "OG Card NFT", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", icon: <Gift className="w-4 h-4" /> },
+const QUEST_ICONS: Record<string, React.ReactNode> = {
+  connect_wallet: <Wallet className="w-4 h-4" />,
+  first_trade: <TrendingUp className="w-4 h-4" />,
+  first_bet: <Target className="w-4 h-4" />,
+  first_token: <Star className="w-4 h-4" />,
+  first_market: <Award className="w-4 h-4" />,
+  first_win: <Trophy className="w-4 h-4" />,
+  daily_login: <Calendar className="w-4 h-4" />,
+  streak_7: <Flame className="w-4 h-4" />,
+  streak_30: <Flame className="w-4 h-4" />,
+  mint_og_nft: <Gift className="w-4 h-4" />,
 };
 
 const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
@@ -86,6 +91,7 @@ export default function Profile() {
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [questFilter, setQuestFilter] = useState<QuestFilter>("all");
+  const [lbPeriod, setLbPeriod] = useState<"all" | "weekly" | "daily">("all");
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -134,10 +140,10 @@ export default function Profile() {
     refetchInterval: 30000,
   });
 
-  const { data: leaderboard } = useQuery<LeaderboardEntry[]>({
-    queryKey: ["leaderboard", "all"],
+  const { data: leaderboardData } = useQuery<LeaderboardEntry[]>({
+    queryKey: ["leaderboard", lbPeriod],
     queryFn: async () => {
-      const res = await fetch("/api/leaderboard?period=all");
+      const res = await fetch(`/api/leaderboard?period=${lbPeriod}`);
       if (!res.ok) return [];
       return res.json();
     },
@@ -146,54 +152,21 @@ export default function Profile() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const infoRes = await fetch("/api/points/og-card-info");
-      if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
-      const { priceSol, platformWallet } = await infoRes.json();
-
-      if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
-
-      const connection = new Connection("https://api.mainnet-beta.solana.com");
-      const fromPubkey = new PublicKey(connectedWallet!);
-      const toPubkey = new PublicKey(platformWallet);
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: Math.round(priceSol * LAMPORTS_PER_SOL),
-        })
-      );
-
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      const { signature } = await window.solana.signAndSendTransaction(transaction);
-
-      toast.info("Transaction sent! Verifying on-chain...");
-
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      const verifyRes = await fetch("/api/points/claim-og", {
+      const res = await fetch("/api/points/claim-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
+        body: JSON.stringify({ walletAddress: connectedWallet }),
       });
-
-      const result = await verifyRes.json();
-      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to claim OG Card");
       return result;
     },
     onSuccess: (data) => {
-      toast.success(data.message || "OG Card minted!");
+      toast.success(data.message || "OG Card activated!");
       queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
     },
     onError: (error: Error) => {
-      if (error.message.includes("User rejected")) {
-        toast.error("Transaction cancelled");
-      } else {
-        toast.error(error.message || "Failed to mint OG Card");
-      }
+      toast.error(error.message || "Failed to claim OG Card");
     },
   });
 
@@ -225,35 +198,28 @@ export default function Profile() {
   const tier = TIER_CONFIG[pointsData?.tier || "pill_popper"] || TIER_CONFIG.pill_popper;
   const totalPoints = pointsData?.totalPoints || 0;
   const streak = pointsData?.streak || 0;
-  const hasOg = !!pointsData?.ogNftMint;
-  const progressToNext = tier.nextPoints === Infinity ? 100 : Math.min(100, (totalPoints / tier.nextPoints) * 100);
+  const hasOg = !!pointsData?.hasOgCard;
+  const progressToNext = !pointsData?.nextTier ? 100 : Math.min(100, (totalPoints / pointsData.nextTier.minPoints) * 100);
 
   const cardStyle = privateMode
     ? "border-2 border-[#4ADE80]/50 bg-zinc-900/50 rounded-xl shadow-[4px_4px_0px_0px_rgba(74,222,128,0.3)]"
     : "border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
 
-  const questsByCategory = (pointsData?.questDefinitions || []).reduce((acc, q) => {
-    const cat = q.category || "other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(q);
-    return acc;
-  }, {} as Record<string, QuestDef[]>);
-
-  const filteredQuests = (pointsData?.questDefinitions || []).filter(q => {
+  const quests = pointsData?.questDefinitions || [];
+  const filteredQuests = quests.filter(q => {
     if (questFilter === "completed") return q.completed;
-    if (questFilter === "in_progress") return !q.completed;
+    if (questFilter === "in_progress") return !q.completed && !q.repeatable;
     return true;
   });
 
-  const filteredByCategory = filteredQuests.reduce((acc, q) => {
-    const cat = q.category || "other";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(q);
+  const groupedQuests = filteredQuests.reduce((acc, q) => {
+    if (!acc[q.category]) acc[q.category] = [];
+    acc[q.category].push(q);
     return acc;
   }, {} as Record<string, QuestDef[]>);
 
-  const completedCount = pointsData?.questDefinitions?.filter(q => q.completed).length || 0;
-  const totalQuests = pointsData?.questDefinitions?.length || 10;
+  const completedCount = quests.filter(q => q.completed).length;
+  const totalQuests = quests.filter(q => !q.repeatable).length;
 
   const tabStyle = (tab: TabType) => {
     const isActive = activeTab === tab;
@@ -304,6 +270,7 @@ export default function Profile() {
               </motion.button>
             </div>
 
+            {/* Points Header Card */}
             <div className={`${cardStyle} p-6`}>
               <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-3">
@@ -357,14 +324,14 @@ export default function Profile() {
                 </div>
               </div>
 
-              {tier.next && (
+              {pointsData?.nextTier && (
                 <div>
                   <div className="flex justify-between text-xs mb-1">
                     <span className={`font-bold ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
-                      Progress to {tier.next}
+                      Progress to {pointsData.nextTier.label}
                     </span>
                     <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-black"}`}>
-                      {totalPoints} / {tier.nextPoints.toLocaleString()}
+                      {totalPoints} / {pointsData.nextTier.minPoints.toLocaleString()}
                     </span>
                   </div>
                   <div className={`h-3 rounded-full overflow-hidden border-2 border-black ${privateMode ? "bg-black" : "bg-gray-200"}`}>
@@ -380,7 +347,8 @@ export default function Profile() {
               )}
             </div>
 
-            <div className="flex gap-2" data-testid="profile-tabs">
+            {/* Tab Navigation */}
+            <div className="flex flex-wrap gap-2" data-testid="profile-tabs">
               <button onClick={() => setActiveTab("overview")} className={tabStyle("overview")} data-testid="tab-overview">
                 {privateMode ? "OVERVIEW" : "Overview"}
               </button>
@@ -395,6 +363,7 @@ export default function Profile() {
               </button>
             </div>
 
+            {/* Tab Content */}
             <AnimatePresence mode="wait">
               {activeTab === "overview" && (
                 <motion.div
@@ -405,6 +374,7 @@ export default function Profile() {
                   className="space-y-4"
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Wallet Card */}
                     <div className={`${cardStyle} p-5 space-y-3`}>
                       <div className="flex items-center gap-2">
                         <Wallet className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} />
@@ -431,6 +401,7 @@ export default function Profile() {
                       </a>
                     </div>
 
+                    {/* Referral Card */}
                     <div className={`${cardStyle} p-5 space-y-3`}>
                       <div className="flex items-center gap-2">
                         <Share2 className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]" : "text-pink-500"}`} />
@@ -462,6 +433,7 @@ export default function Profile() {
                     </div>
                   </div>
 
+                  {/* OG Card Section */}
                   <div className={`${cardStyle} p-5`}>
                     <div className="flex items-center gap-2 mb-3">
                       <Gift className={`w-4 h-4 ${privateMode ? "text-purple-400" : "text-purple-500"}`} />
@@ -488,104 +460,27 @@ export default function Profile() {
                       </div>
                     ) : (
                       <div className={`flex items-center justify-between p-4 rounded-lg border-2 border-dashed ${
-                        privateMode ? "border-[#4ADE80]/30 bg-zinc-800/50" : "border-gray-300 bg-gray-50"
+                        privateMode ? "border-[#4ADE80]/20 bg-zinc-900" : "border-gray-300 bg-gray-50"
                       }`}>
                         <div>
-                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Mint OG Card NFT</p>
-                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>0.2 SOL — permanent 1.5x points multiplier on all actions</p>
+                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Claim OG Card</p>
+                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>Free! Permanent 1.5x boost on all points</p>
                         </div>
                         <motion.button
-                          whileHover={{ y: -2, x: -2 }}
-                          whileTap={{ y: 0, x: 0 }}
                           onClick={() => ogClaimMutation.mutate()}
                           disabled={ogClaimMutation.isPending}
-                          className={`px-4 py-2 font-bold text-sm uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
-                            privateMode
-                              ? "bg-purple-600 border-purple-400 text-white hover:bg-purple-500 font-mono"
-                              : "bg-gradient-to-r from-purple-500 to-pink-500 text-white"
-                          }`}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className={`px-4 py-2 font-bold text-xs uppercase rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] transition-all ${
+                            privateMode ? "bg-[#4ADE80] text-black" : "bg-purple-500 text-white"
+                          } disabled:opacity-50`}
                           data-testid="button-claim-og"
                         >
-                          {ogClaimMutation.isPending ? "Minting..." : "Mint 0.2 SOL"}
+                          {ogClaimMutation.isPending ? "Claiming..." : "Claim Free"}
                         </motion.button>
                       </div>
                     )}
                   </div>
-
-                  <div className="grid grid-cols-3 gap-3">
-                    <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
-                      <Calendar className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                      <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                        Joined
-                      </p>
-                      <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
-                        {new Date(user.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                      </p>
-                    </motion.div>
-                    <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
-                      <Users className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                      <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                        Referrals
-                      </p>
-                      <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
-                        {user.referralCount}
-                      </p>
-                    </motion.div>
-                    <motion.div whileHover={{ y: -2 }} className={`${cardStyle} p-4`}>
-                      <Zap className={`w-4 h-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-black"}`} />
-                      <p className={`text-xs font-bold uppercase mb-1 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                        Quests Done
-                      </p>
-                      <p className={`text-lg font-mono font-black ${privateMode ? "text-white" : "text-black"}`}>
-                        {completedCount}
-                      </p>
-                    </motion.div>
-                  </div>
-
-                  {privateMode && <PrivacyHub />}
-
-                  {pointsData?.history && pointsData.history.length > 0 && (
-                    <div className={`${cardStyle} p-5`}>
-                      <h2 className={`text-sm font-black uppercase mb-3 ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                        Recent Points
-                      </h2>
-                      <div className="space-y-2">
-                        {pointsData.history.slice(0, 10).map((entry, i) => (
-                          <div key={i} className={`flex items-center justify-between py-2 border-b last:border-0 ${privateMode ? "border-[#4ADE80]/10" : "border-gray-100"}`}>
-                            <div>
-                              <span className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>
-                                {QUEST_LABELS[entry.action]?.label || entry.action}
-                              </span>
-                              {entry.referralSource && (
-                                <span className={`text-xs ml-2 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                                  from {entry.referralSource.slice(0, 6)}...
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <span className={`text-sm font-black ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
-                                +{entry.points}
-                              </span>
-                              <span className={`text-xs ${privateMode ? "text-[#4ADE80]/30" : "text-gray-400"}`}>
-                                {new Date(entry.createdAt).toLocaleDateString()}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {user.referredBy && (
-                    <div className={`border-2 border-black rounded-lg p-4 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                      privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]" : "bg-white text-gray-600"
-                    }`}>
-                      <p className={`text-sm font-medium ${privateMode ? "font-mono" : ""}`}>
-                        {privateMode ? "REFERRER_ID: " : "Referred by: "}
-                        <span className={`font-mono font-bold ${privateMode ? "text-white" : "text-pink-500"}`}>{user.referredBy}</span>
-                      </p>
-                    </div>
-                  )}
                 </motion.div>
               )}
 
@@ -595,102 +490,88 @@ export default function Profile() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
-                  className="space-y-4"
+                  className="space-y-6"
                 >
-                  <div className="flex items-center gap-2" data-testid="quest-filters">
-                    {(["all", "in_progress", "completed"] as QuestFilter[]).map(f => (
+                  <div className={`flex gap-2 p-1 rounded-lg w-fit ${privateMode ? "border-2 border-[#4ADE80]/30 bg-zinc-900" : "border-2 border-black bg-gray-100"}`}>
+                    {(["all", "in_progress", "completed"] as const).map((filter) => (
                       <button
-                        key={f}
-                        onClick={() => setQuestFilter(f)}
-                        className={`px-3 py-1.5 text-xs font-bold uppercase rounded-full border-2 transition-all ${
-                          questFilter === f
+                        key={filter}
+                        onClick={() => setQuestFilter(filter)}
+                        className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-all ${
+                          questFilter === filter
                             ? privateMode
-                              ? "bg-[#4ADE80] text-black border-[#4ADE80]"
-                              : "bg-black text-white border-black"
+                              ? "bg-[#4ADE80] text-black"
+                              : "bg-black text-white shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
                             : privateMode
-                              ? "bg-zinc-900 text-[#4ADE80]/60 border-[#4ADE80]/30 hover:border-[#4ADE80]/60"
-                              : "bg-white text-gray-600 border-gray-300 hover:border-black"
+                              ? "text-[#4ADE80]/60 hover:text-[#4ADE80]"
+                              : "text-gray-500 hover:text-black"
                         }`}
-                        data-testid={`filter-${f}`}
+                        data-testid={`filter-quest-${filter}`}
                       >
-                        {f === "all" ? "All" : f === "in_progress" ? "In Progress" : "Completed"}
+                        {filter.replace("_", " ")}
                       </button>
                     ))}
                   </div>
 
-                  {Object.entries(CATEGORY_LABELS).map(([catKey, catInfo]) => {
-                    const quests = filteredByCategory[catKey];
-                    if (!quests || quests.length === 0) return null;
-                    return (
-                      <div key={catKey}>
-                        <div className="flex items-center gap-2 mb-3">
-                          <div className="w-2 h-2 rounded-full" style={{ backgroundColor: catInfo.color }} />
-                          <h3 className={`text-sm font-black uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                            {catInfo.label}
-                          </h3>
-                        </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {quests.map(quest => {
-                            const meta = QUEST_LABELS[quest.action] || { label: quest.action, description: "", icon: <Zap className="w-4 h-4" /> };
-                            return (
-                              <motion.div
-                                key={quest.action}
-                                whileHover={{ y: -1 }}
-                                className={`p-4 rounded-xl border-2 transition-all ${
-                                  quest.completed
-                                    ? privateMode
-                                      ? "border-[#4ADE80]/50 bg-[#4ADE80]/5"
-                                      : "border-green-500 bg-green-50"
-                                    : privateMode
-                                      ? "border-[#4ADE80]/20 bg-zinc-900/30"
-                                      : "border-gray-300 bg-gray-50"
-                                }`}
-                                data-testid={`quest-${quest.action}`}
-                              >
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                                      quest.completed
-                                        ? privateMode ? "bg-[#4ADE80] text-black" : "bg-green-500 text-white"
-                                        : privateMode ? "bg-zinc-800 text-[#4ADE80]/50" : "bg-gray-200 text-gray-500"
-                                    }`}>
-                                      {quest.completed ? <Check className="w-4 h-4" /> : meta.icon}
-                                    </div>
-                                    <div>
-                                      <p className={`text-sm font-bold ${
-                                        quest.completed
-                                          ? privateMode ? "text-[#4ADE80]" : "text-green-700"
-                                          : privateMode ? "text-white" : "text-black"
-                                      }`}>
-                                        {meta.label}
-                                      </p>
-                                      <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>
-                                        {meta.description}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <div className="text-right">
-                                    <span className={`text-sm font-black ${
-                                      quest.completed
-                                        ? privateMode ? "text-[#4ADE80]/50" : "text-green-500"
-                                        : privateMode ? "text-white" : "text-black"
-                                    }`}>
-                                      +{quest.points}
-                                    </span>
-                                    {quest.repeatable && (
-                                      <p className={`text-[10px] font-bold uppercase ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                                        repeatable
-                                      </p>
-                                    )}
-                                  </div>
-                                </div>
-                              </motion.div>
-                            );
-                          })}
-                        </div>
+                  {Object.entries(groupedQuests).map(([category, catQuests]) => (
+                    <div key={category} className="space-y-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-2 h-6 rounded-full" style={{ backgroundColor: CATEGORY_LABELS[category]?.color || "#ccc" }} />
+                        <h3 className={`text-sm font-black uppercase ${privateMode ? "text-white font-mono" : "text-black"}`}>
+                          {CATEGORY_LABELS[category]?.label || category}
+                        </h3>
                       </div>
-                    );
-                  })}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {catQuests.map((quest) => (
+                          <div
+                            key={quest.action}
+                            className={`${cardStyle} p-4 relative overflow-hidden`}
+                            data-testid={`card-quest-${quest.action}`}
+                          >
+                            {quest.completed && (
+                              <div className="absolute top-0 right-0 bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-bl-lg">
+                                DONE
+                              </div>
+                            )}
+                            <div className="flex items-start gap-3">
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                quest.completed
+                                  ? "bg-green-500/20 text-green-500"
+                                  : privateMode ? "bg-[#4ADE80]/10 text-[#4ADE80]" : "bg-gray-100 text-gray-600"
+                              }`}>
+                                {QUEST_ICONS[quest.action] || <Star className="w-4 h-4" />}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>
+                                    {quest.title}
+                                  </p>
+                                  <span className={`text-xs font-black px-2 py-0.5 rounded-full flex-shrink-0 ${
+                                    quest.completed
+                                      ? "bg-green-500/20 text-green-500"
+                                      : privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-yellow-100 text-yellow-700"
+                                  }`}>
+                                    +{quest.points}
+                                    {quest.repeatable && "/day"}
+                                  </span>
+                                </div>
+                                <p className={`text-xs mt-0.5 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>
+                                  {quest.description}
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+
+                  {filteredQuests.length === 0 && (
+                    <div className={`text-center py-12 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                      <p className="font-bold">No quests match this filter</p>
+                    </div>
+                  )}
                 </motion.div>
               )}
 
@@ -700,98 +581,81 @@ export default function Profile() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
                 >
+                  <div className={`flex gap-2 p-1 rounded-lg w-fit ${privateMode ? "border-2 border-[#4ADE80]/30 bg-zinc-900" : "border-2 border-black bg-gray-100"}`}>
+                    {(["all", "weekly", "daily"] as const).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setLbPeriod(p)}
+                        className={`px-3 py-1 text-xs font-bold uppercase rounded-md transition-all ${
+                          lbPeriod === p
+                            ? privateMode ? "bg-[#4ADE80] text-black" : "bg-black text-white"
+                            : privateMode ? "text-[#4ADE80]/60" : "text-gray-500 hover:text-black"
+                        }`}
+                        data-testid={`filter-lb-${p}`}
+                      >
+                        {p === "all" ? "All Time" : p}
+                      </button>
+                    ))}
+                  </div>
+
                   <div className={`${cardStyle} overflow-hidden`}>
-                    <div className={`px-5 py-3 border-b-2 ${privateMode ? "border-[#4ADE80]/20" : "border-black"}`}>
-                      <div className="flex items-center justify-between">
-                        <h3 className={`text-sm font-black uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                          Top 50 Players
-                        </h3>
-                        <Link href="/leaderboard">
-                          <span className={`text-xs font-bold flex items-center gap-1 cursor-pointer ${privateMode ? "text-[#4ADE80] hover:text-white" : "text-blue-600 hover:text-black"}`} data-testid="link-full-leaderboard">
-                            Full Leaderboard <ChevronRight className="w-3 h-3" />
+                    <div className={`grid grid-cols-12 gap-2 px-4 py-2 text-xs font-bold uppercase ${
+                      privateMode ? "bg-zinc-800 text-[#4ADE80]/60 font-mono" : "bg-gray-100 text-gray-500"
+                    }`}>
+                      <span className="col-span-1">#</span>
+                      <span className="col-span-5">Wallet</span>
+                      <span className="col-span-3">Tier</span>
+                      <span className="col-span-3 text-right">Points</span>
+                    </div>
+                    {(leaderboardData || []).map((entry, idx) => {
+                      const entryTier = TIER_CONFIG[entry.tier] || TIER_CONFIG.pill_popper;
+                      const isMe = entry.walletAddress === connectedWallet;
+                      return (
+                        <div
+                          key={entry.walletAddress}
+                          className={`grid grid-cols-12 gap-2 px-4 py-3 items-center border-t ${
+                            isMe
+                              ? privateMode ? "bg-[#4ADE80]/10 border-[#4ADE80]/20" : "bg-yellow-50 border-yellow-200"
+                              : privateMode ? "border-zinc-800" : "border-gray-100"
+                          }`}
+                          data-testid={`row-leaderboard-${idx}`}
+                        >
+                          <span className={`col-span-1 text-sm font-black ${
+                            idx < 3
+                              ? "text-yellow-500"
+                              : privateMode ? "text-[#4ADE80]/40" : "text-gray-400"
+                          }`}>
+                            {idx + 1}
                           </span>
-                        </Link>
+                          <div className="col-span-5 flex items-center gap-2 min-w-0">
+                            <span className={`font-mono text-xs truncate ${privateMode ? "text-white" : "text-black"}`}>
+                              {entry.walletAddress.slice(0, 4)}...{entry.walletAddress.slice(-4)}
+                            </span>
+                            {entry.ogNftMint && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-500">OG</span>
+                            )}
+                            {isMe && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                                privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-yellow-200 text-yellow-700"
+                              }`}>YOU</span>
+                            )}
+                          </div>
+                          <span className="col-span-3 text-xs font-bold" style={{ color: entryTier.color }}>
+                            {entryTier.label}
+                          </span>
+                          <span className={`col-span-3 text-right text-sm font-black ${privateMode ? "text-white font-mono" : "text-black"}`}>
+                            {(entry.periodPoints || entry.totalPoints).toLocaleString()}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {(!leaderboardData || leaderboardData.length === 0) && (
+                      <div className={`px-4 py-8 text-center ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                        <p className="font-bold">No leaderboard data yet</p>
                       </div>
-                    </div>
-                    <div className="divide-y divide-gray-100">
-                      {leaderboard?.map((entry, idx) => {
-                        const entryTier = TIER_CONFIG[entry.tier] || TIER_CONFIG.pill_popper;
-                        const isCurrentUser = entry.walletAddress === connectedWallet;
-                        return (
-                          <div
-                            key={entry.walletAddress}
-                            className={`px-5 py-3 flex items-center gap-3 ${
-                              isCurrentUser
-                                ? privateMode ? "bg-[#4ADE80]/10" : "bg-yellow-50"
-                                : privateMode ? "hover:bg-zinc-800/50" : "hover:bg-gray-50"
-                            } ${privateMode ? "border-[#4ADE80]/10" : ""}`}
-                            data-testid={`leaderboard-row-${idx}`}
-                          >
-                            <span className={`w-8 text-center font-mono font-black text-sm ${
-                              idx === 0 ? "text-yellow-500" : idx === 1 ? "text-gray-400" : idx === 2 ? "text-amber-600" : privateMode ? "text-[#4ADE80]/40" : "text-gray-400"
-                            }`}>
-                              #{idx + 1}
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <span className={`font-mono text-sm font-bold truncate ${
-                                  isCurrentUser
-                                    ? privateMode ? "text-[#4ADE80]" : "text-blue-600"
-                                    : privateMode ? "text-white" : "text-black"
-                                }`}>
-                                  {entry.walletAddress.slice(0, 4)}...{entry.walletAddress.slice(-4)}
-                                  {isCurrentUser && " (You)"}
-                                </span>
-                                {entry.ogNftMint && (
-                                  <span className="text-[10px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">
-                                    OG
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                            <span className="text-xs font-black uppercase" style={{ color: entryTier.color }}>
-                              {entryTier.label}
-                            </span>
-                            <span className={`font-mono font-black text-sm ${privateMode ? "text-white" : "text-black"}`}>
-                              {entry.totalPoints.toLocaleString()}
-                            </span>
-                          </div>
-                        );
-                      })}
-                      {leaderboard && leaderboard.length === 0 && (
-                        <div className={`px-5 py-8 text-center ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                          <p className="font-bold">No players yet</p>
-                        </div>
-                      )}
-                      {leaderboard && connectedWallet && !leaderboard.find(e => e.walletAddress === connectedWallet) && (
-                        <div className={`px-5 py-3 flex items-center gap-3 border-t-2 ${
-                          privateMode ? "bg-[#4ADE80]/10 border-[#4ADE80]/30" : "bg-yellow-50 border-black"
-                        }`}>
-                          <span className={`w-8 text-center font-mono font-black text-sm ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                            #{pointsData?.rank || "—"}
-                          </span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className={`font-mono text-sm font-bold truncate ${privateMode ? "text-[#4ADE80]" : "text-blue-600"}`}>
-                                {connectedWallet.slice(0, 4)}...{connectedWallet.slice(-4)} (You)
-                              </span>
-                              {hasOg && (
-                                <span className="text-[10px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-1.5 py-0.5 rounded-full">
-                                  OG
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                          <span className="text-xs font-black uppercase" style={{ color: tier.color }}>
-                            {tier.label}
-                          </span>
-                          <span className={`font-mono font-black text-sm ${privateMode ? "text-white" : "text-black"}`}>
-                            {totalPoints.toLocaleString()}
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                    )}
                   </div>
                 </motion.div>
               )}

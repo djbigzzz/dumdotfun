@@ -4274,12 +4274,6 @@ export async function registerRoutes(
 
 
   // ========== POINTS SYSTEM ==========
-  app.get("/api/points/og-card-info", async (_req, res) => {
-    const { OG_CARD_PRICE_SOL } = await import("./services/points");
-    const platformWallet = process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM";
-    return res.json({ priceSol: OG_CARD_PRICE_SOL, platformWallet });
-  });
-
   app.get("/api/points/:wallet", async (req, res) => {
     try {
       const { getUserPointsData, getUserRank } = await import("./services/points");
@@ -4304,6 +4298,18 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/checkin", async (req, res) => {
+    try {
+      const { walletAddress } = req.body;
+      if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
+      const { awardDailyLogin } = await import("./services/points");
+      const result = await awardDailyLogin(walletAddress);
+      return res.json(result);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to check in" });
+    }
+  });
+
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const period = (req.query.period as "daily" | "weekly" | "all") || "all";
@@ -4315,29 +4321,17 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/points/og-nft", async (req, res) => {
-    try {
-      const { walletAddress, mintAddress } = req.body;
-      if (!walletAddress || !mintAddress) return res.status(400).json({ error: "walletAddress and mintAddress required" });
-      const { setOgNftMint } = await import("./services/points");
-      const result = await setOgNftMint(walletAddress, mintAddress);
-      return res.json(result);
-    } catch (error: any) {
-      return res.status(500).json({ error: "Failed to register OG NFT" });
-    }
-  });
-
   app.post("/api/points/claim-og", async (req, res) => {
     try {
-      const { walletAddress, txSignature } = req.body;
-      if (!walletAddress || !txSignature) return res.status(400).json({ error: "walletAddress and txSignature required" });
-      const { claimOgCard } = await import("./services/points");
-      const result = await claimOgCard(walletAddress, txSignature);
+      const { walletAddress } = req.body;
+      if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
+      const { claimFreeOgCard } = await import("./services/points");
+      const result = await claimFreeOgCard(walletAddress);
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (error: any) {
       console.error("[OG Card] Claim error:", error);
-      return res.status(500).json({ error: "Failed to verify OG Card transaction" });
+      return res.status(500).json({ error: "Failed to claim OG Card" });
     }
   });
 
