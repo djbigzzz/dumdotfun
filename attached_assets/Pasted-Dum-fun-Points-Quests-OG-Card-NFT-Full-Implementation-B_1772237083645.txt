@@ -1,0 +1,165 @@
+Dum.fun — Points, Quests & OG Card NFT — Full Implementation Brief
+Overview
+We're adding three interconnected systems to dum.fun:
+
+A points system that rewards users for platform activity
+A quests system with 26 missions across 5 categories
+A real Solana mainnet NFT called the OG Card that gives a permanent +50% points boost
+The schema tables (user_points, quest_progress, points_history) have already been added to shared/schema.ts. The rest needs to be built.
+
+Part 1 — Points System
+Users earn points by completing actions. Points never expire and cannot be spent — they are purely a reputation score that determines tier and leaderboard rank.
+
+Tiers:
+
+Pill Popper: 0–499 pts
+Bonding Curve: 500–1,999 pts
+Degen: 2,000–4,999 pts
+Rug Proof: 5,000–9,999 pts
+Solana God: 10,000+ pts
+OG Card Boost: If a user holds the OG Card NFT (verified on-chain — see Part 3), every point they earn is multiplied by 1.5. So 100 base points becomes 150. This applies to all point awards including quest completions and streak bonuses. The boost follows the NFT — if they sell the NFT, they lose the boost. Ownership is checked on-chain each time the profile loads, not stored as a permanent database flag. The ogCardMint column in user_points stores the NFT mint address for fast lookup, but the active boost status is always verified against the blockchain.
+
+Part 2 — Quests
+Create a central server/points.ts file with all quest logic. There are 26 quests. Each quest has an ID, category, title, point reward, and a threshold (how many times the action must be completed). When a quest completes, the points are awarded immediately and logged to points_history. Some quests are one-time (completed once forever), some are milestone-based (trigger at specific cumulative counts), and two are repeating (fire every time the action happens).
+
+Quest List:
+
+Onboarding — one-time each:
+
+q1: Connect your wallet — 50 pts
+q2: Make your first trade — 100 pts
+q3: Place your first bet — 100 pts
+q4: Create your first token — 500 pts
+q5: Create your first prediction market — 300 pts
+Trading — milestone-based, one-time each:
+
+q6: Complete 10 trades — 250 pts
+q7: Complete 50 trades — 500 pts
+q8: Complete 100 trades — 1,000 pts
+q9: Trade 10 different tokens — 200 pts
+q10: Trade 25 different tokens — 400 pts
+Creation — milestone-based:
+
+q11: Add full metadata to a token (must have image + at least one social link) — 150 pts
+q12: Launch 5 tokens total — 300 pts
+q13: Launch 10 tokens total — 500 pts
+q14: Create 3 prediction markets — 400 pts
+q15: Your token receives 10 trades from wallets that are not yours — 300 pts
+Predictions:
+
+q16: Win 1 prediction — 200 pts
+q17: Win 3 predictions total — 500 pts
+q18: Win 5 predictions in a row — 1,000 pts
+Streaks:
+
+q19: Reach a 7-day check-in streak — 150 pts (fires once when streak hits 7)
+q20: Reach a 30-day check-in streak — 600 pts (fires once when streak hits 30)
+Referrals:
+
+q21: Basic referral — referred user makes their first trade — 100 pts, REPEATING (fires for each qualifying referral)
+q22: OG referral — referred user mints the OG Card NFT — 500 pts, REPEATING (fires for each OG referral)
+q23: 3 OG referrals milestone — 700 pts, one-time
+q24: 10 OG referrals milestone — 2,500 pts, one-time
+q25: 25 OG referrals milestone — 6,000 pts, one-time
+OG Exclusive (only visible and completable if user holds OG Card):
+
+q26: OG Holder — make 5 trades — 500 pts, one-time
+Core logic — awardPoints(walletAddress, action, db):
+
+This function is called after every user action. It looks up the user's user_points row, checks OG Card status, increments relevant quest progress counters, fires point rewards for any newly completed quests, and logs everything to points_history. Every entry in points_history stores the action label, base points, OG bonus points (the extra 50% if applicable), and total points awarded.
+
+Hook awardPoints into existing routes:
+
+After token created → token_created action
+After trade confirmed → trade action (also first_trade if it's their first, also trade_new_token if this mint is new to their history)
+After bet confirmed → bet_placed action (also first_bet if it's their first)
+After market created → market_created action
+After market resolves and winners are paid out → prediction_won for each winning wallet
+After wallet first connects (new user) → wallet_connected action
+After referral qualifies → referral_basic or referral_og for the referrer
+Part 3 — Daily Check-in
+Add a POST /api/checkin endpoint. When called with a wallet address it does the following:
+
+Check if lastCheckinDate in user_points equals today's date (UTC). If yes, return { alreadyCheckedIn: true }.
+
+If no, determine the new streak:
+
+If lastCheckinDate was yesterday → streak continues, increment by 1
+If lastCheckinDate was two days ago AND graceUsedThisWeek is false → streak continues, increment by 1, mark grace as used
+Otherwise → streak resets to 1, grace resets
+Grace resets every Monday (track the start of the current grace week in graceWeekStart).
+
+After updating the streak, award 10 pts via awardPoints(wallet, 'daily_checkin', db). Then check if the new streak value is exactly 7 or exactly 30 and award the streak bonus points if so. Return the new streak count and whether a bonus was earned.
+
+Add graceUsedThisWeek (boolean, default false) and graceWeekStart (text, date string) columns to the user_points table.
+
+Part 4 — New API Endpoints
+GET /api/points/:wallet
+Returns everything needed to render the profile page: totalPoints, tier (name + emoji), nextTier (name + points needed), currentStreak, longestStreak, hasOGCard (boolean, checked on-chain), ogCardBoost ("50%" or "0%"), globalRank (count of wallets with more points + 1), referralCode, basicReferralCount, ogReferralCount, and the full list of all 26 quests with current progress and completion status for this wallet.
+
+GET /api/leaderboard
+Query param: ?wallet=<address> (optional). Returns top 50 wallets by total points, each with rank, shortened wallet address, total points, hasOGCard, and tier. If the requesting wallet is outside the top 50, include their entry separately at the bottom of the response so the frontend can pin it.
+
+GET /api/points/:wallet/history
+Returns the last 20 rows from points_history for this wallet, most recent first. Each row: action label, basePoints, bonusPoints, totalPoints, timestamp.
+
+POST /api/checkin
+Body: { walletAddress }. Handles streak logic as described above.
+
+POST /api/og-card/verify
+Body: { walletAddress, txSignature }. Verifies on Solana mainnet (via Helius mainnet RPC or public mainnet RPC) that the transaction signature represents a successful transfer of exactly 0.2 SOL from walletAddress to the platform's treasury wallet. Also verify the transaction is less than 10 minutes old (prevent replays). If valid, store the NFT mint address in ogCardMint on the user's user_points row, then call Crossmint API to mint the NFT to their wallet (see Part 5). Returns { success: true } or { success: false, error: string }.
+
+GET /api/og-card/status
+Query param: ?wallet=<address>. Checks on-chain (via Helius) whether the wallet currently holds any token matching the OG Card collection mint address. Returns { hasOGCard: boolean }. This is what the profile page calls on load to get the live on-chain status.
+
+GET /api/og-card/mint-open
+Returns { open: boolean } based on the OG_CARD_MINT_OPEN environment variable. Frontend uses this to show or hide the Mint button.
+
+Part 5 — OG Card NFT via Crossmint
+The OG Card is a real Metaplex NFT on Solana mainnet. We use Crossmint's minting API to issue it programmatically.
+
+Setup (done once in Crossmint dashboard):
+
+Create a Crossmint account at crossmint.com
+Create a new Solana collection on mainnet
+Upload the OG Card image
+Set metadata: Name = "Dum.fun OG Card", Symbol = "DUMOG", Description = "Early supporter of dum.fun. Grants permanent 1.5x points boost and OG status on the leaderboard."
+Set attributes: Boost = "+50%", Status = "OG"
+Get the collection ID and API key, add both as Replit secrets: CROSSMINT_API_KEY and CROSSMINT_COLLECTION_ID
+Minting call (inside POST /api/og-card/verify after payment verified):
+Call the Crossmint API endpoint POST https://www.crossmint.com/api/2022-06-09/collections/{CROSSMINT_COLLECTION_ID}/nfts with the recipient wallet address and metadata. Crossmint mints the NFT and sends it directly to the user's wallet. Store the returned NFT mint address in the ogCardMint column.
+
+Ownership verification (inside GET /api/og-card/status):
+Use Helius or Solana mainnet RPC to fetch all token accounts owned by the wallet. Check if any of them match the OG Card collection. This is the source of truth — not the database.
+
+Environment variables needed on Replit:
+
+CROSSMINT_API_KEY — from Crossmint dashboard
+CROSSMINT_COLLECTION_ID — from Crossmint dashboard
+OG_CARD_MINT_OPEN — set to "true" to enable minting, "false" to close it (admin toggle)
+PLATFORM_TREASURY_WALLET — your mainnet wallet address that receives the 0.2 SOL payments
+MAINNET_RPC_URL — Helius mainnet endpoint or https://api.mainnet-beta.solana.com
+Part 6 — Frontend Profile Page
+Rewrite client/src/pages/profile.tsx with a tabbed layout. On mount, fetch from GET /api/points/:wallet and GET /api/og-card/status.
+
+Header (always visible above tabs):
+Four stat cards in a row — Total Points with tier emoji and name, Current Streak in days, Referrals showing OG count and basic count separately, and OG Boost showing "+50%" in purple if active or "0%" in gray if not.
+
+Below the cards, a tier progress bar: current tier on the left, next tier on the right, a filled bar showing progress, and points remaining displayed.
+
+Tab 1 — Overview:
+Wallet address with copy button and Solscan link. Referral link (dum.fun?ref=CODE) with copy button and a note saying "Earn 100 pts per referral who trades, 500 pts per referral who mints OG Card." Show count of basic referrals and OG referrals separately.
+
+OG Card section below that. If hasOGCard is true: show a purple/green card that says "OG Card Active — All points boosted by 1.5x" with the NFT mint address linked to Solscan. If false AND OG_CARD_MINT_OPEN is true: show a card explaining the OG Card (0.2 SOL, +50% boost forever, real Solana NFT, early access only, may close at any time) with a "MINT OG CARD — 0.2 SOL" button. Clicking it triggers a 0.2 SOL transfer on mainnet via the wallet adapter, then calls POST /api/og-card/verify with the signature, then refreshes the OG status. If mint is closed: show "OG Card — Early Access Closed."
+
+Tab 2 — Quests:
+Summary bar showing Completed X/26, In Progress X, and total points available from incomplete quests. Filter pills: All, In Progress, Completed. Then the quests grouped into 5 category sections. Each quest card shows title, description, a progress bar with X/total if it's a milestone quest, and a points badge on the right showing the reward. Completed quests show green "EARNED" badge and are dimmed. The OG Exclusive quest (q26) shows a lock icon if the user doesn't have OG Card, with a note "Requires OG Card."
+
+Tab 3 — History:
+Table with columns: Action, Base Pts, OG Bonus, Total, When. Loaded from GET /api/points/:wallet/history. If OG bonus is 0, show a dash in that column. Most recent at top.
+
+Tab 4 — Leaderboard:
+Table with Rank, Wallet (shortened to first 4 + last 4 chars), OG badge (small purple pill showing "OG" if they hold the card), and Points. Top 50 rows. If the current user is outside the top 50, show a divider and then their row pinned at the bottom with their actual rank. Note at the bottom: "Season rewards will be announced at mainnet launch."
+
+Part 7 — Daily Check-in Banner
+Add a DailyCheckinBanner component to the top of the home/trending page (wherever the token feed renders). On mount, call GET /api/points/:wallet to check if lastCheckinDate equals today. If the user hasn't checked in today, show a small banner: "🔥 Day {currentStreak} streak — tap to check in and earn 10 pts" with a "CHECK IN" button. When tapped, call POST /api/checkin. On success, show a toast notification: "✅ Checked in! +10 pts. Streak: X days." If a streak bonus was earned (7 or 30 days), show a separate toast: "🎉 {X}-Day Streak! +{bonus} pts bonus." Banner disappears after check-in and does not reappear until the next day.
