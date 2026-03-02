@@ -212,6 +212,10 @@ export async function awardDailyLogin(walletAddress: string): Promise<{ awarded:
 
 function canAutoComplete(action: string, _walletAddress: string, up: any): boolean {
   switch (action) {
+    case "connect_wallet":
+      return true;
+    case "mint_og_nft":
+      return !!up.ogNftMint;
     case "og_secret_quest":
       return !!up.ogNftMint;
     default:
