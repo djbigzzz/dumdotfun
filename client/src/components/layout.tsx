@@ -3,7 +3,7 @@ import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { usePrivacy, obfuscateWallet } from "@/lib/privacy-context";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Terminal, Lock, Unlock, Info, Shield } from "lucide-react";
+import { X, Terminal, Lock, Unlock, Info, Shield, Wifi } from "lucide-react";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
@@ -162,6 +162,81 @@ const PrivacyToggle = ({ onOpenDrawer }: { onOpenDrawer: () => void }) => {
         )}
       </AnimatePresence>
     </motion.button>
+  );
+};
+
+const DevnetBanner = () => {
+  const { privateMode } = usePrivacy();
+  const [dismissed, setDismissed] = useState(false);
+
+  const switchToDevnet = async () => {
+    try {
+      const phantom = (window as any).solana;
+      if (!phantom?.isPhantom) {
+        toast.error("Phantom wallet not detected");
+        return;
+      }
+      if (phantom.request) {
+        await phantom.request({
+          method: "switchNetwork",
+          params: { network: "devnet" },
+        });
+        toast.success("Switched to Solana Devnet!");
+      } else {
+        toast.info("Open Phantom → Settings → Developer Settings → Change Network to Devnet");
+      }
+    } catch (err: any) {
+      if (err?.code === 4001) {
+        toast.info("Network switch cancelled");
+      } else {
+        toast.info("Open Phantom → Settings → Developer Settings → Change Network to Devnet");
+      }
+    }
+  };
+
+  if (dismissed) return null;
+
+  return (
+    <div className={`relative z-20 px-3 py-2 flex items-center justify-center gap-3 text-sm ${
+      privateMode
+        ? "bg-yellow-900/20 border-b border-yellow-500/30"
+        : "bg-yellow-50 border-b-2 border-yellow-300"
+    }`} data-testid="banner-devnet">
+      <div className="flex items-center gap-2">
+        <motion.div
+          animate={{ opacity: [1, 0.4, 1] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"
+        />
+        <span className={`font-bold text-xs ${privateMode ? "text-yellow-400" : "text-yellow-800"}`}>
+          {privateMode ? "[DEVNET_MODE]" : "Devnet Mode"}
+        </span>
+        <span className={`text-xs hidden sm:inline ${privateMode ? "text-yellow-400/60" : "text-yellow-700"}`}>
+          — This app runs on Solana Devnet. Make sure your wallet is set to devnet.
+        </span>
+      </div>
+      <button
+        onClick={switchToDevnet}
+        className={`text-[11px] font-black px-3 py-1 rounded flex items-center gap-1.5 transition-all flex-shrink-0 ${
+          privateMode
+            ? "bg-yellow-500/20 text-yellow-400 border border-yellow-500/40 hover:bg-yellow-500/30"
+            : "bg-yellow-400 text-yellow-900 border border-yellow-500 hover:bg-yellow-500 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+        }`}
+        data-testid="button-switch-devnet"
+      >
+        <Wifi className="w-3 h-3" />
+        Switch to Devnet
+      </button>
+      <button
+        onClick={() => setDismissed(true)}
+        className={`p-0.5 rounded transition-colors flex-shrink-0 ${
+          privateMode ? "text-yellow-500/50 hover:text-yellow-400" : "text-yellow-600 hover:text-yellow-800"
+        }`}
+        data-testid="button-dismiss-devnet"
+      >
+        <X className="w-3.5 h-3.5" />
+      </button>
+    </div>
   );
 };
 
@@ -346,6 +421,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
         isOpen={showPrivacyDrawer}
         onClose={() => setShowPrivacyDrawer(false)}
       />
+
+      <DevnetBanner />
 
       <main className="flex-1 p-4 md:p-8 container mx-auto max-w-7xl relative pb-20 md:pb-8">
         <div className="relative z-10">

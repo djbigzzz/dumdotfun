@@ -300,20 +300,32 @@ export default function QuestsPage() {
             </div>
           )}
 
-          {isConnected && !alreadyCheckedIn && !claimed && (
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              onClick={handleCheckIn}
-              disabled={claiming}
-              className="w-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between disabled:opacity-70"
-              data-testid="button-daily-checkin-quests"
-            >
-              <div className="flex items-center gap-2">
-                <CalendarCheck className="w-5 h-5 text-black" />
-                <span className="text-black font-black text-sm">{claiming ? "Claiming..." : "Daily Check-in"}</span>
+          {isConnected && (
+            (alreadyCheckedIn || claimed) ? (
+              <div className={`w-full rounded-lg p-3 flex items-center justify-between ${pm ? "border border-[#4ADE80]/30 bg-zinc-900/60" : "border-2 border-black bg-green-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="card-checkin-done">
+                <div className="flex items-center gap-2">
+                  <Check className={`w-5 h-5 ${pm ? "text-[#4ADE80]" : "text-green-600"}`} />
+                  <span className={`font-black text-sm ${pm ? "text-[#4ADE80]" : "text-green-700"}`}>Checked in today!</span>
+                  {streak > 0 && <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/60" : "text-green-500"}`}>🔥 {streak} day streak</span>}
+                </div>
+                <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/50" : "text-green-500"}`}>Come back tomorrow</span>
               </div>
-              <span className="bg-white border-2 border-black rounded px-2 py-0.5 text-green-600 font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+10</span>
-            </motion.button>
+            ) : (
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                onClick={handleCheckIn}
+                disabled={claiming}
+                className="w-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between disabled:opacity-70"
+                data-testid="button-daily-checkin-quests"
+              >
+                <div className="flex items-center gap-2">
+                  <CalendarCheck className="w-5 h-5 text-black" />
+                  <span className="text-black font-black text-sm">{claiming ? "Claiming..." : "Daily Check-in"}</span>
+                  {streak > 0 && <span className="text-xs font-bold text-green-900/60">🔥 {streak} day streak</span>}
+                </div>
+                <span className="bg-white border-2 border-black rounded px-2 py-0.5 text-green-600 font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+10</span>
+              </motion.button>
+            )
           )}
 
           <div className="grid md:grid-cols-5 gap-5">
@@ -421,30 +433,52 @@ export default function QuestsPage() {
                     className="w-full max-h-[320px] object-contain rounded"
                   />
                 </div>
-                <div className="p-3 space-y-2">
+                <div className="p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
                       <p className={`font-black text-sm ${hd}`}>DUM OG Card</p>
-                      <p className={`text-[11px] ${sub}`}>1.5x points multiplier + future perks</p>
+                      <p className={`text-[11px] ${sub}`}>Lifetime membership NFT</p>
                     </div>
-                    <span className={`text-xs font-bold ${pm ? "text-purple-400" : "text-purple-600"}`}>0.2 SOL</span>
+                    <span className={`text-sm font-black px-2 py-1 rounded ${pm ? "bg-purple-900/40 text-purple-400 border border-purple-500/30" : "bg-purple-100 text-purple-700 border border-purple-300"}`}>0.2 SOL</span>
                   </div>
+
+                  <div className={`rounded-lg p-2.5 space-y-1.5 ${pm ? "bg-zinc-800/80 border border-[#4ADE80]/20" : "bg-gray-50 border border-gray-200"}`}>
+                    <p className={`text-[10px] font-black uppercase tracking-wider ${pm ? "text-[#4ADE80]/60" : "text-gray-400"}`}>OG Holder Perks</p>
+                    {[
+                      { icon: "⚡", label: "1.5x Points Multiplier", desc: "On all earned points, forever" },
+                      { icon: "🏆", label: "+500 Quest Reward", desc: "Instant points on mint" },
+                      { icon: "🎯", label: "Reduced Trading Fees", desc: "Lower fees on all trades" },
+                      { icon: "🚀", label: "Early Access", desc: "First look at new features" },
+                      { icon: "👑", label: "OG Badge", desc: "Exclusive profile badge" },
+                      { icon: "🎁", label: "Future Airdrops", desc: "Priority for token airdrops" },
+                    ].map((perk, i) => (
+                      <div key={i} className="flex items-center gap-2 py-0.5">
+                        <span className="text-sm flex-shrink-0">{perk.icon}</span>
+                        <div className="flex-1 min-w-0">
+                          <span className={`text-xs font-bold ${pm ? "text-white" : "text-zinc-800"}`}>{perk.label}</span>
+                          <span className={`text-[10px] ml-1 ${sub}`}>{perk.desc}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
                   {isConnected ? (
                     hasOg ? (
-                      <div className={`text-center py-1.5 rounded text-xs font-black ${pm ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-green-100 text-green-700"}`} data-testid="badge-og-active">
-                        Active +50% Boost
+                      <div className={`text-center py-2 rounded-lg text-xs font-black flex items-center justify-center gap-2 ${pm ? "bg-[#4ADE80]/20 text-[#4ADE80] border border-[#4ADE80]/30" : "bg-green-100 text-green-700 border-2 border-green-300"}`} data-testid="badge-og-active">
+                        <Sparkles className="w-3.5 h-3.5" />
+                        OG Card Active — All Perks Unlocked
                       </div>
                     ) : (
                       <motion.button
                         whileTap={{ scale: 0.97 }}
                         onClick={() => ogClaimMutation.mutate()}
                         disabled={ogClaimMutation.isPending}
-                        className={`w-full py-2 font-black text-xs rounded-lg ${
-                          pm ? "bg-purple-600 text-white" : "bg-purple-600 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                        } disabled:opacity-50`}
+                        className={`w-full py-2.5 font-black text-sm rounded-lg ${
+                          pm ? "bg-purple-600 text-white hover:bg-purple-500" : "bg-purple-600 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px]"
+                        } disabled:opacity-50 transition-all`}
                         data-testid="button-mint-og"
                       >
-                        {ogClaimMutation.isPending ? "Minting..." : "Mint for 0.2 SOL"}
+                        {ogClaimMutation.isPending ? "Minting..." : "Mint OG Card — 0.2 SOL"}
                       </motion.button>
                     )
                   ) : (
