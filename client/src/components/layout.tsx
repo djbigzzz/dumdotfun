@@ -255,6 +255,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/create">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> DEPLOY" : "Launch"}</span>
             </Link>
+            <Link href="/quests">
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#A855F7]/70 hover:text-[#A855F7] font-mono" : "text-gray-700 hover:text-purple-500"}`}>{privateMode ? "> QUESTS" : "Quests"}</span>
+            </Link>
             <Link href="/docs">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#00FFF0]/70 hover:text-[#00FFF0] font-mono" : "text-gray-700 hover:text-blue-500"}`}>{privateMode ? "> DOCS" : "Docs"}</span>
             </Link>

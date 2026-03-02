@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight, Flame, CalendarCheck } from "lucide-react";
+import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight, Flame, CalendarCheck, Trophy, Star } from "lucide-react";
+import { Link } from "wouter";
 import { ScrollVideo, ScrollVideoPlaceholder } from "@/components/scroll-video";
 
 interface UserWithReferrals {
@@ -115,6 +116,85 @@ function FeatureCard({ icon: Icon, title, description, color }: {
       <h3 className="text-lg font-black text-white">{title}</h3>
       <p className="text-sm text-gray-400 leading-relaxed">{description}</p>
     </motion.div>
+  );
+}
+
+function QuestsTeaser() {
+  const { connectedWallet } = useWallet();
+
+  const { data: pointsData } = useQuery<{
+    totalPoints: number;
+    tier: string;
+    tierLabel: string;
+    streak: number;
+    completedQuests: string[];
+    questDefinitions: { action: string; completed: boolean; repeatable: boolean }[];
+  } | null>({
+    queryKey: ["points-teaser", connectedWallet],
+    queryFn: async () => {
+      if (!connectedWallet) return null;
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+  });
+
+  const TIER_COLORS: Record<string, string> = {
+    pill_popper: "#EC4899",
+    bonding_curve: "#3B82F6",
+    degen: "#EAB308",
+    rug_proof: "#22C55E",
+    solana_god: "#06B6D4",
+  };
+
+  const completedCount = pointsData?.questDefinitions?.filter(q => q.completed).length || 0;
+  const totalQuests = pointsData?.questDefinitions?.filter(q => !q.repeatable).length || 9;
+  const tierColor = TIER_COLORS[pointsData?.tier || "pill_popper"] || "#EC4899";
+
+  return (
+    <Link href="/quests">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -2, x: -2 }}
+        className="mb-2 cursor-pointer"
+        data-testid="banner-quests-teaser"
+      >
+        <div className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 border-2 border-black rounded-xl p-3.5 md:p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 md:w-10 md:h-10 rounded-lg bg-white/20 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-yellow-300" />
+            </div>
+            <div>
+              {connectedWallet && pointsData ? (
+                <>
+                  <p className="text-white font-black text-sm">
+                    <span style={{ color: tierColor }}>{pointsData.tierLabel}</span>
+                    {" · "}
+                    {pointsData.totalPoints.toLocaleString()} pts
+                  </p>
+                  <p className="text-white/60 text-xs font-medium">
+                    {completedCount}/{totalQuests} quests done
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white font-black text-sm">Earn Points & Rewards</p>
+                  <p className="text-white/60 text-xs font-medium">
+                    10 quests available · Climb the leaderboard
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
+            <span className="text-white font-bold text-xs">View</span>
+            <ChevronRight className="w-3.5 h-3.5 text-white" />
+          </div>
+        </div>
+      </motion.div>
+    </Link>
   );
 }
 
@@ -350,6 +430,7 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-4 space-y-12">
 
           <DailyCheckInBanner />
+          <QuestsTeaser />
 
           {/* Hero Section */}
           <motion.section
