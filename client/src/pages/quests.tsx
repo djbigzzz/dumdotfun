@@ -358,14 +358,14 @@ export default function QuestsPage() {
 
               <h2 className={`text-base font-black ${hd}`}>{pm ? "> OG_CARD" : "OG Card"}</h2>
               <div className={`${card} overflow-hidden`} data-testid="card-og-mint">
-                <div className="relative aspect-[9/16] max-h-[280px] w-full overflow-hidden bg-black">
+                <div className="w-full bg-black flex items-center justify-center p-3">
                   <video
                     src="/assets/og-card.mp4"
                     autoPlay
                     loop
                     muted
                     playsInline
-                    className="w-full h-full object-cover"
+                    className="w-full max-h-[320px] object-contain rounded"
                   />
                 </div>
                 <div className="p-3 space-y-2">
