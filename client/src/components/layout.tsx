@@ -236,11 +236,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <header className={`p-3 md:p-4 border-b-2 flex justify-between items-center transition-colors duration-300 relative z-20 ${
         privateMode ? "bg-black/90 border-[#4ADE80]/30 backdrop-blur-sm" : "bg-white border-black"
       } ${privateMode ? "scanline-effect" : ""}`}>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4 lg:gap-6">
           <Link href="/">
-            <div className="flex items-center gap-3 cursor-pointer hover:scale-105 transition-transform">
+            <div className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
               <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
-              <h1 className={`text-xl md:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
+              <h1 className={`text-xl md:text-2xl lg:text-3xl font-black tracking-tighter uppercase hidden sm:block ${
                   privateMode ? "text-[#4ADE80] font-mono" : "text-red-500"
                 }`} style={{ textShadow: privateMode ? "0 0 8px rgba(57,255,20,0.4)" : "2px 2px 0px hsl(60 100% 50%)" }}>
                 DUM.FUN
@@ -248,7 +248,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
           </Link>
           
-          <nav className="hidden md:flex items-center gap-4">
+          <nav className="hidden md:flex items-center gap-3 lg:gap-4">
             <Link href="/tokens">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> TOKENS" : "Tokens"}</span>
             </Link>

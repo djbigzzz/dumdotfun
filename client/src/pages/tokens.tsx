@@ -3,10 +3,11 @@ import { TokenCard } from "@/components/token-card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles, Trophy } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { usePrivacy } from "@/lib/privacy-context";
+import { useWallet } from "@/lib/wallet-context";
 
 interface TokenPrediction {
   id: string;
@@ -57,6 +58,88 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
   if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
   if (usdValue) return `$${usdValue.toFixed(2)}`;
   return "$0.00";
+}
+
+function QuestsTeaser() {
+  const { connectedWallet } = useWallet();
+  const { privateMode } = usePrivacy();
+
+  const { data: pointsData } = useQuery<{
+    totalPoints: number;
+    tier: string;
+    tierLabel: string;
+    questDefinitions: { action: string; completed: boolean; repeatable: boolean }[];
+  } | null>({
+    queryKey: ["points-teaser", connectedWallet],
+    queryFn: async () => {
+      if (!connectedWallet) return null;
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+  });
+
+  const TIER_COLORS: Record<string, string> = {
+    pill_popper: "#EC4899",
+    bonding_curve: "#3B82F6",
+    degen: "#EAB308",
+    rug_proof: "#22C55E",
+    solana_god: "#06B6D4",
+  };
+
+  const completedCount = pointsData?.questDefinitions?.filter(q => q.completed).length || 0;
+  const totalQuests = pointsData?.questDefinitions?.filter(q => !q.repeatable).length || 9;
+  const tierColor = TIER_COLORS[pointsData?.tier || "pill_popper"] || "#EC4899";
+
+  return (
+    <Link href="/quests">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        whileHover={{ y: -2, x: -2 }}
+        className="cursor-pointer"
+        data-testid="banner-quests-teaser"
+      >
+        <div className={`w-full border-2 rounded-xl p-3 md:p-3.5 flex items-center justify-between gap-3 ${
+          privateMode
+            ? "bg-purple-900/30 border-purple-500/50 shadow-[4px_4px_0px_0px_rgba(168,85,247,0.3)]"
+            : "bg-gradient-to-r from-purple-600 to-indigo-600 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+        }`}>
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-yellow-300" />
+            </div>
+            <div>
+              {connectedWallet && pointsData ? (
+                <>
+                  <p className="text-white font-black text-sm">
+                    <span style={{ color: tierColor }}>{pointsData.tierLabel}</span>
+                    {" · "}
+                    {pointsData.totalPoints.toLocaleString()} pts
+                  </p>
+                  <p className="text-white/60 text-xs font-medium">
+                    {completedCount}/{totalQuests} quests done
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-white font-black text-sm">Earn Points & Rewards</p>
+                  <p className="text-white/60 text-xs font-medium">
+                    10 quests available · Climb the leaderboard
+                  </p>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
+            <span className="text-white font-bold text-xs">View</span>
+            <ChevronRight className="w-3.5 h-3.5 text-white" />
+          </div>
+        </div>
+      </motion.div>
+    </Link>
+  );
 }
 
 export default function TokensPage() {
@@ -137,6 +220,7 @@ export default function TokensPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        <QuestsTeaser />
         {/* Now Trending Section */}
         {trendingTokens.length > 0 && (
           <div className="space-y-3">
