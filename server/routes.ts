@@ -4327,6 +4327,19 @@ export async function registerRoutes(
     }
   });
 
+  app.post("/api/points/claim-quest", async (req, res) => {
+    try {
+      const { walletAddress, questAction } = req.body;
+      if (!walletAddress || !questAction) return res.status(400).json({ error: "walletAddress and questAction required" });
+      const { awardQuest } = await import("./services/points");
+      const result = await awardQuest(walletAddress, questAction);
+      return res.json(result);
+    } catch (error: any) {
+      console.error("[Points] Claim quest error:", error);
+      return res.status(500).json({ error: "Failed to claim quest" });
+    }
+  });
+
   app.post("/api/points/claim-og", async (req, res) => {
     try {
       const { walletAddress, txSignature } = req.body;

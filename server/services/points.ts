@@ -15,7 +15,7 @@ const TIERS = [
 interface QuestDefinition {
   id: string;
   action: string;
-  category: "onboarding" | "activity" | "streaks" | "special";
+  category: "onboarding" | "activity" | "streaks" | "special" | "og_exclusive";
   title: string;
   description: string;
   points: number;
@@ -33,6 +33,7 @@ const QUESTS: QuestDefinition[] = [
   { id: "streak_7", action: "streak_7", category: "streaks", title: "7-Day Streak", description: "Check in 7 days in a row", points: 150, repeatable: false },
   { id: "streak_30", action: "streak_30", category: "streaks", title: "30-Day Streak", description: "Check in 30 days in a row", points: 600, repeatable: false },
   { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", points: 50, repeatable: false },
+  { id: "og_secret_quest", action: "og_secret_quest", category: "og_exclusive", title: "OG Secret Mission", description: "A secret quest only for OG Card holders", points: 500, repeatable: false },
 ];
 
 function calculateTier(points: number): string {
@@ -209,6 +210,15 @@ export async function awardDailyLogin(walletAddress: string): Promise<{ awarded:
   return { awarded: true, points: dailyResult.finalPoints, streak: newStreak, streakBonus: streakBonus || undefined };
 }
 
+function canAutoComplete(action: string, _walletAddress: string, up: any): boolean {
+  switch (action) {
+    case "og_secret_quest":
+      return !!up.ogNftMint;
+    default:
+      return false;
+  }
+}
+
 export async function getUserPointsData(walletAddress: string) {
   const up = await getOrCreateUserPoints(walletAddress);
   const history = await db.select().from(pointsHistory)
@@ -221,15 +231,20 @@ export async function getUserPointsData(walletAddress: string) {
   const dailyDone = up.lastDailyLogin && isSameDay(new Date(up.lastDailyLogin), new Date());
   const tierInfo = getTierInfo(up.tier);
 
-  const questList = QUESTS.map(q => ({
-    action: q.action,
-    points: q.points,
-    completed: q.repeatable ? false : completedActions.has(q.id),
-    repeatable: q.repeatable,
-    category: q.category,
-    title: q.title,
-    description: q.description,
-  }));
+  const isOgHolder = !!up.ogNftMint;
+
+  const questList = QUESTS
+    .filter(q => q.category !== "og_exclusive" || isOgHolder)
+    .map(q => ({
+      action: q.action,
+      points: q.points,
+      completed: q.repeatable ? false : completedActions.has(q.id),
+      repeatable: q.repeatable,
+      category: q.category,
+      title: q.title,
+      description: q.description,
+      canClaim: !q.repeatable && !completedActions.has(q.id) && canAutoComplete(q.action, walletAddress, up),
+    }));
 
   return {
     totalPoints: up.totalPoints,

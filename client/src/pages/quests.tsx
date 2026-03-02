@@ -21,6 +21,7 @@ interface QuestDef {
   category: string;
   title: string;
   description: string;
+  canClaim?: boolean;
 }
 
 interface PointsData {
@@ -59,6 +60,7 @@ const QUEST_ICONS: Record<string, React.ReactNode> = {
   streak_7: <Flame className="w-4 h-4" />,
   streak_30: <Flame className="w-4 h-4" />,
   mint_og_nft: <Gift className="w-4 h-4" />,
+  og_secret_quest: <Diamond className="w-4 h-4" />,
 };
 
 const CAT_COLORS: Record<string, string> = {
@@ -66,6 +68,7 @@ const CAT_COLORS: Record<string, string> = {
   activity: "#EAB308",
   streaks: "#F97316",
   special: "#A855F7",
+  og_exclusive: "#EC4899",
 };
 
 export default function QuestsPage() {
@@ -120,6 +123,30 @@ export default function QuestsPage() {
     },
     onError: (error: Error) => {
       toast.error(error.message.includes("User rejected") ? "Transaction cancelled" : (error.message || "Failed to mint OG Card"));
+    },
+  });
+
+  const claimQuestMutation = useMutation({
+    mutationFn: async (questAction: string) => {
+      const res = await fetch("/api/points/claim-quest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: connectedWallet, questAction }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to claim");
+      return data;
+    },
+    onSuccess: (data) => {
+      if (data.awarded) {
+        toast.success(`+${data.points} pts claimed!`);
+        queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
+      } else {
+        toast.info("Already claimed or not eligible");
+      }
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Claim failed");
     },
   });
 
@@ -286,8 +313,30 @@ export default function QuestsPage() {
             <div className="md:col-span-3 space-y-4">
               <h2 className={`text-base font-black ${hd}`}>{pm ? "> QUESTS" : "Quests"}</h2>
 
-              {Object.entries({ onboarding: "Onboarding", activity: "Activity", streaks: "Streaks", special: "Special" }).map(([catKey, catLabel]) => {
+              {Object.entries({ onboarding: "Onboarding", activity: "Activity", streaks: "Streaks", special: "Special", og_exclusive: "OG Exclusive" }).map(([catKey, catLabel]) => {
                 const catQuests = isConnected ? (groupedQuests[catKey] || []) : getDefaultQuests(catKey);
+                if (catKey === "og_exclusive" && catQuests.length === 0) {
+                  if (!isConnected || !hasOg) {
+                    return (
+                      <div key={catKey} className="space-y-1.5">
+                        <h3 className={`text-xs font-black uppercase tracking-wider`} style={{ color: CAT_COLORS[catKey] }}>
+                          {catLabel}
+                        </h3>
+                        <div className={`${card} px-3 py-3 flex items-center gap-3 opacity-60`} data-testid="quest-og-locked">
+                          <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${pm ? "bg-pink-900/30" : "bg-pink-50"}`}>
+                            <Lock className="w-4 h-4 text-pink-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-bold text-xs ${pm ? "text-white/60" : "text-zinc-500"}`}>Secret quests locked</p>
+                            <p className={`text-[11px] ${sub}`}>Mint the OG Card to unlock exclusive quests</p>
+                          </div>
+                          <span className={`text-xs font-black ${pm ? "text-pink-400/60" : "text-pink-400"}`}>+500</span>
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                }
                 if (catQuests.length === 0) return null;
                 const catColor = CAT_COLORS[catKey];
                 return (
@@ -313,11 +362,29 @@ export default function QuestsPage() {
                           <p className={`font-bold text-xs ${pm ? "text-white" : "text-zinc-900"}`}>{quest.title}</p>
                           <p className={`text-[11px] ${sub} truncate`}>{quest.description}</p>
                         </div>
-                        <span className={`text-xs font-black flex-shrink-0 ${
-                          quest.completed ? (pm ? "text-[#4ADE80]" : "text-green-500") : (pm ? "text-white/80" : "text-zinc-700")
-                        }`}>
-                          {quest.completed ? <Check className="w-3.5 h-3.5" /> : `+${quest.points}`}
-                        </span>
+                        {quest.completed ? (
+                          <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-[#4ADE80]" : "text-green-500"}`}>
+                            <Check className="w-3.5 h-3.5" />
+                          </span>
+                        ) : quest.canClaim ? (
+                          <motion.button
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => { e.stopPropagation(); claimQuestMutation.mutate(quest.action); }}
+                            disabled={claimQuestMutation.isPending}
+                            className={`text-[10px] font-black px-2.5 py-1 rounded flex-shrink-0 ${
+                              pm
+                                ? "bg-[#4ADE80] text-black hover:bg-[#4ADE80]/80"
+                                : "bg-green-500 text-white border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+                            } disabled:opacity-50`}
+                            data-testid={`button-claim-${quest.action}`}
+                          >
+                            Claim +{quest.points}
+                          </motion.button>
+                        ) : (
+                          <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-white/80" : "text-zinc-700"}`}>
+                            +{quest.points}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -438,5 +505,6 @@ function getDefaultQuests(category: string): QuestDef[] {
       { action: "mint_og_nft", points: 50, completed: false, repeatable: false, category: "special", title: "Mint OG Card", description: "Get the 1.5x points multiplier" },
     ],
   };
+  if (category === "og_exclusive") return [];
   return defaults[category] || [];
 }
