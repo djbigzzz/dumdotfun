@@ -95,47 +95,27 @@ function QuestsTeaser() {
   return (
     <Link href="/quests">
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        whileHover={{ y: -2, x: -2 }}
-        className="cursor-pointer"
+        whileHover={{ scale: 1.03 }}
+        whileTap={{ scale: 0.97 }}
+        className="cursor-pointer inline-flex"
         data-testid="banner-quests-teaser"
       >
-        <div className={`w-full border-2 rounded-xl p-3 md:p-3.5 flex items-center justify-between gap-3 ${
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 text-xs font-bold ${
           privateMode
-            ? "bg-purple-900/30 border-purple-500/50 shadow-[4px_4px_0px_0px_rgba(168,85,247,0.3)]"
-            : "bg-gradient-to-r from-purple-600 to-indigo-600 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+            ? "bg-purple-900/40 border border-purple-500/50 text-purple-300"
+            : "bg-purple-600 border-2 border-black text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
         }`}>
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-white/20 flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-yellow-300" />
-            </div>
-            <div>
-              {connectedWallet && pointsData ? (
-                <>
-                  <p className="text-white font-black text-sm">
-                    <span style={{ color: tierColor }}>{pointsData.tierLabel}</span>
-                    {" · "}
-                    {pointsData.totalPoints.toLocaleString()} pts
-                  </p>
-                  <p className="text-white/60 text-xs font-medium">
-                    {completedCount}/{totalQuests} quests done
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p className="text-white font-black text-sm">Earn Points & Rewards</p>
-                  <p className="text-white/60 text-xs font-medium">
-                    10 quests available · Climb the leaderboard
-                  </p>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 bg-white/20 rounded-lg px-3 py-1.5">
-            <span className="text-white font-bold text-xs">View</span>
-            <ChevronRight className="w-3.5 h-3.5 text-white" />
-          </div>
+          <Trophy className="w-3.5 h-3.5 text-yellow-300" />
+          {connectedWallet && pointsData ? (
+            <span>
+              <span style={{ color: tierColor }}>{pointsData.tierLabel}</span>
+              {" · "}{pointsData.totalPoints.toLocaleString()} pts
+              {" · "}{completedCount}/{totalQuests}
+            </span>
+          ) : (
+            <span>Earn Points</span>
+          )}
+          <ChevronRight className="w-3 h-3" />
         </div>
       </motion.div>
     </Link>
@@ -220,7 +200,6 @@ export default function TokensPage() {
   return (
     <Layout>
       <div className="space-y-6">
-        <QuestsTeaser />
         {/* Now Trending Section */}
         {trendingTokens.length > 0 && (
           <div className="space-y-3">
@@ -229,7 +208,9 @@ export default function TokensPage() {
                 <Flame className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} />
                 {privateMode ? "> NOW_TRENDING" : "Now Trending"}
               </h2>
-              <div className="flex gap-1">
+              <div className="flex items-center gap-2">
+                <QuestsTeaser />
+                <div className="flex gap-1">
                 <button 
                   onClick={() => scrollTrending("left")} 
                   className={`p-1.5 border-2 rounded transition-all ${privateMode ? "border-[#4ADE80]/30 text-[#4ADE80] hover:border-[#4ADE80]" : "border-gray-300 hover:border-black"}`}
@@ -244,6 +225,7 @@ export default function TokensPage() {
                 >
                   <ChevronRight className="w-4 h-4" />
                 </button>
+                </div>
               </div>
             </div>
             
