@@ -8,7 +8,7 @@ import { Link } from "wouter";
 import {
   Wallet, Calendar, Gift, Trophy, Star, Flame, Shield, Diamond,
   Award, Target, TrendingUp, ChevronRight, Lock, Zap, Check,
-  CalendarCheck
+  CalendarCheck, Sparkles
 } from "lucide-react";
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
@@ -32,6 +32,8 @@ interface PointsData {
   ogNftMint: string | null;
   hasOgCard: boolean;
   ogBoost: string;
+  ogMultiplier: number;
+  totalBonusPoints: number;
   lastDailyLogin: string | null;
   streak: number;
   dailyCheckedIn: boolean;
@@ -60,7 +62,6 @@ const QUEST_ICONS: Record<string, React.ReactNode> = {
   streak_7: <Flame className="w-4 h-4" />,
   streak_30: <Flame className="w-4 h-4" />,
   mint_og_nft: <Gift className="w-4 h-4" />,
-  og_secret_quest: <Diamond className="w-4 h-4" />,
 };
 
 const CAT_COLORS: Record<string, string> = {
@@ -68,7 +69,6 @@ const CAT_COLORS: Record<string, string> = {
   activity: "#EAB308",
   streaks: "#F97316",
   special: "#A855F7",
-  og_exclusive: "#EC4899",
 };
 
 export default function QuestsPage() {
@@ -281,6 +281,14 @@ export default function QuestsPage() {
                   {currentTier.label}
                 </span>
               </div>
+              {hasOg && pointsData?.totalBonusPoints != null && pointsData.totalBonusPoints > 0 && (
+                <div className={`flex items-center gap-2 mt-2 px-2 py-1.5 rounded ${pm ? "bg-yellow-900/20 border border-yellow-500/30" : "bg-yellow-50 border border-yellow-300"}`} data-testid="text-og-bonus">
+                  <Sparkles className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
+                  <span className={`text-xs font-bold ${pm ? "text-yellow-400" : "text-yellow-700"}`}>
+                    +{pointsData.totalBonusPoints} bonus pts from 1.5x OG Card multiplier
+                  </span>
+                </div>
+              )}
               {nextTier && (
                 <div className="flex items-center gap-2">
                   <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${pm ? "bg-zinc-800" : "bg-gray-200"}`}>
@@ -313,30 +321,8 @@ export default function QuestsPage() {
             <div className="md:col-span-3 space-y-4">
               <h2 className={`text-base font-black ${hd}`}>{pm ? "> QUESTS" : "Quests"}</h2>
 
-              {Object.entries({ onboarding: "Onboarding", activity: "Activity", streaks: "Streaks", special: "Special", og_exclusive: "OG Exclusive" }).map(([catKey, catLabel]) => {
+              {Object.entries({ onboarding: "Onboarding", activity: "Activity", streaks: "Streaks", special: "Special" }).map(([catKey, catLabel]) => {
                 const catQuests = isConnected ? (groupedQuests[catKey] || []) : getDefaultQuests(catKey);
-                if (catKey === "og_exclusive" && catQuests.length === 0) {
-                  if (!isConnected || !hasOg) {
-                    return (
-                      <div key={catKey} className="space-y-1.5">
-                        <h3 className={`text-xs font-black uppercase tracking-wider`} style={{ color: CAT_COLORS[catKey] }}>
-                          {catLabel}
-                        </h3>
-                        <div className={`${card} px-3 py-3 flex items-center gap-3 opacity-60`} data-testid="quest-og-locked">
-                          <div className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${pm ? "bg-pink-900/30" : "bg-pink-50"}`}>
-                            <Lock className="w-4 h-4 text-pink-500" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className={`font-bold text-xs ${pm ? "text-white/60" : "text-zinc-500"}`}>Secret quests locked</p>
-                            <p className={`text-[11px] ${sub}`}>Mint the OG Card to unlock exclusive quests</p>
-                          </div>
-                          <span className={`text-xs font-black ${pm ? "text-pink-400/60" : "text-pink-400"}`}>+500</span>
-                        </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                }
                 if (catQuests.length === 0) return null;
                 const catColor = CAT_COLORS[catKey];
                 return (
@@ -502,9 +488,8 @@ function getDefaultQuests(category: string): QuestDef[] {
       { action: "streak_30", points: 600, completed: false, repeatable: false, category: "streaks", title: "30-Day Streak", description: "30 consecutive days" },
     ],
     special: [
-      { action: "mint_og_nft", points: 50, completed: false, repeatable: false, category: "special", title: "Mint OG Card", description: "Get the 1.5x points multiplier" },
+      { action: "mint_og_nft", points: 500, completed: false, repeatable: false, category: "special", title: "Mint OG Card", description: "Get the 1.5x points multiplier" },
     ],
   };
-  if (category === "og_exclusive") return [];
   return defaults[category] || [];
 }

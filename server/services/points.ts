@@ -32,8 +32,7 @@ const QUESTS: QuestDefinition[] = [
   { id: "daily_login", action: "daily_login", category: "streaks", title: "Daily Check-in", description: "Log in daily for bonus points", points: 10, repeatable: true },
   { id: "streak_7", action: "streak_7", category: "streaks", title: "7-Day Streak", description: "Check in 7 days in a row", points: 150, repeatable: false },
   { id: "streak_30", action: "streak_30", category: "streaks", title: "30-Day Streak", description: "Check in 30 days in a row", points: 600, repeatable: false },
-  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", points: 50, repeatable: false },
-  { id: "og_secret_quest", action: "og_secret_quest", category: "og_exclusive", title: "OG Secret Mission", description: "A secret quest only for OG Card holders", points: 500, repeatable: false },
+  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", points: 500, repeatable: false },
 ];
 
 function calculateTier(points: number): string {
@@ -216,8 +215,6 @@ function canAutoComplete(action: string, _walletAddress: string, up: any): boole
       return true;
     case "mint_og_nft":
       return !!up.ogNftMint;
-    case "og_secret_quest":
-      return !!up.ogNftMint;
     default:
       return false;
   }
@@ -237,8 +234,11 @@ export async function getUserPointsData(walletAddress: string) {
 
   const isOgHolder = !!up.ogNftMint;
 
+  const totalBonusPoints = isOgHolder
+    ? history.reduce((sum, h) => sum + (h.bonusPoints || 0), 0)
+    : 0;
+
   const questList = QUESTS
-    .filter(q => q.category !== "og_exclusive" || isOgHolder)
     .map(q => ({
       action: q.action,
       points: q.points,
@@ -259,6 +259,8 @@ export async function getUserPointsData(walletAddress: string) {
     ogNftMint: up.ogNftMint,
     hasOgCard: !!up.ogNftMint,
     ogBoost: up.ogNftMint ? "50%" : "0%",
+    ogMultiplier: isOgHolder ? OG_MULTIPLIER : 1,
+    totalBonusPoints,
     lastDailyLogin: up.lastDailyLogin,
     streak: up.streak,
     dailyCheckedIn: !!dailyDone,
