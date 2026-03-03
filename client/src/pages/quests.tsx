@@ -265,72 +265,72 @@ export default function QuestsPage() {
             </div>
           )}
 
-          {isConnected && (
-            <div className={`${card} p-4`} data-testid="card-points-summary">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: currentTier.color + "20", color: currentTier.color }}>
-                    {currentTier.icon}
-                  </div>
-                  <div>
-                    <span className={`text-lg font-black ${hd}`} data-testid="text-total-points">{totalPoints.toLocaleString()}</span>
-                    <span className={`text-sm ml-1 ${sub}`}>pts</span>
-                  </div>
-                </div>
-                <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: currentTier.color + "20", color: currentTier.color }}>
-                  {currentTier.label}
-                </span>
-              </div>
-              {hasOg && pointsData?.totalBonusPoints != null && pointsData.totalBonusPoints > 0 && (
-                <div className={`flex items-center gap-2 mt-2 px-2 py-1.5 rounded ${pm ? "bg-yellow-900/20 border border-yellow-500/30" : "bg-yellow-50 border border-yellow-300"}`} data-testid="text-og-bonus">
-                  <Sparkles className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
-                  <span className={`text-xs font-bold ${pm ? "text-yellow-400" : "text-yellow-700"}`}>
-                    +{pointsData.totalBonusPoints} bonus pts from 1.5x OG Card multiplier
-                  </span>
-                </div>
-              )}
-              {nextTier && (
-                <div className="flex items-center gap-2">
-                  <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${pm ? "bg-zinc-800" : "bg-gray-200"}`}>
-                    <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: currentTier.color }} />
-                  </div>
-                  <span className={`text-xs font-bold ${sub}`}>{nextTier.min - totalPoints} to {nextTier.label}</span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {isConnected && (
-            (alreadyCheckedIn || claimed) ? (
-              <div className={`w-full rounded-lg p-3 flex items-center justify-between ${pm ? "border border-[#4ADE80]/30 bg-zinc-900/60" : "border-2 border-black bg-green-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="card-checkin-done">
-                <div className="flex items-center gap-2">
-                  <Check className={`w-5 h-5 ${pm ? "text-[#4ADE80]" : "text-green-600"}`} />
-                  <span className={`font-black text-sm ${pm ? "text-[#4ADE80]" : "text-green-700"}`}>Checked in today!</span>
-                  {streak > 0 && <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/60" : "text-green-500"}`}>🔥 {streak} day streak</span>}
-                </div>
-                <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/50" : "text-green-500"}`}>Come back tomorrow</span>
-              </div>
-            ) : (
-              <motion.button
-                whileTap={{ scale: 0.98 }}
-                onClick={handleCheckIn}
-                disabled={claiming}
-                className="w-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between disabled:opacity-70"
-                data-testid="button-daily-checkin-quests"
-              >
-                <div className="flex items-center gap-2">
-                  <CalendarCheck className="w-5 h-5 text-black" />
-                  <span className="text-black font-black text-sm">{claiming ? "Claiming..." : "Daily Check-in"}</span>
-                  {streak > 0 && <span className="text-xs font-bold text-green-900/60">🔥 {streak} day streak</span>}
-                </div>
-                <span className="bg-white border-2 border-black rounded px-2 py-0.5 text-green-600 font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+10</span>
-              </motion.button>
-            )
-          )}
-
           <div className="grid md:grid-cols-5 gap-5">
 
             <div className="md:col-span-3 space-y-4">
+              {isConnected && (
+                <div className={`${card} p-4`} data-testid="card-points-summary">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: currentTier.color + "20", color: currentTier.color }}>
+                        {currentTier.icon}
+                      </div>
+                      <div>
+                        <span className={`text-lg font-black ${hd}`} data-testid="text-total-points">{totalPoints.toLocaleString()}</span>
+                        <span className={`text-sm ml-1 ${sub}`}>pts</span>
+                      </div>
+                    </div>
+                    <span className="text-xs font-bold px-2 py-1 rounded" style={{ backgroundColor: currentTier.color + "20", color: currentTier.color }}>
+                      {currentTier.label}
+                    </span>
+                  </div>
+                  {hasOg && pointsData?.totalBonusPoints != null && pointsData.totalBonusPoints > 0 && (
+                    <div className={`flex items-center gap-2 mt-2 px-2 py-1.5 rounded ${pm ? "bg-yellow-900/20 border border-yellow-500/30" : "bg-yellow-50 border border-yellow-300"}`} data-testid="text-og-bonus">
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
+                      <span className={`text-xs font-bold ${pm ? "text-yellow-400" : "text-yellow-700"}`}>
+                        +{pointsData.totalBonusPoints} bonus pts from 1.5x OG Card multiplier
+                      </span>
+                    </div>
+                  )}
+                  {nextTier && (
+                    <div className="flex items-center gap-2">
+                      <div className={`flex-1 h-1.5 rounded-full overflow-hidden ${pm ? "bg-zinc-800" : "bg-gray-200"}`}>
+                        <div className="h-full rounded-full transition-all" style={{ width: `${progressPct}%`, backgroundColor: currentTier.color }} />
+                      </div>
+                      <span className={`text-xs font-bold ${sub}`}>{nextTier.min - totalPoints} to {nextTier.label}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {isConnected && (
+                (alreadyCheckedIn || claimed) ? (
+                  <div className={`w-full rounded-lg p-3 flex items-center justify-between ${pm ? "border border-[#4ADE80]/30 bg-zinc-900/60" : "border-2 border-black bg-green-50 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="card-checkin-done">
+                    <div className="flex items-center gap-2">
+                      <Check className={`w-5 h-5 ${pm ? "text-[#4ADE80]" : "text-green-600"}`} />
+                      <span className={`font-black text-sm ${pm ? "text-[#4ADE80]" : "text-green-700"}`}>Checked in today!</span>
+                      {streak > 0 && <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/60" : "text-green-500"}`}>🔥 {streak} day streak</span>}
+                    </div>
+                    <span className={`text-xs font-bold ${pm ? "text-[#4ADE80]/50" : "text-green-500"}`}>Come back tomorrow</span>
+                  </div>
+                ) : (
+                  <motion.button
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleCheckIn}
+                    disabled={claiming}
+                    className="w-full bg-gradient-to-r from-green-400 to-emerald-500 border-2 border-black rounded-lg p-3 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] flex items-center justify-between disabled:opacity-70"
+                    data-testid="button-daily-checkin-quests"
+                  >
+                    <div className="flex items-center gap-2">
+                      <CalendarCheck className="w-5 h-5 text-black" />
+                      <span className="text-black font-black text-sm">{claiming ? "Claiming..." : "Daily Check-in"}</span>
+                      {streak > 0 && <span className="text-xs font-bold text-green-900/60">🔥 {streak} day streak</span>}
+                    </div>
+                    <span className="bg-white border-2 border-black rounded px-2 py-0.5 text-green-600 font-black text-xs shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">+10</span>
+                  </motion.button>
+                )
+              )}
+
               <h2 className={`text-base font-black ${hd}`}>{pm ? "> QUESTS" : "Quests"}</h2>
 
               {Object.entries({ onboarding: "Onboarding", activity: "Activity", streaks: "Streaks", special: "Special" }).map(([catKey, catLabel]) => {
