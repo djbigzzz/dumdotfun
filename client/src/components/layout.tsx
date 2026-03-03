@@ -324,9 +324,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </Link>
           
           <nav className="hidden md:flex items-center gap-3 lg:gap-4">
-            <Link href="/tokens">
-              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> TOKENS" : "Tokens"}</span>
-            </Link>
             <Link href="/create">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80] font-mono" : "text-gray-700 hover:text-red-500"}`}>{privateMode ? "> DEPLOY" : "Launch"}</span>
             </Link>
