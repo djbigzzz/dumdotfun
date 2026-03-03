@@ -96,26 +96,47 @@ export default function QuestsPage() {
       if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
       const { priceSol, platformWallet } = await infoRes.json();
       if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
-      const connection = new Connection("https://api.mainnet-beta.solana.com");
-      const fromPubkey = new PublicKey(connectedWallet!);
-      const toPubkey = new PublicKey(platformWallet);
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({ fromPubkey, toPubkey, lamports: Math.round(priceSol * LAMPORTS_PER_SOL) })
-      );
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-      const { signature } = await window.solana.signAndSendTransaction(transaction);
-      toast.info("Transaction sent! Verifying on-chain...");
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      const verifyRes = await fetch("/api/points/claim-og", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
-      });
-      const result = await verifyRes.json();
-      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
-      return result;
+
+      let switchedToMainnet = false;
+      try {
+        await window.solana.request({ method: "switchNetwork", params: { network: "mainnet-beta" } });
+        switchedToMainnet = true;
+        toast.info("Switched to mainnet for OG Card purchase...");
+      } catch (switchErr: any) {
+        if (switchErr?.code === 4001) throw new Error("User rejected network switch");
+        toast.info("Please switch Phantom to mainnet manually, then try again");
+        throw new Error("Switch your Phantom wallet to mainnet to purchase the OG Card");
+      }
+
+      try {
+        const connection = new Connection("https://api.mainnet-beta.solana.com");
+        const fromPubkey = new PublicKey(connectedWallet!);
+        const toPubkey = new PublicKey(platformWallet);
+        const transaction = new Transaction().add(
+          SystemProgram.transfer({ fromPubkey, toPubkey, lamports: Math.round(priceSol * LAMPORTS_PER_SOL) })
+        );
+        const { blockhash } = await connection.getLatestBlockhash();
+        transaction.recentBlockhash = blockhash;
+        transaction.feePayer = fromPubkey;
+        const { signature } = await window.solana.signAndSendTransaction(transaction);
+        toast.info("Transaction sent! Verifying on-chain...");
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        const verifyRes = await fetch("/api/points/claim-og", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
+        });
+        const result = await verifyRes.json();
+        if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
+        return result;
+      } finally {
+        if (switchedToMainnet) {
+          try {
+            await window.solana.request({ method: "switchNetwork", params: { network: "devnet" } });
+            toast.info("Switched back to devnet");
+          } catch {}
+        }
+      }
     },
     onSuccess: (data) => {
       toast.success(data.message || "OG Card minted!");
