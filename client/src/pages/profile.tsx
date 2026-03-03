@@ -54,11 +54,11 @@ interface LeaderboardEntry {
 }
 
 const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; bg: string; border: string }> = {
-  pill_popper: { label: "Pill Popper", color: "#EC4899", icon: <Star className="w-5 h-5" />, bg: "bg-pink-500/20", border: "border-pink-500" },
-  bonding_curve: { label: "Bonding Curve", color: "#3B82F6", icon: <TrendingUp className="w-5 h-5" />, bg: "bg-blue-500/20", border: "border-blue-500" },
-  degen: { label: "Degen", color: "#EAB308", icon: <Flame className="w-5 h-5" />, bg: "bg-yellow-500/20", border: "border-yellow-500" },
-  rug_proof: { label: "Rug Proof", color: "#22C55E", icon: <Shield className="w-5 h-5" />, bg: "bg-green-500/20", border: "border-green-500" },
-  solana_god: { label: "Solana God", color: "#06B6D4", icon: <Diamond className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400" },
+  pill_popper: { label: "Fresh Pill", color: "#EC4899", icon: <Star className="w-5 h-5" />, bg: "bg-pink-500/20", border: "border-pink-500" },
+  bonding_curve: { label: "Curve Rider", color: "#3B82F6", icon: <TrendingUp className="w-5 h-5" />, bg: "bg-blue-500/20", border: "border-blue-500" },
+  degen: { label: "Full Degen", color: "#EAB308", icon: <Flame className="w-5 h-5" />, bg: "bg-yellow-500/20", border: "border-yellow-500" },
+  rug_proof: { label: "Diamond Hands", color: "#22C55E", icon: <Shield className="w-5 h-5" />, bg: "bg-green-500/20", border: "border-green-500" },
+  solana_god: { label: "On-Chain God", color: "#06B6D4", icon: <Diamond className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400" },
 };
 
 const QUEST_ICONS: Record<string, React.ReactNode> = {

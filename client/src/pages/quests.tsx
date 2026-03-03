@@ -44,11 +44,11 @@ interface PointsData {
 }
 
 const TIERS = [
-  { key: "pill_popper", label: "Pill Popper", min: 0, max: 499, color: "#EC4899", icon: <Star className="w-4 h-4" /> },
-  { key: "bonding_curve", label: "Bonding Curve", min: 500, max: 1999, color: "#3B82F6", icon: <TrendingUp className="w-4 h-4" /> },
-  { key: "degen", label: "Degen", min: 2000, max: 4999, color: "#EAB308", icon: <Flame className="w-4 h-4" /> },
-  { key: "rug_proof", label: "Rug Proof", min: 5000, max: 9999, color: "#22C55E", icon: <Shield className="w-4 h-4" /> },
-  { key: "solana_god", label: "Solana God", min: 10000, max: Infinity, color: "#06B6D4", icon: <Diamond className="w-4 h-4" /> },
+  { key: "pill_popper", label: "Fresh Pill", min: 0, max: 499, color: "#EC4899", icon: <Star className="w-4 h-4" /> },
+  { key: "bonding_curve", label: "Curve Rider", min: 500, max: 1999, color: "#3B82F6", icon: <TrendingUp className="w-4 h-4" /> },
+  { key: "degen", label: "Full Degen", min: 2000, max: 4999, color: "#EAB308", icon: <Flame className="w-4 h-4" /> },
+  { key: "rug_proof", label: "Diamond Hands", min: 5000, max: 9999, color: "#22C55E", icon: <Shield className="w-4 h-4" /> },
+  { key: "solana_god", label: "On-Chain God", min: 10000, max: Infinity, color: "#06B6D4", icon: <Diamond className="w-4 h-4" /> },
 ];
 
 const QUEST_ICONS: Record<string, React.ReactNode> = {
@@ -192,7 +192,7 @@ export default function QuestsPage() {
   const streak = pointsData?.streak || 0;
   const hasOg = !!pointsData?.hasOgCard;
   const completedCount = quests.filter(q => q.completed).length;
-  const totalQuests = quests.filter(q => !q.repeatable).length;
+  const totalQuests = quests.length;
 
   const groupedQuests = quests.reduce((acc, q) => {
     if (!acc[q.category]) acc[q.category] = [];

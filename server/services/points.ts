@@ -5,11 +5,11 @@ import { eq, desc, sql, and } from "drizzle-orm";
 const OG_MULTIPLIER = 1.5;
 
 const TIERS = [
-  { name: "solana_god", minPoints: 10000, label: "Solana God", emoji: "💎" },
-  { name: "rug_proof", minPoints: 5000, label: "Rug Proof", emoji: "🛡️" },
-  { name: "degen", minPoints: 2000, label: "Degen", emoji: "🔥" },
-  { name: "bonding_curve", minPoints: 500, label: "Bonding Curve", emoji: "📈" },
-  { name: "pill_popper", minPoints: 0, label: "Pill Popper", emoji: "💊" },
+  { name: "solana_god", minPoints: 10000, label: "On-Chain God", emoji: "💎" },
+  { name: "rug_proof", minPoints: 5000, label: "Diamond Hands", emoji: "🛡️" },
+  { name: "degen", minPoints: 2000, label: "Full Degen", emoji: "🔥" },
+  { name: "bonding_curve", minPoints: 500, label: "Curve Rider", emoji: "📈" },
+  { name: "pill_popper", minPoints: 0, label: "Fresh Pill", emoji: "💊" },
 ];
 
 interface QuestDefinition {

@@ -25,11 +25,11 @@ const TIER_COLORS: Record<string, string> = {
 };
 
 const TIER_LABELS: Record<string, string> = {
-  solana_god: "Solana God",
-  rug_proof: "Rug Proof",
-  degen: "Degen",
-  bonding_curve: "Bonding Curve",
-  pill_popper: "Pill Popper",
+  solana_god: "On-Chain God",
+  rug_proof: "Diamond Hands",
+  degen: "Full Degen",
+  bonding_curve: "Curve Rider",
+  pill_popper: "Fresh Pill",
 };
 
 const TIER_ICONS: Record<string, React.ReactNode> = {
