@@ -4277,7 +4277,10 @@ export async function registerRoutes(
   app.get("/api/points/og-card-info", async (_req, res) => {
     const { OG_CARD_PRICE_SOL, isMintOpen } = await import("./services/points");
     const platformWallet = process.env.PLATFORM_TREASURY_WALLET || process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM";
-    return res.json({ priceSol: OG_CARD_PRICE_SOL, platformWallet, mintOpen: isMintOpen() });
+    const mainnetRpc = process.env.HELIUS_API_KEY
+      ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+      : "https://api.mainnet-beta.solana.com";
+    return res.json({ priceSol: OG_CARD_PRICE_SOL, platformWallet, mintOpen: isMintOpen(), mainnetRpc });
   });
 
   app.get("/api/points/:wallet", async (req, res) => {

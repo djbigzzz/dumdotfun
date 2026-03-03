@@ -94,10 +94,10 @@ export default function QuestsPage() {
     mutationFn: async () => {
       const infoRes = await fetch("/api/points/og-card-info");
       if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
-      const { priceSol, platformWallet } = await infoRes.json();
+      const { priceSol, platformWallet, mainnetRpc } = await infoRes.json();
       if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
 
-      const connection = new Connection("https://api.mainnet-beta.solana.com");
+      const connection = new Connection(mainnetRpc || "https://api.mainnet-beta.solana.com");
       const fromPubkey = new PublicKey(connectedWallet!);
       const toPubkey = new PublicKey(platformWallet);
       const transaction = new Transaction().add(
