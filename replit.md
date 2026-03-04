@@ -58,3 +58,8 @@ The PostgreSQL database includes tables for `users` (wallet addresses, profiles)
 -   **@solana-mobile/wallet-adapter-mobile:** For mobile wallet support.
 -   **@lightweight-charts/react-wrapper:** For interactive trading charts.
 -   **Raydium SDK V2:** For creating CPMM pools on Raydium.
+
+## Security Notes
+
+- **npm overrides:** `bfj` is overridden to `^9.1.3` in `package.json` to eliminate the transitive dependency on `jsonpath@1.2.1` (critical CVE). The `bfj` 9.x release dropped `jsonpath` entirely.
+- **bigint-buffer CVE patch:** `bigint-buffer@1.1.5` (transitive via `@solana/spl-token` → `@solana/buffer-layout-utils`) has been replaced with a pure JavaScript implementation. The postinstall script at `scripts/patch-bigint-buffer.js` overwrites the native binding entry point with a pure JS equivalent on every `npm install`. The polyfill source lives in `packages/bigint-buffer-polyfill/`.
