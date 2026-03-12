@@ -2,10 +2,10 @@ import { Layout } from "@/components/layout";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useState } from "react";
-import { Trophy, Crown, Star, ArrowLeft, Zap, Diamond, Shield, Flame, TrendingUp } from "lucide-react";
+import { Trophy, Crown, Star, Zap, Diamond, Shield, Flame, TrendingUp, Medal, Sparkles, ChevronUp } from "lucide-react";
 
 interface LeaderboardEntry {
   walletAddress: string;
@@ -42,6 +42,114 @@ const TIER_ICONS: Record<string, React.ReactNode> = {
 
 type Period = "all" | "weekly" | "daily";
 
+function PodiumCard({ entry, rank, isYou, privateMode }: { entry: LeaderboardEntry; rank: number; isYou: boolean; privateMode: boolean }) {
+  const heights = [160, 200, 130];
+  const height = heights[rank === 1 ? 1 : rank === 2 ? 0 : 2];
+  const tierColor = TIER_COLORS[entry.tier] || TIER_COLORS.pill_popper;
+  const medals = ["", "#FFD700", "#C0C0C0", "#CD7F32"];
+  const medalColor = medals[rank];
+  const sizes = { 1: "w-16 h-16", 2: "w-14 h-14", 3: "w-12 h-12" };
+  const textSizes = { 1: "text-2xl", 2: "text-xl", 3: "text-lg" };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 40 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: rank === 1 ? 0.2 : rank === 2 ? 0.1 : 0.3, type: "spring", stiffness: 100 }}
+      className={`flex flex-col items-center ${rank === 1 ? "order-2" : rank === 2 ? "order-1" : "order-3"}`}
+      style={{ flex: 1 }}
+    >
+      <div className="relative mb-3">
+        <div className={`${sizes[rank as 1|2|3]} rounded-full flex items-center justify-center border-3 ${
+          privateMode 
+            ? "bg-zinc-900 border-[#4ADE80]/50" 
+            : "bg-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+        }`} style={{ borderColor: privateMode ? tierColor : undefined }}>
+          <span className={`${textSizes[rank as 1|2|3]} font-black ${privateMode ? "text-white" : "text-black"}`}>
+            {entry.walletAddress.slice(0, 2)}
+          </span>
+        </div>
+        {rank === 1 && (
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.5, type: "spring" }}
+            className="absolute -top-3 -right-1"
+          >
+            <Crown className="w-6 h-6" style={{ color: medalColor, filter: "drop-shadow(0 1px 2px rgba(0,0,0,0.3))" }} />
+          </motion.div>
+        )}
+        {isYou && (
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black ${
+              privateMode ? "bg-[#4ADE80] text-black" : "bg-red-500 text-white"
+            }`}
+          >
+            YOU
+          </motion.div>
+        )}
+      </div>
+
+      <Link href={`/user/${entry.walletAddress}`}>
+        <span className={`font-mono text-xs font-bold cursor-pointer hover:underline mb-1 ${
+          isYou ? (privateMode ? "text-[#4ADE80]" : "text-red-500") : (privateMode ? "text-white" : "text-black")
+        }`} data-testid={`podium-wallet-${rank}`}>
+          {entry.walletAddress.slice(0, 4)}..{entry.walletAddress.slice(-3)}
+        </span>
+      </Link>
+
+      <span className="inline-flex items-center gap-1 text-[10px] font-bold mb-2" style={{ color: tierColor }}>
+        {TIER_ICONS[entry.tier]}
+        {TIER_LABELS[entry.tier]}
+      </span>
+
+      <div
+        className={`w-full rounded-t-xl flex flex-col items-center justify-start pt-4 relative overflow-hidden ${
+          privateMode
+            ? "border border-[#4ADE80]/20"
+            : "border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+        }`}
+        style={{
+          height: `${height}px`,
+          background: privateMode
+            ? `linear-gradient(180deg, ${tierColor}15 0%, ${tierColor}05 100%)`
+            : rank === 1 ? "linear-gradient(180deg, #FEF3C7 0%, #FDE68A 100%)"
+            : rank === 2 ? "linear-gradient(180deg, #F3F4F6 0%, #E5E7EB 100%)"
+            : "linear-gradient(180deg, #FED7AA 0%, #FDBA74 100%)",
+        }}
+      >
+        <span className={`text-4xl font-black mb-1 ${privateMode ? "" : ""}`} style={{ color: privateMode ? tierColor : medalColor }}>
+          #{rank}
+        </span>
+        <motion.span
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          transition={{ delay: 0.4, type: "spring" }}
+          className={`text-lg font-black font-mono ${privateMode ? "text-white" : "text-black"}`}
+          data-testid={`podium-points-${rank}`}
+        >
+          {entry.totalPoints.toLocaleString()}
+        </motion.span>
+        <span className={`text-[10px] font-bold uppercase ${privateMode ? "text-white/40" : "text-black/40"}`}>
+          points
+        </span>
+        {entry.ogNftMint && (
+          <span className="mt-1 text-[10px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
+            OG 1.5x
+          </span>
+        )}
+        {privateMode && (
+          <div className="absolute inset-0 pointer-events-none opacity-5"
+            style={{ backgroundImage: "repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(74,222,128,0.3) 3px, rgba(74,222,128,0.3) 4px)" }}
+          />
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export default function Leaderboard() {
   const { privateMode } = usePrivacy();
   const { connectedWallet } = useWallet();
@@ -68,6 +176,9 @@ export default function Leaderboard() {
     enabled: !!connectedWallet,
   });
 
+  const top3 = entries?.slice(0, 3) || [];
+  const rest = entries?.slice(3) || [];
+
   const isCurrentUserInList = entries?.some(e => e.walletAddress === connectedWallet);
   const currentUserEntry: LeaderboardEntry | null = (!isCurrentUserInList && connectedWallet && currentUserPoints) ? {
     walletAddress: connectedWallet,
@@ -76,197 +187,248 @@ export default function Leaderboard() {
     ogNftMint: currentUserPoints.ogNftMint || null,
   } : null;
 
-  const cardStyle = privateMode
-    ? "border-2 border-[#4ADE80]/50 bg-zinc-900/50 rounded-xl"
-    : "border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]";
-
-  const getRankDisplay = (index: number) => {
-    if (index === 0) return { emoji: "1st", bg: privateMode ? "bg-yellow-500/20" : "bg-yellow-300" };
-    if (index === 1) return { emoji: "2nd", bg: privateMode ? "bg-gray-400/20" : "bg-gray-200" };
-    if (index === 2) return { emoji: "3rd", bg: privateMode ? "bg-amber-700/20" : "bg-amber-200" };
-    return { emoji: `${index + 1}`, bg: "" };
+  const getPoints = (entry: LeaderboardEntry) => {
+    return period !== "all" && entry.periodPoints !== undefined ? entry.periodPoints : entry.totalPoints;
   };
 
   return (
     <Layout>
-      <div className="py-8">
+      <div className="py-6 pb-24 md:pb-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-3xl mx-auto px-4"
+          className="w-full max-w-2xl mx-auto px-4"
         >
-          <div className="space-y-6">
-            <div className="flex items-center gap-3 mb-6">
-              <Link href="/profile">
-                <span className={`cursor-pointer ${privateMode ? "text-[#4ADE80]" : "text-gray-600"} hover:opacity-70`}>
-                  <ArrowLeft className="w-5 h-5" />
-                </span>
-              </Link>
-              <div>
-                <h1 className={`text-3xl font-black ${privateMode ? "text-white font-mono" : "text-black"}`}>
-                  {privateMode ? "> LEADERBOARD" : "Leaderboard"}
-                </h1>
-                <p className={`text-sm ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
-                  {privateMode ? "// TOP_AGENTS_BY_POINTS" : "Top users ranked by points"}
-                </p>
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", stiffness: 200 }}
+              className="inline-block mb-3"
+            >
+              <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mx-auto ${
+                privateMode
+                  ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30"
+                  : "bg-yellow-100 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              }`}>
+                <Trophy className={`w-8 h-8 ${privateMode ? "text-[#4ADE80]" : "text-yellow-600"}`} />
               </div>
-            </div>
+            </motion.div>
+            <h1 className={`text-3xl font-black mb-1 ${privateMode ? "text-white font-mono" : "text-black"}`} data-testid="text-leaderboard-title">
+              {privateMode ? "> LEADERBOARD_" : "Leaderboard"}
+            </h1>
+            <p className={`text-sm ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-gray-500"}`}>
+              {privateMode ? "// ranking the top degens" : "Who's stacking the most points?"}
+            </p>
+          </div>
 
-            <div className="flex gap-2">
-              {(["all", "weekly", "daily"] as Period[]).map(p => (
-                <button
-                  key={p}
-                  onClick={() => setPeriod(p)}
-                  className={`px-4 py-2 text-sm font-black uppercase rounded-lg border-2 border-black transition-all shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${
-                    period === p
-                      ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-black text-white"
-                      : privateMode ? "bg-black text-[#4ADE80]/60 border-[#4ADE80]/30 hover:border-[#4ADE80]" : "bg-white text-gray-500 hover:border-black"
-                  }`}
-                  data-testid={`button-period-${p}`}
-                >
-                  {p === "all" ? "All Time" : p === "weekly" ? "This Week" : "Today"}
-                </button>
-              ))}
-            </div>
+          <div className="flex justify-center gap-2 mb-8">
+            {(["all", "weekly", "daily"] as Period[]).map(p => (
+              <button
+                key={p}
+                onClick={() => setPeriod(p)}
+                className={`px-5 py-2.5 text-xs font-black uppercase rounded-xl border-2 transition-all ${
+                  period === p
+                    ? privateMode
+                      ? "bg-[#4ADE80] text-black border-[#4ADE80] shadow-[0_0_20px_rgba(74,222,128,0.3)]"
+                      : "bg-black text-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"
+                    : privateMode
+                      ? "bg-transparent text-[#4ADE80]/50 border-[#4ADE80]/20 hover:border-[#4ADE80]/50"
+                      : "bg-white text-gray-400 border-gray-200 hover:border-black hover:text-black"
+                }`}
+                data-testid={`button-period-${p}`}
+              >
+                {p === "all" ? "All Time" : p === "weekly" ? "Weekly" : "Daily"}
+              </button>
+            ))}
+          </div>
 
-            {isLoading ? (
-              <div className="flex justify-center py-20">
-                <div className={`animate-spin w-8 h-8 border-4 rounded-full ${privateMode ? "border-[#4ADE80] border-t-transparent" : "border-black border-t-transparent"}`} />
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-3">
+              <div className={`animate-spin w-10 h-10 border-4 rounded-full ${privateMode ? "border-[#4ADE80] border-t-transparent" : "border-black border-t-transparent"}`} />
+              <span className={`text-sm font-bold ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-gray-400"}`}>
+                {privateMode ? "LOADING..." : "Loading rankings..."}
+              </span>
+            </div>
+          ) : top3.length > 0 ? (
+            <div className="space-y-6">
+              <div className="flex items-end gap-3 px-2">
+                {top3.map((entry, i) => (
+                  <PodiumCard
+                    key={entry.walletAddress}
+                    entry={entry}
+                    rank={i + 1}
+                    isYou={entry.walletAddress === connectedWallet}
+                    privateMode={privateMode}
+                  />
+                ))}
               </div>
-            ) : entries && entries.length > 0 ? (
-              <div className={`${cardStyle} overflow-hidden`}>
-                <div className={`grid grid-cols-12 gap-2 px-4 py-3 text-xs font-black uppercase ${privateMode ? "text-[#4ADE80]/40 bg-black/50 font-mono" : "text-gray-500 bg-gray-50"}`}>
-                  <div className="col-span-1">#</div>
-                  <div className="col-span-5">Wallet</div>
-                  <div className="col-span-2 text-center">Tier</div>
-                  <div className="col-span-2 text-center">OG</div>
-                  <div className="col-span-2 text-right">Points</div>
-                </div>
-                {entries.map((entry, i) => {
-                  const rank = getRankDisplay(i);
-                  const isYou = entry.walletAddress === connectedWallet;
-                  const tierColor = TIER_COLORS[entry.tier] || TIER_COLORS.pill_popper;
-                  return (
-                    <motion.div
-                      key={entry.walletAddress}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: i * 0.03 }}
-                      className={`grid grid-cols-12 gap-2 px-4 py-3 items-center border-t transition-colors ${
-                        isYou
-                          ? privateMode ? "bg-[#4ADE80]/10 border-[#4ADE80]/30" : "bg-yellow-50 border-yellow-200"
-                          : privateMode ? "border-[#4ADE80]/10 hover:bg-[#4ADE80]/5" : "border-gray-100 hover:bg-gray-50"
-                      }`}
-                      data-testid={`leaderboard-entry-${i}`}
-                    >
-                      <div className="col-span-1">
-                        <span className={`text-sm font-black ${
-                          i < 3 ? "text-lg" : privateMode ? "text-[#4ADE80]/60" : "text-gray-500"
-                        }`} style={i < 3 ? { color: tierColor } : {}}>
-                          {rank.emoji}
-                        </span>
-                      </div>
-                      <div className="col-span-5">
-                        <Link href={`/user/${entry.walletAddress}`}>
-                          <span className={`font-mono text-sm font-bold cursor-pointer hover:underline ${
-                            isYou
-                              ? privateMode ? "text-[#4ADE80]" : "text-red-500"
-                              : privateMode ? "text-white" : "text-black"
-                          }`}>
-                            {entry.walletAddress.slice(0, 6)}...{entry.walletAddress.slice(-4)}
-                            {isYou && <span className="ml-1 text-xs opacity-60">(you)</span>}
-                          </span>
-                        </Link>
-                      </div>
-                      <div className="col-span-2 text-center">
-                        <span className="inline-flex items-center gap-1 text-xs font-black" style={{ color: tierColor }}>
-                          {TIER_ICONS[entry.tier]}
-                          {TIER_LABELS[entry.tier] || entry.tier}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-center">
-                        {entry.ogNftMint ? (
-                          <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
-                            1.5x
-                          </span>
-                        ) : (
-                          <span className={`text-xs ${privateMode ? "text-[#4ADE80]/20" : "text-gray-300"}`}>-</span>
-                        )}
-                      </div>
-                      <div className="col-span-2 text-right">
-                        <span className={`text-sm font-black font-mono ${
-                          isYou ? (privateMode ? "text-[#4ADE80]" : "text-red-500") : (privateMode ? "text-white" : "text-black")
+
+              {rest.length > 0 && (
+                <div className={`rounded-2xl overflow-hidden ${
+                  privateMode
+                    ? "border border-[#4ADE80]/20 bg-zinc-900/50"
+                    : "border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                }`}>
+                  {rest.map((entry, i) => {
+                    const rank = i + 4;
+                    const isYou = entry.walletAddress === connectedWallet;
+                    const tierColor = TIER_COLORS[entry.tier] || TIER_COLORS.pill_popper;
+                    return (
+                      <motion.div
+                        key={entry.walletAddress}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: i * 0.03 }}
+                        className={`flex items-center gap-3 px-4 py-3.5 ${
+                          i > 0 ? (privateMode ? "border-t border-[#4ADE80]/10" : "border-t border-gray-100") : ""
+                        } ${
+                          isYou
+                            ? privateMode ? "bg-[#4ADE80]/5" : "bg-yellow-50"
+                            : privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
+                        } transition-colors`}
+                        data-testid={`leaderboard-entry-${rank}`}
+                      >
+                        <span className={`w-8 text-center text-sm font-black ${
+                          privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-400"
                         }`}>
-                          {(period !== "all" && entry.periodPoints !== undefined ? entry.periodPoints : entry.totalPoints).toLocaleString()}
+                          {rank}
                         </span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
-                {currentUserEntry && (
-                  <>
-                    <div className={`px-4 py-1 text-center text-xs font-mono ${privateMode ? "text-[#4ADE80]/30 bg-black/30" : "text-gray-400 bg-gray-50"}`}>
-                      ··· your position ···
-                    </div>
-                    <motion.div
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className={`grid grid-cols-12 gap-2 px-4 py-3 items-center border-t ${
-                        privateMode ? "bg-[#4ADE80]/10 border-[#4ADE80]/30" : "bg-yellow-50 border-yellow-200"
-                      }`}
-                      data-testid="leaderboard-entry-current-user"
-                    >
-                      <div className="col-span-1">
-                        <span className={`text-sm font-black ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
-                          50+
-                        </span>
-                      </div>
-                      <div className="col-span-5">
-                        <Link href={`/user/${currentUserEntry.walletAddress}`}>
-                          <span className={`font-mono text-sm font-bold cursor-pointer hover:underline ${
-                            privateMode ? "text-[#4ADE80]" : "text-red-500"
-                          }`}>
-                            {currentUserEntry.walletAddress.slice(0, 6)}...{currentUserEntry.walletAddress.slice(-4)}
-                            <span className="ml-1 text-xs opacity-60">(you)</span>
+
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                          privateMode
+                            ? "bg-zinc-800 border border-[#4ADE80]/20"
+                            : "bg-gray-100 border-2 border-black"
+                        }`}>
+                          <span className={`text-xs font-black ${privateMode ? "text-white" : "text-black"}`}>
+                            {entry.walletAddress.slice(0, 2)}
                           </span>
-                        </Link>
-                      </div>
-                      <div className="col-span-2 text-center">
-                        <span className="inline-flex items-center gap-1 text-xs font-black" style={{ color: TIER_COLORS[currentUserEntry.tier] || TIER_COLORS.pill_popper }}>
-                          {TIER_ICONS[currentUserEntry.tier]}
-                          {TIER_LABELS[currentUserEntry.tier] || currentUserEntry.tier}
-                        </span>
-                      </div>
-                      <div className="col-span-2 text-center">
-                        {currentUserEntry.ogNftMint ? (
-                          <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full">
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <Link href={`/user/${entry.walletAddress}`}>
+                            <span className={`font-mono text-sm font-bold cursor-pointer hover:underline block ${
+                              isYou ? (privateMode ? "text-[#4ADE80]" : "text-red-500") : (privateMode ? "text-white" : "text-black")
+                            }`}>
+                              {entry.walletAddress.slice(0, 6)}...{entry.walletAddress.slice(-4)}
+                              {isYou && <span className="ml-1.5 text-[10px] opacity-60">(you)</span>}
+                            </span>
+                          </Link>
+                          <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: tierColor }}>
+                            {TIER_ICONS[entry.tier]}
+                            {TIER_LABELS[entry.tier] || entry.tier}
+                          </span>
+                        </div>
+
+                        {entry.ogNftMint && (
+                          <span className="text-[10px] font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-0.5 rounded-full flex-shrink-0">
                             1.5x
                           </span>
-                        ) : (
-                          <span className={`text-xs ${privateMode ? "text-[#4ADE80]/20" : "text-gray-300"}`}>-</span>
                         )}
-                      </div>
-                      <div className="col-span-2 text-right">
+
+                        <div className="text-right flex-shrink-0">
+                          <span className={`text-sm font-black font-mono ${
+                            isYou ? (privateMode ? "text-[#4ADE80]" : "text-red-500") : (privateMode ? "text-white" : "text-black")
+                          }`}>
+                            {getPoints(entry).toLocaleString()}
+                          </span>
+                          <span className={`block text-[9px] font-bold uppercase ${privateMode ? "text-white/30" : "text-gray-400"}`}>
+                            pts
+                          </span>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {currentUserEntry && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className={`rounded-2xl overflow-hidden ${
+                    privateMode
+                      ? "border border-[#4ADE80]/30 bg-[#4ADE80]/5"
+                      : "border-2 border-red-300 bg-red-50 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+                  }`}
+                >
+                  <div className={`px-4 py-2 text-center text-[10px] font-black uppercase tracking-widest ${
+                    privateMode ? "text-[#4ADE80]/40 bg-[#4ADE80]/5" : "text-red-400 bg-red-100/50"
+                  }`}>
+                    Your Position
+                  </div>
+                  <div className="flex items-center gap-3 px-4 py-3.5">
+                    <span className={`w-8 text-center text-sm font-black ${
+                      privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-400"
+                    }`}>
+                      —
+                    </span>
+                    <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      privateMode
+                        ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30"
+                        : "bg-red-100 border-2 border-red-300"
+                    }`}>
+                      <span className={`text-xs font-black ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>
+                        {currentUserEntry.walletAddress.slice(0, 2)}
+                      </span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <Link href={`/user/${currentUserEntry.walletAddress}`}>
+                        <span className={`font-mono text-sm font-bold cursor-pointer hover:underline block ${
+                          privateMode ? "text-[#4ADE80]" : "text-red-500"
+                        }`}>
+                          {currentUserEntry.walletAddress.slice(0, 6)}...{currentUserEntry.walletAddress.slice(-4)}
+                          <span className="ml-1.5 text-[10px] opacity-60">(you)</span>
+                        </span>
+                      </Link>
+                      <span className="flex items-center gap-1 text-[10px] font-bold" style={{ color: TIER_COLORS[currentUserEntry.tier] || TIER_COLORS.pill_popper }}>
+                        {TIER_ICONS[currentUserEntry.tier]}
+                        {TIER_LABELS[currentUserEntry.tier] || currentUserEntry.tier}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ChevronUp className={`w-4 h-4 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-300"}`} />
+                      <div className="text-right">
                         <span className={`text-sm font-black font-mono ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>
                           {currentUserEntry.totalPoints.toLocaleString()}
                         </span>
+                        <span className={`block text-[9px] font-bold uppercase ${privateMode ? "text-white/30" : "text-gray-400"}`}>
+                          pts
+                        </span>
                       </div>
-                    </motion.div>
-                  </>
-                )}
-              </div>
-            ) : (
-              <div className={`${cardStyle} p-12 text-center`}>
-                <Trophy className={`w-12 h-12 mx-auto mb-4 ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`} />
-                <p className={`text-lg font-bold mb-2 ${privateMode ? "text-white" : "text-black"}`}>
-                  No rankings yet
-                </p>
-                <p className={`text-sm ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
-                  Be the first to earn points by completing quests!
-                </p>
-              </div>
-            )}
-          </div>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={`rounded-2xl p-16 text-center ${
+                privateMode
+                  ? "border border-[#4ADE80]/20 bg-zinc-900/50"
+                  : "border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
+              }`}
+            >
+              <Trophy className={`w-16 h-16 mx-auto mb-4 ${privateMode ? "text-[#4ADE80]/20" : "text-gray-200"}`} />
+              <p className={`text-xl font-black mb-2 ${privateMode ? "text-white" : "text-black"}`}>
+                {privateMode ? "NO_DATA_FOUND" : "No rankings yet"}
+              </p>
+              <p className={`text-sm mb-6 ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-gray-500"}`}>
+                {privateMode ? "// complete quests to earn points" : "Be the first to earn points by completing quests!"}
+              </p>
+              <Link href="/quests">
+                <span className={`inline-block px-6 py-3 rounded-xl font-black text-sm cursor-pointer transition-all ${
+                  privateMode
+                    ? "bg-[#4ADE80] text-black hover:shadow-[0_0_20px_rgba(74,222,128,0.3)]"
+                    : "bg-red-500 text-white border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-none hover:translate-x-[3px] hover:translate-y-[3px]"
+                }`} data-testid="link-start-quests">
+                  {privateMode ? "> START_QUESTS" : "Start Earning"}
+                </span>
+              </Link>
+            </motion.div>
+          )}
         </motion.div>
       </div>
     </Layout>

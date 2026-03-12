@@ -8,7 +8,7 @@ const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins, privateLabel: "TKNS" },
   { path: "/trending", label: "Trending", icon: Flame, privateLabel: "HOT" },
   { path: "/create", label: "Create", icon: Plus, privateLabel: "DEPLOY", isAction: true },
-  { path: "/quests", label: "Quests", icon: Trophy, privateLabel: "QSTS" },
+  { path: "/leaderboard", label: "Ranks", icon: Trophy, privateLabel: "RANK" },
   { path: "/profile", label: "Profile", icon: User, privateLabel: "PRFL" },
 ];
 

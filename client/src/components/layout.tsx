@@ -330,6 +330,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/quests">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#A855F7]/70 hover:text-[#A855F7] font-mono" : "text-gray-700 hover:text-purple-500"}`}>{privateMode ? "> QUESTS" : "Quests"}</span>
             </Link>
+            <Link href="/leaderboard">
+              <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#FACC15]/70 hover:text-[#FACC15] font-mono" : "text-gray-700 hover:text-yellow-500"}`}>{privateMode ? "> RANKS" : "Ranks"}</span>
+            </Link>
             <Link href="/docs">
               <span className={`font-bold transition-colors cursor-pointer ${privateMode ? "text-[#00FFF0]/70 hover:text-[#00FFF0] font-mono" : "text-gray-700 hover:text-blue-500"}`}>{privateMode ? "> DOCS" : "Docs"}</span>
             </Link>
