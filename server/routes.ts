@@ -3580,7 +3580,12 @@ export async function registerRoutes(
         }
       }
 
-      if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
+      const feeRecipient = getFeeRecipientWallet().toString();
+      const isSelfPayment = pendingBet.walletAddress === feeRecipient;
+
+      if (isSelfPayment) {
+        console.log(`[Betting] DEVNET: Self-payment detected (bettor == fee recipient), skipping amount verification`);
+      } else if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
         const lamportsSent = txInfo.meta.preBalances[0] - txInfo.meta.postBalances[0] - (txInfo.meta.fee || 0);
         const expectedLamports = pendingBet.amount * LAMPORTS_PER_SOL;
         const tolerance = expectedLamports * 0.05;
