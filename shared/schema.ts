@@ -333,6 +333,32 @@ export const pointsHistory = pgTable("points_history", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const seasons = pgTable("seasons", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: text("name").notNull(),
+  subtitle: text("subtitle"),
+  number: integer("number").notNull(),
+  status: text("status").notNull().default("active"),
+  startDate: timestamp("start_date").notNull().defaultNow(),
+  endDate: timestamp("end_date"),
+  rewardPool: decimal("reward_pool"),
+  rewardCurrency: text("reward_currency").default("SOL"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const seasonRewards = pgTable("season_rewards", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  seasonId: varchar("season_id").notNull(),
+  rank: integer("rank").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  rewardAmount: decimal("reward_amount").notNull(),
+  rewardCurrency: text("reward_currency").default("SOL"),
+  claimed: boolean("claimed").notNull().default(false),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type UserPoints = typeof userPoints.$inferSelect;
 export type QuestProgress = typeof questProgress.$inferSelect;
 export type PointsHistoryEntry = typeof pointsHistory.$inferSelect;
+export type Season = typeof seasons.$inferSelect;
+export type SeasonReward = typeof seasonRewards.$inferSelect;

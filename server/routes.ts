@@ -4335,6 +4335,36 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/seasons", async (_req, res) => {
+    try {
+      const { seasons } = await import("@shared/schema");
+      const allSeasons = await db.select().from(seasons).orderBy(sql`number DESC`);
+      return res.json(allSeasons);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to fetch seasons" });
+    }
+  });
+
+  app.get("/api/seasons/active", async (_req, res) => {
+    try {
+      const { seasons } = await import("@shared/schema");
+      const [active] = await db.select().from(seasons).where(eq(sql`status`, 'active')).limit(1);
+      return res.json(active || null);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to fetch active season" });
+    }
+  });
+
+  app.get("/api/seasons/:id/rewards", async (req, res) => {
+    try {
+      const { seasonRewards } = await import("@shared/schema");
+      const rewards = await db.select().from(seasonRewards).where(eq(seasonRewards.seasonId, req.params.id)).orderBy(sql`rank ASC`);
+      return res.json(rewards);
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to fetch season rewards" });
+    }
+  });
+
   app.post("/api/points/claim-quest", async (req, res) => {
     try {
       const { walletAddress, questAction } = req.body;
