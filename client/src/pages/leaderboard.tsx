@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useState } from "react";
 import { Trophy, Crown, Star, Diamond, Shield, Flame, TrendingUp, Sparkles, Gift, Timer, ChevronUp, ArrowUpDown } from "lucide-react";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 interface LeaderboardEntry {
   walletAddress: string;
@@ -175,6 +176,7 @@ function LeaderboardRow({ entry, rank, isYou, privateMode, reward }: {
 }
 
 export default function Leaderboard() {
+  usePageTitle("/leaderboard");
   const { privateMode } = usePrivacy();
   const { connectedWallet } = useWallet();
   const [viewMode, setViewMode] = useState<ViewMode>("seasonal");

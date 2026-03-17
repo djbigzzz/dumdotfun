@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { Buffer } from "buffer";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { Connection, Transaction } from "@solana/web3.js";
 
 if (typeof window !== "undefined") {
@@ -25,6 +26,7 @@ interface CreatedToken {
 }
 
 export default function CreateToken() {
+  usePageTitle("/create");
   const { privateMode } = usePrivacy();
   const { connectedWallet, connectWallet } = useWallet();
   const [formData, setFormData] = useState({
@@ -722,7 +724,7 @@ export default function CreateToken() {
               {imagePreview ? (
                 <div className="space-y-4">
                   <div className={`w-24 h-24 mx-auto rounded-lg overflow-hidden border-2 ${privateMode ? "border-[#4ADE80]" : "border-black"}`}>
-                    <img src={imagePreview} alt="Token" className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
+                    <img src={imagePreview} alt={`Token preview for ${(document.querySelector<HTMLInputElement>('[data-testid="input-token-name"]')?.value) || "new token"}`} className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} loading="lazy" />
                   </div>
                   <div>
                     <p className={`text-sm font-mono ${privateMode ? "text-[#4ADE80]" : "text-gray-600"}`}>{fileName}</p>

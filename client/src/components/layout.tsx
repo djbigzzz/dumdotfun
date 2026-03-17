@@ -478,6 +478,27 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
         </div>
         
+        <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-2 mb-5 text-[10px]">
+          <span className={`font-bold uppercase tracking-wider ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>
+            {privateMode ? "// built on" : "Built on"}
+          </span>
+          <a href="https://solana.com" target="_blank" rel="noopener noreferrer" className={`font-bold transition-colors ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-black"}`} data-testid="outbound-solana">
+            Solana
+          </a>
+          <span className={privateMode ? "text-[#4ADE80]/20" : "text-gray-200"}>&middot;</span>
+          <a href="https://raydium.io" target="_blank" rel="noopener noreferrer" className={`font-bold transition-colors ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-black"}`} data-testid="outbound-raydium">
+            Raydium
+          </a>
+          <span className={privateMode ? "text-[#4ADE80]/20" : "text-gray-200"}>&middot;</span>
+          <a href="https://www.helius.dev" target="_blank" rel="noopener noreferrer" className={`font-bold transition-colors ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-black"}`} data-testid="outbound-helius">
+            Helius
+          </a>
+          <span className={privateMode ? "text-[#4ADE80]/20" : "text-gray-200"}>&middot;</span>
+          <a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className={`font-bold transition-colors ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-black"}`} data-testid="outbound-phantom">
+            Phantom
+          </a>
+        </div>
+
         <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4 text-xs" aria-label="Site navigation">
           <a href="/tokens" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-tokens">
             {privateMode ? "// tokens" : "All Tokens"}

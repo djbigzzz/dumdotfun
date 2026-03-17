@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
 import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu, Trophy } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 const sections = [
   {
@@ -340,6 +341,7 @@ const faqs = [
 ];
 
 export default function DocsPage() {
+  usePageTitle("/docs");
   const { privateMode } = usePrivacy();
 
   return (

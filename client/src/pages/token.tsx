@@ -10,6 +10,7 @@ import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { TradingChart } from "@/components/trading-chart";
 import { Buffer } from "buffer";
 import { Transaction, Connection } from "@solana/web3.js";
@@ -111,6 +112,8 @@ export default function TokenPage() {
   const { privateMode } = usePrivacy();
   const { shouldEncryptBets } = useIncoPrivacy();
   const queryClient = useQueryClient();
+  const [tokenTitle, setTokenTitle] = useState<string | undefined>();
+  usePageTitle(undefined, tokenTitle);
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [tradeQuote, setTradeQuote] = useState<{ amountOut: string; priceImpact: number } | null>(null);
@@ -165,7 +168,11 @@ export default function TokenPage() {
     queryFn: async () => {
       const res = await fetch(`/api/tokens/${mint}`);
       if (!res.ok) throw new Error("Failed to fetch token");
-      return res.json();
+      const data = await res.json();
+      if (data?.name && data?.symbol) {
+        setTokenTitle(`${data.name} ($${data.symbol}) — Trade on Solana`);
+      }
+      return data;
     },
     enabled: !!mint,
     refetchInterval: 10000,
@@ -517,7 +524,7 @@ export default function TokenPage() {
               <div className="flex items-center gap-3">
                 <div className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border-2 ${privateMode ? "border-[#4ADE80]/30 bg-black" : "border-black bg-gray-100"}`}>
                   {token.imageUri ? (
-                    <img src={token.imageUri} alt={token.name} className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
+                    <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token logo`} loading="lazy" className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`} />
                   ) : (
                     <div className={`w-full h-full flex items-center justify-center font-black text-xl ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>
                       {token.symbol[0]}
@@ -639,7 +646,7 @@ export default function TokenPage() {
                             <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
                               <Link href={`/user/${activity.walletAddress}`}>
                                 <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                                  <img src={defaultAvatar} alt="" className="w-6 h-6 rounded-full border border-gray-300" />
+                                  <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
                                   <span className="hover:underline">{activity.walletAddress?.slice(0, 6)}...</span>
                                 </div>
                               </Link>

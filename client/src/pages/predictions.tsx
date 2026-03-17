@@ -7,6 +7,7 @@ import { Layout } from "@/components/layout";
 import { PrivacyBadge } from "@/components/privacy-badge";
 import { PrivacyIntegrationsCard } from "@/components/privacy-integrations-card";
 import { usePrivacy } from "@/lib/privacy-context";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 interface DFlowMarket {
   ticker: string;
@@ -156,6 +157,7 @@ function NotConfiguredBanner() {
 }
 
 export default function PredictionsPage() {
+  usePageTitle("/predictions");
   const { privateMode, togglePrivateMode } = usePrivacy();
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"volume" | "volume24h" | "liquidity">("volume");

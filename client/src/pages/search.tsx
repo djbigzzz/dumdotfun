@@ -152,7 +152,7 @@ export default function SearchPage() {
                   >
                     <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-black"}`}>
                       {token.imageUri ? (
-                        <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                        <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token`} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <div className={`w-full h-full flex items-center justify-center font-black text-sm ${privateMode ? "bg-black text-[#4ADE80]" : "bg-red-500 text-white"}`}>
                           {token.symbol[0]}

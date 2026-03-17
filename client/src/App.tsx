@@ -1,5 +1,5 @@
 import { Switch, Route } from "wouter";
-import { useEffect } from "react";
+import { useEffect, lazy, Suspense } from "react";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -9,46 +9,74 @@ import { WalletProvider } from "@/lib/wallet-context";
 import { PrivacyProvider } from "@/lib/privacy-context";
 import { initMobileApp } from "@/lib/mobile-utils";
 import NotFound from "@/pages/not-found";
-import Home from "@/pages/home";
 import TokensPage from "@/pages/tokens";
-import Profile from "@/pages/profile";
-import UserProfilePage from "@/pages/user-profile";
-import TokenPage from "@/pages/token";
-import CreateToken from "@/pages/create";
-import CreateMarket from "@/pages/create-market";
-import MarketDetail from "@/pages/market";
-import PredictionDetail from "@/pages/prediction-detail";
-import DocsPage from "@/pages/docs";
-import AdminPage from "@/pages/admin";
-import { PrivacyPolicy, EULA, Copyright } from "@/pages/legal";
-import TrendingPage from "@/pages/trending";
-import SearchPage from "@/pages/search";
-import Leaderboard from "@/pages/leaderboard";
-import QuestsPage from "@/pages/quests";
+
+const Home = lazy(() => import("@/pages/home"));
+const Profile = lazy(() => import("@/pages/profile"));
+const UserProfilePage = lazy(() => import("@/pages/user-profile"));
+const TokenPage = lazy(() => import("@/pages/token"));
+const CreateToken = lazy(() => import("@/pages/create"));
+const CreateMarket = lazy(() => import("@/pages/create-market"));
+const MarketDetail = lazy(() => import("@/pages/market"));
+const PredictionDetail = lazy(() => import("@/pages/prediction-detail"));
+const DocsPage = lazy(() => import("@/pages/docs"));
+const AdminPage = lazy(() => import("@/pages/admin"));
+const TrendingPage = lazy(() => import("@/pages/trending"));
+const SearchPage = lazy(() => import("@/pages/search"));
+const Leaderboard = lazy(() => import("@/pages/leaderboard"));
+const QuestsPage = lazy(() => import("@/pages/quests"));
+const PredictionsPage = lazy(() => import("@/pages/predictions"));
+
+const LazyLegal = lazy(() =>
+  import("@/pages/legal").then((m) => ({
+    default: m.PrivacyPolicy,
+  }))
+);
+const LazyEULA = lazy(() =>
+  import("@/pages/legal").then((m) => ({
+    default: m.EULA,
+  }))
+);
+const LazyCopyright = lazy(() =>
+  import("@/pages/legal").then((m) => ({
+    default: m.Copyright,
+  }))
+);
+
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950">
+      <div className="animate-spin w-8 h-8 border-4 border-red-500 border-t-transparent rounded-full" />
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={TokensPage} />
-      <Route path="/tokens" component={TokensPage} />
-      <Route path="/prediction/:ticker" component={PredictionDetail} />
-      <Route path="/docs" component={DocsPage} />
-      <Route path="/admin" component={AdminPage} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/user/:wallet" component={UserProfilePage} />
-      <Route path="/token/:mint" component={TokenPage} />
-      <Route path="/create" component={CreateToken} />
-      <Route path="/create-market" component={CreateMarket} />
-      <Route path="/market/:id" component={MarketDetail} />
-      <Route path="/trending" component={TrendingPage} />
-      <Route path="/search" component={SearchPage} />
-      <Route path="/leaderboard" component={Leaderboard} />
-      <Route path="/quests" component={QuestsPage} />
-      <Route path="/legal/privacy" component={PrivacyPolicy} />
-      <Route path="/legal/eula" component={EULA} />
-      <Route path="/legal/copyright" component={Copyright} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageLoader />}>
+      <Switch>
+        <Route path="/" component={TokensPage} />
+        <Route path="/tokens" component={TokensPage} />
+        <Route path="/predictions" component={PredictionsPage} />
+        <Route path="/prediction/:ticker" component={PredictionDetail} />
+        <Route path="/docs" component={DocsPage} />
+        <Route path="/admin" component={AdminPage} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/user/:wallet" component={UserProfilePage} />
+        <Route path="/token/:mint" component={TokenPage} />
+        <Route path="/create" component={CreateToken} />
+        <Route path="/create-market" component={CreateMarket} />
+        <Route path="/market/:id" component={MarketDetail} />
+        <Route path="/trending" component={TrendingPage} />
+        <Route path="/search" component={SearchPage} />
+        <Route path="/leaderboard" component={Leaderboard} />
+        <Route path="/quests" component={QuestsPage} />
+        <Route path="/legal/privacy" component={LazyLegal} />
+        <Route path="/legal/eula" component={LazyEULA} />
+        <Route path="/legal/copyright" component={LazyCopyright} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

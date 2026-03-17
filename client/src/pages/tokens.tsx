@@ -8,6 +8,7 @@ import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { usePrivacy } from "@/lib/privacy-context";
 import { useWallet } from "@/lib/wallet-context";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 interface TokenPrediction {
   id: string;
@@ -123,6 +124,7 @@ function QuestsTeaser() {
 }
 
 export default function TokensPage() {
+  usePageTitle("/tokens");
   const { privateMode } = usePrivacy();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("new");
@@ -248,7 +250,7 @@ export default function TokensPage() {
                     <div className="flex gap-3">
                       <div className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-black/20"}`}>
                         {token.imageUri ? (
-                          <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                          <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token`} loading="lazy" className="w-full h-full object-cover" />
                         ) : (
                           <div className={`w-full h-full flex items-center justify-center font-black text-xl ${privateMode ? "bg-black text-[#4ADE80]" : "bg-red-700 text-white"}`}>
                             {token.symbol[0]}
@@ -443,7 +445,7 @@ export default function TokensPage() {
                           <div className="flex items-center gap-3">
                             <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
                               {token.imageUri ? (
-                                <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                                <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token`} loading="lazy" className="w-full h-full object-cover" />
                               ) : (
                                 <div className={`w-full h-full flex items-center justify-center font-bold ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-100 text-red-500"}`}>
                                   {token.symbol[0]}

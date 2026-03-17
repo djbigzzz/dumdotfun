@@ -99,7 +99,7 @@ export default function UserProfilePage() {
 
         <div className="flex items-center gap-6 mb-8">
           <div className={`w-24 h-24 rounded-full overflow-hidden border-4 ${privateMode ? "border-[#4ADE80]" : "border-black"}`}>
-            <img src={defaultAvatar} alt="User avatar" className="w-full h-full object-cover" />
+            <img src={defaultAvatar} alt={`Profile avatar for wallet ${wallet?.slice(0, 6)}`} loading="lazy" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1">
             <h1 className={`text-2xl font-black font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -182,7 +182,7 @@ export default function UserProfilePage() {
                   >
                     <div className={`w-10 h-10 rounded-lg overflow-hidden border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
                       {token.imageUri ? (
-                        <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                        <img src={token.imageUri} alt={`${token.name} token`} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
                         <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
                           {token.symbol[0]}

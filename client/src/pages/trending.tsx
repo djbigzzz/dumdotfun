@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Flame, TrendingUp, Loader2, Zap } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 interface Token {
   mint: string;
@@ -44,6 +45,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 }
 
 export default function TrendingPage() {
+  usePageTitle("/trending");
   const { privateMode } = usePrivacy();
 
   const { data: tokens, isLoading } = useQuery<Token[]>({
@@ -180,7 +182,7 @@ function TrendingSection({ title, icon, tokens, solPrice, privateMode, showProgr
 
               <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-black"}`}>
                 {token.imageUri ? (
-                  <img src={token.imageUri} alt={token.name} className="w-full h-full object-cover" />
+                  <img src={token.imageUri} alt={`${token.name} (${token.symbol}) trending token`} loading="lazy" className="w-full h-full object-cover" />
                 ) : (
                   <div className={`w-full h-full flex items-center justify-center font-black text-sm ${privateMode ? "bg-black text-[#4ADE80]" : "bg-red-500 text-white"}`}>
                     {token.symbol[0]}

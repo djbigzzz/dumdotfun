@@ -71,7 +71,8 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
               {token.imageUri ? (
                 <img 
                   src={token.imageUri} 
-                  alt={token.name} 
+                  alt={`${token.name} (${token.symbol}) token image`}
+                  loading="lazy" 
                   className={`w-full h-full object-cover ${privateMode ? "opacity-80 sepia brightness-90 saturate-150 hue-rotate-60" : ""}`}
                 />
               ) : (

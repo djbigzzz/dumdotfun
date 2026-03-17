@@ -5,6 +5,7 @@ import { usePrivacy } from "@/lib/privacy-context";
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link } from "wouter";
+import { usePageTitle } from "@/hooks/use-page-title";
 import {
   Wallet, Calendar, Gift, Trophy, Star, Flame, Shield, Diamond,
   Award, Target, TrendingUp, ChevronRight, Lock, Zap, Check,
@@ -72,6 +73,7 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 export default function QuestsPage() {
+  usePageTitle("/quests");
   const { privateMode } = usePrivacy();
   const { connectedWallet, connectWallet } = useWallet();
   const queryClient = useQueryClient();
