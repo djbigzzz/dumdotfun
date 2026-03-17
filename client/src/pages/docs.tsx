@@ -1,352 +1,561 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
-import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu, Trophy } from "lucide-react";
+import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu, Trophy, ExternalLink, Award } from "lucide-react";
 import { usePrivacy } from "@/lib/privacy-context";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useState } from "react";
 
-const sections = [
-  {
-    id: "what-is-dumfun",
-    icon: Rocket,
-    title: "What is dum.fun?",
-    content: `**The Privacy-First Meme Token Launchpad**
+interface DocSection {
+  id: string;
+  icon: React.ElementType;
+  title: string;
+  content: React.ReactNode;
+}
 
-dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with built-in privacy features that protect your trading activity.
+function Table({ headers, rows, privateMode }: { headers: string[]; rows: string[][]; privateMode: boolean }) {
+  return (
+    <div className="overflow-x-auto my-4">
+      <table className={`w-full text-sm border-collapse rounded-lg overflow-hidden ${privateMode ? "border border-[#4ADE80]/20" : "border border-gray-200"}`}>
+        <thead>
+          <tr className={privateMode ? "bg-[#4ADE80]/10" : "bg-gray-50"}>
+            {headers.map((h, i) => (
+              <th key={i} className={`px-4 py-2.5 text-left font-bold text-xs uppercase tracking-wider ${
+                privateMode ? "text-[#4ADE80] border-b border-[#4ADE80]/20" : "text-gray-600 border-b border-gray-200"
+              }`}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row, i) => (
+            <tr key={i} className={`${i % 2 === 0 ? (privateMode ? "bg-zinc-900/30" : "bg-white") : (privateMode ? "bg-zinc-800/30" : "bg-gray-50/50")} ${
+              privateMode ? "border-b border-[#4ADE80]/5" : "border-b border-gray-100"
+            }`}>
+              {row.map((cell, j) => (
+                <td key={j} className={`px-4 py-2.5 ${j === 0 ? "font-semibold" : ""} ${privateMode ? "text-white/80" : "text-gray-700"}`}>{cell}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
 
-**Core Features:**
+function Heading({ children, privateMode }: { children: React.ReactNode; privateMode: boolean }) {
+  return (
+    <h3 className={`font-bold text-base mt-5 mb-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
+      {children}
+    </h3>
+  );
+}
 
-| Feature | Description |
-|---------|-------------|
-| Token Launchpad | Create SPL tokens with bonding curve pricing |
-| Prediction Markets | Bet on whether tokens will succeed |
-| Privacy Mode | Hide your bet amounts and trading activity |
-| Stealth Addresses | Receive tokens without revealing your wallet |
+function P({ children, privateMode }: { children: React.ReactNode; privateMode: boolean }) {
+  return <p className={`mb-3 text-sm leading-relaxed ${privateMode ? "text-white/70" : "text-gray-600"}`}>{children}</p>;
+}
 
-**How It Works:**
+function Ul({ items, privateMode }: { items: React.ReactNode[]; privateMode: boolean }) {
+  return (
+    <ul className={`space-y-1.5 mb-3 ml-1 ${privateMode ? "text-white/70" : "text-gray-600"}`}>
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-2 text-sm">
+          <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${privateMode ? "bg-[#4ADE80]/50" : "bg-red-400"}`} />
+          <span>{item}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
 
-1. **Connect Phantom Wallet** - Click "LOG IN" in header
-2. **Get Devnet SOL** - Use the airdrop button (we're on Solana devnet)
-3. **Launch a Token** - Go to Launch, fill in details, deploy on-chain
-4. **Trade on Bonding Curve** - Buy and sell tokens with automatic pricing
-5. **Enable Privacy Mode** - Click the 👁 toggle for encrypted betting
-6. **Bet on Predictions** - Each token has prediction markets you can bet on
+function Ol({ items, privateMode }: { items: React.ReactNode[]; privateMode: boolean }) {
+  return (
+    <ol className={`space-y-2 mb-3 ml-1 ${privateMode ? "text-white/70" : "text-gray-600"}`}>
+      {items.map((item, i) => (
+        <li key={i} className="flex gap-3 text-sm">
+          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
+            privateMode ? "bg-[#4ADE80]/15 text-[#4ADE80]" : "bg-red-100 text-red-600"
+          }`}>{i + 1}</span>
+          <span className="pt-0.5">{item}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
-**Network:** Solana Devnet (testnet - no real money)`
-  },
-  {
-    id: "why-privacy",
-    icon: Eye,
-    title: "Why Privacy Matters",
-    content: `**Your Wallet is a Public Diary**
+function Badge({ children, color, privateMode }: { children: React.ReactNode; color: string; privateMode: boolean }) {
+  return (
+    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
+      privateMode ? `bg-${color}-500/15 text-${color}-400 border border-${color}-500/20` : `bg-${color}-100 text-${color}-700`
+    }`}>{children}</span>
+  );
+}
 
-Every Solana transaction you make is permanently recorded on a public blockchain. Anyone can see:
-- Your entire transaction history
-- Every token you've ever bought or sold
-- Your wallet balance and holdings
-- Who you've sent money to and received from
+function FeatureCard({ emoji, title, desc, privateMode }: { emoji: string; title: string; desc: string; privateMode: boolean }) {
+  return (
+    <div className={`p-3 rounded-lg border ${privateMode ? "border-[#4ADE80]/10 bg-zinc-800/30" : "border-gray-100 bg-gray-50"}`}>
+      <div className="flex items-start gap-2">
+        <span className="text-lg">{emoji}</span>
+        <div>
+          <div className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>{title}</div>
+          <div className={`text-xs mt-0.5 ${privateMode ? "text-white/50" : "text-gray-500"}`}>{desc}</div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-**Real Consequences of Surveillance:**
+function buildSections(pm: boolean): DocSection[] {
+  return [
+    {
+      id: "what-is-dumfun",
+      icon: Rocket,
+      title: "What is dum.fun?",
+      content: (
+        <>
+          <Heading privateMode={pm}>The Privacy-First Meme Token Launchpad</Heading>
+          <P privateMode={pm}>
+            dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with built-in privacy features that protect your trading activity. Winner of the <strong>Solana Privacy Hackathon 2026</strong> and recipient of a <strong>Solana Foundation Ireland grant</strong>.
+          </P>
 
-🔍 **Wallet Tracking Services** analyze millions of wallets to identify "whales" and track their moves. When you buy a token, bots can front-run your trades.
+          <Table privateMode={pm}
+            headers={["Feature", "Description"]}
+            rows={[
+              ["Token Launchpad", "Create SPL tokens with bonding curve pricing — free and instant"],
+              ["Prediction Markets", "Bet on whether tokens will survive, graduate, or rug"],
+              ["Privacy Mode", "Hide your bet amounts and trading activity with 7 privacy protocols"],
+              ["Stealth Addresses", "Receive tokens without revealing your wallet address"],
+              ["Seasonal Leaderboard", "Compete for SOL rewards in seasonal rankings"],
+              ["Raydium Migration", "Tokens auto-graduate to Raydium DEX at 85 SOL liquidity"],
+            ]}
+          />
 
-💰 **Employers & Tax Authorities** can link your wallet to your identity through exchange KYC records, seeing every degen play you've made.
+          <Heading privateMode={pm}>How It Works</Heading>
+          <Ol privateMode={pm} items={[
+            <><strong>Connect Phantom Wallet</strong> — Click "LOG IN" in the header</>,
+            <><strong>Get Devnet SOL</strong> — Use the airdrop button (we're on Solana devnet)</>,
+            <><strong>Launch a Token</strong> — Go to Launch, fill in details, deploy on-chain</>,
+            <><strong>Trade on Bonding Curve</strong> — Buy and sell tokens with automatic pricing</>,
+            <><strong>Enable Privacy Mode</strong> — Click the eye toggle for encrypted betting</>,
+            <><strong>Bet on Predictions</strong> — Each token has prediction markets you can bet on</>,
+          ]} />
 
-🎯 **Hackers & Scammers** target wallets with large balances. Your wealth is visible to everyone.
+          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
+            pm ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+          }`}>
+            Network: Solana Devnet (testnet — no real money)
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "why-privacy",
+      icon: Eye,
+      title: "Why Privacy Matters",
+      content: (
+        <>
+          <Heading privateMode={pm}>Your Wallet is a Public Diary</Heading>
+          <P privateMode={pm}>
+            Every Solana transaction you make is permanently recorded on a public blockchain. Anyone can see your entire history, holdings, and who you transact with.
+          </P>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+            <FeatureCard emoji="🔍" title="Wallet Tracking" desc="Bots track whale wallets and front-run your trades" privateMode={pm} />
+            <FeatureCard emoji="💰" title="Tax Exposure" desc="Employers & authorities can link your wallet via KYC" privateMode={pm} />
+            <FeatureCard emoji="🎯" title="Hacker Targets" desc="Large balances are visible, making you a target" privateMode={pm} />
+            <FeatureCard emoji="🏢" title="Data Selling" desc="Corporations profile and sell your on-chain behavior" privateMode={pm} />
+          </div>
 
-🏢 **Corporations** build profiles on crypto users, selling your on-chain behavior to advertisers.
+          <Heading privateMode={pm}>Privacy is a Right, Not a Crime</Heading>
+          <Ul privateMode={pm} items={[
+            <><strong>Personal Safety</strong> — Protect yourself from targeted attacks</>,
+            <><strong>Business Confidentiality</strong> — Keep trading strategies private</>,
+            <><strong>Financial Freedom</strong> — Transact without surveillance capitalism</>,
+            <><strong>Human Rights</strong> — A fundamental right recognized by the UN</>,
+          ]} />
 
-**Privacy is Not About Hiding Bad Behavior**
+          <P privateMode={pm}>
+            dum.fun integrates privacy-preserving technologies so you can launch tokens, bet on predictions, and trade — all without exposing your identity or strategy.
+          </P>
+        </>
+      ),
+    },
+    {
+      id: "surveillance-explained",
+      icon: Eye,
+      title: "Understanding Wallet Surveillance",
+      content: (
+        <>
+          <Heading privateMode={pm}>How You're Being Tracked</Heading>
 
-Privacy is about:
-- 🛡️ **Personal Safety** - Protecting yourself from targeted attacks
-- 💼 **Business Confidentiality** - Keeping trading strategies private
-- 🔐 **Financial Freedom** - Transacting without surveillance capitalism
-- 🌍 **Human Rights** - A fundamental right recognized by the UN
+          <Table privateMode={pm}
+            headers={["Threat", "How It Works", "Impact"]}
+            rows={[
+              ["Block Explorers", "Index and make all transactions searchable (Solscan, SolanaFM)", "Complete wallet history exposed"],
+              ["Analytics Companies", "Chainalysis, Elliptic build identity graphs linking wallets to people", "Your name tied to every transaction"],
+              ["MEV Bots", "Monitor pending transactions and front-run large trades", "Value extracted from your trades"],
+              ["Exchange Data", "KYC data links your identity to deposit addresses", "Entire on-chain history tied to you"],
+            ]}
+          />
 
-**What We're Building**
+          <Heading privateMode={pm}>Privacy Best Practices</Heading>
+          <Ul privateMode={pm} items={[
+            "Use different wallets for different purposes",
+            "Utilize stealth addresses for receiving funds",
+            "Enable confidential transfers when available",
+            "Break on-chain links with privacy tools",
+            "Don't reuse addresses unnecessarily",
+          ]} />
+        </>
+      ),
+    },
+    {
+      id: "devnet-status",
+      icon: Shield,
+      title: "Platform Status",
+      content: (
+        <>
+          <Heading privateMode={pm}>Live on Solana Devnet</Heading>
+          <P privateMode={pm}>
+            Deploy real SPL tokens on Solana devnet with integrated prediction markets, gamified quests, and seasonal leaderboards.
+          </P>
 
-dum.fun integrates privacy-preserving technologies so you can:
-- Launch tokens without revealing your main wallet
-- Bet on predictions with encrypted amounts
-- Receive tokens at stealth addresses nobody can trace
-- Trade without exposing your strategy
+          <Table privateMode={pm}
+            headers={["Feature", "Status"]}
+            rows={[
+              ["On-chain token creation", "✅ Live"],
+              ["Phantom wallet connection", "✅ Live"],
+              ["Bonding curve trading", "✅ Live"],
+              ["Prediction markets", "✅ Live"],
+              ["7 privacy protocols", "✅ Live"],
+              ["Quests & points system", "✅ Live"],
+              ["Seasonal leaderboard", "✅ Live"],
+              ["Raydium DEX migration", "✅ Live"],
+              ["OG Card NFT", "✅ Live"],
+              ["Solana mainnet", "🔜 Coming soon"],
+            ]}
+          />
+        </>
+      ),
+    },
+    {
+      id: "platform-overview",
+      icon: Zap,
+      title: "Platform Overview",
+      content: (
+        <>
+          <P privateMode={pm}>
+            dum.fun is a Solana-based token launchpad with integrated prediction markets. Unlike other launchpads, every token launched here automatically gets prediction markets attached — so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
+          </P>
+          <P privateMode={pm}>
+            We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens — with full privacy built in.
+          </P>
 
-**Privacy is a right. Anonymity is power.**`
-  },
-  {
-    id: "surveillance-explained",
-    icon: Eye,
-    title: "Understanding Wallet Surveillance",
-    content: `**How You're Being Tracked**
+          <Table privateMode={pm}
+            headers={["Component", "What It Does"]}
+            rows={[
+              ["Launchpad", "Create SPL tokens with automatic bonding curves"],
+              ["Prediction Markets", "Bet YES/NO on token outcomes with real SOL"],
+              ["Privacy Layer", "7 protocols for confidential trading and stealth receiving"],
+              ["Gamification", "Quests, points, tiers, OG Card, seasonal leaderboard"],
+              ["DEX Migration", "Auto-graduate to Raydium CPMM pools at 85 SOL"],
+            ]}
+          />
+        </>
+      ),
+    },
+    {
+      id: "how-it-works",
+      icon: Rocket,
+      title: "How Does It Work?",
+      content: (
+        <>
+          <Heading privateMode={pm}>Launching a Token</Heading>
+          <Ol privateMode={pm} items={[
+            "Connect your Phantom wallet",
+            "Fill in token details (name, symbol, description, image)",
+            "Pay the 0.05 SOL creation fee",
+            "Your token is live with a bonding curve!",
+          ]} />
 
-**1. Block Explorers**
-Every transaction you make is indexed and searchable. Sites like Solscan, SolanaFM, and others make it trivial to:
-- View your complete wallet history
-- See every token you hold
-- Track every address you interact with
+          <Heading privateMode={pm}>Trading Tokens</Heading>
+          <P privateMode={pm}>
+            Tokens start on a bonding curve — early buyers get lower prices. As more people buy, the price increases. When the bonding curve reaches 85 SOL in liquidity, the token "graduates" to Raydium DEX with real liquidity.
+          </P>
 
-**2. On-Chain Analytics Companies**
-Companies like Chainalysis, Elliptic, and TRM Labs:
-- Build identity graphs linking wallets to real people
-- Sell data to governments, exchanges, and institutions
-- Use machine learning to de-anonymize transactions
+          <Heading privateMode={pm}>Prediction Markets</Heading>
+          <P privateMode={pm}>
+            Every token automatically gets prediction markets. Bet YES or NO on outcomes like:
+          </P>
+          <Ul privateMode={pm} items={[
+            "Will the token graduate to DEX?",
+            "Will it hit 1M market cap?",
+            "Will the dev rug?",
+          ]} />
+          <P privateMode={pm}>
+            If you're right, you profit. If you're wrong, you lose your bet.
+          </P>
+        </>
+      ),
+    },
+    {
+      id: "bonding-curve",
+      icon: TrendingUp,
+      title: "Bonding Curve Explained",
+      content: (
+        <>
+          <P privateMode={pm}>
+            The bonding curve is a mathematical formula that determines token price based on supply. It creates fair, transparent pricing without needing initial liquidity.
+          </P>
 
-**3. MEV Bots & Front-Runners**
-- Monitor pending transactions in the mempool
-- Front-run large trades for profit
-- Extract value from your transactions
+          <Table privateMode={pm}
+            headers={["Action", "Effect on Price"]}
+            rows={[
+              ["Buy tokens", "Price goes UP — supply increases"],
+              ["Sell tokens", "Price goes DOWN — supply decreases"],
+              ["Early buy", "Cheapest prices — reward early believers"],
+              ["Graduation", "At 85 SOL liquidity, migrates to Raydium DEX"],
+            ]}
+          />
 
-**4. Exchange Data Sharing**
-- KYC data links your identity to deposit addresses
-- Exchanges share data with analytics companies
-- Your entire on-chain history becomes linked to your name
+          <Heading privateMode={pm}>Why Bonding Curves?</Heading>
+          <Ul privateMode={pm} items={[
+            "Fair pricing without needing market makers",
+            "No initial liquidity required to launch",
+            "Transparent math — price is deterministic",
+            "Anti-rug: liquidity is locked in the curve until graduation",
+          ]} />
+        </>
+      ),
+    },
+    {
+      id: "prediction-markets",
+      icon: Coins,
+      title: "Prediction Markets",
+      content: (
+        <>
+          <P privateMode={pm}>
+            Every token on dum.fun comes with prediction markets — questions you can bet on with real SOL.
+          </P>
 
-**Simple Privacy Best Practices:**
+          <Heading privateMode={pm}>How Betting Works</Heading>
+          <Table privateMode={pm}
+            headers={["Concept", "Explanation"]}
+            rows={[
+              ["Markets", "Each market has YES and NO sides"],
+              ["Shares", "Buy shares of the outcome you believe in"],
+              ["Pricing", "Prices reflect the crowd's probability estimate"],
+              ["Win payout", "Correct shares pay out at full value"],
+              ["Loss", "Incorrect shares are worth nothing"],
+            ]}
+          />
 
-✅ Use different wallets for different purposes
-✅ Utilize stealth addresses for receiving funds
-✅ Enable confidential transfers when available
-✅ Break on-chain links with privacy tools
-✅ Don't reuse addresses unnecessarily
+          <Heading privateMode={pm}>Example</Heading>
+          <div className={`p-4 rounded-lg border mb-3 ${pm ? "border-[#4ADE80]/20 bg-zinc-800/30" : "border-gray-200 bg-gray-50"}`}>
+            <P privateMode={pm}>
+              <strong>"Will $DOGE graduate to DEX?"</strong>
+            </P>
+            <Ul privateMode={pm} items={[
+              "YES is trading at 30¢ (crowd thinks 30% chance)",
+              "You buy 100 YES shares for $30",
+              <>If it graduates → you get $100 (<span className="text-green-500 font-bold">+$70 profit</span>)</>,
+              <>If it doesn't → you get $0 (<span className="text-red-500 font-bold">-$30 loss</span>)</>,
+            ]} />
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "fees",
+      icon: DollarSign,
+      title: "Platform Fees",
+      content: (
+        <>
+          <Table privateMode={pm}
+            headers={["Fee Type", "Amount", "When Applied"]}
+            rows={[
+              ["Token Creation", "0.05 SOL", "One-time fee to launch your token"],
+              ["Market Creation", "0.05 SOL", "Create custom prediction markets"],
+              ["Trading Fee", "1%", "All bonding curve trades (buy & sell)"],
+              ["Betting Fee", "2%", "Prediction market bets"],
+            ]}
+          />
+          <P privateMode={pm}>
+            All fees go to the platform treasury to fund development, liquidity, and seasonal leaderboard rewards.
+          </P>
+        </>
+      ),
+    },
+    {
+      id: "gamification",
+      icon: Trophy,
+      title: "Points, Quests & Seasons",
+      content: (
+        <>
+          <Heading privateMode={pm}>Earn Points</Heading>
+          <P privateMode={pm}>
+            Complete quests and activities to earn points. Points determine your tier and leaderboard position.
+          </P>
 
-**dum.fun Privacy Tools:**
-- Stealth Addresses for unlinkable receiving
-- Confidential betting with encrypted amounts
-- Token-2022 confidential transfers
-- Privacy mode for cypherpunk aesthetics`
-  },
-  {
-    id: "devnet-status",
-    icon: Shield,
-    title: "Platform Status",
-    content: `**dum.fun is live on Solana Devnet**
+          <Table privateMode={pm}
+            headers={["Quest", "Points", "Category"]}
+            rows={[
+              ["Connect Wallet", "50", "Onboarding"],
+              ["First Trade", "100", "Activity"],
+              ["First Prediction Bet", "100", "Activity"],
+              ["Launch a Token", "500", "Activity"],
+              ["Create a Market", "300", "Activity"],
+              ["Win a Prediction", "200", "Activity"],
+              ["Daily Check-in", "10/day", "Streaks"],
+              ["7-Day Streak", "150", "Streaks"],
+              ["30-Day Streak", "600", "Streaks"],
+              ["Mint OG Card", "500", "Special"],
+            ]}
+          />
 
-Deploy real SPL tokens on Solana devnet with integrated prediction markets.
+          <Heading privateMode={pm}>Tier System</Heading>
+          <Table privateMode={pm}
+            headers={["Tier", "Points Required", "Perk"]}
+            rows={[
+              ["💊 Fresh Pill", "0", "Starting tier"],
+              ["📈 Curve Rider", "500", "Basic recognition"],
+              ["🔥 Full Degen", "2,000", "Degen status unlocked"],
+              ["🛡️ Diamond Hands", "5,000", "Elite trader badge"],
+              ["💎 On-Chain God", "10,000", "Legendary status"],
+            ]}
+          />
 
-**Current Features:**
-- ✅ Real on-chain token creation on Solana devnet
-- ✅ Phantom wallet connection and signing
-- ✅ Wallet balance display with airdrop
-- ✅ Token listings and details
-- ✅ Prediction markets on every token
-- ✅ Betting with virtual currency
+          <Heading privateMode={pm}>Seasonal Leaderboard</Heading>
+          <P privateMode={pm}>
+            Compete in named seasons for SOL rewards. Season 1 "Genesis" runs until mainnet launch. Top 10 players earn real SOL.
+          </P>
 
-**Coming Soon:**
-- Solana mainnet deployment
-- Live bonding curve smart contract
-- Real SOL transactions
-- Token graduation to Raydium DEX`
-  },
-  {
-    id: "platform-overview",
-    icon: Zap,
-    title: "Platform Overview",
-    content: `dum.fun is a Solana-based token launchpad with integrated prediction markets. Unlike other launchpads, every token launched here automatically gets prediction markets attached - so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
+          <Table privateMode={pm}
+            headers={["Rank", "Reward"]}
+            rows={[
+              ["#1", "1.5 SOL"],
+              ["#2", "1.0 SOL"],
+              ["#3", "0.75 SOL"],
+              ["#4 - #5", "0.5 SOL each"],
+              ["#6 - #7", "0.25 SOL each"],
+              ["#8 - #9", "0.1 SOL each"],
+              ["#10", "0.05 SOL"],
+            ]}
+          />
 
-We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens.`
-  },
-  {
-    id: "how-it-works",
-    icon: Rocket,
-    title: "How Does It Work?",
-    content: `**Launching a Token:**
-1. Connect your Phantom wallet
-2. Fill in token details (name, symbol, description, image)
-3. Pay the 0.05 SOL creation fee
-4. Your token is live with a bonding curve!
+          <Heading privateMode={pm}>OG Card</Heading>
+          <P privateMode={pm}>
+            The OG Card is a limited NFT (0.2 SOL on mainnet) that grants a permanent <strong>1.5x points multiplier</strong> on all activities. OG holders earn more points, climb tiers faster, and get bigger seasonal rewards.
+          </P>
+        </>
+      ),
+    },
+    {
+      id: "safety",
+      icon: Shield,
+      title: "Safety & Trading",
+      content: (
+        <>
+          <P privateMode={pm}>
+            <strong>Trading involves significant risk. Always do your own research (DYOR).</strong>
+          </P>
+          <P privateMode={pm}>
+            dum.fun is a platform for meme tokens and prediction markets. All tokens are currently launched on Solana Devnet (testnet).
+          </P>
+          <Heading privateMode={pm}>Safety Features</Heading>
+          <Ul privateMode={pm} items={[
+            "Real-time bonding curve tracking with TradingView charts",
+            "Transparent token supply and holder data",
+            "Verified creator wallet display",
+            "Prediction market auto-resolution with on-chain checks",
+            "Developer holding analysis for rug detection",
+          ]} />
+        </>
+      ),
+    },
+    {
+      id: "privacy",
+      icon: Lock,
+      title: "Privacy Features",
+      content: (
+        <>
+          <Heading privateMode={pm}>Your Trading Activity, Your Business</Heading>
+          <P privateMode={pm}>
+            dum.fun integrates multiple privacy technologies so you can trade without exposing your strategy. We won the Solana Privacy Hackathon 2026 by integrating 7 privacy protocols.
+          </P>
 
-**Trading Tokens:**
-Tokens start on a bonding curve - early buyers get lower prices. As more people buy, the price increases. When the bonding curve fills (reaches graduation threshold), the token "graduates" to a DEX with real liquidity.
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
+            <FeatureCard emoji="🔒" title="Confidential Betting" desc="Bet amounts are encrypted — nobody sees how much you wagered" privateMode={pm} />
+            <FeatureCard emoji="🕵️" title="Stealth Addresses" desc="One-time receive addresses for untraceable transactions" privateMode={pm} />
+            <FeatureCard emoji="💳" title="Confidential Transfers" desc="Hidden amounts using Pedersen commitments (Token-2022)" privateMode={pm} />
+            <FeatureCard emoji="🔐" title="Private Deposits" desc="Break on-chain links with ZK-proof deposits/withdrawals" privateMode={pm} />
+          </div>
 
-**Prediction Markets:**
-Every token automatically gets prediction markets. Bet YES or NO on outcomes like:
-- Will the token graduate to DEX?
-- Will it hit 1M market cap?
-- Will the dev rug?
+          <Heading privateMode={pm}>How to Use Privacy Mode</Heading>
+          <Ol privateMode={pm} items={[
+            <>Enable <strong>"Private Mode"</strong> toggle (eye icon in header)</>,
+            "Bet amounts are automatically encrypted",
+            "Generate stealth addresses in your Profile",
+            "All transactions maintain your financial privacy",
+          ]} />
+        </>
+      ),
+    },
+    {
+      id: "integrations",
+      icon: Cpu,
+      title: "Privacy Protocol Integrations",
+      content: (
+        <>
+          <P privateMode={pm}>
+            dum.fun integrates 7 privacy protocols from the Solana ecosystem — the most comprehensive privacy stack on any DeFi platform.
+          </P>
 
-If you're right, you profit. If you're wrong, you lose your bet.`
-  },
-  {
-    id: "bonding-curve",
-    icon: TrendingUp,
-    title: "Bonding Curve Explained",
-    content: `The bonding curve is a mathematical formula that determines token price based on supply.
+          <Table privateMode={pm}
+            headers={["Protocol", "Technology", "What It Does"]}
+            rows={[
+              ["Inco Lightning", "Zero-knowledge proofs", "Encrypted prediction market bet amounts"],
+              ["Stealth Addresses", "ECDH key exchange", "One-time unlinkable receive addresses"],
+              ["Token-2022", "Pedersen commitments", "Confidential token transfer amounts"],
+              ["Privacy Cash", "ZK-SNARK proofs", "Break deposit/withdrawal on-chain links"],
+              ["ShadowWire", "Bulletproofs", "Hidden transfer amounts for 22+ tokens"],
+              ["Arcium C-SPL", "MPC + AES-256-CTR", "Confidential token operations via multi-party computation"],
+              ["NP Exchange", "AI agents", "Privacy-focused prediction market creation"],
+            ]}
+          />
 
-**How it works:**
-- When you buy tokens, the price goes UP
-- When you sell tokens, the price goes DOWN
-- Early buyers get cheaper prices
-- The more tokens sold, the higher the price
-
-**Graduation:**
-When enough tokens are purchased and the bonding curve reaches its threshold, the token "graduates" to a real DEX (like Raydium) with actual liquidity. This is the goal for most tokens.
-
-**Why bonding curves?**
-They create fair, transparent pricing without needing initial liquidity. Anyone can launch a token with just 0.05 SOL.`
-  },
-  {
-    id: "prediction-markets",
-    icon: Coins,
-    title: "Prediction Markets",
-    content: `Every token on dum.fun comes with prediction markets - questions you can bet on.
-
-**How betting works:**
-- Each market has YES and NO sides
-- You buy shares of the outcome you believe in
-- Prices reflect the crowd's probability estimate
-- If you're correct, your shares pay out $1 each
-- If you're wrong, your shares are worth $0
-
-**Example:**
-"Will $DOGE graduate to DEX?"
-- YES is trading at 30¢ (crowd thinks 30% chance)
-- You buy 100 YES shares for $30
-- If it graduates, you get $100 (profit: $70)
-- If it doesn't, you get $0 (loss: $30)
-
-**DFlow Integration:**
-We're integrating with DFlow to bring Kalshi prediction market liquidity on-chain. This means real, regulated prediction markets on Solana.`
-  },
-  {
-    id: "fees",
-    icon: DollarSign,
-    title: "Platform Fees",
-    content: `**Token Creation:** 0.05 SOL
-One-time fee to launch your token on the platform.
-
-**Prediction Market Creation:** 0.05 SOL
-Create custom prediction markets for any token.
-
-**Trading Fee:** 1%
-Applied to all bonding curve trades (buying and selling tokens).
-
-**Betting Fee:** 2%
-Applied to prediction market bets.
-
-All fees go to the platform treasury to fund development and liquidity.`
-  },
-  {
-    id: "safety",
-    icon: Shield,
-    title: "Safety & Trading",
-    content: `**Trading involves significant risk. Always DYOR.**
-
-Dum.fun is a platform for meme tokens and prediction markets. All tokens are launched on Solana Devnet.
-
-**Safety Features:**
-- Real-time bonding curve tracking
-- Transparent token supply data
-- Verified creator wallet display`
-  },
-  {
-    id: "privacy",
-    icon: Lock,
-    title: "Privacy Features",
-    content: `**Your Trading Activity, Your Business**
-
-dum.fun integrates multiple privacy technologies so you can trade without exposing your strategy.
-
-**Confidential Betting**
-- 🔒 Your bet amounts are encrypted — nobody can see how much you wagered
-- 📝 Uses SHA-256 commitment scheme for cryptographic privacy
-- ⚡ Bets are still verified on-chain, just hidden from observers
-
-**Stealth Addresses**
-- 🕵️ Generate one-time receive addresses for each transfer
-- 🔗 Payments are unlinkable — nobody can trace your holdings back to you
-- 🏷️ Only you can detect and claim funds sent to your stealth addresses
-
-**Confidential Transfers**
-- 💳 Hidden transfer amounts using Pedersen commitments
-- 🔐 Range proofs verify amounts without revealing them
-- ✅ Built on Token-2022, Solana's native token standard
-
-**How to Use:**
-1. Enable "Private Mode" toggle (👁 icon in header)
-2. Bet amounts are automatically encrypted
-3. Generate stealth addresses in your Profile
-4. All transactions maintain your financial privacy`
-  },
-  {
-    id: "integrations",
-    icon: Cpu,
-    title: "Platform Integrations",
-    content: `**Built on Cutting-Edge Privacy Tech**
-
-dum.fun integrates 7 privacy protocols from the Solana ecosystem:
-
-**Confidential Betting (Inco Lightning)**
-- Encrypted bet amounts using zero-knowledge proofs
-- Nobody can see how much you wagered
-
-**Stealth Addresses (Anoncoin)**
-- One-time receive addresses for private token receiving
-- Unlinkable — nobody can trace your holdings
-
-**Confidential Transfers (Token-2022)**
-- Hidden transfer amounts using Pedersen commitments
-- Built on Solana's native token standard
-
-**Private Deposits (Privacy Cash)**
-- Break on-chain links between deposits and withdrawals
-- Zero-knowledge proofs for full privacy
-
-**ZK Transfers (ShadowWire)**
-- Hidden transfer amounts using Bulletproofs
-- 22 supported tokens (SOL, USDC, etc.)
-
-**AI Prediction Markets (NP Exchange)**
-- AI-powered market creation
-- Bonding curve pricing without orderbooks
-
-**Infrastructure (Helius RPC)**
-- Enterprise-grade Solana connections
-- Real-time transaction processing`
-  }
-];
+          <Heading privateMode={pm}>Infrastructure</Heading>
+          <Ul privateMode={pm} items={[
+            <><a href="https://www.helius.dev" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Helius RPC</a> — Enterprise-grade Solana connections with real-time transaction processing</>,
+            <><a href="https://raydium.io" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Raydium DEX</a> — CPMM pool creation for graduated tokens</>,
+            <><a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Phantom Wallet</a> — Primary wallet for signing and connecting</>,
+          ]} />
+        </>
+      ),
+    },
+  ];
+}
 
 const faqs = [
-  {
-    q: "How do I connect my wallet?",
-    a: "Click the 'LOG IN' button and select Phantom. Make sure you have the Phantom browser extension installed."
-  },
-  {
-    q: "What wallet do I need?",
-    a: "Currently only Phantom wallet is supported. We plan to add more wallets in the future."
-  },
-  {
-    q: "How much SOL do I need to launch a token?",
-    a: "You need 0.05 SOL for the creation fee, plus a small amount for transaction fees (usually less than 0.01 SOL)."
-  },
-  {
-    q: "Can I change my token after launching?",
-    a: "No. Token name, symbol, and supply are permanent once created. Only social links can be updated."
-  },
-  {
-    q: "What happens when a token graduates?",
-    a: "When the bonding curve fills, liquidity is automatically migrated to a DEX (like Raydium) and trading continues there."
-  },
-  {
-    q: "How do prediction market odds work?",
-    a: "Odds are determined by the ratio of YES to NO bets. If more people bet YES, YES becomes more expensive (higher probability)."
-  },
-  {
-    q: "When do prediction markets resolve?",
-    a: "Markets resolve when the outcome is determined (e.g., token graduates or fails to graduate by a certain date)."
-  },
-  {
-    q: "Is dum.fun safe?",
-    a: "Trading experimental meme tokens involves high risk. This platform is for testing on Solana Devnet. Never trade more than you can afford to lose."
-  }
+  { q: "How do I connect my wallet?", a: "Click the 'LOG IN' button in the top-right corner and select Phantom. Make sure you have the Phantom browser extension installed and set to Solana Devnet." },
+  { q: "What wallet do I need?", a: "Currently Phantom is the primary supported wallet. Solflare and other Solana wallets may also work." },
+  { q: "How much SOL do I need to launch a token?", a: "You need 0.05 SOL for the creation fee, plus a small amount for transaction fees (usually less than 0.01 SOL). On devnet, you can airdrop SOL for free." },
+  { q: "Can I change my token after launching?", a: "No. Token name, symbol, and supply are permanent once created on-chain. Only social links can be updated." },
+  { q: "What happens when a token graduates?", a: "When the bonding curve reaches 85 SOL in liquidity, the token automatically migrates to a Raydium CPMM pool. Trading continues on the open DEX with full liquidity." },
+  { q: "How do prediction market odds work?", a: "Odds are determined by the ratio of YES to NO bets. If more people bet YES, YES becomes more expensive (reflecting a higher probability). Prices range from 0 to 1 SOL per share." },
+  { q: "When do prediction markets resolve?", a: "Markets resolve when the outcome is determined. The platform checks on-chain data — developer holdings, token status, Raydium migration — to automatically resolve markets." },
+  { q: "What is the OG Card?", a: "The OG Card is a limited NFT that costs 0.2 SOL on mainnet. It gives you a permanent 1.5x multiplier on all points earned, helping you climb the leaderboard faster and earn bigger seasonal rewards." },
+  { q: "How do seasons work?", a: "Seasons are competitive periods where the top 10 players on the leaderboard earn real SOL rewards. Season 1 'Genesis' runs until mainnet launch. Earn points through quests, trading, and creating tokens." },
+  { q: "Is dum.fun safe?", a: "Trading experimental meme tokens involves high risk. The platform is currently on Solana Devnet (testnet) — no real money is at stake. Never trade more than you can afford to lose when we go to mainnet." },
 ];
 
 export default function DocsPage() {
   usePageTitle("/docs");
   const { privateMode } = usePrivacy();
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
+
+  const sections = buildSections(privateMode);
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-8">
+      <div className="max-w-4xl mx-auto space-y-6 pb-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -362,10 +571,10 @@ export default function DocsPage() {
           </p>
         </motion.div>
 
-        <nav className={`border-2 border-black rounded-xl p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-          privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
+        <nav className={`rounded-xl p-4 ${
+          privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         }`}>
-          <h2 className={`font-bold mb-3 ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+          <h2 className={`font-bold text-sm mb-3 uppercase tracking-wider ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-gray-400"}`}>
             {privateMode ? "> NAV_LINKS" : "Quick Links"}
           </h2>
           <div className="flex flex-wrap gap-2">
@@ -373,10 +582,10 @@ export default function DocsPage() {
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className={`px-3 py-1.5 border border-black rounded-lg text-sm font-medium transition-colors ${
-                  privateMode 
-                    ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono" 
-                    : "bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-600"
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  privateMode
+                    ? "bg-zinc-800 text-[#4ADE80]/70 hover:bg-[#4ADE80]/10 hover:text-[#4ADE80] border border-[#4ADE80]/10 font-mono"
+                    : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
                 }`}
               >
                 {privateMode ? section.title.toUpperCase().replace(/\s/g, '_') : section.title}
@@ -384,10 +593,10 @@ export default function DocsPage() {
             ))}
             <a
               href="#faq"
-              className={`px-3 py-1.5 border border-black rounded-lg text-sm font-medium transition-colors ${
-                privateMode 
-                  ? "bg-black border-[#4ADE80]/30 text-[#4ADE80] hover:bg-[#4ADE80]/10 font-mono" 
-                  : "bg-gray-100 text-gray-900 hover:bg-red-100 hover:text-red-600"
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                privateMode
+                  ? "bg-zinc-800 text-[#4ADE80]/70 hover:bg-[#4ADE80]/10 hover:text-[#4ADE80] border border-[#4ADE80]/10 font-mono"
+                  : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
               }`}
             >
               {privateMode ? "FAQ_INDEX" : "FAQ"}
@@ -395,73 +604,29 @@ export default function DocsPage() {
           </div>
         </nav>
 
-
-        <div className="space-y-6">
+        <div className="space-y-5">
           {sections.map((section, index) => (
             <motion.section
               key={section.id}
               id={section.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-                privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
+              transition={{ delay: Math.min(index * 0.05, 0.3) }}
+              className={`rounded-xl p-6 ${
+                privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
               }`}
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className={`p-2 rounded-lg border ${
-                  privateMode ? "bg-black border-[#4ADE80]/30" : "bg-red-100 border-red-200"
+                <div className={`p-2 rounded-lg ${
+                  privateMode ? "bg-[#4ADE80]/10" : "bg-red-100"
                 }`}>
                   <section.icon className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-600"}`} />
                 </div>
-                <h2 className={`text-xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+                <h2 className={`text-lg font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
                   {privateMode ? section.title.toUpperCase().replace(/\s/g, '_') : section.title}
                 </h2>
               </div>
-              <div className={`prose prose-sm max-w-none ${privateMode ? "prose-invert font-mono text-[#4ADE80]/80" : "text-gray-700"}`}>
-                {section.content.split('\n\n').map((paragraph, i) => (
-                  <div key={i} className="mb-4">
-                    {paragraph.split('\n').map((line, j) => {
-                      const renderTextWithBold = (text: string) => {
-                        const parts = text.split(/\*\*([^*]+)\*\*/g);
-                        return parts.map((part, idx) => 
-                          idx % 2 === 1 
-                            ? <strong key={idx} className={privateMode ? "text-white" : "font-semibold"}>{part}</strong>
-                            : part
-                        );
-                      };
-                      
-                      if (line.startsWith('**') && line.endsWith('**') && line.split('**').length === 3) {
-                        const text = line.replace(/\*\*/g, '');
-                        return (
-                          <h3 key={j} className={`font-bold mt-4 mb-2 ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
-                            {privateMode ? `[ ${text.toUpperCase()} ]` : text}
-                          </h3>
-                        );
-                      }
-                      if (line.startsWith('- ')) {
-                        return (
-                          <li key={j} className="ml-4 list-disc">
-                            {renderTextWithBold(line.substring(2))}
-                          </li>
-                        );
-                      }
-                      if (line.match(/^\d+\./)) {
-                        const numEnd = line.indexOf('.') + 1;
-                        return (
-                          <li key={j} className="ml-4 list-decimal">
-                            {renderTextWithBold(line.substring(numEnd).trim())}
-                          </li>
-                        );
-                      }
-                      if (line.includes('**')) {
-                        return <p key={j} className="mb-1">{renderTextWithBold(line)}</p>;
-                      }
-                      return line ? <p key={j}>{line}</p> : null;
-                    })}
-                  </div>
-                ))}
-              </div>
+              <div>{section.content}</div>
             </motion.section>
           ))}
         </div>
@@ -470,35 +635,65 @@ export default function DocsPage() {
           id="faq"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`border-2 border-black rounded-xl p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${
-            privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white"
+          className={`rounded-xl p-6 ${
+            privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
           }`}
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className={`p-2 rounded-lg border ${
-              privateMode ? "bg-black border-[#4ADE80]/30" : "bg-yellow-100 border-yellow-200"
+            <div className={`p-2 rounded-lg ${
+              privateMode ? "bg-[#4ADE80]/10" : "bg-yellow-100"
             }`}>
               <HelpCircle className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-yellow-600"}`} />
             </div>
-            <h2 className={`text-xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
-              {privateMode ? "QUERY_DATABASE_FAQS" : "Frequently Asked Questions"}
+            <h2 className={`text-lg font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
+              {privateMode ? "FREQUENTLY_ASKED_QUESTIONS" : "Frequently Asked Questions"}
             </h2>
           </div>
-          
-          <div className="space-y-4">
+
+          <div className="space-y-1">
             {faqs.map((faq, index) => (
-              <div key={index} className={`border-b pb-4 last:border-0 ${privateMode ? "border-[#4ADE80]/20" : "border-gray-200"}`}>
-                <h3 className={`font-bold mb-2 ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
-                  {privateMode ? `> ${faq.q.toUpperCase()}` : faq.q}
-                </h3>
-                <p className={`text-sm ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-600"}`}>{faq.a}</p>
+              <div key={index} className={`rounded-lg overflow-hidden ${
+                privateMode ? "border border-[#4ADE80]/10" : "border border-gray-100"
+              }`}>
+                <button
+                  onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
+                    expandedFaq === index
+                      ? privateMode ? "bg-[#4ADE80]/5" : "bg-red-50"
+                      : privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
+                  }`}
+                  data-testid={`faq-toggle-${index}`}
+                >
+                  <span className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>
+                    {privateMode ? `> ${faq.q}` : faq.q}
+                  </span>
+                  <motion.span
+                    animate={{ rotate: expandedFaq === index ? 180 : 0 }}
+                    className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}
+                  >
+                    ▼
+                  </motion.span>
+                </button>
+                {expandedFaq === index && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    className={`px-4 pb-3 text-sm ${privateMode ? "text-white/60 font-mono" : "text-gray-600"}`}
+                  >
+                    {faq.a}
+                  </motion.div>
+                )}
               </div>
             ))}
           </div>
         </motion.section>
 
-        <div className={`text-center py-8 text-sm ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
-          <p>Still have questions? DM us on X: <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className={`font-bold hover:underline ${privateMode ? "text-white" : "text-red-500"}`}>@dumdotfun</a></p>
+        <div className={`text-center py-6 text-sm ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
+          <p>Still have questions? DM us on X:{" "}
+            <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className={`font-bold hover:underline ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} data-testid="link-twitter">
+              @dumdotfun
+            </a>
+          </p>
         </div>
       </div>
     </Layout>
