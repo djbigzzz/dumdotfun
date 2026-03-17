@@ -478,6 +478,30 @@ export function Layout({ children }: { children: React.ReactNode }) {
           )}
         </div>
         
+        <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 mb-4 text-xs" aria-label="Site navigation">
+          <a href="/tokens" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-tokens">
+            {privateMode ? "// tokens" : "All Tokens"}
+          </a>
+          <a href="/trending" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-trending">
+            {privateMode ? "// trending" : "Trending"}
+          </a>
+          <a href="/create" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-create">
+            {privateMode ? "// create" : "Launch Token"}
+          </a>
+          <a href="/predictions" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-predictions">
+            {privateMode ? "// predict" : "Prediction Markets"}
+          </a>
+          <a href="/quests" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-quests">
+            {privateMode ? "// quests" : "Quests"}
+          </a>
+          <a href="/leaderboard" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-leaderboard">
+            {privateMode ? "// ranks" : "Leaderboard"}
+          </a>
+          <a href="/docs" className={`transition-colors ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="footer-link-docs">
+            {privateMode ? "// docs" : "Documentation"}
+          </a>
+        </nav>
+
         <div className="flex items-center justify-center gap-4 mb-3 text-xs">
           <a href="/legal/privacy" className={`transition-colors underline ${privateMode ? "hover:text-[#4ADE80]" : "hover:text-black"}`} data-testid="link-privacy-policy">
             {privateMode ? "// privacy" : "Privacy Policy"}

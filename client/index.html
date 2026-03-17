@@ -123,7 +123,106 @@
             "@type": "Answer",
             "text": "Dum.fun is built on Solana, one of the fastest and cheapest blockchains. This means fast transactions and low fees for token creation and prediction market betting."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "What privacy features does Dum.fun offer?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Dum.fun integrates 7 privacy protocols including Token-2022 Confidential Transfers, ShadowWire for hidden transfer amounts, Privacy Cash for ZK-proof deposits, Stealth Addresses for untraceable transactions, Arcium C-SPL for MPC-based confidential tokens, Inco Lightning for encrypted betting, and NP Exchange for AI-agent prediction markets. These earned Dum.fun first place at the Solana Privacy Hackathon 2026."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the Dum.fun OG Card?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The OG Card is a limited NFT that gives holders a permanent 1.5x multiplier on all points earned. It costs 0.2 SOL on mainnet and grants exclusive access to OG-only quests and higher rewards on the seasonal leaderboard."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the Dum.fun leaderboard and seasons system work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Dum.fun features a seasonal leaderboard where users compete for SOL rewards by earning points through quests, trading, and creating tokens. Each season has a reward pool distributed to the top 10 players. Season 1 Genesis runs until mainnet launch, with 5 SOL in prizes."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What is a bonding curve and how does Raydium migration work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A bonding curve is a mathematical formula that sets token prices based on supply. On Dum.fun, when a token's bonding curve reaches 85 SOL in liquidity, it automatically graduates to a Raydium CPMM pool on the open market, giving it full DEX trading capabilities."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Did Dum.fun win the Solana Privacy Hackathon?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, Dum.fun won first place at the Solana Privacy Hackathon 2026 and received a Solana Foundation Ireland grant. The platform integrated 7 privacy protocols and demonstrated real on-chain privacy features for token launches and prediction markets."
+          }
         }
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "HowTo",
+      "name": "How to Launch a Meme Coin on Solana with Dum.fun",
+      "description": "Step-by-step guide to creating and launching your own SPL token on Solana using Dum.fun's free token launchpad with bonding curves.",
+      "totalTime": "PT2M",
+      "estimatedCost": { "@type": "MonetaryAmount", "currency": "SOL", "value": "0.01" },
+      "step": [
+        {
+          "@type": "HowToStep",
+          "position": 1,
+          "name": "Connect your Solana wallet",
+          "text": "Click 'Connect Wallet' and approve the connection with Phantom, Solflare, or any Solana-compatible wallet.",
+          "url": "https://dum.fun"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 2,
+          "name": "Fill in token details",
+          "text": "Enter your token name, ticker symbol, description, and upload an image. Choose your bonding curve parameters.",
+          "url": "https://dum.fun/create"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 3,
+          "name": "Launch your token on-chain",
+          "text": "Review the details, sign the transaction, and your SPL token is deployed on Solana with an automatic bonding curve for instant trading.",
+          "url": "https://dum.fun/create"
+        },
+        {
+          "@type": "HowToStep",
+          "position": 4,
+          "name": "Trade and grow to Raydium",
+          "text": "As traders buy your token, the bonding curve fills up. Once it reaches 85 SOL in liquidity, your token automatically migrates to a Raydium DEX pool.",
+          "url": "https://dum.fun/tokens"
+        }
+      ]
+    }
+    </script>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SiteNavigationElement",
+      "name": "Main Navigation",
+      "url": "https://dum.fun",
+      "hasPart": [
+        { "@type": "WebPage", "name": "Token Launchpad", "url": "https://dum.fun/create", "description": "Create and launch new SPL tokens on Solana with bonding curves" },
+        { "@type": "WebPage", "name": "All Tokens", "url": "https://dum.fun/tokens", "description": "Browse and trade all launched tokens" },
+        { "@type": "WebPage", "name": "Trending Tokens", "url": "https://dum.fun/trending", "description": "Most popular and trending tokens by volume" },
+        { "@type": "WebPage", "name": "Prediction Markets", "url": "https://dum.fun/predictions", "description": "Bet on token survival with prediction markets" },
+        { "@type": "WebPage", "name": "Quests & Points", "url": "https://dum.fun/quests", "description": "Complete quests to earn points and climb the leaderboard" },
+        { "@type": "WebPage", "name": "Leaderboard", "url": "https://dum.fun/leaderboard", "description": "Seasonal rankings with SOL rewards for top players" },
+        { "@type": "WebPage", "name": "Documentation", "url": "https://dum.fun/docs", "description": "Learn about Dum.fun features, privacy protocols, and tokenomics" }
       ]
     }
     </script>
@@ -163,6 +262,23 @@
   </head>
   <body>
     <div id="root"></div>
+    <noscript>
+      <nav>
+        <h1>Dum.fun — Solana Token Launchpad & Prediction Markets</h1>
+        <p>The #1 privacy-first token launchpad and prediction market on Solana. Winner of the Solana Privacy Hackathon 2026.</p>
+        <ul>
+          <li><a href="/tokens">All Tokens</a> — Browse and trade launched tokens</li>
+          <li><a href="/trending">Trending Tokens</a> — Most popular tokens by volume</li>
+          <li><a href="/create">Launch a Token</a> — Create your own SPL token with bonding curves</li>
+          <li><a href="/predictions">Prediction Markets</a> — Bet on token survival</li>
+          <li><a href="/quests">Quests & Points</a> — Complete quests to earn points</li>
+          <li><a href="/leaderboard">Leaderboard</a> — Seasonal rankings with SOL rewards</li>
+          <li><a href="/docs">Documentation</a> — Learn about Dum.fun features and protocols</li>
+          <li><a href="/legal/privacy">Privacy Policy</a></li>
+          <li><a href="/legal/eula">Terms of Service</a></li>
+        </ul>
+      </nav>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
