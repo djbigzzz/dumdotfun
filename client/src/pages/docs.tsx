@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Layout } from "@/components/layout";
-import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Lock, Eye, Cpu, Trophy, ExternalLink, Award } from "lucide-react";
-import { usePrivacy } from "@/lib/privacy-context";
+import { Book, Zap, TrendingUp, Coins, HelpCircle, Shield, Rocket, DollarSign, Cpu, Trophy } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useState } from "react";
 
@@ -12,26 +11,22 @@ interface DocSection {
   content: React.ReactNode;
 }
 
-function Table({ headers, rows, privateMode }: { headers: string[]; rows: string[][]; privateMode: boolean }) {
+function Table({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
     <div className="overflow-x-auto my-4">
-      <table className={`w-full text-sm border-collapse rounded-lg overflow-hidden ${privateMode ? "border border-[#4ADE80]/20" : "border border-gray-200"}`}>
+      <table className="w-full text-sm border-collapse rounded-lg overflow-hidden border border-gray-200">
         <thead>
-          <tr className={privateMode ? "bg-[#4ADE80]/10" : "bg-gray-50"}>
+          <tr className="bg-gray-50">
             {headers.map((h, i) => (
-              <th key={i} className={`px-4 py-2.5 text-left font-bold text-xs uppercase tracking-wider ${
-                privateMode ? "text-[#4ADE80] border-b border-[#4ADE80]/20" : "text-gray-600 border-b border-gray-200"
-              }`}>{h}</th>
+              <th key={i} className="px-4 py-2.5 text-left font-bold text-xs uppercase tracking-wider text-gray-600 border-b border-gray-200">{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {rows.map((row, i) => (
-            <tr key={i} className={`${i % 2 === 0 ? (privateMode ? "bg-zinc-900/30" : "bg-white") : (privateMode ? "bg-zinc-800/30" : "bg-gray-50/50")} ${
-              privateMode ? "border-b border-[#4ADE80]/5" : "border-b border-gray-100"
-            }`}>
+            <tr key={i} className={`${i % 2 === 0 ? "bg-white" : "bg-gray-50/50"} border-b border-gray-100`}>
               {row.map((cell, j) => (
-                <td key={j} className={`px-4 py-2.5 ${j === 0 ? "font-semibold" : ""} ${privateMode ? "text-white/80" : "text-gray-700"}`}>{cell}</td>
+                <td key={j} className={`px-4 py-2.5 ${j === 0 ? "font-semibold" : ""} text-gray-700`}>{cell}</td>
               ))}
             </tr>
           ))}
@@ -41,24 +36,24 @@ function Table({ headers, rows, privateMode }: { headers: string[]; rows: string
   );
 }
 
-function Heading({ children, privateMode }: { children: React.ReactNode; privateMode: boolean }) {
+function Heading({ children }: { children: React.ReactNode }) {
   return (
-    <h3 className={`font-bold text-base mt-5 mb-2 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-900"}`}>
+    <h3 className="font-bold text-base mt-5 mb-2 text-gray-900">
       {children}
     </h3>
   );
 }
 
-function P({ children, privateMode }: { children: React.ReactNode; privateMode: boolean }) {
-  return <p className={`mb-3 text-sm leading-relaxed ${privateMode ? "text-white/70" : "text-gray-600"}`}>{children}</p>;
+function P({ children }: { children: React.ReactNode }) {
+  return <p className="mb-3 text-sm leading-relaxed text-gray-600">{children}</p>;
 }
 
-function Ul({ items, privateMode }: { items: React.ReactNode[]; privateMode: boolean }) {
+function Ul({ items }: { items: React.ReactNode[] }) {
   return (
-    <ul className={`space-y-1.5 mb-3 ml-1 ${privateMode ? "text-white/70" : "text-gray-600"}`}>
+    <ul className="space-y-1.5 mb-3 ml-1 text-gray-600">
       {items.map((item, i) => (
         <li key={i} className="flex gap-2 text-sm">
-          <span className={`mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 ${privateMode ? "bg-[#4ADE80]/50" : "bg-red-400"}`} />
+          <span className="mt-1.5 w-1.5 h-1.5 rounded-full flex-shrink-0 bg-red-400" />
           <span>{item}</span>
         </li>
       ))}
@@ -66,14 +61,12 @@ function Ul({ items, privateMode }: { items: React.ReactNode[]; privateMode: boo
   );
 }
 
-function Ol({ items, privateMode }: { items: React.ReactNode[]; privateMode: boolean }) {
+function Ol({ items }: { items: React.ReactNode[] }) {
   return (
-    <ol className={`space-y-2 mb-3 ml-1 ${privateMode ? "text-white/70" : "text-gray-600"}`}>
+    <ol className="space-y-2 mb-3 ml-1 text-gray-600">
       {items.map((item, i) => (
         <li key={i} className="flex gap-3 text-sm">
-          <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-            privateMode ? "bg-[#4ADE80]/15 text-[#4ADE80]" : "bg-red-100 text-red-600"
-          }`}>{i + 1}</span>
+          <span className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold bg-red-100 text-red-600">{i + 1}</span>
           <span className="pt-0.5">{item}</span>
         </li>
       ))}
@@ -81,29 +74,21 @@ function Ol({ items, privateMode }: { items: React.ReactNode[]; privateMode: boo
   );
 }
 
-function Badge({ children, color, privateMode }: { children: React.ReactNode; color: string; privateMode: boolean }) {
+function FeatureCard({ emoji, title, desc }: { emoji: string; title: string; desc: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold ${
-      privateMode ? `bg-${color}-500/15 text-${color}-400 border border-${color}-500/20` : `bg-${color}-100 text-${color}-700`
-    }`}>{children}</span>
-  );
-}
-
-function FeatureCard({ emoji, title, desc, privateMode }: { emoji: string; title: string; desc: string; privateMode: boolean }) {
-  return (
-    <div className={`p-3 rounded-lg border ${privateMode ? "border-[#4ADE80]/10 bg-zinc-800/30" : "border-gray-100 bg-gray-50"}`}>
+    <div className="p-3 rounded-lg border border-gray-100 bg-gray-50">
       <div className="flex items-start gap-2">
         <span className="text-lg">{emoji}</span>
         <div>
-          <div className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>{title}</div>
-          <div className={`text-xs mt-0.5 ${privateMode ? "text-white/50" : "text-gray-500"}`}>{desc}</div>
+          <div className="font-bold text-sm text-gray-900">{title}</div>
+          <div className="text-xs mt-0.5 text-gray-500">{desc}</div>
         </div>
       </div>
     </div>
   );
 }
 
-function buildSections(pm: boolean): DocSection[] {
+function buildSections(): DocSection[] {
   return [
     {
       id: "what-is-dumfun",
@@ -111,98 +96,34 @@ function buildSections(pm: boolean): DocSection[] {
       title: "What is dum.fun?",
       content: (
         <>
-          <Heading privateMode={pm}>The Privacy-First Meme Token Launchpad</Heading>
-          <P privateMode={pm}>
-            dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with built-in privacy features that protect your trading activity. Winner of the <strong>Solana Privacy Hackathon 2026</strong> and recipient of a <strong>Solana Foundation Ireland grant</strong>.
+          <Heading>The Meme Token Launchpad with Prediction Markets</Heading>
+          <P>
+            dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with integrated prediction markets on every token. Winner of the <strong>Solana Privacy Hackathon 2026</strong> and recipient of a <strong>Solana Foundation Ireland grant</strong>.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Feature", "Description"]}
             rows={[
               ["Token Launchpad", "Create SPL tokens with bonding curve pricing — free and instant"],
               ["Prediction Markets", "Bet on whether tokens will survive, graduate, or rug"],
-              ["Privacy Mode", "Hide your bet amounts and trading activity with 7 privacy protocols"],
-              ["Stealth Addresses", "Receive tokens without revealing your wallet address"],
               ["Seasonal Leaderboard", "Compete for SOL rewards in seasonal rankings"],
               ["Raydium Migration", "Tokens auto-graduate to Raydium DEX at 85 SOL liquidity"],
+              ["Quests & Points", "Earn points and climb tiers through gamified activities"],
             ]}
           />
 
-          <Heading privateMode={pm}>How It Works</Heading>
-          <Ol privateMode={pm} items={[
+          <Heading>How It Works</Heading>
+          <Ol items={[
             <><strong>Connect Phantom Wallet</strong> — Click "LOG IN" in the header</>,
             <><strong>Get Devnet SOL</strong> — Use the airdrop button (we're on Solana devnet)</>,
             <><strong>Launch a Token</strong> — Go to Launch, fill in details, deploy on-chain</>,
             <><strong>Trade on Bonding Curve</strong> — Buy and sell tokens with automatic pricing</>,
-            <><strong>Enable Privacy Mode</strong> — Click the eye toggle for encrypted betting</>,
             <><strong>Bet on Predictions</strong> — Each token has prediction markets you can bet on</>,
           ]} />
 
-          <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold ${
-            pm ? "bg-yellow-500/10 text-yellow-400 border border-yellow-500/20" : "bg-yellow-50 text-yellow-700 border border-yellow-200"
-          }`}>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
             Network: Solana Devnet (testnet — no real money)
           </div>
-        </>
-      ),
-    },
-    {
-      id: "why-privacy",
-      icon: Eye,
-      title: "Why Privacy Matters",
-      content: (
-        <>
-          <Heading privateMode={pm}>Your Wallet is a Public Diary</Heading>
-          <P privateMode={pm}>
-            Every Solana transaction you make is permanently recorded on a public blockchain. Anyone can see your entire history, holdings, and who you transact with.
-          </P>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-            <FeatureCard emoji="🔍" title="Wallet Tracking" desc="Bots track whale wallets and front-run your trades" privateMode={pm} />
-            <FeatureCard emoji="💰" title="Tax Exposure" desc="Employers & authorities can link your wallet via KYC" privateMode={pm} />
-            <FeatureCard emoji="🎯" title="Hacker Targets" desc="Large balances are visible, making you a target" privateMode={pm} />
-            <FeatureCard emoji="🏢" title="Data Selling" desc="Corporations profile and sell your on-chain behavior" privateMode={pm} />
-          </div>
-
-          <Heading privateMode={pm}>Privacy is a Right, Not a Crime</Heading>
-          <Ul privateMode={pm} items={[
-            <><strong>Personal Safety</strong> — Protect yourself from targeted attacks</>,
-            <><strong>Business Confidentiality</strong> — Keep trading strategies private</>,
-            <><strong>Financial Freedom</strong> — Transact without surveillance capitalism</>,
-            <><strong>Human Rights</strong> — A fundamental right recognized by the UN</>,
-          ]} />
-
-          <P privateMode={pm}>
-            dum.fun integrates privacy-preserving technologies so you can launch tokens, bet on predictions, and trade — all without exposing your identity or strategy.
-          </P>
-        </>
-      ),
-    },
-    {
-      id: "surveillance-explained",
-      icon: Eye,
-      title: "Understanding Wallet Surveillance",
-      content: (
-        <>
-          <Heading privateMode={pm}>How You're Being Tracked</Heading>
-
-          <Table privateMode={pm}
-            headers={["Threat", "How It Works", "Impact"]}
-            rows={[
-              ["Block Explorers", "Index and make all transactions searchable (Solscan, SolanaFM)", "Complete wallet history exposed"],
-              ["Analytics Companies", "Chainalysis, Elliptic build identity graphs linking wallets to people", "Your name tied to every transaction"],
-              ["MEV Bots", "Monitor pending transactions and front-run large trades", "Value extracted from your trades"],
-              ["Exchange Data", "KYC data links your identity to deposit addresses", "Entire on-chain history tied to you"],
-            ]}
-          />
-
-          <Heading privateMode={pm}>Privacy Best Practices</Heading>
-          <Ul privateMode={pm} items={[
-            "Use different wallets for different purposes",
-            "Utilize stealth addresses for receiving funds",
-            "Enable confidential transfers when available",
-            "Break on-chain links with privacy tools",
-            "Don't reuse addresses unnecessarily",
-          ]} />
         </>
       ),
     },
@@ -212,19 +133,18 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Platform Status",
       content: (
         <>
-          <Heading privateMode={pm}>Live on Solana Devnet</Heading>
-          <P privateMode={pm}>
+          <Heading>Live on Solana Devnet</Heading>
+          <P>
             Deploy real SPL tokens on Solana devnet with integrated prediction markets, gamified quests, and seasonal leaderboards.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Feature", "Status"]}
             rows={[
               ["On-chain token creation", "✅ Live"],
               ["Phantom wallet connection", "✅ Live"],
               ["Bonding curve trading", "✅ Live"],
               ["Prediction markets", "✅ Live"],
-              ["7 privacy protocols", "✅ Live"],
               ["Quests & points system", "✅ Live"],
               ["Seasonal leaderboard", "✅ Live"],
               ["Raydium DEX migration", "✅ Live"],
@@ -241,19 +161,18 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Platform Overview",
       content: (
         <>
-          <P privateMode={pm}>
+          <P>
             dum.fun is a Solana-based token launchpad with integrated prediction markets. Unlike other launchpads, every token launched here automatically gets prediction markets attached — so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
           </P>
-          <P privateMode={pm}>
-            We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens — with full privacy built in.
+          <P>
+            We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Component", "What It Does"]}
             rows={[
               ["Launchpad", "Create SPL tokens with automatic bonding curves"],
               ["Prediction Markets", "Bet YES/NO on token outcomes with real SOL"],
-              ["Privacy Layer", "7 protocols for confidential trading and stealth receiving"],
               ["Gamification", "Quests, points, tiers, OG Card, seasonal leaderboard"],
               ["DEX Migration", "Auto-graduate to Raydium CPMM pools at 85 SOL"],
             ]}
@@ -267,29 +186,29 @@ function buildSections(pm: boolean): DocSection[] {
       title: "How Does It Work?",
       content: (
         <>
-          <Heading privateMode={pm}>Launching a Token</Heading>
-          <Ol privateMode={pm} items={[
+          <Heading>Launching a Token</Heading>
+          <Ol items={[
             "Connect your Phantom wallet",
             "Fill in token details (name, symbol, description, image)",
             "Pay the 0.05 SOL creation fee",
             "Your token is live with a bonding curve!",
           ]} />
 
-          <Heading privateMode={pm}>Trading Tokens</Heading>
-          <P privateMode={pm}>
+          <Heading>Trading Tokens</Heading>
+          <P>
             Tokens start on a bonding curve — early buyers get lower prices. As more people buy, the price increases. When the bonding curve reaches 85 SOL in liquidity, the token "graduates" to Raydium DEX with real liquidity.
           </P>
 
-          <Heading privateMode={pm}>Prediction Markets</Heading>
-          <P privateMode={pm}>
+          <Heading>Prediction Markets</Heading>
+          <P>
             Every token automatically gets prediction markets. Bet YES or NO on outcomes like:
           </P>
-          <Ul privateMode={pm} items={[
+          <Ul items={[
             "Will the token graduate to DEX?",
             "Will it hit 1M market cap?",
             "Will the dev rug?",
           ]} />
-          <P privateMode={pm}>
+          <P>
             If you're right, you profit. If you're wrong, you lose your bet.
           </P>
         </>
@@ -301,11 +220,11 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Bonding Curve Explained",
       content: (
         <>
-          <P privateMode={pm}>
+          <P>
             The bonding curve is a mathematical formula that determines token price based on supply. It creates fair, transparent pricing without needing initial liquidity.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Action", "Effect on Price"]}
             rows={[
               ["Buy tokens", "Price goes UP — supply increases"],
@@ -315,8 +234,8 @@ function buildSections(pm: boolean): DocSection[] {
             ]}
           />
 
-          <Heading privateMode={pm}>Why Bonding Curves?</Heading>
-          <Ul privateMode={pm} items={[
+          <Heading>Why Bonding Curves?</Heading>
+          <Ul items={[
             "Fair pricing without needing market makers",
             "No initial liquidity required to launch",
             "Transparent math — price is deterministic",
@@ -331,12 +250,12 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Prediction Markets",
       content: (
         <>
-          <P privateMode={pm}>
+          <P>
             Every token on dum.fun comes with prediction markets — questions you can bet on with real SOL.
           </P>
 
-          <Heading privateMode={pm}>How Betting Works</Heading>
-          <Table privateMode={pm}
+          <Heading>How Betting Works</Heading>
+          <Table
             headers={["Concept", "Explanation"]}
             rows={[
               ["Markets", "Each market has YES and NO sides"],
@@ -347,12 +266,12 @@ function buildSections(pm: boolean): DocSection[] {
             ]}
           />
 
-          <Heading privateMode={pm}>Example</Heading>
-          <div className={`p-4 rounded-lg border mb-3 ${pm ? "border-[#4ADE80]/20 bg-zinc-800/30" : "border-gray-200 bg-gray-50"}`}>
-            <P privateMode={pm}>
+          <Heading>Example</Heading>
+          <div className="p-4 rounded-lg border mb-3 border-gray-200 bg-gray-50">
+            <P>
               <strong>"Will $DOGE graduate to DEX?"</strong>
             </P>
-            <Ul privateMode={pm} items={[
+            <Ul items={[
               "YES is trading at 30¢ (crowd thinks 30% chance)",
               "You buy 100 YES shares for $30",
               <>If it graduates → you get $100 (<span className="text-green-500 font-bold">+$70 profit</span>)</>,
@@ -368,7 +287,7 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Platform Fees",
       content: (
         <>
-          <Table privateMode={pm}
+          <Table
             headers={["Fee Type", "Amount", "When Applied"]}
             rows={[
               ["Token Creation", "0.05 SOL", "One-time fee to launch your token"],
@@ -377,7 +296,7 @@ function buildSections(pm: boolean): DocSection[] {
               ["Betting Fee", "2%", "Prediction market bets"],
             ]}
           />
-          <P privateMode={pm}>
+          <P>
             All fees go to the platform treasury to fund development, liquidity, and seasonal leaderboard rewards.
           </P>
         </>
@@ -389,12 +308,12 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Points, Quests & Seasons",
       content: (
         <>
-          <Heading privateMode={pm}>Earn Points</Heading>
-          <P privateMode={pm}>
+          <Heading>Earn Points</Heading>
+          <P>
             Complete quests and activities to earn points. Points determine your tier and leaderboard position.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Quest", "Points", "Category"]}
             rows={[
               ["Connect Wallet", "50", "Onboarding"],
@@ -410,8 +329,8 @@ function buildSections(pm: boolean): DocSection[] {
             ]}
           />
 
-          <Heading privateMode={pm}>Tier System</Heading>
-          <Table privateMode={pm}
+          <Heading>Tier System</Heading>
+          <Table
             headers={["Tier", "Points Required", "Perk"]}
             rows={[
               ["💊 Fresh Pill", "0", "Starting tier"],
@@ -422,12 +341,12 @@ function buildSections(pm: boolean): DocSection[] {
             ]}
           />
 
-          <Heading privateMode={pm}>Seasonal Leaderboard</Heading>
-          <P privateMode={pm}>
+          <Heading>Seasonal Leaderboard</Heading>
+          <P>
             Compete in named seasons for SOL rewards. Season 1 "Genesis" runs until mainnet launch. Top 10 players earn real SOL.
           </P>
 
-          <Table privateMode={pm}
+          <Table
             headers={["Rank", "Reward"]}
             rows={[
               ["#1", "1.5 SOL"],
@@ -440,8 +359,8 @@ function buildSections(pm: boolean): DocSection[] {
             ]}
           />
 
-          <Heading privateMode={pm}>OG Card</Heading>
-          <P privateMode={pm}>
+          <Heading>OG Card</Heading>
+          <P>
             The OG Card is a limited NFT (0.2 SOL on mainnet) that grants a permanent <strong>1.5x points multiplier</strong> on all activities. OG holders earn more points, climb tiers faster, and get bigger seasonal rewards.
           </P>
         </>
@@ -453,14 +372,14 @@ function buildSections(pm: boolean): DocSection[] {
       title: "Safety & Trading",
       content: (
         <>
-          <P privateMode={pm}>
+          <P>
             <strong>Trading involves significant risk. Always do your own research (DYOR).</strong>
           </P>
-          <P privateMode={pm}>
+          <P>
             dum.fun is a platform for meme tokens and prediction markets. All tokens are currently launched on Solana Devnet (testnet).
           </P>
-          <Heading privateMode={pm}>Safety Features</Heading>
-          <Ul privateMode={pm} items={[
+          <Heading>Safety Features</Heading>
+          <Ul items={[
             "Real-time bonding curve tracking with TradingView charts",
             "Transparent token supply and holder data",
             "Verified creator wallet display",
@@ -471,61 +390,31 @@ function buildSections(pm: boolean): DocSection[] {
       ),
     },
     {
-      id: "privacy",
-      icon: Lock,
-      title: "Privacy Features",
-      content: (
-        <>
-          <Heading privateMode={pm}>Your Trading Activity, Your Business</Heading>
-          <P privateMode={pm}>
-            dum.fun integrates multiple privacy technologies so you can trade without exposing your strategy. We won the Solana Privacy Hackathon 2026 by integrating 7 privacy protocols.
-          </P>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mb-4">
-            <FeatureCard emoji="🔒" title="Confidential Betting" desc="Bet amounts are encrypted — nobody sees how much you wagered" privateMode={pm} />
-            <FeatureCard emoji="🕵️" title="Stealth Addresses" desc="One-time receive addresses for untraceable transactions" privateMode={pm} />
-            <FeatureCard emoji="💳" title="Confidential Transfers" desc="Hidden amounts using Pedersen commitments (Token-2022)" privateMode={pm} />
-            <FeatureCard emoji="🔐" title="Private Deposits" desc="Break on-chain links with ZK-proof deposits/withdrawals" privateMode={pm} />
-          </div>
-
-          <Heading privateMode={pm}>How to Use Privacy Mode</Heading>
-          <Ol privateMode={pm} items={[
-            <>Enable <strong>"Private Mode"</strong> toggle (eye icon in header)</>,
-            "Bet amounts are automatically encrypted",
-            "Generate stealth addresses in your Profile",
-            "All transactions maintain your financial privacy",
-          ]} />
-        </>
-      ),
-    },
-    {
       id: "integrations",
       icon: Cpu,
-      title: "Privacy Protocol Integrations",
+      title: "Platform Integrations",
       content: (
         <>
-          <P privateMode={pm}>
-            dum.fun integrates 7 privacy protocols from the Solana ecosystem — the most comprehensive privacy stack on any DeFi platform.
+          <P>
+            dum.fun is built on top of Solana's ecosystem with enterprise-grade infrastructure.
           </P>
 
-          <Table privateMode={pm}
-            headers={["Protocol", "Technology", "What It Does"]}
+          <Table
+            headers={["Integration", "What It Does"]}
             rows={[
-              ["Inco Lightning", "Zero-knowledge proofs", "Encrypted prediction market bet amounts"],
-              ["Stealth Addresses", "ECDH key exchange", "One-time unlinkable receive addresses"],
-              ["Token-2022", "Pedersen commitments", "Confidential token transfer amounts"],
-              ["Privacy Cash", "ZK-SNARK proofs", "Break deposit/withdrawal on-chain links"],
-              ["ShadowWire", "Bulletproofs", "Hidden transfer amounts for 22+ tokens"],
-              ["Arcium C-SPL", "MPC + AES-256-CTR", "Confidential token operations via multi-party computation"],
-              ["NP Exchange", "AI agents", "Privacy-focused prediction market creation"],
+              ["Helius RPC", "Enterprise-grade Solana connections with real-time transaction processing"],
+              ["Raydium DEX", "CPMM pool creation for graduated tokens"],
+              ["Phantom Wallet", "Primary wallet for signing and connecting"],
+              ["Token-2022", "Solana's native token standard for advanced token features"],
             ]}
           />
 
-          <Heading privateMode={pm}>Infrastructure</Heading>
-          <Ul privateMode={pm} items={[
-            <><a href="https://www.helius.dev" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Helius RPC</a> — Enterprise-grade Solana connections with real-time transaction processing</>,
-            <><a href="https://raydium.io" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Raydium DEX</a> — CPMM pool creation for graduated tokens</>,
-            <><a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className={`font-bold underline ${pm ? "text-[#4ADE80]" : "text-red-500"}`}>Phantom Wallet</a> — Primary wallet for signing and connecting</>,
+          <Heading>Links</Heading>
+          <Ul items={[
+            <><a href="https://www.helius.dev" target="_blank" rel="noopener noreferrer" className="font-bold underline text-red-500">Helius</a> — Solana RPC infrastructure</>,
+            <><a href="https://raydium.io" target="_blank" rel="noopener noreferrer" className="font-bold underline text-red-500">Raydium</a> — DEX for graduated token liquidity</>,
+            <><a href="https://phantom.app" target="_blank" rel="noopener noreferrer" className="font-bold underline text-red-500">Phantom</a> — Solana wallet</>,
+            <><a href="https://solana.com" target="_blank" rel="noopener noreferrer" className="font-bold underline text-red-500">Solana</a> — Layer 1 blockchain</>,
           ]} />
         </>
       ),
@@ -548,10 +437,8 @@ const faqs = [
 
 export default function DocsPage() {
   usePageTitle("/docs");
-  const { privateMode } = usePrivacy();
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
-
-  const sections = buildSections(privateMode);
+  const sections = buildSections();
 
   return (
     <Layout>
@@ -561,45 +448,35 @@ export default function DocsPage() {
           animate={{ opacity: 1, y: 0 }}
         >
           <div className="flex items-center gap-3 mb-2">
-            {privateMode ? <Cpu className="w-8 h-8 text-[#4ADE80]" /> : <Book className="w-8 h-8 text-red-500" />}
-            <h1 className={`text-3xl font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
-              {privateMode ? "> SYSTEM_DOCUMENTATION" : "Documentation"}
+            <Book className="w-8 h-8 text-red-500" />
+            <h1 className="text-3xl font-black text-gray-900">
+              Documentation
             </h1>
           </div>
-          <p className={`mt-1 ${privateMode ? "text-[#4ADE80] font-mono" : "text-gray-600"}`}>
-            {privateMode ? "// ACCESSING_LOCAL_DATABASE" : "Everything you need to know about dum.fun"}
+          <p className="mt-1 text-gray-600">
+            Everything you need to know about dum.fun
           </p>
         </motion.div>
 
-        <nav className={`rounded-xl p-4 ${
-          privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-        }`}>
-          <h2 className={`font-bold text-sm mb-3 uppercase tracking-wider ${privateMode ? "text-[#4ADE80]/50 font-mono" : "text-gray-400"}`}>
-            {privateMode ? "> NAV_LINKS" : "Quick Links"}
+        <nav className="rounded-xl p-4 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <h2 className="font-bold text-sm mb-3 uppercase tracking-wider text-gray-400">
+            Quick Links
           </h2>
           <div className="flex flex-wrap gap-2">
             {sections.map((section) => (
               <a
                 key={section.id}
                 href={`#${section.id}`}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  privateMode
-                    ? "bg-zinc-800 text-[#4ADE80]/70 hover:bg-[#4ADE80]/10 hover:text-[#4ADE80] border border-[#4ADE80]/10 font-mono"
-                    : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
-                }`}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
               >
-                {privateMode ? section.title.toUpperCase().replace(/\s/g, '_') : section.title}
+                {section.title}
               </a>
             ))}
             <a
               href="#faq"
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                privateMode
-                  ? "bg-zinc-800 text-[#4ADE80]/70 hover:bg-[#4ADE80]/10 hover:text-[#4ADE80] border border-[#4ADE80]/10 font-mono"
-                  : "bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
-              }`}
+              className="px-3 py-1.5 rounded-lg text-xs font-bold transition-all bg-gray-100 text-gray-600 hover:bg-red-100 hover:text-red-600 border border-gray-200"
             >
-              {privateMode ? "FAQ_INDEX" : "FAQ"}
+              FAQ
             </a>
           </div>
         </nav>
@@ -612,18 +489,14 @@ export default function DocsPage() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: Math.min(index * 0.05, 0.3) }}
-              className={`rounded-xl p-6 ${
-                privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-              }`}
+              className="rounded-xl p-6 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
             >
               <div className="flex items-center gap-3 mb-4">
-                <div className={`p-2 rounded-lg ${
-                  privateMode ? "bg-[#4ADE80]/10" : "bg-red-100"
-                }`}>
-                  <section.icon className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-red-600"}`} />
+                <div className="p-2 rounded-lg bg-red-100">
+                  <section.icon className="w-5 h-5 text-red-600" />
                 </div>
-                <h2 className={`text-lg font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
-                  {privateMode ? section.title.toUpperCase().replace(/\s/g, '_') : section.title}
+                <h2 className="text-lg font-black text-gray-900">
+                  {section.title}
                 </h2>
               </div>
               <div>{section.content}</div>
@@ -635,41 +508,33 @@ export default function DocsPage() {
           id="faq"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className={`rounded-xl p-6 ${
-            privateMode ? "bg-zinc-900/50 border border-[#4ADE80]/20" : "bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-          }`}
+          className="rounded-xl p-6 bg-white border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className={`p-2 rounded-lg ${
-              privateMode ? "bg-[#4ADE80]/10" : "bg-yellow-100"
-            }`}>
-              <HelpCircle className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-yellow-600"}`} />
+            <div className="p-2 rounded-lg bg-yellow-100">
+              <HelpCircle className="w-5 h-5 text-yellow-600" />
             </div>
-            <h2 className={`text-lg font-black ${privateMode ? "text-white font-mono" : "text-gray-900"}`}>
-              {privateMode ? "FREQUENTLY_ASKED_QUESTIONS" : "Frequently Asked Questions"}
+            <h2 className="text-lg font-black text-gray-900">
+              Frequently Asked Questions
             </h2>
           </div>
 
           <div className="space-y-1">
             {faqs.map((faq, index) => (
-              <div key={index} className={`rounded-lg overflow-hidden ${
-                privateMode ? "border border-[#4ADE80]/10" : "border border-gray-100"
-              }`}>
+              <div key={index} className="rounded-lg overflow-hidden border border-gray-100">
                 <button
                   onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
                   className={`w-full flex items-center justify-between px-4 py-3 text-left transition-colors ${
-                    expandedFaq === index
-                      ? privateMode ? "bg-[#4ADE80]/5" : "bg-red-50"
-                      : privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
+                    expandedFaq === index ? "bg-red-50" : "hover:bg-gray-50"
                   }`}
                   data-testid={`faq-toggle-${index}`}
                 >
-                  <span className={`font-bold text-sm ${privateMode ? "text-white" : "text-gray-900"}`}>
-                    {privateMode ? `> ${faq.q}` : faq.q}
+                  <span className="font-bold text-sm text-gray-900">
+                    {faq.q}
                   </span>
                   <motion.span
                     animate={{ rotate: expandedFaq === index ? 180 : 0 }}
-                    className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}
+                    className="text-xs text-gray-400"
                   >
                     ▼
                   </motion.span>
@@ -678,7 +543,7 @@ export default function DocsPage() {
                   <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: "auto", opacity: 1 }}
-                    className={`px-4 pb-3 text-sm ${privateMode ? "text-white/60 font-mono" : "text-gray-600"}`}
+                    className="px-4 pb-3 text-sm text-gray-600"
                   >
                     {faq.a}
                   </motion.div>
@@ -688,9 +553,9 @@ export default function DocsPage() {
           </div>
         </motion.section>
 
-        <div className={`text-center py-6 text-sm ${privateMode ? "text-[#4ADE80]/40 font-mono" : "text-gray-500"}`}>
+        <div className="text-center py-6 text-sm text-gray-500">
           <p>Still have questions? DM us on X:{" "}
-            <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className={`font-bold hover:underline ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`} data-testid="link-twitter">
+            <a href="https://x.com/dumdotfun" target="_blank" rel="noopener noreferrer" className="font-bold hover:underline text-red-500" data-testid="link-twitter">
               @dumdotfun
             </a>
           </p>

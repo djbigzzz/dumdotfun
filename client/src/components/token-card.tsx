@@ -1,7 +1,7 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { TrendingUp, Clock, Cpu, Lock } from "lucide-react";
-import { usePrivacy } from "@/lib/privacy-context";
+
 
 interface TokenPrediction {
   id: string;
@@ -40,7 +40,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 }
 
 export function TokenCard({ token, solPrice = null }: TokenCardProps) {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const topPrediction = token.predictions?.[0];
   
   return (

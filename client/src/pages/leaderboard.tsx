@@ -1,5 +1,5 @@
 import { Layout } from "@/components/layout";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -177,7 +177,7 @@ function LeaderboardRow({ entry, rank, isYou, privateMode, reward }: {
 
 export default function Leaderboard() {
   usePageTitle("/leaderboard");
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const { connectedWallet } = useWallet();
   const [viewMode, setViewMode] = useState<ViewMode>("seasonal");
   const [sortDir, setSortDir] = useState<SortDir>("desc");

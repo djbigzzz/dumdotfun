@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
-import { usePrivacy } from "@/lib/privacy-context";
 
 interface Notification {
   id: string;
@@ -21,7 +20,6 @@ interface Notification {
 
 export function NotificationBell() {
   const { connectedWallet } = useWallet();
-  const { privateMode } = usePrivacy();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
   const [dismissed, setDismissed] = useState<Set<string>>(new Set());
@@ -46,11 +44,7 @@ export function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className={`relative p-2 rounded-lg transition-colors ${
-          privateMode
-            ? "text-[#4ADE80] hover:bg-[#4ADE80]/10"
-            : "text-gray-600 hover:bg-gray-100"
-        }`}
+        className="relative p-2 rounded-lg transition-colors text-gray-600 hover:bg-gray-100"
         data-testid="button-notifications"
       >
         <Bell className="w-5 h-5" />
@@ -73,30 +67,26 @@ export function NotificationBell() {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className={`absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-xl border-2 shadow-xl z-50 ${
-                privateMode
-                  ? "bg-black border-[#4ADE80]/30"
-                  : "bg-white border-black"
-              }`}
+              className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-xl border-2 shadow-xl z-50 bg-white border-black"
               data-testid="dropdown-notifications"
             >
-              <div className={`p-3 border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-200"}`}>
+              <div className="p-3 border-b border-gray-200">
                 <div className="flex items-center justify-between">
-                  <h3 className={`font-bold text-sm ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
-                    {privateMode ? "> ALERTS" : "Notifications"}
+                  <h3 className="font-bold text-sm text-gray-900">
+                    Notifications
                   </h3>
-                  <button onClick={() => setOpen(false)} className={`p-1 rounded ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-gray-600"}`}>
+                  <button onClick={() => setOpen(false)} className="p-1 rounded text-gray-400 hover:text-gray-600">
                     <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {notifications.length === 0 ? (
-                <div className={`p-6 text-center text-sm ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                <div className="p-6 text-center text-sm text-gray-400">
                   No notifications
                 </div>
               ) : (
-                <div className="divide-y divide-zinc-800">
+                <div className="divide-y divide-gray-100">
                   {notifications.map((notif) => (
                       <motion.div
                         key={notif.id}
@@ -105,9 +95,7 @@ export function NotificationBell() {
                           setOpen(false);
                           navigate(`/market/${notif.marketId}`);
                         }}
-                        className={`p-3 cursor-pointer transition-colors ${
-                          privateMode ? "hover:bg-[#4ADE80]/5" : "hover:bg-gray-50"
-                        }`}
+                        className="p-3 cursor-pointer transition-colors hover:bg-gray-50"
                         data-testid={`notification-${notif.id}`}
                       >
                         {notif.type === "market_resolved" ? (
@@ -125,7 +113,7 @@ export function NotificationBell() {
                               <p className={`text-xs font-bold ${notif.won ? "text-green-400" : "text-red-400"}`}>
                                 {notif.won ? "You won!" : "Market resolved"}
                               </p>
-                              <p className={`text-xs truncate mt-0.5 ${privateMode ? "text-white" : "text-gray-700"}`}>
+                              <p className="text-xs truncate mt-0.5 text-gray-700">
                                 {notif.question}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
@@ -147,7 +135,7 @@ export function NotificationBell() {
                                 e.stopPropagation();
                                 setDismissed(prev => { const next = new Set(prev); next.add(notif.id); return next; });
                               }}
-                              className={`p-1 rounded self-start ${privateMode ? "text-[#4ADE80]/30 hover:text-[#4ADE80]" : "text-gray-300 hover:text-gray-500"}`}
+                              className="p-1 rounded self-start text-gray-300 hover:text-gray-500"
                             >
                               <X className="w-3 h-3" />
                             </button>
@@ -159,7 +147,7 @@ export function NotificationBell() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-yellow-400">Expiring soon</p>
-                              <p className={`text-xs truncate mt-0.5 ${privateMode ? "text-white" : "text-gray-700"}`}>
+                              <p className="text-xs truncate mt-0.5 text-gray-700">
                                 {notif.question}
                               </p>
                               <p className="text-[10px] text-yellow-400/70 mt-1">

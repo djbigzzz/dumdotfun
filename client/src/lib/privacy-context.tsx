@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, ReactNode } from "react";
 
 interface PrivacyContextType {
   privateMode: boolean;
@@ -6,50 +6,22 @@ interface PrivacyContextType {
   setPrivateMode: (enabled: boolean) => void;
 }
 
-const PrivacyContext = createContext<PrivacyContextType | undefined>(undefined);
-
-const STORAGE_KEY = "dum-fun-private-mode";
+const PrivacyContext = createContext<PrivacyContextType>({
+  privateMode: false,
+  togglePrivateMode: () => {},
+  setPrivateMode: () => {},
+});
 
 export function PrivacyProvider({ children }: { children: ReactNode }) {
-  const [privateMode, setPrivateModeState] = useState<boolean>(() => {
-    if (typeof window !== "undefined") {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      return stored === "true";
-    }
-    return false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, String(privateMode));
-    
-    if (privateMode) {
-      document.documentElement.classList.add("private-mode");
-    } else {
-      document.documentElement.classList.remove("private-mode");
-    }
-  }, [privateMode]);
-
-  const togglePrivateMode = () => {
-    setPrivateModeState(prev => !prev);
-  };
-
-  const setPrivateMode = (enabled: boolean) => {
-    setPrivateModeState(enabled);
-  };
-
   return (
-    <PrivacyContext.Provider value={{ privateMode, togglePrivateMode, setPrivateMode }}>
+    <PrivacyContext.Provider value={{ privateMode: false, togglePrivateMode: () => {}, setPrivateMode: () => {} }}>
       {children}
     </PrivacyContext.Provider>
   );
 }
 
 export function usePrivacy() {
-  const context = useContext(PrivacyContext);
-  if (context === undefined) {
-    throw new Error("usePrivacy must be used within a PrivacyProvider");
-  }
-  return context;
+  return useContext(PrivacyContext);
 }
 
 export function obfuscateWallet(address: string | null): string {

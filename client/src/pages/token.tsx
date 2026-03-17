@@ -1,7 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { usePrivacy } from "@/lib/privacy-context";
-import { useIncoPrivacy, encryptBetForInco } from "@/lib/inco-client";
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
@@ -109,8 +108,7 @@ export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const [, setLocation] = useLocation();
   const { connectedWallet, connectWallet } = useWallet();
-  const { privateMode } = usePrivacy();
-  const { shouldEncryptBets } = useIncoPrivacy();
+  const privateMode = false;
   const queryClient = useQueryClient();
   const [tokenTitle, setTokenTitle] = useState<string | undefined>();
   usePageTitle(undefined, tokenTitle);
@@ -243,28 +241,8 @@ export default function TokenPage() {
   });
 
   const placeBetMutation = useMutation({
-    mutationFn: async ({ marketId, side, amount, confidential }: { marketId: string; side: "yes" | "no"; amount: number; confidential?: boolean }) => {
+    mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
       if (!connectedWallet) throw new Error("Wallet not connected");
-      
-      // Use confidential betting endpoint if privacy mode is on
-      if (confidential) {
-        const confidentialRes = await fetch(`/api/markets/${marketId}/confidential-bet`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            walletAddress: connectedWallet,
-            side,
-            amount,
-          }),
-        });
-        
-        if (!confidentialRes.ok) {
-          const errorData = await confidentialRes.json();
-          throw new Error(errorData.error || "Failed to place confidential bet");
-        }
-        
-        return confidentialRes.json();
-      }
       
       const phantom = (window as any).phantom?.solana;
       if (!phantom?.isPhantom) {
@@ -326,7 +304,7 @@ export default function TokenPage() {
       return confirmRes.json();
     },
     onSuccess: (_, variables) => {
-      toast.success(variables.confidential ? "Private bet placed!" : "Bet placed!");
+      toast.success("Bet placed!");
       setActiveBet(null);
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
@@ -365,7 +343,6 @@ export default function TokenPage() {
       marketId: activeBet.predictionId,
       side: activeBet.side,
       amount: parseFloat(betAmount),
-      confidential: privateMode,
     });
   };
 
@@ -805,21 +782,6 @@ export default function TokenPage() {
                   Sell
                 </button>
               </div>
-
-              {/* Privacy Features Info */}
-              {tradeType === "buy" && privateMode && (
-                <div className="mb-4 p-3 rounded-lg bg-zinc-900/50 border border-[#4ADE80]/20">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-[#4ADE80]/50" />
-                    <span className="text-sm font-bold text-[#4ADE80]/70">
-                      Privacy Mode Active
-                    </span>
-                  </div>
-                  <p className="mt-2 text-xs text-[#4ADE80]/50">
-                    Stealth addresses for token trading coming soon. Use prediction markets for confidential betting.
-                  </p>
-                </div>
-              )}
 
               {/* Token Balance Display for Sell */}
               {tradeType === "sell" && connectedWallet && (

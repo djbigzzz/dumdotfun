@@ -1,7 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { Link } from "wouter";
@@ -74,7 +74,7 @@ const CAT_COLORS: Record<string, string> = {
 
 export default function QuestsPage() {
   usePageTitle("/quests");
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const { connectedWallet, connectWallet } = useWallet();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);

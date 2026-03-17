@@ -6,7 +6,6 @@ import { useState } from "react";
 import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info, BookOpen, Zap, Scale, Timer } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
-import { usePrivacy } from "@/lib/privacy-context";
 import { Transaction, Connection } from "@solana/web3.js";
 import { useEffect } from "react";
 
@@ -92,7 +91,6 @@ function useCountdown(targetDate: string) {
 export default function MarketDetail() {
   const { id } = useParams<{ id: string }>();
   const { connectedWallet, connectWallet } = useWallet();
-  const { privateMode } = usePrivacy();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   const queryClient = useQueryClient();

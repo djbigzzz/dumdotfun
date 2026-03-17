@@ -1,7 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
 import { useEffect, useState } from "react";
@@ -85,7 +85,7 @@ type TabType = "overview" | "quests" | "leaderboard";
 type QuestFilter = "all" | "in_progress" | "completed";
 
 export default function Profile() {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const { connectedWallet, disconnectWallet } = useWallet();
   const [, setLocation] = useLocation();
   const [copiedWallet, setCopiedWallet] = useState(false);

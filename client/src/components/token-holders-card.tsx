@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Loader2, Droplets } from "lucide-react";
 import { useState } from "react";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { Link } from "wouter";
 
 interface TokenHolder {
@@ -28,7 +28,7 @@ interface TokenHoldersCardProps {
 }
 
 export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCardProps) {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const [expanded, setExpanded] = useState(!compact);
 
   const { data, isLoading, error } = useQuery<TokenHoldersResponse>({

@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles, Trophy } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { useWallet } from "@/lib/wallet-context";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -63,7 +63,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 
 function QuestsTeaser() {
   const { connectedWallet } = useWallet();
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
 
   const { data: pointsData } = useQuery<{
     totalPoints: number;
@@ -125,7 +125,7 @@ function QuestsTeaser() {
 
 export default function TokensPage() {
   usePageTitle("/tokens");
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const [searchQuery, setSearchQuery] = useState("");
   const [activeFilter, setActiveFilter] = useState<FilterTab>("new");
   const [viewMode, setViewMode] = useState<ViewMode>("grid");

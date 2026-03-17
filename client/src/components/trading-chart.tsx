@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { createChart, ColorType, CrosshairMode, type IChartApi, type ISeriesApi } from "lightweight-charts";
 import { useQuery } from "@tanstack/react-query";
-import { usePrivacy } from "@/lib/privacy-context";
+
 
 interface OHLCData {
   candles: { time: number; open: number; high: number; low: number; close: number; volume: number }[];
@@ -48,7 +48,7 @@ function formatSolPrice(val: number): string {
 }
 
 export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSupply = 1_000_000_000 }: TradingChartProps) {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const chartContainerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);

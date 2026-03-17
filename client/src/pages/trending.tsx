@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Flame, TrendingUp, Loader2, Zap } from "lucide-react";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { usePageTitle } from "@/hooks/use-page-title";
 
 interface Token {
@@ -46,7 +46,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 
 export default function TrendingPage() {
   usePageTitle("/trending");
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
 
   const { data: tokens, isLoading } = useQuery<Token[]>({
     queryKey: ["tokens"],

@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye } from "lucide-react";
@@ -27,7 +27,7 @@ interface CreatedToken {
 
 export default function CreateToken() {
   usePageTitle("/create");
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const { connectedWallet, connectWallet } = useWallet();
   const [formData, setFormData] = useState({
     name: "",

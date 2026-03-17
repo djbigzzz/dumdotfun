@@ -1,6 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
-import { usePrivacy } from "@/lib/privacy-context";
+
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
 import { useState } from "react";
@@ -38,7 +38,7 @@ interface UserProfile {
 }
 
 export default function UserProfilePage() {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const { wallet } = useParams<{ wallet: string }>();
   const [copied, setCopied] = useState(false);
 

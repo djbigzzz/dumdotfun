@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Search as SearchIcon, Loader2, X } from "lucide-react";
 import { useState } from "react";
-import { usePrivacy } from "@/lib/privacy-context";
+
 
 interface Token {
   mint: string;
@@ -42,7 +42,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 }
 
 export default function SearchPage() {
-  const { privateMode } = usePrivacy();
+  const privateMode = false;
   const [query, setQuery] = useState("");
 
   const { data: tokens, isLoading: tokensLoading } = useQuery<Token[]>({
