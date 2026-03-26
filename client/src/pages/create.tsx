@@ -279,6 +279,11 @@ export default function CreateToken() {
       return;
     }
 
+    if (!imagePreview) {
+      toast.error("Token logo is required");
+      return;
+    }
+
     setShowDevBuyStep(true);
   };
 
@@ -715,7 +720,7 @@ export default function CreateToken() {
           {/* Image Upload Section */}
           <div className={`${privateMode ? "bg-zinc-900/50 border-[#4ADE80]/50" : "bg-white border-black"} border-2 rounded-lg p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]`}>
             <h2 className={`text-sm font-black mb-4 uppercase ${privateMode ? "text-[#4ADE80] font-mono" : "text-red-500"}`}>
-              {privateMode ? "// VISUAL_ID" : "COIN IMAGE"}
+              {privateMode ? "// VISUAL_ID" : "COIN IMAGE"} <span className="text-red-600">*</span>
             </h2>
             
             <div className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
@@ -842,11 +847,11 @@ export default function CreateToken() {
           {/* Submit Button */}
           <motion.button
             type="submit"
-            disabled={createTokenMutation.isPending || !connectedWallet}
-            whileHover={{ y: createTokenMutation.isPending || !connectedWallet ? 0 : -2, x: createTokenMutation.isPending || !connectedWallet ? 0 : -2 }}
+            disabled={createTokenMutation.isPending || !connectedWallet || !imagePreview}
+            whileHover={{ y: createTokenMutation.isPending || !connectedWallet || !imagePreview ? 0 : -2, x: createTokenMutation.isPending || !connectedWallet || !imagePreview ? 0 : -2 }}
             whileTap={{ y: 0, x: 0 }}
             className={`w-full py-4 font-black text-lg rounded-lg border-2 border-black transition-all ${
-              createTokenMutation.isPending || !connectedWallet
+              createTokenMutation.isPending || !connectedWallet || !imagePreview
                 ? `bg-gray-300 text-gray-500 cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${privateMode ? "opacity-30" : ""}`
                 : privateMode 
                   ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] font-mono" 
