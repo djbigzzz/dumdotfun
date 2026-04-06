@@ -1,0 +1,26 @@
+{
+  "name": "Dum.fun",
+  "packageName": "fun.dum.app",
+  "shortDescription": "Solana meme token launchpad with bonding curves, prediction markets, and DEX auto-migration.",
+  "fullDescription": "Dum.fun is a Solana-native meme token launchpad. Create SPL tokens with bonding curves, trade on prediction markets powered by DFlow (Kalshi liquidity), earn points through quests and seasons, and watch your token graduate automatically to Raydium DEX. Built for the Solana dApp Store with full Saga wallet support.",
+  "iconUrl": "/dum-fun-og.png",
+  "bannerUrl": "/dum-fun-og.png",
+  "category": "deFi",
+  "subCategory": "tokenLaunchpad",
+  "targetPlatforms": ["android"],
+  "minimumSolanaVersion": "1.0.0",
+  "website": "https://dum.fun",
+  "twitter": "https://twitter.com/dumdotfun",
+  "github": "https://github.com/djbigzzz/dumdotfun",
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "description": "Initial release — token launchpad, bonding curves, prediction markets, quests."
+    }
+  ],
+  "license": "MIT",
+  "keywords": ["meme", "token", "launchpad", "solana", "bonding curve", "prediction market", "dflow", "raydium", "degen"],
+  "sagaWalletSupport": true,
+  "mobileWalletAdapterCompliant": true,
+  "network": "devnet"
+}

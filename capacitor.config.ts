@@ -1,14 +1,18 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
+const isProd = process.env.NODE_ENV === 'production';
+
 const config: CapacitorConfig = {
   appId: 'fun.dum.app',
   appName: 'Dum.fun',
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',
-    // For development, you can use your Replit URL
-    // url: 'https://your-replit-url.replit.app',
-    // cleartext: true
+    url: isProd
+      ? 'https://dum.fun'
+      : undefined,
+    cleartext: false,
+    hostname: 'dum.fun',
   },
   plugins: {
     SplashScreen: {
@@ -32,6 +36,13 @@ const config: CapacitorConfig = {
       keystoreAliasPassword: undefined,
       releaseType: 'APK',
     },
+    includePlugins: [
+      '@capacitor/app',
+      '@capacitor/haptics',
+      '@capacitor/keyboard',
+      '@capacitor/splash-screen',
+      '@capacitor/status-bar',
+    ],
   },
 };
 

@@ -1,6 +1,11 @@
 import axios from "axios";
 
-const DFLOW_API_BASE = "https://prediction-markets-api.dflow.net/api/v1";
+// Production endpoint (requires API key from hello@dflow.net)
+const DFLOW_API_PROD = "https://prediction-markets-api.dflow.net/api/v1";
+// Dev endpoint — publicly accessible, no API key required
+const DFLOW_API_DEV = "https://dev-prediction-markets-api.dflow.net/api/v1";
+
+const DFLOW_TRADE_API = "https://dev-quote-api.dflow.net";
 
 export interface DFlowMarket {
   ticker: string;
@@ -72,25 +77,38 @@ export interface DFlowTrade {
   timestamp: number;
 }
 
+export interface DFlowQuote {
+  inputMint: string;
+  outputMint: string;
+  inputAmount: string;
+  outputAmount: string;
+  slippageBps: number;
+  priceImpactPct: string;
+  routePlan: unknown[];
+}
+
 function getApiKey(): string | null {
   return process.env.DFLOW_API_KEY || null;
+}
+
+function getApiBase(): string {
+  return getApiKey() ? DFLOW_API_PROD : DFLOW_API_DEV;
 }
 
 function getHeaders(): Record<string, string> {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
-  
   const apiKey = getApiKey();
   if (apiKey) {
     headers["x-api-key"] = apiKey;
   }
-  
   return headers;
 }
 
+// Always configured — dev endpoint works without an API key
 export function isDFlowConfigured(): boolean {
-  return !!getApiKey();
+  return true;
 }
 
 export function hasDFlowApiKey(): boolean {
@@ -98,19 +116,20 @@ export function hasDFlowApiKey(): boolean {
 }
 
 export function getDFlowStatus() {
+  const hasKey = hasDFlowApiKey();
   return {
-    configured: isDFlowConfigured(),
-    hasApiKey: hasDFlowApiKey(),
-    metadataApi: DFLOW_API_BASE,
-    tradeApi: "https://quote-api.dflow.net",
+    configured: true,
+    hasApiKey: hasKey,
+    endpoint: hasKey ? "production" : "dev (public)",
+    metadataApi: getApiBase(),
+    tradeApi: DFLOW_TRADE_API,
     features: [
       "Tokenized Prediction Markets (Kalshi on Solana)",
       "SPL Token Trading",
+      "MEV-Protected Swaps",
       "Real-time Orderbook Data",
       "Market Search",
     ],
-    obtainKeyFrom: "hello@dflow.net",
-    docs: "https://pond.dflow.net/quickstart/api-keys",
   };
 }
 
@@ -122,11 +141,6 @@ export async function fetchEvents(options: {
   withNestedMarkets?: boolean;
   seriesTickers?: string[];
 }): Promise<{ events: DFlowEvent[]; cursor: number | null }> {
-  if (!isDFlowConfigured()) {
-    console.log("[DFlow] API key not configured - contact hello@dflow.net for access");
-    return { events: [], cursor: null };
-  }
-  
   const params = new URLSearchParams();
   if (options.limit) params.set("limit", options.limit.toString());
   if (options.cursor) params.set("cursor", options.cursor.toString());
@@ -140,7 +154,7 @@ export async function fetchEvents(options: {
   }
 
   try {
-    const response = await axios.get(`${DFLOW_API_BASE}/events?${params.toString()}`, {
+    const response = await axios.get(`${getApiBase()}/events?${params.toString()}`, {
       headers: getHeaders(),
       timeout: 10000,
     });
@@ -157,10 +171,6 @@ export async function fetchMarkets(options: {
   status?: string;
   sort?: "volume" | "volume24h" | "liquidity" | "openInterest";
 }): Promise<{ markets: DFlowMarket[]; cursor: number | null }> {
-  if (!isDFlowConfigured()) {
-    return { markets: [], cursor: null };
-  }
-  
   const params = new URLSearchParams();
   if (options.limit) params.set("limit", options.limit.toString());
   if (options.cursor) params.set("cursor", options.cursor.toString());
@@ -168,7 +178,7 @@ export async function fetchMarkets(options: {
   if (options.sort) params.set("sort", options.sort);
 
   try {
-    const response = await axios.get(`${DFLOW_API_BASE}/markets?${params.toString()}`, {
+    const response = await axios.get(`${getApiBase()}/markets?${params.toString()}`, {
       headers: getHeaders(),
       timeout: 10000,
     });
@@ -180,37 +190,24 @@ export async function fetchMarkets(options: {
 }
 
 export async function fetchMarketByTicker(ticker: string): Promise<DFlowMarket | null> {
-  if (!isDFlowConfigured()) {
-    return null;
-  }
-  
   try {
-    const response = await axios.get(`${DFLOW_API_BASE}/markets/${encodeURIComponent(ticker)}`, {
+    const response = await axios.get(`${getApiBase()}/markets/${encodeURIComponent(ticker)}`, {
       headers: getHeaders(),
       timeout: 10000,
     });
     return response.data;
   } catch (error: any) {
-    if (error.response?.status === 404) {
-      return null;
-    }
+    if (error.response?.status === 404) return null;
     console.error("DFlow API error (market):", error.response?.data || error.message);
     throw new Error(`Failed to fetch market: ${error.message}`);
   }
 }
 
 export async function fetchOrderbook(ticker: string): Promise<DFlowOrderbook | null> {
-  if (!isDFlowConfigured()) {
-    return null;
-  }
-  
   try {
     const response = await axios.get(
-      `${DFLOW_API_BASE}/orderbook/${encodeURIComponent(ticker)}`,
-      {
-        headers: getHeaders(),
-        timeout: 10000,
-      }
+      `${getApiBase()}/orderbook/${encodeURIComponent(ticker)}`,
+      { headers: getHeaders(), timeout: 10000 }
     );
     return response.data;
   } catch (error: any) {
@@ -223,17 +220,13 @@ export async function fetchTrades(
   ticker: string,
   options?: { limit?: number; cursor?: number }
 ): Promise<{ trades: DFlowTrade[]; cursor: number | null }> {
-  if (!isDFlowConfigured()) {
-    return { trades: [], cursor: null };
-  }
-  
   const params = new URLSearchParams();
   params.set("ticker", ticker);
   if (options?.limit) params.set("limit", options.limit.toString());
   if (options?.cursor) params.set("cursor", options.cursor.toString());
 
   try {
-    const response = await axios.get(`${DFLOW_API_BASE}/trades?${params.toString()}`, {
+    const response = await axios.get(`${getApiBase()}/trades?${params.toString()}`, {
       headers: getHeaders(),
       timeout: 10000,
     });
@@ -245,17 +238,10 @@ export async function fetchTrades(
 }
 
 export async function searchEvents(query: string): Promise<DFlowEvent[]> {
-  if (!isDFlowConfigured()) {
-    return [];
-  }
-  
   try {
     const response = await axios.get(
-      `${DFLOW_API_BASE}/search?q=${encodeURIComponent(query)}&withNestedMarkets=true`,
-      {
-        headers: getHeaders(),
-        timeout: 10000,
-      }
+      `${getApiBase()}/search?q=${encodeURIComponent(query)}&withNestedMarkets=true`,
+      { headers: getHeaders(), timeout: 10000 }
     );
     return response.data.events || [];
   } catch (error: any) {
@@ -264,10 +250,35 @@ export async function searchEvents(query: string): Promise<DFlowEvent[]> {
   }
 }
 
+export async function getSwapQuote(params: {
+  inputMint: string;
+  outputMint: string;
+  amount: number;
+  userPublicKey: string;
+  slippageBps?: number;
+}): Promise<DFlowQuote | null> {
+  try {
+    const qs = new URLSearchParams({
+      inputMint: params.inputMint,
+      outputMint: params.outputMint,
+      amount: params.amount.toString(),
+      userPublicKey: params.userPublicKey,
+      slippageBps: (params.slippageBps ?? 50).toString(),
+    });
+    const response = await axios.get(`${DFLOW_TRADE_API}/intent?${qs.toString()}`, {
+      timeout: 10000,
+    });
+    return response.data;
+  } catch (error: any) {
+    console.error("DFlow quote error:", error.response?.data || error.message);
+    return null;
+  }
+}
+
 export function formatMarketForDisplay(market: DFlowMarket) {
   const yesPrice = market.yesAsk ? parseFloat(market.yesAsk) : null;
   const noPrice = market.noAsk ? parseFloat(market.noAsk) : null;
-  
+
   return {
     ticker: market.ticker,
     title: market.title,
@@ -298,6 +309,8 @@ export function formatEventForDisplay(event: DFlowEvent) {
     liquidity: event.liquidity,
     openInterest: event.openInterest,
     strikeDate: event.strikeDate,
+    strikePeriod: event.strikePeriod,
     markets: event.markets.map(formatMarketForDisplay),
+    settlementSources: event.settlementSources,
   };
 }

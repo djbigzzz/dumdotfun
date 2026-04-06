@@ -1,8 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Link } from "wouter";
-import { TrendingUp, Clock, DollarSign, Search, ArrowRight, AlertCircle, Zap } from "lucide-react";
+import { TrendingUp, Clock, DollarSign, Search, AlertCircle, Zap, ExternalLink, Shield } from "lucide-react";
 import { Layout } from "@/components/layout";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -51,21 +50,38 @@ function formatDate(timestamp: number): string {
   });
 }
 
+function ProbabilityBar({ yes, no }: { yes: number | null; no: number | null }) {
+  const yesVal = yes ?? 50;
+  const noVal = no ?? 50;
+  return (
+    <div className="flex rounded-full overflow-hidden h-2 w-full border border-black/20">
+      <div
+        className="bg-green-500 transition-all"
+        style={{ width: `${yesVal}%` }}
+      />
+      <div
+        className="bg-red-500 transition-all"
+        style={{ width: `${noVal}%` }}
+      />
+    </div>
+  );
+}
+
 function EventCard({ event }: { event: DFlowEvent }) {
   const primaryMarket = event.markets[0];
-  
+
   return (
     <motion.div
       whileHover={{ y: -4 }}
-      className="bg-white border-2 border-black rounded-xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+      className="bg-white border-2 border-black rounded-xl overflow-hidden shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex flex-col"
     >
-      <div className="p-5 space-y-4">
+      <div className="p-5 space-y-4 flex-1">
         <div className="flex items-start gap-3">
           {event.imageUrl && (
             <img
               src={event.imageUrl}
               alt={event.title}
-              className="w-12 h-12 rounded-lg object-cover border-2 border-black"
+              className="w-12 h-12 rounded-lg object-cover border-2 border-black flex-shrink-0"
             />
           )}
           <div className="flex-1 min-w-0">
@@ -79,77 +95,80 @@ function EventCard({ event }: { event: DFlowEvent }) {
         </div>
 
         {primaryMarket && (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="flex-1 bg-green-100 border-2 border-black rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-600 font-medium">{primaryMarket.yesLabel}</div>
-                <div className="text-xl font-black text-green-600">
-                  {primaryMarket.yesPrice !== null ? `${primaryMarket.yesPrice}¢` : "-"}
-                </div>
-              </div>
-              <div className="flex-1 bg-red-100 border-2 border-black rounded-lg p-3 text-center">
-                <div className="text-xs text-gray-600 font-medium">{primaryMarket.noLabel}</div>
-                <div className="text-xl font-black text-red-600">
-                  {primaryMarket.noPrice !== null ? `${primaryMarket.noPrice}¢` : "-"}
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <div className="flex items-center gap-1">
-                <DollarSign className="w-3 h-3" />
-                <span>Vol: {formatVolume(event.volume)}</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                <span>{primaryMarket.closeTime ? formatDate(primaryMarket.closeTime) : "Open"}</span>
-              </div>
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-gray-700 line-clamp-2">
+              {primaryMarket.title}
+            </p>
+            <ProbabilityBar yes={primaryMarket.yesPrice} no={primaryMarket.noPrice} />
+            <div className="flex justify-between text-xs font-bold">
+              <span className="text-green-600">
+                YES {primaryMarket.yesPrice !== null ? `${primaryMarket.yesPrice}¢` : "—"}
+              </span>
+              <span className="text-red-500">
+                NO {primaryMarket.noPrice !== null ? `${primaryMarket.noPrice}¢` : "—"}
+              </span>
             </div>
           </div>
         )}
 
-        <Link
-          href={`/prediction/${event.ticker}`}
-          className="block w-full py-2 bg-yellow-400 border-2 border-black rounded-lg text-center font-bold text-black hover:bg-yellow-500 transition-colors"
-          data-testid={`link-event-${event.ticker}`}
+        <div className="grid grid-cols-2 gap-3 text-sm">
+          <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+            <div className="flex items-center gap-1 text-gray-500 mb-1">
+              <DollarSign className="w-3 h-3" />
+              <span className="text-xs">Volume</span>
+            </div>
+            <p className="font-black text-gray-900">{formatVolume(event.volume)}</p>
+          </div>
+          <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
+            <div className="flex items-center gap-1 text-gray-500 mb-1">
+              <TrendingUp className="w-3 h-3" />
+              <span className="text-xs">Open Interest</span>
+            </div>
+            <p className="font-black text-gray-900">{formatVolume(event.openInterest)}</p>
+          </div>
+        </div>
+
+        {primaryMarket?.closeTime && (
+          <div className="flex items-center gap-1 text-xs text-gray-500">
+            <Clock className="w-3 h-3" />
+            <span>Closes {formatDate(primaryMarket.closeTime)}</span>
+          </div>
+        )}
+      </div>
+
+      <div className="px-5 pb-5">
+        <a
+          href={`https://dflow.net/market/${primaryMarket?.ticker ?? ""}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-2 w-full py-2.5 bg-yellow-400 border-2 border-black rounded-lg font-bold text-sm hover:bg-yellow-300 transition-colors shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          data-testid={`button-trade-${event.ticker}`}
         >
-          Trade Now <ArrowRight className="w-4 h-4 inline ml-1" />
-        </Link>
+          Trade on DFlow
+          <ExternalLink className="w-3.5 h-3.5" />
+        </a>
       </div>
     </motion.div>
   );
 }
 
-function NotConfiguredBanner() {
+function DFlowBadge() {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-yellow-100 border-2 border-black rounded-xl p-6 text-center shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
-    >
-      <AlertCircle className="w-12 h-12 text-yellow-600 mx-auto mb-4" />
-      <h3 className="font-black text-xl text-gray-900 mb-2">DFlow Integration Pending</h3>
-      <p className="text-gray-600 mb-4">
-        Real prediction markets from Kalshi will be available once the DFlow API key is configured.
-        The grant application has been submitted for $4,700 in funding.
-      </p>
-      <div className="flex justify-center gap-3 flex-wrap">
+    <div className="flex items-center gap-2 bg-blue-50 border-2 border-blue-300 rounded-lg px-4 py-2 text-sm">
+      <Shield className="w-4 h-4 text-blue-600 flex-shrink-0" />
+      <span className="text-blue-800 font-semibold">
+        MEV-protected · Powered by{" "}
         <a
           href="https://dflow.net"
           target="_blank"
           rel="noopener noreferrer"
-          className="px-6 py-2 bg-black text-white font-bold rounded-lg hover:bg-gray-800 transition-colors"
+          className="underline hover:text-blue-600"
         >
-          Learn About DFlow
-        </a>
-        <Link
-          href="/"
-          className="px-6 py-2 bg-white border-2 border-black text-black font-bold rounded-lg hover:bg-gray-100 transition-colors"
-        >
-          Back to Tokens
-        </Link>
-      </div>
-    </motion.div>
+          DFlow
+        </a>{" "}
+        · Kalshi liquidity
+      </span>
+    </div>
   );
 }
 
@@ -161,7 +180,7 @@ export default function PredictionsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["/api/dflow/events", sortBy],
     queryFn: async () => {
-      const res = await fetch(`/api/dflow/events?limit=24&sort=${sortBy}&withNestedMarkets=true`);
+      const res = await fetch(`/api/dflow/events?limit=24&sort=${sortBy}&withNestedMarkets=true&status=active`);
       if (!res.ok) throw new Error("Failed to fetch events");
       return res.json();
     },
@@ -178,92 +197,84 @@ export default function PredictionsPage() {
     enabled: searchQuery.trim().length > 2,
   });
 
-  const events = searchQuery.trim().length > 2 && searchResults?.events
-    ? searchResults.events
-    : data?.events || [];
-
-  const isConfigured = data?.configured !== false;
+  const events: DFlowEvent[] =
+    searchQuery.trim().length > 2 && searchResults?.events
+      ? searchResults.events
+      : data?.events || [];
 
   return (
     <Layout>
       <div className="space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
           <div className="flex items-center gap-3 mb-2">
             <Zap className="w-8 h-8 text-yellow-500" />
             <h1 className="text-3xl font-black text-gray-900">Prediction Markets</h1>
           </div>
           <p className="text-gray-600">
-            Trade on real-world events with Kalshi liquidity via DFlow
+            Trade on real-world events with Kalshi liquidity — MEV-protected via DFlow on Solana
           </p>
         </motion.div>
 
-        {!isConfigured ? (
-          <NotConfiguredBanner />
+        <DFlowBadge />
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search markets..."
+              className="w-full pl-12 pr-4 py-3 bg-white border-2 border-black rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500"
+              data-testid="input-search-predictions"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            {(["volume", "volume24h", "liquidity"] as const).map((sort) => (
+              <button
+                key={sort}
+                onClick={() => setSortBy(sort)}
+                className={`px-4 py-2 rounded-lg border-2 border-black font-bold transition-all ${
+                  sortBy === sort
+                    ? "bg-yellow-400 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    : "bg-white text-gray-700 hover:bg-gray-100"
+                }`}
+                data-testid={`button-sort-${sort}`}
+              >
+                {sort === "volume" && "All-Time"}
+                {sort === "volume24h" && "24h Hot"}
+                {sort === "liquidity" && "Liquidity"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {isLoading || isSearching ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[...Array(6)].map((_, i) => (
+              <div
+                key={i}
+                className="h-72 bg-gray-200 border-2 border-black rounded-xl animate-pulse"
+              />
+            ))}
+          </div>
+        ) : error ? (
+          <div className="text-center py-12">
+            <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+            <p className="text-gray-600 font-semibold">Failed to load markets. Please try again.</p>
+          </div>
+        ) : events.length === 0 ? (
+          <div className="text-center py-12">
+            <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-600">No markets found</p>
+          </div>
         ) : (
-          <>
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="flex-1 relative">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Search markets..."
-                  className="w-full pl-12 pr-4 py-3 bg-white border-2 border-black rounded-xl font-medium focus:outline-none focus:ring-2 focus:ring-yellow-500"
-                  data-testid="input-search-predictions"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                {(["volume", "volume24h", "liquidity"] as const).map((sort) => (
-                  <button
-                    key={sort}
-                    onClick={() => setSortBy(sort)}
-                    className={`px-4 py-2 rounded-lg border-2 border-black font-bold transition-all ${
-                      sortBy === sort
-                        ? "bg-yellow-400 text-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
-                        : "bg-white text-gray-700 hover:bg-gray-100"
-                    }`}
-                    data-testid={`button-sort-${sort}`}
-                  >
-                    {sort === "volume" && "All-Time"}
-                    {sort === "volume24h" && "24h Hot"}
-                    {sort === "liquidity" && "Liquidity"}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {isLoading || isSearching ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {[...Array(6)].map((_, i) => (
-                  <div
-                    key={i}
-                    className="h-72 bg-gray-200 border-2 border-black rounded-xl animate-pulse"
-                  />
-                ))}
-              </div>
-            ) : error ? (
-              <div className="text-center py-12">
-                <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
-                <p className="text-gray-600">Failed to load markets. Please try again.</p>
-              </div>
-            ) : events.length === 0 ? (
-              <div className="text-center py-12">
-                <TrendingUp className="w-12 h-12 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600">No markets found</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {events.map((event: DFlowEvent) => (
-                  <EventCard key={event.ticker} event={event} />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {events.map((event: DFlowEvent) => (
+              <EventCard key={event.ticker} event={event} />
+            ))}
+          </div>
         )}
       </div>
     </Layout>

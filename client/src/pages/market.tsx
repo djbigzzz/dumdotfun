@@ -630,19 +630,19 @@ export default function MarketDetail() {
                         <Shield className={`w-5 h-5 mt-0.5 flex-shrink-0 ${useConfidentialBet ? "text-[#4ADE80]" : "text-blue-400"}`} />
                         <div>
                           <p className={`font-bold mb-1 ${useConfidentialBet ? "text-[#4ADE80]" : "text-white"}`}>
-                            {useConfidentialBet ? "Inco Lightning Encryption" : "Privacy Options"}
+                            {useConfidentialBet ? "Encrypt FHE — Confidential Mode" : "Privacy Options"}
                           </p>
                           <p className={useConfidentialBet ? "text-[#4ADE80]/70" : "text-gray-400"}>
                             {useConfidentialBet 
-                              ? "Your bet amount is encrypted using Inco Lightning SDK. Only you can reveal the amount later. Other users will see '🔒 Hidden' instead of your bet size."
-                              : "Enable confidential betting to hide your bet amount from other users. Uses Inco Lightning SDK for zero-knowledge encryption."
+                              ? "Your bet amount is encrypted on-chain using Encrypt's Fully Homomorphic Encryption (FHE). Pool balances update via #[encrypt_fn] circuits — no one can see your position size."
+                              : "Enable confidential betting to hide your bet amount from other traders using Encrypt FHE on Solana."
                             }
                           </p>
                           {useConfidentialBet && (
                             <div className="mt-2 flex items-center gap-2 text-xs text-[#4ADE80]/50 font-mono">
-                              <span>Program: 5sjE...Swaj</span>
+                              <span>encrypt.xyz · #encrypt_fn DSL</span>
                               <span>•</span>
-                              <span>Bounty: $2K</span>
+                              <span>Colosseum Frontier Track</span>
                             </div>
                           )}
                         </div>

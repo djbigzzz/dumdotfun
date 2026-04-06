@@ -11,7 +11,7 @@ import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
-import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
+import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, getSwapQuote, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
@@ -2842,12 +2842,10 @@ export async function registerRoutes(
 
   app.get("/api/dflow/search", async (req, res) => {
     try {
-
       const { q } = req.query;
       if (!q || typeof q !== "string") {
         return res.status(400).json({ error: "Query parameter 'q' is required" });
       }
-
       const events = await searchEvents(q);
       return res.json({ events: events.map(formatEventForDisplay) });
     } catch (error: any) {
@@ -2856,6 +2854,33 @@ export async function registerRoutes(
     }
   });
 
+  // MEV-protected swap quote via DFlow (Eitherway track)
+  app.get("/api/dflow/quote", async (req, res) => {
+    try {
+      const { inputMint, outputMint, amount, userPublicKey, slippageBps } = req.query;
+      if (!inputMint || !outputMint || !amount || !userPublicKey) {
+        return res.status(400).json({ error: "inputMint, outputMint, amount, userPublicKey are required" });
+      }
+      const quote = await getSwapQuote({
+        inputMint: inputMint as string,
+        outputMint: outputMint as string,
+        amount: Number(amount),
+        userPublicKey: userPublicKey as string,
+        slippageBps: slippageBps ? Number(slippageBps) : 50,
+      });
+      if (!quote) return res.status(503).json({ error: "DFlow quote unavailable" });
+      return res.json(quote);
+    } catch (error: any) {
+      console.error("DFlow quote error:", error);
+      return res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ========== MAGICBLOCK INTEGRATION (MagicBlock Privacy/Performance Track) ==========
+  app.get("/api/magicblock/status", async (_req, res) => {
+    const { getMagicBlockStatus } = await import("./magicblock");
+    return res.json(getMagicBlockStatus());
+  });
 
   // ========== POINTS SYSTEM ==========
   app.get("/api/points/og-card-info", async (_req, res) => {
