@@ -9,11 +9,12 @@ crate-type = ["cdylib", "lib"]
 name = "confidential_market"
 
 [features]
+default = []
 no-entrypoint = []
 no-idl = []
 no-log-ix-name = []
 cpi = ["no-entrypoint"]
-default = []
+fhe = ["encrypt-anchor", "encrypt-types", "encrypt-dsl"]
 
 [dependencies]
 anchor-lang = "0.30.1"
@@ -21,6 +22,3 @@ anchor-lang = "0.30.1"
 encrypt-anchor = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha", optional = true }
 encrypt-types  = { git = "https://github.com/dwallet-labs/encrypt-pre-alpha", optional = true }
 encrypt-dsl    = { package = "encrypt-solana-dsl", git = "https://github.com/dwallet-labs/encrypt-pre-alpha", optional = true }
-
-[features]
-fhe = ["encrypt-anchor", "encrypt-types", "encrypt-dsl"]
