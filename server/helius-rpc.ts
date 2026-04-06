@@ -1,6 +1,17 @@
 import { Connection } from "@solana/web3.js";
 
-const NETWORK = process.env.SOLANA_NETWORK || "devnet";
+function getNetwork(): string {
+  const network = process.env.SOLANA_NETWORK;
+  if (!network) {
+    throw new Error(
+      "SOLANA_NETWORK environment variable must be explicitly set (e.g., 'devnet' or 'mainnet-beta'). " +
+      "Refusing to default to devnet to prevent accidental mainnet misconfiguration."
+    );
+  }
+  return network;
+}
+
+const NETWORK = getNetwork();
 
 function getHeliusApiKey(): string | undefined {
   return process.env.HELIUS_API_KEY;
@@ -33,6 +44,5 @@ export function createNewConnection(): Connection {
 }
 
 export function getPublicConnection(): Connection {
-  const NETWORK = process.env.SOLANA_NETWORK || "devnet";
   return new Connection(`https://api.${NETWORK}.solana.com`, "confirmed");
 }

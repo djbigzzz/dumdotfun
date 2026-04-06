@@ -21,9 +21,17 @@ import {
 } from "./bonding-curve";
 
 // Configuration - deployed contract on devnet
+function requireEnv(name: string): string {
+  const val = process.env[name];
+  if (!val) {
+    throw new Error(`${name} environment variable is required. Refusing to use a hardcoded fallback.`);
+  }
+  return val;
+}
+
 export const TRADING_CONFIG = {
   // Program ID - deployed bonding curve contract
-  BONDING_CURVE_PROGRAM_ID: process.env.BONDING_CURVE_PROGRAM_ID || "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh",
+  BONDING_CURVE_PROGRAM_ID: requireEnv("BONDING_CURVE_PROGRAM_ID"),
   
   // RPC endpoint - Use centralized Helius RPC helper
   get RPC_ENDPOINT() {

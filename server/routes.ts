@@ -1779,8 +1779,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Pending market ID and signature are required" });
       }
 
-      // Check for signature replay attack
-      if (usedSignatures.has(signature)) {
+      // Check for signature replay attack (DB-persisted — survives restarts)
+      if (await storage.hasSignatureBeenUsed(signature)) {
         console.log(`[Market Creation] REJECTED: Signature ${signature.slice(0, 20)}... already used (replay attack)`);
         return res.status(400).json({ error: "This transaction signature has already been used" });
       }
@@ -1853,21 +1853,13 @@ export async function registerRoutes(
       // Check the amount received by the fee recipient
       const amountReceived = (postBalances[recipientIndex] || 0) - (preBalances[recipientIndex] || 0);
       
-      // DEVNET: When creator is the fee recipient (self-payment), balance delta is just tx fee
-      // Skip payment verification in this case for devnet testing
-      const isSelfPayment = senderKey === feeRecipient.toBase58();
-      
-      if (isSelfPayment) {
-        console.log(`[Market Creation] DEVNET: Self-payment detected (creator == fee recipient), skipping payment verification`);
-      } else {
-        // Allow some tolerance for rounding (0.1% tolerance)
-        const tolerance = expectedLamports * 0.001;
-        if (amountReceived < expectedLamports - tolerance) {
-          console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
-          return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
-        }
-        console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+      // Allow some tolerance for rounding (0.1% tolerance)
+      const tolerance = expectedLamports * 0.001;
+      if (amountReceived < expectedLamports - tolerance) {
+        console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
+        return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
       }
+      console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
 
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
@@ -1886,8 +1878,8 @@ export async function registerRoutes(
         PLATFORM_FEES.MARKET_CREATION
       );
 
-      // Mark signature as used to prevent replay attacks
-      usedSignatures.add(signature);
+      // Mark signature as used to prevent replay attacks (DB-persisted)
+      await storage.markSignatureAsUsed(signature);
       
       // Remove from pending
       pendingMarkets.delete(pendingMarketId);
@@ -1971,14 +1963,7 @@ export async function registerRoutes(
     survivalCriteria?: string;
   }>();
 
-  // Track used signatures to prevent replay attacks
-  const usedSignatures = new Set<string>();
-  
-  // Cleanup old signatures periodically (keep for 24 hours)
-  setInterval(() => {
-    // In production, this would be persisted to database
-    // For now, we keep all signatures in memory (acceptable for devnet)
-  }, 60 * 60 * 1000);
+  // Signature replay protection backed by database (persists across restarts)
 
   // Cleanup expired pending markets every minute
   setInterval(() => {
@@ -2127,7 +2112,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bet ID and signature are required" });
       }
 
-      if (usedSignatures.has(signature)) {
+      if (await storage.hasSignatureBeenUsed(signature)) {
         return res.status(400).json({ error: "Transaction signature already used" });
       }
 
@@ -2178,12 +2163,7 @@ export async function registerRoutes(
         }
       }
 
-      const feeRecipient = getFeeRecipientWallet().toString();
-      const isSelfPayment = pendingBet.walletAddress === feeRecipient;
-
-      if (isSelfPayment) {
-        console.log(`[Betting] DEVNET: Self-payment detected (bettor == fee recipient), skipping amount verification`);
-      } else if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
+      if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
         const lamportsSent = txInfo.meta.preBalances[0] - txInfo.meta.postBalances[0] - (txInfo.meta.fee || 0);
         const expectedLamports = pendingBet.amount * LAMPORTS_PER_SOL;
         const tolerance = expectedLamports * 0.05;
@@ -2192,7 +2172,8 @@ export async function registerRoutes(
         }
       }
 
-      usedSignatures.add(signature);
+      // Mark signature as used to prevent replay attacks (DB-persisted)
+      await storage.markSignatureAsUsed(signature);
 
       // Record the bet in database
       const isConfidentialBet = isConfidential || pendingBet.isConfidential;

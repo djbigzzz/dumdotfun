@@ -1,0 +1,79 @@
+[06/04/2026 16:34] openclaw: CRITICAL (fix before anything else)
+
+C1. Hardcoded devnet program ID
+The bonding curve program ID 6WSsUceUtt... is hardcoded in 5+ files. If you switch to mainnet without redeploying and updating this everywhere, all transactions fail. Every file that references this ID needs to read it from an environment variable with no fallback — if the env var is missing, the app should crash on startup, not silently use a devnet address.
+
+C2. Integer overflow in bonding curve math
+In the Rust contract, sol_reserves + sol_in uses regular addition. If the values get large enough, this overflows and panics — crashing the transaction or worse, calculating wrong token amounts. All arithmetic in the contract needs to use checked_add(), checked_sub(), checked_mul() so it returns an error instead of panicking.
+
+C3. Missing reentrancy protection
+The buy and sell functions transfer SOL and mint/burn tokens before updating the bonding curve state. A malicious contract could re-enter during the transfer and buy again at the old price. State updates (changing reserves, setting graduation flag) should happen before any external calls.
+
+C4. Network defaults to devnet
+In helius-rpc.ts, if SOLANA_NETWORK env var isn't set, it defaults to "devnet". On mainnet, if someone forgets to set this variable, the entire platform silently talks to devnet. Should throw an error if not explicitly set.
+
+───
+
+HIGH (fix before mainnet)
+
+H1. Fee rounding loses money
+sol_amount * 100 / 10000 rounds down with integer division. On every trade, you lose a fraction of a lamport. Over millions of trades, that adds up. Round up instead.
+
+H2. Graduation race condition
+The contract updates real_sol_reserves first, then checks if it hit 85 SOL. If two buys land in the same block, both could execute before graduation triggers. Check the threshold before updating state.
+
+H3. No max buy limit
+Anyone can buy with any amount in one transaction. A whale could buy the entire supply and instantly manipulate the price. Add a per-transaction cap (e.g. 10 SOL).
+
+H4. Weak liquidity withdrawal auth
+After graduation, any platform authority can withdraw all liquidity for any token. This is a centralization risk — consider multisig or timelock.
+
+H5. Direct lamport manipulation
+The sell function directly subtracts lamports from the vault account instead of using proper CPI transfer instructions. If the vault doesn't have enough, the contract panics in a bad state.
+
+H6. Bonding curve constants mismatch risk
+The TypeScript constants (total supply, reserves) must exactly match the Rust contract. There's no validation they do. If someone updates one and not the other, price calculations go wrong.
+
+H7. Division by zero
+If virtualTokenReserves ever hits 0, the price calculation divides by zero and crashes. Needs a zero-check.
+
+H8. Self-payment bypass left in code
+There's a DEVNET: Self-payment detected, skipping payment verification check that lets the fee recipient wallet create markets without paying. This needs to be removed before mainnet.
+
+H9. Signature replay uses in-memory storage
+Used signatures are stored in a Set() in memory. When the server restarts, they're gone — meaning old signatures can be replayed. Needs to be persisted to the database.
+
+H10. Wallet adapter hardcoded to devnet
+The client wallet connection uses WalletAdapterNetwork.Devnet in two places. Mobile and desktop wallet connections will always point to devnet unless this reads from a config variable.
+
+───
+
+MEDIUM (fix soon after launch)
+
+M1. No input validation on token name/symbol length in the contract
+M2. No pause mechanism — can't stop trading if a bug is found
+M3. Slippage protection accepts 0 (user gets nothing)
+[06/04/2026 16:34] openclaw: M4. Creator address stored but never used for anything
+M5. BN precision loss in price impact calculation
+M6. Hardcoded 6 decimals for all tokens
+M7. Server builds transactions but never confirms they landed
+M8. Mint keypair sent to client over the network
+[06/04/2026 16:34] openclaw: M9. Manual account data parsing instead of using Anchor's IDL
+M10. Network errors silently returned as "token not found"
+M11. Pending market state lost on server restart
+M12. No CORS configuration visible
+M13. Falls back to public RPC if Helius key missing
+M14. Financial amounts stored as text in database instead of decimal
+M15. Missing database indexes on frequently queried columns
+
+───
+
+LOW (nice to have)
+
+L1. Magic numbers not documented
+L2. No event emissions for off-chain indexing
+L3. Admin auth is simple header token, no rate limiting
+L4. URL sanitization uses blacklist instead of whitelist
+L5. No wallet connection error shown to user
+L6. No auto-update on updatedAt timestamps
+L7. No cascade delete rules on foreign keys

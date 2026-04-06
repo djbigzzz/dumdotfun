@@ -16,7 +16,14 @@ import {
 import BN from "bn.js";
 import { getConnection as getHeliusConnection } from "./helius-rpc";
 
-const PROGRAM_ID = new PublicKey(process.env.BONDING_CURVE_PROGRAM_ID || "6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh");
+const _programIdStr = process.env.BONDING_CURVE_PROGRAM_ID;
+if (!_programIdStr) {
+  throw new Error(
+    "BONDING_CURVE_PROGRAM_ID environment variable is required. " +
+    "Refusing to fall back to the devnet address to prevent mainnet misconfiguration."
+  );
+}
+const PROGRAM_ID = new PublicKey(_programIdStr);
 const FEE_RECIPIENT = new PublicKey(process.env.FEE_RECIPIENT_WALLET || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM");
 
 export function getConnection(): Connection {

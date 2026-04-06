@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, type Market, type InsertMarket, type Position, type InsertPosition, type Activity, type InsertActivity, users, tokens, walletAnalysis, waitlist, predictionMarkets, positions, activityFeed } from "@shared/schema";
+import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, type Market, type InsertMarket, type Position, type InsertPosition, type Activity, type InsertActivity, users, tokens, walletAnalysis, waitlist, predictionMarkets, positions, activityFeed, usedSignatures } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, sql, lt, and } from "drizzle-orm";
 
@@ -46,6 +46,10 @@ export interface IStorage {
   getRecentActivity(limit?: number): Promise<Activity[]>;
   getActivityByToken(tokenMint: string, limit?: number): Promise<Activity[]>;
   
+  // Signature replay protection
+  hasSignatureBeenUsed(signature: string): Promise<boolean>;
+  markSignatureAsUsed(signature: string): Promise<void>;
+
   // Transactional operations
   placeBetTransaction(
     marketId: string,
@@ -394,6 +398,22 @@ export class DatabaseStorage implements IStorage {
 
       return { market, position };
     });
+  }
+
+  async hasSignatureBeenUsed(signature: string): Promise<boolean> {
+    const rows = await db
+      .select({ signature: usedSignatures.signature })
+      .from(usedSignatures)
+      .where(eq(usedSignatures.signature, signature))
+      .limit(1);
+    return rows.length > 0;
+  }
+
+  async markSignatureAsUsed(signature: string): Promise<void> {
+    await db
+      .insert(usedSignatures)
+      .values({ signature })
+      .onConflictDoNothing();
   }
 }
 

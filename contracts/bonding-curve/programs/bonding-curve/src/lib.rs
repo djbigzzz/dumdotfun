@@ -12,6 +12,9 @@ pub const GRADUATION_THRESHOLD: u64 = 85_000_000_000;
 pub const PLATFORM_FEE_BPS: u64 = 100;
 pub const DECIMALS: u8 = 6;
 
+// H3: Maximum single-buy cap (10 SOL in lamports) to prevent economic attacks
+pub const MAX_BUY_SOL: u64 = 10_000_000_000;
+
 #[program]
 pub mod bonding_curve {
     use super::*;
@@ -74,9 +77,18 @@ pub mod bonding_curve {
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
         require!(sol_amount > 0, ErrorCode::InvalidAmount);
+        // H3: Cap single-buy size to prevent economic manipulation
+        require!(sol_amount <= MAX_BUY_SOL, ErrorCode::ExceedsMaxBuy);
 
-        let fee = sol_amount * PLATFORM_FEE_BPS / 10000;
-        let sol_after_fee = sol_amount - fee;
+        // H1: Ceiling division for fee so the platform never rounds down in buyers' favor
+        let fee = sol_amount
+            .checked_mul(PLATFORM_FEE_BPS)
+            .ok_or(ErrorCode::Overflow)?
+            .checked_add(9999)
+            .ok_or(ErrorCode::Overflow)?
+            / 10000;
+        // C2: Checked subtraction
+        let sol_after_fee = sol_amount.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         let tokens_out = calculate_tokens_out(
             sol_after_fee,
@@ -87,6 +99,35 @@ pub mod bonding_curve {
         require!(tokens_out >= min_tokens_out, ErrorCode::SlippageExceeded);
         require!(tokens_out <= curve.real_token_reserves, ErrorCode::InsufficientLiquidity);
 
+        // C3: Update ALL state BEFORE any CPI calls (checks-effects-interactions)
+        // C2: Checked arithmetic on state updates
+        curve.virtual_sol_reserves = curve
+            .virtual_sol_reserves
+            .checked_add(sol_after_fee)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.virtual_token_reserves = curve
+            .virtual_token_reserves
+            .checked_sub(tokens_out)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.real_sol_reserves = curve
+            .real_sol_reserves
+            .checked_add(sol_after_fee)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.real_token_reserves = curve
+            .real_token_reserves
+            .checked_sub(tokens_out)
+            .ok_or(ErrorCode::Overflow)?;
+        config.total_fees_collected = config
+            .total_fees_collected
+            .checked_add(fee)
+            .ok_or(ErrorCode::Overflow)?;
+
+        if curve.real_sol_reserves >= GRADUATION_THRESHOLD {
+            curve.is_graduated = true;
+            msg!("Token graduated! Ready for DEX migration.");
+        }
+
+        // CPI: transfer SOL to vault
         let cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
@@ -96,6 +137,7 @@ pub mod bonding_curve {
         );
         anchor_lang::system_program::transfer(cpi_context, sol_after_fee)?;
 
+        // CPI: transfer fee to fee recipient
         let fee_cpi_context = CpiContext::new(
             ctx.accounts.system_program.to_account_info(),
             anchor_lang::system_program::Transfer {
@@ -105,8 +147,7 @@ pub mod bonding_curve {
         );
         anchor_lang::system_program::transfer(fee_cpi_context, fee)?;
 
-        config.total_fees_collected += fee;
-
+        // CPI: mint tokens to buyer
         let seeds = &[
             b"bonding_curve",
             curve.mint.as_ref(),
@@ -125,16 +166,6 @@ pub mod bonding_curve {
             signer,
         );
         token::mint_to(cpi_ctx, tokens_out)?;
-
-        curve.virtual_sol_reserves += sol_after_fee;
-        curve.virtual_token_reserves -= tokens_out;
-        curve.real_sol_reserves += sol_after_fee;
-        curve.real_token_reserves -= tokens_out;
-
-        if curve.real_sol_reserves >= GRADUATION_THRESHOLD {
-            curve.is_graduated = true;
-            msg!("Token graduated! Ready for DEX migration.");
-        }
 
         msg!("Buy: {} lamports for {} tokens (fee: {} sent to {})", 
             sol_amount, tokens_out, fee, ctx.accounts.fee_recipient.key());
@@ -155,12 +186,43 @@ pub mod bonding_curve {
             curve.virtual_token_reserves,
         )?;
 
-        let fee = sol_out * PLATFORM_FEE_BPS / 10000;
-        let sol_after_fee = sol_out - fee;
+        // H1: Ceiling division for fee
+        let fee = sol_out
+            .checked_mul(PLATFORM_FEE_BPS)
+            .ok_or(ErrorCode::Overflow)?
+            .checked_add(9999)
+            .ok_or(ErrorCode::Overflow)?
+            / 10000;
+        // C2: Checked subtraction
+        let sol_after_fee = sol_out.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         require!(sol_after_fee >= min_sol_out, ErrorCode::SlippageExceeded);
-        require!(sol_after_fee <= curve.real_sol_reserves, ErrorCode::InsufficientLiquidity);
+        // H5: Validate against sol_out (the gross amount), not sol_after_fee
+        require!(sol_out <= curve.real_sol_reserves, ErrorCode::InsufficientLiquidity);
 
+        // C2 / C3: Update state before lamport manipulation
+        curve.virtual_sol_reserves = curve
+            .virtual_sol_reserves
+            .checked_sub(sol_out)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.virtual_token_reserves = curve
+            .virtual_token_reserves
+            .checked_add(token_amount)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.real_sol_reserves = curve
+            .real_sol_reserves
+            .checked_sub(sol_out)
+            .ok_or(ErrorCode::Overflow)?;
+        curve.real_token_reserves = curve
+            .real_token_reserves
+            .checked_add(token_amount)
+            .ok_or(ErrorCode::Overflow)?;
+        config.total_fees_collected = config
+            .total_fees_collected
+            .checked_add(fee)
+            .ok_or(ErrorCode::Overflow)?;
+
+        // Burn tokens
         let cpi_accounts = Burn {
             mint: ctx.accounts.mint.to_account_info(),
             from: ctx.accounts.seller_token_account.to_account_info(),
@@ -172,17 +234,10 @@ pub mod bonding_curve {
         );
         token::burn(cpi_ctx, token_amount)?;
 
+        // Lamport transfers: deduct full sol_out from vault, credit sol_after_fee to seller and fee to recipient
         **ctx.accounts.curve_sol_vault.to_account_info().try_borrow_mut_lamports()? -= sol_out;
         **ctx.accounts.seller.to_account_info().try_borrow_mut_lamports()? += sol_after_fee;
-        
         **ctx.accounts.fee_recipient.to_account_info().try_borrow_mut_lamports()? += fee;
-
-        config.total_fees_collected += fee;
-
-        curve.virtual_sol_reserves -= sol_out;
-        curve.virtual_token_reserves += token_amount;
-        curve.real_sol_reserves -= sol_out;
-        curve.real_token_reserves += token_amount;
 
         msg!("Sell: {} tokens for {} lamports (fee: {} sent to {})", 
             token_amount, sol_after_fee, fee, ctx.accounts.fee_recipient.key());
@@ -255,8 +310,14 @@ pub mod bonding_curve {
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
 
-        let fee = sol_amount * PLATFORM_FEE_BPS / 10000;
-        let sol_after_fee = sol_amount - fee;
+        // H1: Ceiling fee
+        let fee = sol_amount
+            .checked_mul(PLATFORM_FEE_BPS)
+            .ok_or(ErrorCode::Overflow)?
+            .checked_add(9999)
+            .ok_or(ErrorCode::Overflow)?
+            / 10000;
+        let sol_after_fee = sol_amount.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         let tokens_out = calculate_tokens_out(
             sol_after_fee,
@@ -279,28 +340,58 @@ pub mod bonding_curve {
             curve.virtual_token_reserves,
         )?;
 
-        let fee = sol_out * PLATFORM_FEE_BPS / 10000;
-        let sol_after_fee = sol_out - fee;
+        // H1: Ceiling fee
+        let fee = sol_out
+            .checked_mul(PLATFORM_FEE_BPS)
+            .ok_or(ErrorCode::Overflow)?
+            .checked_add(9999)
+            .ok_or(ErrorCode::Overflow)?
+            / 10000;
+        let sol_after_fee = sol_out.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         msg!("Sell quote: {} tokens -> {} lamports", token_amount, sol_after_fee);
         Ok(sol_after_fee)
     }
 }
 
+// H7: Guard against zero reserves (would cause div-by-zero or nonsense results)
+// C2: All arithmetic done in u128 with checked operations; result downcast with bounds check
 fn calculate_tokens_out(sol_in: u64, sol_reserves: u64, token_reserves: u64) -> Result<u64> {
-    let k = (sol_reserves as u128) * (token_reserves as u128);
-    let new_sol_reserves = sol_reserves + sol_in;
-    let new_token_reserves = k / (new_sol_reserves as u128);
-    let tokens_out = token_reserves - (new_token_reserves as u64);
-    Ok(tokens_out)
+    require!(sol_reserves > 0 && token_reserves > 0, ErrorCode::InvalidReserves);
+    let k = (sol_reserves as u128)
+        .checked_mul(token_reserves as u128)
+        .ok_or(ErrorCode::Overflow)?;
+    let new_sol_reserves = (sol_reserves as u128)
+        .checked_add(sol_in as u128)
+        .ok_or(ErrorCode::Overflow)?;
+    let new_token_reserves = k
+        .checked_div(new_sol_reserves)
+        .ok_or(ErrorCode::Overflow)?;
+    let tokens_out = (token_reserves as u128)
+        .checked_sub(new_token_reserves)
+        .ok_or(ErrorCode::Overflow)?;
+    require!(tokens_out <= u64::MAX as u128, ErrorCode::Overflow);
+    Ok(tokens_out as u64)
 }
 
+// H7: Guard against zero reserves
+// C2: All arithmetic in u128 with checked operations
 fn calculate_sol_out(tokens_in: u64, sol_reserves: u64, token_reserves: u64) -> Result<u64> {
-    let k = (sol_reserves as u128) * (token_reserves as u128);
-    let new_token_reserves = token_reserves + tokens_in;
-    let new_sol_reserves = k / (new_token_reserves as u128);
-    let sol_out = sol_reserves - (new_sol_reserves as u64);
-    Ok(sol_out)
+    require!(sol_reserves > 0 && token_reserves > 0, ErrorCode::InvalidReserves);
+    let k = (sol_reserves as u128)
+        .checked_mul(token_reserves as u128)
+        .ok_or(ErrorCode::Overflow)?;
+    let new_token_reserves = (token_reserves as u128)
+        .checked_add(tokens_in as u128)
+        .ok_or(ErrorCode::Overflow)?;
+    let new_sol_reserves = k
+        .checked_div(new_token_reserves)
+        .ok_or(ErrorCode::Overflow)?;
+    let sol_out = (sol_reserves as u128)
+        .checked_sub(new_sol_reserves)
+        .ok_or(ErrorCode::Overflow)?;
+    require!(sol_out <= u64::MAX as u128, ErrorCode::Overflow);
+    Ok(sol_out as u64)
 }
 
 #[derive(Accounts)]
@@ -586,4 +677,10 @@ pub enum ErrorCode {
     AlreadyWithdrawn,
     #[msg("Invalid mint")]
     InvalidMint,
+    #[msg("Arithmetic overflow")]
+    Overflow,
+    #[msg("Buy amount exceeds maximum allowed (10 SOL)")]
+    ExceedsMaxBuy,
+    #[msg("Reserves must be non-zero")]
+    InvalidReserves,
 }

@@ -357,6 +357,12 @@ export const seasonRewards = pgTable("season_rewards", {
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 
+export const usedSignatures = pgTable("used_signatures", {
+  id: integer("id").primaryKey().generatedAlwaysAsIdentity(),
+  signature: text("signature").notNull().unique(),
+  usedAt: timestamp("used_at").notNull().defaultNow(),
+});
+
 export type UserPoints = typeof userPoints.$inferSelect;
 export type QuestProgress = typeof questProgress.$inferSelect;
 export type PointsHistoryEntry = typeof pointsHistory.$inferSelect;

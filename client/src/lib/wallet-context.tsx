@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useMemo, ReactNode, use
 import { useQueryClient } from "@tanstack/react-query";
 import { Connection, clusterApiUrl, Transaction } from "@solana/web3.js";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
+
 import { toast } from "sonner";
 import { 
   SolanaMobileWalletAdapter,
@@ -10,6 +11,14 @@ import {
   createDefaultWalletNotFoundHandler
 } from "@solana-mobile/wallet-adapter-mobile";
 import { isMobileDevice, isMobile, openExternalLink } from "./mobile-utils";
+
+const _viteNetwork = import.meta.env.VITE_SOLANA_NETWORK;
+const SOLANA_NETWORK: WalletAdapterNetwork =
+  _viteNetwork === "mainnet-beta"
+    ? WalletAdapterNetwork.Mainnet
+    : _viteNetwork === "testnet"
+    ? WalletAdapterNetwork.Testnet
+    : WalletAdapterNetwork.Devnet;
 
 declare global {
   interface Window {
@@ -60,7 +69,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           icon: '/favicon.ico',
         },
         authorizationResultCache: createDefaultAuthorizationResultCache(),
-        cluster: WalletAdapterNetwork.Devnet,
+        cluster: SOLANA_NETWORK,
         onWalletNotFound: createDefaultWalletNotFoundHandler(),
       });
       setMobileAdapter(adapter);
@@ -193,7 +202,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   const signAndSendTransaction = async (transaction: any): Promise<string> => {
     if (isMobileWallet && mobileAdapter) {
       try {
-        const connection = new Connection(clusterApiUrl(WalletAdapterNetwork.Devnet));
+        const connection = new Connection(clusterApiUrl(SOLANA_NETWORK));
         const signedTx = await mobileAdapter.signTransaction(transaction);
         const signature = await connection.sendRawTransaction(signedTx.serialize());
         return signature;
