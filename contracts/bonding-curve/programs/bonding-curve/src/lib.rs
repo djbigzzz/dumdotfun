@@ -12,7 +12,7 @@ pub const GRADUATION_THRESHOLD: u64 = 85_000_000_000;
 pub const PLATFORM_FEE_BPS: u64 = 100;
 pub const DECIMALS: u8 = 6;
 
-// H3: Maximum single-buy cap (10 SOL in lamports) to prevent economic attacks
+// Maximum single-buy cap (10 SOL in lamports)
 pub const MAX_BUY_SOL: u64 = 10_000_000_000;
 
 #[program]
@@ -77,17 +77,15 @@ pub mod bonding_curve {
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
         require!(sol_amount > 0, ErrorCode::InvalidAmount);
-        // H3: Cap single-buy size to prevent economic manipulation
         require!(sol_amount <= MAX_BUY_SOL, ErrorCode::ExceedsMaxBuy);
 
-        // H1: Ceiling division for fee so the platform never rounds down in buyers' favor
+        // Ceiling division: ensures fee never rounds down at the platform's expense
         let fee = sol_amount
             .checked_mul(PLATFORM_FEE_BPS)
             .ok_or(ErrorCode::Overflow)?
             .checked_add(9999)
             .ok_or(ErrorCode::Overflow)?
             / 10000;
-        // C2: Checked subtraction
         let sol_after_fee = sol_amount.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         let tokens_out = calculate_tokens_out(
@@ -99,8 +97,7 @@ pub mod bonding_curve {
         require!(tokens_out >= min_tokens_out, ErrorCode::SlippageExceeded);
         require!(tokens_out <= curve.real_token_reserves, ErrorCode::InsufficientLiquidity);
 
-        // C3: Update ALL state BEFORE any CPI calls (checks-effects-interactions)
-        // C2: Checked arithmetic on state updates
+        // Update state before external CPI calls (checks-effects-interactions pattern)
         curve.virtual_sol_reserves = curve
             .virtual_sol_reserves
             .checked_add(sol_after_fee)
@@ -186,21 +183,20 @@ pub mod bonding_curve {
             curve.virtual_token_reserves,
         )?;
 
-        // H1: Ceiling division for fee
+        // Ceiling division: ensures fee never rounds down at the platform's expense
         let fee = sol_out
             .checked_mul(PLATFORM_FEE_BPS)
             .ok_or(ErrorCode::Overflow)?
             .checked_add(9999)
             .ok_or(ErrorCode::Overflow)?
             / 10000;
-        // C2: Checked subtraction
         let sol_after_fee = sol_out.checked_sub(fee).ok_or(ErrorCode::Overflow)?;
 
         require!(sol_after_fee >= min_sol_out, ErrorCode::SlippageExceeded);
-        // H5: Validate against sol_out (the gross amount), not sol_after_fee
+        // Validate against gross sol_out so the vault always has enough to cover both seller payout and fee
         require!(sol_out <= curve.real_sol_reserves, ErrorCode::InsufficientLiquidity);
 
-        // C2 / C3: Update state before lamport manipulation
+        // Update state before lamport manipulation (checks-effects-interactions pattern)
         curve.virtual_sol_reserves = curve
             .virtual_sol_reserves
             .checked_sub(sol_out)
@@ -310,7 +306,6 @@ pub mod bonding_curve {
         
         require!(!curve.is_graduated, ErrorCode::AlreadyGraduated);
 
-        // H1: Ceiling fee
         let fee = sol_amount
             .checked_mul(PLATFORM_FEE_BPS)
             .ok_or(ErrorCode::Overflow)?
@@ -340,7 +335,6 @@ pub mod bonding_curve {
             curve.virtual_token_reserves,
         )?;
 
-        // H1: Ceiling fee
         let fee = sol_out
             .checked_mul(PLATFORM_FEE_BPS)
             .ok_or(ErrorCode::Overflow)?
@@ -354,8 +348,6 @@ pub mod bonding_curve {
     }
 }
 
-// H7: Guard against zero reserves (would cause div-by-zero or nonsense results)
-// C2: All arithmetic done in u128 with checked operations; result downcast with bounds check
 fn calculate_tokens_out(sol_in: u64, sol_reserves: u64, token_reserves: u64) -> Result<u64> {
     require!(sol_reserves > 0 && token_reserves > 0, ErrorCode::InvalidReserves);
     let k = (sol_reserves as u128)
@@ -374,8 +366,6 @@ fn calculate_tokens_out(sol_in: u64, sol_reserves: u64, token_reserves: u64) -> 
     Ok(tokens_out as u64)
 }
 
-// H7: Guard against zero reserves
-// C2: All arithmetic in u128 with checked operations
 fn calculate_sol_out(tokens_in: u64, sol_reserves: u64, token_reserves: u64) -> Result<u64> {
     require!(sol_reserves > 0 && token_reserves > 0, ErrorCode::InvalidReserves);
     let k = (sol_reserves as u128)
