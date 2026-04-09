@@ -3,8 +3,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp, Loader2, Droplets } from "lucide-react";
 import { useState } from "react";
 
-import { Link } from "wouter";
-
 interface TokenHolder {
   address: string;
   balance: number;
