@@ -876,6 +876,9 @@ export default function TokenPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div className={`flex items-center gap-2 font-bold ${privateMode ? "text-yellow-400" : "text-yellow-700"}`}>
                     <Target className="w-4 h-4" /> Prediction Markets
+                    <span className={`text-xs font-normal px-1.5 py-0.5 rounded ${privateMode ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-700"}`}>
+                      {token.predictions.length}
+                    </span>
                   </div>
                   <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
                     <button className={`text-xs px-2 py-1 font-bold border ${privateMode ? "bg-black border-yellow-500 text-yellow-400" : "bg-yellow-500 border-black text-black"}`} data-testid="button-create-market">
@@ -883,41 +886,99 @@ export default function TokenPage() {
                     </button>
                   </Link>
                 </div>
-                {token.predictions.slice(0, 2).map((prediction) => {
-                  const isBettingActive = activeBet?.predictionId === prediction.id;
+                {(() => {
+                  const sorted = [...token.predictions].sort((a, b) => {
+                    const aOpen = a.status === "open";
+                    const bOpen = b.status === "open";
+                    if (aOpen && !bOpen) return -1;
+                    if (!aOpen && bOpen) return 1;
+                    return 0;
+                  });
+                  const openMarkets = sorted.filter(p => p.status === "open");
+                  const closedMarkets = sorted.filter(p => p.status !== "open");
                   return (
-                    <div key={prediction.id} className={`p-3 mb-2 border ${privateMode ? "bg-black border-yellow-500/30" : "bg-yellow-50 border-gray-200 rounded"}`} data-testid={`prediction-${prediction.id}`}>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className={`text-sm font-medium ${privateMode ? "text-white" : "text-gray-900"}`}>{prediction.question}</span>
-                        <a 
-                          href={`/market/${prediction.id}`}
-                          className={`text-xs px-2 py-1 rounded font-bold ${privateMode ? "bg-yellow-500 text-black hover:bg-yellow-400" : "bg-blue-500 text-white hover:bg-blue-600"}`}
-                          data-testid={`link-market-${prediction.id}`}
-                        >
-                          VIEW MARKET
-                        </a>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
-                          <span className="block font-bold">{prediction.yesOdds}%</span>
-                          <span className="text-xs">YES</span>
-                        </button>
-                        <button onClick={(e) => handleBetClick(prediction.id, "no", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
-                          <span className="block font-bold">{prediction.noOdds}%</span>
-                          <span className="text-xs">NO</span>
-                        </button>
-                      </div>
-                      {isBettingActive && (
-                        <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
-                          <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
-                          <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${privateMode ? "bg-[#4ADE80] border-[#4ADE80]" : activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white flex items-center gap-1`} data-testid={`button-confirm-bet-${prediction.id}`}>
-                            {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : privateMode ? <><Lock className="w-3 h-3" /> PRIVATE</> : "BET"}
-                          </button>
-                        </motion.div>
+                    <>
+                      {openMarkets.map((prediction) => {
+                        const isBettingActive = activeBet?.predictionId === prediction.id;
+                        return (
+                          <div key={prediction.id} className={`p-3 mb-2 border-2 ${privateMode ? "bg-black border-green-500/40" : "bg-green-50 border-green-400 rounded"}`} data-testid={`prediction-${prediction.id}`}>
+                            <div className="flex items-start justify-between mb-2 gap-2">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="shrink-0 text-xs font-bold px-1.5 py-0.5 rounded bg-green-500 text-white uppercase tracking-wide" data-testid={`status-${prediction.id}`}>LIVE</span>
+                                <span className={`text-sm font-medium truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{prediction.question}</span>
+                              </div>
+                              <a
+                                href={`/market/${prediction.id}`}
+                                className={`shrink-0 text-xs px-2 py-1 rounded font-bold ${privateMode ? "bg-yellow-500 text-black hover:bg-yellow-400" : "bg-blue-500 text-white hover:bg-blue-600"}`}
+                                data-testid={`link-market-${prediction.id}`}
+                              >
+                                VIEW
+                              </a>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
+                                <span className="block font-bold">{prediction.yesOdds}%</span>
+                                <span className="text-xs">YES</span>
+                              </button>
+                              <button onClick={(e) => handleBetClick(prediction.id, "no", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
+                                <span className="block font-bold">{prediction.noOdds}%</span>
+                                <span className="text-xs">NO</span>
+                              </button>
+                            </div>
+                            {isBettingActive && (
+                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
+                                <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
+                                <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${privateMode ? "bg-[#4ADE80] border-[#4ADE80]" : activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white flex items-center gap-1`} data-testid={`button-confirm-bet-${prediction.id}`}>
+                                  {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : privateMode ? <><Lock className="w-3 h-3" /> PRIVATE</> : "BET"}
+                                </button>
+                              </motion.div>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {closedMarkets.length > 0 && (
+                        <>
+                          {openMarkets.length > 0 && (
+                            <div className={`flex items-center gap-2 my-2 ${privateMode ? "text-zinc-600" : "text-gray-400"}`}>
+                              <div className="flex-1 h-px bg-current opacity-30" />
+                              <span className="text-xs font-bold uppercase tracking-wider opacity-60">Closed</span>
+                              <div className="flex-1 h-px bg-current opacity-30" />
+                            </div>
+                          )}
+                          {closedMarkets.map((prediction) => (
+                            <div key={prediction.id} className={`p-3 mb-2 border opacity-70 ${privateMode ? "bg-zinc-900 border-zinc-700 rounded" : "bg-gray-50 border-gray-300 rounded"}`} data-testid={`prediction-${prediction.id}`}>
+                              <div className="flex items-start justify-between mb-2 gap-2">
+                                <div className="flex items-center gap-2 min-w-0">
+                                  <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded uppercase tracking-wide ${prediction.status === "resolved" ? "bg-purple-500 text-white" : "bg-gray-400 text-white"}`} data-testid={`status-${prediction.id}`}>
+                                    {prediction.status === "resolved" ? "RESOLVED" : "CLOSED"}
+                                  </span>
+                                  <span className={`text-sm font-medium truncate ${privateMode ? "text-zinc-400" : "text-gray-500"}`}>{prediction.question}</span>
+                                </div>
+                                <a
+                                  href={`/market/${prediction.id}`}
+                                  className={`shrink-0 text-xs px-2 py-1 rounded font-bold ${privateMode ? "bg-zinc-700 text-zinc-300 hover:bg-zinc-600" : "bg-gray-200 text-gray-600 hover:bg-gray-300"}`}
+                                  data-testid={`link-market-${prediction.id}`}
+                                >
+                                  VIEW
+                                </a>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div className={`py-2 text-center border ${privateMode ? "border-zinc-700 text-zinc-500" : "border-gray-200 text-gray-400"} rounded`}>
+                                  <span className="block font-bold text-sm">{prediction.yesOdds}%</span>
+                                  <span className="text-xs">YES</span>
+                                </div>
+                                <div className={`py-2 text-center border ${privateMode ? "border-zinc-700 text-zinc-500" : "border-gray-200 text-gray-400"} rounded`}>
+                                  <span className="block font-bold text-sm">{prediction.noOdds}%</span>
+                                  <span className="text-xs">NO</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </>
                       )}
-                    </div>
+                    </>
                   );
-                })}
+                })()}
               </div>
             )}
           </div>
