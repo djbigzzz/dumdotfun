@@ -418,12 +418,34 @@ export async function registerRoutes(
         return res.json({ holdings: [] });
       }
 
-      // Cross-reference each held mint against dum.fun DB
+      // Cross-reference each held mint against dum.fun DB, with live bonding curve price
       const holdingResults = await Promise.all(
         heldMints.map(async ({ mint, balance }) => {
           const t = await storage.getTokenByMint(mint);
           if (!t) return null;
-          const priceInSol = Number(t.priceInSol) || 0.000001;
+
+          // Default to stale DB price, then override with live on-chain price
+          let priceInSol = Number(t.priceInSol) || 0.000001;
+          let marketCapSol = Number(t.marketCapSol) || 0;
+          try {
+            const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
+            if (curveData) {
+              priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+              const bnToNum = (val: any) => {
+                if (val == null) return 0;
+                return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
+              };
+              const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
+              const tokensInCurveRaw = bnToNum(curveData.realTokenReserves);
+              const totalSupply = totalSupplyRaw / 1_000_000;
+              const tokensInCurve = tokensInCurveRaw / 1_000_000;
+              const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
+              marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
+            }
+          } catch {
+            // fall back to DB values if curve fetch fails
+          }
+
           return {
             mint: t.mint,
             name: t.name,
@@ -432,7 +454,7 @@ export async function registerRoutes(
             balance,
             priceInSol,
             valueInSol: balance * priceInSol,
-            marketCapSol: Number(t.marketCapSol) || 0,
+            marketCapSol,
           };
         })
       );
