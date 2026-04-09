@@ -399,10 +399,23 @@ export async function registerRoutes(
       const connection = getHeliusConnection();
       const owner = new PublicKey(walletAddress);
 
-      // Fetch all SPL token accounts for the wallet
-      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(owner, {
-        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-      });
+      // Well-known token registry (mainnet + devnet)
+      const KNOWN_TOKENS: Record<string, { name: string; symbol: string }> = {
+        "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v": { name: "USD Coin", symbol: "USDC" },
+        "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU": { name: "USD Coin", symbol: "USDC" },
+        "Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB": { name: "Tether USD", symbol: "USDT" },
+        "So11111111111111111111111111111111111111112": { name: "Wrapped SOL", symbol: "wSOL" },
+      };
+
+      // Fetch SOL balance and all SPL token accounts in parallel
+      const [solBalanceLamports, tokenAccounts] = await Promise.all([
+        connection.getBalance(owner),
+        connection.getParsedTokenAccountsByOwner(owner, {
+          programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+        }),
+      ]);
+
+      const solBalance = solBalanceLamports / LAMPORTS_PER_SOL;
 
       // Collect mints with non-zero balance
       const heldMints: { mint: string; balance: number }[] = [];
@@ -414,19 +427,31 @@ export async function registerRoutes(
         }
       }
 
-      if (heldMints.length === 0) {
-        return res.json({ holdings: [] });
-      }
-
-      // Cross-reference each held mint against dum.fun DB, with live bonding curve price
+      // Process all SPL tokens: dum.fun tokens get live bonding curve price,
+      // everything else is shown with balance only (no price)
       const holdingResults = await Promise.all(
         heldMints.map(async ({ mint, balance }) => {
           const t = await storage.getTokenByMint(mint);
-          if (!t) return null;
 
-          // Default to stale DB price, then override with live on-chain price
-          let priceInSol = Number(t.priceInSol) || 0.000001;
-          let marketCapSol = Number(t.marketCapSol) || 0;
+          if (!t) {
+            // Not a dum.fun token — show with name if known, otherwise abbreviate mint
+            const known = KNOWN_TOKENS[mint];
+            return {
+              mint,
+              name: known?.name ?? "Unknown Token",
+              symbol: known?.symbol ?? mint.slice(0, 4) + "…" + mint.slice(-4),
+              imageUri: null as string | null,
+              balance,
+              priceInSol: null as number | null,
+              valueInSol: null as number | null,
+              marketCapSol: null as number | null,
+              isDumFun: false,
+            };
+          }
+
+          // dum.fun token — get live on-chain price from bonding curve
+          let priceInSol: number | null = Number(t.priceInSol) || 0.000001;
+          let marketCapSol: number | null = Number(t.marketCapSol) || 0;
           try {
             const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
             if (curveData) {
@@ -453,17 +478,22 @@ export async function registerRoutes(
             imageUri: t.imageUri,
             balance,
             priceInSol,
-            valueInSol: balance * priceInSol,
+            valueInSol: priceInSol !== null ? balance * priceInSol : null,
             marketCapSol,
+            isDumFun: true,
           };
         })
       );
 
-      const holdings = holdingResults
-        .filter((h): h is NonNullable<typeof h> => h !== null)
-        .sort((a, b) => b.valueInSol - a.valueInSol);
+      // Sort: dum.fun tokens by SOL value desc, then other tokens by balance desc
+      const holdings = holdingResults.sort((a, b) => {
+        if (a.valueInSol !== null && b.valueInSol !== null) return b.valueInSol - a.valueInSol;
+        if (a.valueInSol !== null) return -1;
+        if (b.valueInSol !== null) return 1;
+        return b.balance - a.balance;
+      });
 
-      return res.json({ holdings });
+      return res.json({ solBalance, holdings });
     } catch (error: any) {
       console.error("Error fetching user holdings:", error);
       return res.status(500).json({ error: "Failed to fetch holdings" });

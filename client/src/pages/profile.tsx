@@ -68,9 +68,15 @@ interface HeldToken {
   symbol: string;
   imageUri: string | null;
   balance: number;
-  priceInSol: number;
-  valueInSol: number;
-  marketCapSol: number;
+  priceInSol: number | null;
+  valueInSol: number | null;
+  marketCapSol: number | null;
+  isDumFun: boolean;
+}
+
+interface HoldingsResponse {
+  solBalance: number;
+  holdings: HeldToken[];
 }
 
 interface UserProfileData {
@@ -203,7 +209,7 @@ export default function Profile() {
     enabled: !!connectedWallet && activeTab === "coins",
   });
 
-  const { data: holdingsData, isLoading: holdingsLoading } = useQuery<{ holdings: HeldToken[] }>({
+  const { data: holdingsData, isLoading: holdingsLoading } = useQuery<HoldingsResponse>({
     queryKey: ["my-holdings", connectedWallet],
     queryFn: async () => {
       const res = await fetch(`/api/users/holdings/${connectedWallet}`);
@@ -483,9 +489,9 @@ export default function Profile() {
                 <span className="flex items-center gap-1.5">
                   <Wallet className="w-4 h-4" />
                   {privateMode ? "HOLDINGS" : "Holdings"}
-                  {(holdingsData?.holdings?.length ?? 0) > 0 && (
+                  {holdingsData && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeTab === "holdings" ? (privateMode ? "bg-black text-[#4ADE80]" : "bg-white text-black") : (privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-200 text-gray-600")}`}>
-                      {holdingsData!.holdings.length}
+                      {holdingsData.holdings.length + 1}
                     </span>
                   )}
                 </span>
@@ -867,69 +873,114 @@ export default function Profile() {
                         <Loader2 className="w-5 h-5 animate-spin" />
                         <span className="font-mono text-sm">Fetching on-chain balances…</span>
                       </div>
-                    ) : holdingsData?.holdings && holdingsData.holdings.length > 0 ? (
-                      <>
-                        {/* Portfolio total bar */}
-                        <div className={`flex items-center justify-between mb-4 pb-3 border-b ${privateMode ? "border-zinc-700" : "border-gray-200"}`}>
-                          <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>Total portfolio value</span>
-                          <div className="text-right">
-                            <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
-                              {holdingsData.holdings.reduce((s, h) => s + h.valueInSol, 0).toFixed(4)} SOL
-                            </span>
-                            {solPrice && (
-                              <span className={`ml-2 text-sm ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
-                                ≈ ${(holdingsData.holdings.reduce((s, h) => s + h.valueInSol, 0) * solPrice.price).toFixed(2)}
+                    ) : holdingsData ? (() => {
+                      const totalSol = (holdingsData.solBalance ?? 0) + holdingsData.holdings.reduce((s, h) => s + (h.valueInSol ?? 0), 0);
+                      const rowClass = `flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${privateMode ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50" : "border-gray-200 hover:border-black bg-gray-50"}`;
+                      return (
+                        <>
+                          {/* Portfolio total bar */}
+                          <div className={`flex items-center justify-between mb-4 pb-3 border-b ${privateMode ? "border-zinc-700" : "border-gray-200"}`}>
+                            <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>Total portfolio value</span>
+                            <div className="text-right">
+                              <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                                {totalSol.toFixed(4)} SOL
                               </span>
-                            )}
+                              {solPrice && (
+                                <span className={`ml-2 text-sm ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+                                  ≈ ${(totalSol * solPrice.price).toFixed(2)}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                        <div className="space-y-3">
-                          {holdingsData.holdings.map((token) => (
-                            <Link key={token.mint} href={`/token/${token.mint}`}>
-                              <motion.div
-                                whileHover={{ x: 4 }}
-                                className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${
-                                  privateMode
-                                    ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50"
-                                    : "border-gray-200 hover:border-black bg-gray-50"
-                                }`}
-                                data-testid={`token-held-${token.mint}`}
-                              >
-                                <div className={`w-10 h-10 rounded-lg overflow-hidden border flex-shrink-0 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
-                                  {token.imageUri ? (
-                                    <img src={token.imageUri} alt={`${token.name} token`} loading="lazy" className="w-full h-full object-cover" />
-                                  ) : (
-                                    <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
-                                      {token.symbol[0]}
-                                    </div>
-                                  )}
+
+                          <div className="space-y-3">
+                            {/* SOL row — always first */}
+                            <a href={`https://solscan.io/account/${connectedWallet}?cluster=devnet`} target="_blank" rel="noopener noreferrer">
+                              <motion.div whileHover={{ x: 4 }} className={rowClass} data-testid="token-sol">
+                                <div className={`w-10 h-10 rounded-full overflow-hidden border flex-shrink-0 flex items-center justify-center ${privateMode ? "border-[#4ADE80]/30 bg-zinc-900" : "border-gray-300 bg-gray-100"}`}>
+                                  <img
+                                    src="https://raw.githubusercontent.com/solana-labs/token-list/main/assets/mainnet/So11111111111111111111111111111111111111112/logo.png"
+                                    alt="SOL"
+                                    className="w-7 h-7 rounded-full"
+                                    onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                                  />
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                  <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
+                                  <div className={`font-black ${privateMode ? "text-white" : "text-gray-900"}`}>Solana</div>
                                   <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
-                                    {formatBalance(token.balance)} ${token.symbol}
+                                    {(holdingsData.solBalance ?? 0).toFixed(4)} SOL · native
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0">
                                   <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
-                                    {token.valueInSol.toFixed(4)} SOL
+                                    {(holdingsData.solBalance ?? 0).toFixed(4)} SOL
                                   </div>
                                   {solPrice && (
                                     <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
-                                      ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
+                                      ≈ ${((holdingsData.solBalance ?? 0) * solPrice.price).toFixed(2)}
                                     </div>
                                   )}
                                 </div>
                               </motion.div>
-                            </Link>
-                          ))}
-                        </div>
-                      </>
-                    ) : (
+                            </a>
+
+                            {/* SPL tokens */}
+                            {holdingsData.holdings.map((token) => {
+                              const inner = (
+                                <motion.div
+                                  whileHover={{ x: 4 }}
+                                  className={rowClass}
+                                  data-testid={`token-held-${token.mint}`}
+                                >
+                                  <div className={`w-10 h-10 rounded-lg overflow-hidden border flex-shrink-0 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
+                                    {token.imageUri ? (
+                                      <img src={token.imageUri} alt={token.name} loading="lazy" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <div className={`w-full h-full flex items-center justify-center font-black text-sm ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
+                                        {(token.symbol[0] || "?").toUpperCase()}
+                                      </div>
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
+                                    <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                                      {formatBalance(token.balance)} ${token.symbol}
+                                      {!token.isDumFun && (
+                                        <span className={`ml-1.5 ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>· external</span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    {token.valueInSol !== null ? (
+                                      <>
+                                        <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                                          {token.valueInSol.toFixed(4)} SOL
+                                        </div>
+                                        {solPrice && (
+                                          <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+                                            ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
+                                          </div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div className={`text-xs italic ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>no price</div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              );
+                              return token.isDumFun ? (
+                                <Link key={token.mint} href={`/token/${token.mint}`}>{inner}</Link>
+                              ) : (
+                                <a key={token.mint} href={`https://solscan.io/token/${token.mint}?cluster=devnet`} target="_blank" rel="noopener noreferrer">{inner}</a>
+                              );
+                            })}
+                          </div>
+                        </>
+                      );
+                    })() : (
                       <div className={`text-center py-8 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
                         <Wallet className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                        <p className="font-bold">No dum.fun tokens held</p>
-                        <p className={`text-sm mt-1 ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>Buy tokens on the launchpad to see them here</p>
+                        <p className="font-bold">Connect wallet to see holdings</p>
                       </div>
                     )}
                   </div>
