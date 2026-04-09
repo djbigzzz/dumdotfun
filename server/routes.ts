@@ -388,6 +388,65 @@ export async function registerRoutes(
     }
   });
 
+  // Get tokens held (on-chain SPL balances cross-referenced with dum.fun DB)
+  app.get("/api/users/holdings/:walletAddress", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      if (!walletAddress || walletAddress.length < 32) {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+
+      const connection = getHeliusConnection();
+      const owner = new PublicKey(walletAddress);
+
+      // Fetch all SPL token accounts for the wallet
+      const tokenAccounts = await connection.getParsedTokenAccountsByOwner(owner, {
+        programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+      });
+
+      // Collect mints with non-zero balance
+      const heldMints: { mint: string; balance: number }[] = [];
+      for (const { account } of tokenAccounts.value) {
+        const parsed = account.data.parsed?.info;
+        const balance = Number(parsed?.tokenAmount?.uiAmount ?? 0);
+        if (balance > 0 && parsed?.mint) {
+          heldMints.push({ mint: parsed.mint, balance });
+        }
+      }
+
+      if (heldMints.length === 0) {
+        return res.json({ holdings: [] });
+      }
+
+      // Cross-reference with dum.fun tokens in DB
+      const allTokens = await storage.getTokens(500);
+      const tokenMap = new Map(allTokens.map(t => [t.mint, t]));
+
+      const holdings = heldMints
+        .filter(h => tokenMap.has(h.mint))
+        .map(h => {
+          const t = tokenMap.get(h.mint)!;
+          const priceInSol = Number(t.priceInSol) || 0.000001;
+          return {
+            mint: t.mint,
+            name: t.name,
+            symbol: t.symbol,
+            imageUri: t.imageUri,
+            balance: h.balance,
+            priceInSol,
+            valueInSol: h.balance * priceInSol,
+            marketCapSol: Number(t.marketCapSol) || 0,
+          };
+        })
+        .sort((a, b) => b.valueInSol - a.valueInSol);
+
+      return res.json({ holdings });
+    } catch (error: any) {
+      console.error("Error fetching user holdings:", error);
+      return res.status(500).json({ error: "Failed to fetch holdings" });
+    }
+  });
+
   app.get("/api/users/profile/:walletAddress", async (req, res) => {
     try {
       const walletAddress = req.params.walletAddress;
