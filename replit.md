@@ -52,6 +52,7 @@ The PostgreSQL database includes tables for `users` (wallet addresses, profiles)
 -   **PostgreSQL:** Relational database for data persistence.
 -   **SendGrid:** Utilized for sending waitlist emails.
 -   **DFlow API:** (Optional) For tokenized prediction markets (Kalshi on Solana).
+-   **Dune SIM API:** (Optional) Real-time Solana blockchain analytics. Powers the "On-Chain Activity" section on token detail pages. Requires `DUNE_API_KEY` secret. Endpoints: `GET /api/dune/token/:mint` and `GET /api/dune/wallet/:address`. Module: `server/dune.ts`. Gracefully falls back when API key not configured.
 -   **@solana-mobile/wallet-adapter-mobile:** For mobile wallet support.
 -   **@lightweight-charts/react-wrapper:** For interactive trading charts.
 -   **Raydium SDK V2:** For creating CPMM pools on Raydium.

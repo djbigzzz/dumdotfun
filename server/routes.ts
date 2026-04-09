@@ -12,6 +12,7 @@ import { eq, sql } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, getSwapQuote, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
+import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
@@ -3121,6 +3122,49 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching OHLC:", error);
       return res.status(500).json({ error: "Failed to fetch OHLC data" });
+    }
+  });
+
+  // ─── Dune SIM Analytics Routes ─────────────────────────────────────────────
+
+  app.get("/api/dune/token/:mint", async (req: Request, res: Response) => {
+    const { mint } = req.params;
+    if (!mint || mint.length < 32) {
+      return res.status(400).json({ error: "Invalid mint address" });
+    }
+    if (!isDuneConfigured()) {
+      return res.status(503).json({ error: "Dune API not configured", configured: false });
+    }
+    try {
+      const activity = await getDuneTokenActivity(mint, 50);
+      return res.json({
+        mint,
+        source: "dune-sim",
+        ...activity,
+      });
+    } catch (err: any) {
+      console.error("Dune token activity error:", err?.response?.data || err.message);
+      return res.status(502).json({ error: "Failed to fetch Dune token data", details: err.message });
+    }
+  });
+
+  app.get("/api/dune/wallet/:address", async (req: Request, res: Response) => {
+    const { address } = req.params;
+    if (!address || address.length < 32) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+    if (!isDuneConfigured()) {
+      return res.status(503).json({ error: "Dune API not configured", configured: false });
+    }
+    try {
+      const portfolio = await getDuneWalletPortfolio(address);
+      return res.json({
+        source: "dune-sim",
+        ...portfolio,
+      });
+    } catch (err: any) {
+      console.error("Dune wallet portfolio error:", err?.response?.data || err.message);
+      return res.status(502).json({ error: "Failed to fetch Dune wallet data", details: err.message });
     }
   });
 

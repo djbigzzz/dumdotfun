@@ -78,6 +78,32 @@ interface PricePoint {
   volume: number;
 }
 
+interface DuneTransfer {
+  from: string;
+  to: string;
+  amount: string;
+  tokenMint: string;
+  decimals: number;
+  symbol: string;
+}
+
+interface DuneTransaction {
+  txHash: string;
+  blockTime: number;
+  blockSlot: number;
+  signers: string[];
+  fee: number;
+  type: string;
+  transfers: DuneTransfer[];
+}
+
+interface DuneTokenData {
+  mint: string;
+  source: string;
+  transactions: DuneTransaction[];
+  total: number;
+}
+
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -238,6 +264,22 @@ export default function TokenPage() {
     },
     enabled: !!mint,
     refetchInterval: 10000,
+  });
+
+  const { data: duneData, isLoading: isDuneLoading } = useQuery<DuneTokenData | null>({
+    queryKey: ["dune-token", mint],
+    queryFn: async () => {
+      try {
+        const res = await fetch(`/api/dune/token/${mint}`);
+        if (!res.ok) return null;
+        return res.json();
+      } catch {
+        return null;
+      }
+    },
+    enabled: !!mint,
+    refetchInterval: 30000,
+    retry: false,
   });
 
   const placeBetMutation = useMutation({
@@ -655,6 +697,104 @@ export default function TokenPage() {
                 </div>
               ) : (
                 <div className={`text-center py-6 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>No trades yet</div>
+              )}
+            </div>
+
+            {/* Dune SIM Analytics */}
+            <div className={`${cardStyle} p-4`} data-testid="dune-analytics-section">
+              <div className="flex items-center justify-between mb-3">
+                <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
+                  On-Chain Activity
+                </div>
+                <a
+                  href="https://dune.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-2 py-1 rounded border text-xs font-semibold transition-opacity hover:opacity-80"
+                  style={{ borderColor: "#E87040", color: "#E87040", backgroundColor: "rgba(232,112,64,0.08)" }}
+                  data-testid="badge-powered-by-dune"
+                >
+                  <svg width="14" height="14" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <path d="M16 2C8.268 2 2 8.268 2 16s6.268 14 14 14 14-6.268 14-14S23.732 2 16 2z" fill="#E87040"/>
+                    <path d="M10 21.5l6-11 6 11H10z" fill="white"/>
+                  </svg>
+                  Powered by Dune
+                </a>
+              </div>
+
+              {isDuneLoading ? (
+                <div className="flex items-center justify-center py-6">
+                  <Loader2 className={`w-5 h-5 animate-spin ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} />
+                  <span className={`ml-2 text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>Loading on-chain data…</span>
+                </div>
+              ) : duneData && duneData.transactions && duneData.transactions.length > 0 ? (
+                <>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm" data-testid="dune-transactions-table">
+                      <thead>
+                        <tr className={`text-xs border-b-2 ${privateMode ? "text-[#4ADE80]/70 border-[#4ADE80]/30" : "text-gray-500 border-gray-200"}`}>
+                          <th className="text-left py-2">Type</th>
+                          <th className="text-left py-2">Signer</th>
+                          <th className="text-right py-2">Time</th>
+                          <th className="text-right py-2">Txn</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {duneData.transactions.slice(0, 8).map((tx, idx) => {
+                          const txTime = tx.blockTime
+                            ? getTimeAgo(new Date(tx.blockTime * 1000))
+                            : "–";
+                          const signer = tx.signers?.[0] || "–";
+                          const typeLabel = tx.type?.replace(/_/g, " ") || "transfer";
+
+                          return (
+                            <tr
+                              key={tx.txHash || idx}
+                              className={`border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-100"}`}
+                              data-testid={`dune-tx-row-${idx}`}
+                            >
+                              <td className={`py-2 capitalize ${privateMode ? "text-white" : "text-gray-700"}`}>{typeLabel}</td>
+                              <td className={`py-2 font-mono text-xs ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                                {signer !== "–" ? (
+                                  <a
+                                    href={`/user/${signer}`}
+                                    className="hover:underline"
+                                  >
+                                    {signer.slice(0, 6)}…
+                                  </a>
+                                ) : "–"}
+                              </td>
+                              <td className={`py-2 text-right text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{txTime}</td>
+                              <td className="py-2 text-right">
+                                {tx.txHash ? (
+                                  <a
+                                    href={`https://solscan.io/tx/${tx.txHash}?cluster=mainnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`text-xs ${privateMode ? "text-[#4ADE80] hover:underline" : "text-blue-500 hover:underline"}`}
+                                  >
+                                    {tx.txHash.slice(0, 6)}…
+                                  </a>
+                                ) : (
+                                  <span className={`text-xs ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>–</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className={`text-xs mt-2 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                    {duneData.total} total on-chain transactions via Dune SIM
+                  </p>
+                </>
+              ) : (
+                <div className={`text-center py-6 text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} data-testid="dune-no-data">
+                  {duneData === null
+                    ? "On-chain data unavailable — Dune API not configured"
+                    : "No on-chain transactions found for this token"}
+                </div>
               )}
             </div>
 
