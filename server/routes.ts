@@ -1826,7 +1826,7 @@ export async function registerRoutes(
       
       // Get account keys from the transaction
       const accountKeys = txInfo.transaction.message.getAccountKeys();
-      const staticKeys = accountKeys.staticAccountKeys || accountKeys.keySegments?.()[0] || [];
+      const staticKeys = accountKeys.staticAccountKeys || (accountKeys as any).keySegments?.()[0] || [];
       
       // First account is typically the fee payer (sender)
       const senderKey = staticKeys[0]?.toBase58();
@@ -1835,34 +1835,50 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Transaction sender does not match expected creator" });
       }
       
-      // Verify amount transferred by checking balance changes
-      const preBalances = txInfo.meta?.preBalances || [];
-      const postBalances = txInfo.meta?.postBalances || [];
-      
-      // Find the fee recipient's account index
-      let recipientIndex = -1;
-      for (let i = 0; i < staticKeys.length; i++) {
-        if (staticKeys[i]?.toBase58() === feeRecipient.toBase58()) {
-          recipientIndex = i;
-          break;
-        }
+      // Verify payment by parsing instruction data directly.
+      // Balance-delta checks fail when sender === fee recipient (self-payment on devnet),
+      // so we read the lamport amount straight from the SystemProgram.transfer instruction.
+      const systemProgramId = SystemProgram.programId.toBase58();
+      const instructions: any[] = (txInfo.transaction.message as any).instructions || [];
+      let foundTransferLamports = -1;
+
+      for (const ix of instructions) {
+        const programId = staticKeys[ix.programIdIndex]?.toBase58();
+        if (programId !== systemProgramId) continue;
+
+        // Instruction data may be Buffer (legacy) or Uint8Array (v0)
+        const rawData: Buffer | Uint8Array = ix.data;
+        if (!rawData || rawData.length < 12) continue;
+        const data = Buffer.isBuffer(rawData) ? rawData : Buffer.from(rawData);
+
+        // SystemProgram instruction type: u32 LE at offset 0; 2 = Transfer
+        const ixType = data.readUInt32LE(0);
+        if (ixType !== 2) continue;
+
+        // Destination key: second account index (legacy: ix.accounts, v0: ix.accountKeyIndexes)
+        const accountIndexes: number[] = ix.accounts ?? ix.accountKeyIndexes ?? [];
+        const destKey = staticKeys[accountIndexes[1]]?.toBase58();
+        if (destKey !== feeRecipient.toBase58()) continue;
+
+        // Lamports: u64 LE at offset 4 (read as two u32s to avoid JS precision issues)
+        const lo = data.readUInt32LE(4);
+        const hi = data.readUInt32LE(8);
+        foundTransferLamports = hi * 4294967296 + lo;
+        break;
       }
-      
-      if (recipientIndex === -1) {
-        console.log(`[Market Creation] REJECTED: Fee recipient ${feeRecipient.toBase58()} not found in transaction`);
+
+      if (foundTransferLamports < 0) {
+        console.log(`[Market Creation] REJECTED: No SystemProgram transfer to fee recipient ${feeRecipient.toBase58()} found`);
         return res.status(400).json({ error: "Transaction does not pay to platform wallet" });
       }
-      
-      // Check the amount received by the fee recipient
-      const amountReceived = (postBalances[recipientIndex] || 0) - (preBalances[recipientIndex] || 0);
-      
-      // Allow some tolerance for rounding (0.1% tolerance)
+
+      // Allow 0.1% tolerance for rounding
       const tolerance = expectedLamports * 0.001;
-      if (amountReceived < expectedLamports - tolerance) {
-        console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
+      if (foundTransferLamports < expectedLamports - tolerance) {
+        console.log(`[Market Creation] REJECTED: Instruction amount ${foundTransferLamports} lamports < expected ${expectedLamports} lamports`);
         return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
       }
-      console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+      console.log(`[Market Creation] Verified: ${senderKey} instructed ${foundTransferLamports / LAMPORTS_PER_SOL} SOL to platform`);
 
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
