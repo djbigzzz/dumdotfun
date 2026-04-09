@@ -3,9 +3,9 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2 } from "lucide-react";
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
 
@@ -53,6 +53,48 @@ interface LeaderboardEntry {
   periodPoints?: number;
 }
 
+interface UserToken {
+  mint: string;
+  name: string;
+  symbol: string;
+  imageUri: string | null;
+  marketCapSol: number;
+  priceInSol: number;
+}
+
+interface HeldToken {
+  mint: string;
+  name: string;
+  symbol: string;
+  imageUri: string | null;
+  balance: number;
+  priceInSol: number;
+  valueInSol: number;
+  marketCapSol: number;
+}
+
+interface UserProfileData {
+  walletAddress: string;
+  createdAt: string | null;
+  tokensCreated: UserToken[];
+  followerCount: number;
+  followingCount: number;
+}
+
+function formatMarketCap(mcSol: number, solPrice: number | null): string {
+  const usdValue = solPrice ? mcSol * solPrice : null;
+  if (usdValue && usdValue >= 1000000) return `$${(usdValue / 1000000).toFixed(2)}M`;
+  if (usdValue && usdValue >= 1000) return `$${(usdValue / 1000).toFixed(1)}K`;
+  if (usdValue) return `$${usdValue.toFixed(0)}`;
+  return `${mcSol.toFixed(3)} SOL`;
+}
+
+function formatBalance(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(2)}K`;
+  return n.toLocaleString(undefined, { maximumFractionDigits: 2 });
+}
+
 const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.ReactNode; bg: string; border: string }> = {
   pill_popper: { label: "Fresh Pill", color: "#EC4899", icon: <Star className="w-5 h-5" />, bg: "bg-pink-500/20", border: "border-pink-500" },
   bonding_curve: { label: "Curve Rider", color: "#3B82F6", icon: <TrendingUp className="w-5 h-5" />, bg: "bg-blue-500/20", border: "border-blue-500" },
@@ -81,7 +123,7 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   special: { label: "Special", color: "#A855F7" },
 };
 
-type TabType = "overview" | "quests" | "leaderboard";
+type TabType = "overview" | "quests" | "leaderboard" | "coins" | "holdings";
 type QuestFilter = "all" | "in_progress" | "completed";
 
 export default function Profile() {
@@ -149,6 +191,37 @@ export default function Profile() {
       return res.json();
     },
     enabled: activeTab === "leaderboard",
+  });
+
+  const { data: myCoinsData, isLoading: myCoinsLoading } = useQuery<UserProfileData>({
+    queryKey: ["my-coins", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/profile/${connectedWallet}`);
+      if (!res.ok) throw new Error("Failed to fetch coins");
+      return res.json();
+    },
+    enabled: !!connectedWallet && activeTab === "coins",
+  });
+
+  const { data: holdingsData, isLoading: holdingsLoading } = useQuery<{ holdings: HeldToken[] }>({
+    queryKey: ["my-holdings", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/holdings/${connectedWallet}`);
+      if (!res.ok) throw new Error("Failed to fetch holdings");
+      return res.json();
+    },
+    enabled: !!connectedWallet && activeTab === "holdings",
+  });
+
+  const { data: solPrice } = useQuery<{ price: number; currency: string }>({
+    queryKey: ["sol-price"],
+    queryFn: async () => {
+      const res = await fetch("/api/price/sol");
+      if (!res.ok) throw new Error("Failed to fetch SOL price");
+      return res.json();
+    },
+    refetchInterval: 30000,
+    enabled: activeTab === "coins" || activeTab === "holdings",
   });
 
   const ogClaimMutation = useMutation({
@@ -393,6 +466,28 @@ export default function Profile() {
                 <span className="flex items-center gap-1">
                   <Trophy className="w-4 h-4" />
                   {privateMode ? "RANKS" : "Leaderboard"}
+                </span>
+              </button>
+              <button onClick={() => setActiveTab("coins")} className={tabStyle("coins")} data-testid="tab-coins">
+                <span className="flex items-center gap-1.5">
+                  <Coins className="w-4 h-4" />
+                  {privateMode ? "MY_COINS" : "My Coins"}
+                  {(myCoinsData?.tokensCreated?.length ?? 0) > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeTab === "coins" ? (privateMode ? "bg-black text-[#4ADE80]" : "bg-white text-black") : (privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-200 text-gray-600")}`}>
+                      {myCoinsData!.tokensCreated.length}
+                    </span>
+                  )}
+                </span>
+              </button>
+              <button onClick={() => setActiveTab("holdings")} className={tabStyle("holdings")} data-testid="tab-holdings">
+                <span className="flex items-center gap-1.5">
+                  <Wallet className="w-4 h-4" />
+                  {privateMode ? "HOLDINGS" : "Holdings"}
+                  {(holdingsData?.holdings?.length ?? 0) > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeTab === "holdings" ? (privateMode ? "bg-black text-[#4ADE80]" : "bg-white text-black") : (privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-200 text-gray-600")}`}>
+                      {holdingsData!.holdings.length}
+                    </span>
+                  )}
                 </span>
               </button>
             </div>
@@ -688,6 +783,153 @@ export default function Profile() {
                     {(!leaderboardData || leaderboardData.length === 0) && (
                       <div className={`px-4 py-8 text-center ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
                         <p className="font-bold">No leaderboard data yet</p>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+              {activeTab === "coins" && (
+                <motion.div
+                  key="coins"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                >
+                  <div className={`${cardStyle} p-6`}>
+                    {myCoinsLoading ? (
+                      <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="font-mono text-sm">Loading your coins…</span>
+                      </div>
+                    ) : myCoinsData?.tokensCreated && myCoinsData.tokensCreated.length > 0 ? (
+                      <div className="space-y-3">
+                        {myCoinsData.tokensCreated.map((token) => (
+                          <Link key={token.mint} href={`/token/${token.mint}`}>
+                            <motion.div
+                              whileHover={{ x: 4 }}
+                              className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${
+                                privateMode
+                                  ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50"
+                                  : "border-gray-200 hover:border-black bg-gray-50"
+                              }`}
+                              data-testid={`token-created-${token.mint}`}
+                            >
+                              <div className={`w-10 h-10 rounded-lg overflow-hidden border flex-shrink-0 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
+                                {token.imageUri ? (
+                                  <img src={token.imageUri} alt={`${token.name} token`} loading="lazy" className="w-full h-full object-cover" />
+                                ) : (
+                                  <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
+                                    {token.symbol[0]}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
+                                <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>${token.symbol}</div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                                  {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+                                </div>
+                                <div className={`text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>Market Cap</div>
+                              </div>
+                            </motion.div>
+                          </Link>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className={`text-center py-8 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
+                        <Coins className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="font-bold">No coins created yet</p>
+                        <Link href="/create">
+                          <button className={`mt-3 px-4 py-2 font-bold text-sm border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] ${privateMode ? "bg-[#4ADE80] text-black" : "bg-red-500 text-white"}`}>
+                            Launch a Token
+                          </button>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {activeTab === "holdings" && (
+                <motion.div
+                  key="holdings"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                >
+                  <div className={`${cardStyle} p-6`}>
+                    {holdingsLoading ? (
+                      <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="font-mono text-sm">Fetching on-chain balances…</span>
+                      </div>
+                    ) : holdingsData?.holdings && holdingsData.holdings.length > 0 ? (
+                      <>
+                        {/* Portfolio total bar */}
+                        <div className={`flex items-center justify-between mb-4 pb-3 border-b ${privateMode ? "border-zinc-700" : "border-gray-200"}`}>
+                          <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>Total portfolio value</span>
+                          <div className="text-right">
+                            <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                              {holdingsData.holdings.reduce((s, h) => s + h.valueInSol, 0).toFixed(4)} SOL
+                            </span>
+                            {solPrice && (
+                              <span className={`ml-2 text-sm ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+                                ≈ ${(holdingsData.holdings.reduce((s, h) => s + h.valueInSol, 0) * solPrice.price).toFixed(2)}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="space-y-3">
+                          {holdingsData.holdings.map((token) => (
+                            <Link key={token.mint} href={`/token/${token.mint}`}>
+                              <motion.div
+                                whileHover={{ x: 4 }}
+                                className={`flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${
+                                  privateMode
+                                    ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50"
+                                    : "border-gray-200 hover:border-black bg-gray-50"
+                                }`}
+                                data-testid={`token-held-${token.mint}`}
+                              >
+                                <div className={`w-10 h-10 rounded-lg overflow-hidden border flex-shrink-0 ${privateMode ? "border-[#4ADE80]/30" : "border-gray-300"}`}>
+                                  {token.imageUri ? (
+                                    <img src={token.imageUri} alt={`${token.name} token`} loading="lazy" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <div className={`w-full h-full flex items-center justify-center font-black ${privateMode ? "bg-black text-[#4ADE80]" : "bg-gray-200 text-gray-500"}`}>
+                                      {token.symbol[0]}
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
+                                  <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                                    {formatBalance(token.balance)} ${token.symbol}
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                                    {token.valueInSol.toFixed(4)} SOL
+                                  </div>
+                                  {solPrice && (
+                                    <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+                                      ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
+                                    </div>
+                                  )}
+                                </div>
+                              </motion.div>
+                            </Link>
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className={`text-center py-8 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
+                        <Wallet className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p className="font-bold">No dum.fun tokens held</p>
+                        <p className={`text-sm mt-1 ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>Buy tokens on the launchpad to see them here</p>
                       </div>
                     )}
                   </div>

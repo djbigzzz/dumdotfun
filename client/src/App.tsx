@@ -13,7 +13,6 @@ import TokensPage from "@/pages/tokens";
 
 const Home = lazy(() => import("@/pages/home"));
 const Profile = lazy(() => import("@/pages/profile"));
-const UserProfilePage = lazy(() => import("@/pages/user-profile"));
 const TokenPage = lazy(() => import("@/pages/token"));
 const CreateToken = lazy(() => import("@/pages/create"));
 const CreateMarket = lazy(() => import("@/pages/create-market"));
@@ -62,7 +61,6 @@ function Router() {
         <Route path="/docs" component={DocsPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/profile" component={Profile} />
-        <Route path="/user/:wallet" component={UserProfilePage} />
         <Route path="/token/:mint" component={TokenPage} />
         <Route path="/create" component={CreateToken} />
         <Route path="/create-market" component={CreateMarket} />

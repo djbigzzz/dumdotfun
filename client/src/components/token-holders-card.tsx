@@ -117,11 +117,15 @@ export function TokenHoldersCard({ tokenMint, compact = false }: TokenHoldersCar
                             </span>
                           </>
                         ) : (
-                          <Link href={`/user/${holder.address}`}>
+                          <a
+                            href={`https://solscan.io/account/${holder.address}?cluster=devnet`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
                             <span className={`font-mono hover:underline cursor-pointer ${privateMode ? "text-[#4ADE80]/70 hover:text-[#4ADE80]" : "text-gray-700 hover:text-gray-900"}`}>
                               {holder.address.slice(0, 4)}...{holder.address.slice(-4)}
                             </span>
-                          </Link>
+                          </a>
                         )}
                       </div>
                       <span className={`font-medium ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>

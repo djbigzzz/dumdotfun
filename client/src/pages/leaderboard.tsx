@@ -129,14 +129,18 @@ function LeaderboardRow({ entry, rank, isYou, privateMode, reward }: {
       </div>
 
       <div className="flex-1 min-w-0">
-        <Link href={`/user/${entry.walletAddress}`}>
+        <a
+          href={`https://solscan.io/account/${entry.walletAddress}?cluster=devnet`}
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span className={`font-mono text-sm font-bold cursor-pointer hover:underline block truncate ${
             isYou ? (privateMode ? "text-[#4ADE80]" : "text-red-500") : (privateMode ? "text-white" : "text-black")
           }`}>
             {entry.walletAddress.slice(0, 4)}...{entry.walletAddress.slice(-4)}
             {isYou && <span className="ml-1.5 text-[10px] opacity-60">(you)</span>}
           </span>
-        </Link>
+        </a>
       </div>
 
       <div className="flex items-center gap-2 flex-shrink-0">

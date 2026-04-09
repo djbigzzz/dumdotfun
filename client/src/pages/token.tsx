@@ -644,14 +644,18 @@ export default function TokenPage() {
                     </button>
                   </div>
                   <div className={`flex items-center gap-3 mt-1 text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                    <Link href={`/user/${token.creatorAddress}`}>
+                    <a
+                      href={`https://solscan.io/account/${token.creatorAddress}?cluster=devnet`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <span className="flex items-center gap-1 hover:underline cursor-pointer" data-testid="text-creator-name">
                         by {creatorSns?.domain ?? `${token.creatorAddress.slice(0, 6)}...`}
                         {creatorSns?.domain && (
                           <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" title="SNS verified .sol name" />
                         )}
                       </span>
-                    </Link>
+                    </a>
                     <span>{getTimeAgo(new Date(token.createdAt))} ago</span>
                     <div className="flex items-center gap-2">
                       {token.twitter && <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Twitter className="w-3.5 h-3.5" /></a>}
@@ -735,12 +739,16 @@ export default function TokenPage() {
                         return (
                           <tr key={activity.id} className={`border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-100"}`}>
                             <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
-                              <Link href={`/user/${activity.walletAddress}`}>
+                              <a
+                                href={`https://solscan.io/account/${activity.walletAddress}?cluster=devnet`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
                                 <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
                                   <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
                                   <span className="hover:underline">{activity.walletAddress?.slice(0, 6)}...</span>
                                 </div>
-                              </Link>
+                              </a>
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>
@@ -829,7 +837,9 @@ export default function TokenPage() {
                               <td className={`py-2 font-mono text-xs ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
                                 {signer !== "–" ? (
                                   <a
-                                    href={`/user/${signer}`}
+                                    href={`https://solscan.io/account/${signer}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
                                     className="hover:underline"
                                   >
                                     {signer.slice(0, 6)}…

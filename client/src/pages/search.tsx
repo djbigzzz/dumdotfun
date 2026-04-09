@@ -142,7 +142,11 @@ export default function SearchPage() {
                 <span className="text-sm">Resolving {q}...</span>
               </div>
             ) : snsLookupResult?.address ? (
-              <Link href={`/user/${snsLookupResult.address}`}>
+              <a
+                href={`https://solscan.io/account/${snsLookupResult.address}?cluster=devnet`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
                 <motion.div
                   whileTap={{ scale: 0.98 }}
                   className={`flex items-center gap-3 p-3 cursor-pointer transition-all ${
@@ -167,7 +171,7 @@ export default function SearchPage() {
                     </div>
                   </div>
                 </motion.div>
-              </Link>
+              </a>
             ) : (
               <div className={`text-sm ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
                 No wallet found for {q}
