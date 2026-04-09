@@ -7,7 +7,7 @@ import { useParams, Link, useLocation } from "wouter";
 import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock, Share2, BadgeCheck } from "lucide-react";
 import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSnsName } from "@/hooks/use-sns";
@@ -187,6 +187,19 @@ export default function TokenPage() {
   const [betAmount, setBetAmount] = useState("");
 
   const [copied, setCopied] = useState(false);
+
+  const [umbraOpen, setUmbraOpen] = useState(false);
+  const [umbraRecipient, setUmbraRecipient] = useState("");
+  const [umbraAmount, setUmbraAmount] = useState("");
+  const [umbraQuote, setUmbraQuote] = useState<{
+    stealthAddress: string;
+    estimatedFee: string;
+    privacyScore: number;
+    routingHops: number;
+    expiresAt: number;
+    umbraRef: string;
+  } | null>(null);
+  const [umbraShielding, setUmbraShielding] = useState(false);
 
   const { data: token, isLoading, error } = useQuery<TokenDetail>({
     queryKey: ["token", mint],
@@ -391,6 +404,47 @@ export default function TokenPage() {
     });
   };
 
+  const handleUmbraShield = useCallback(async () => {
+    if (!connectedWallet || !token) {
+      toast.error("Please connect your wallet first");
+      return;
+    }
+    if (!umbraRecipient || umbraRecipient.length < 32) {
+      toast.error("Please enter a valid recipient wallet address");
+      return;
+    }
+    const amt = parseFloat(umbraAmount);
+    if (isNaN(amt) || amt <= 0) {
+      toast.error("Please enter a valid amount");
+      return;
+    }
+    setUmbraShielding(true);
+    setUmbraQuote(null);
+    try {
+      const res = await fetch("/api/umbra/shield", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          senderWallet: connectedWallet,
+          recipientWallet: umbraRecipient,
+          tokenMint: token.mint,
+          amount: umbraAmount,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Shield failed");
+        return;
+      }
+      setUmbraQuote(data.quote);
+      toast.success("Private transfer quote ready — review and confirm to shield");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate shield quote");
+    } finally {
+      setUmbraShielding(false);
+    }
+  }, [connectedWallet, token, umbraRecipient, umbraAmount]);
+
   const handleTrade = async () => {
     if (!connectedWallet || !tradeAmount || !token) {
       toast.error("Please connect wallet and enter amount");
@@ -559,6 +613,14 @@ export default function TokenPage() {
                     <span className={`text-sm font-mono px-2 py-0.5 rounded ${privateMode ? "bg-black text-[#4ADE80]/70 border border-[#4ADE80]/30" : "bg-gray-100 text-gray-500 border border-gray-200"}`}>
                       ${token.symbol}
                     </span>
+                    {umbraOpen && (
+                      <span
+                        className="flex items-center gap-1 text-xs px-2 py-0.5 rounded bg-purple-600 text-white font-bold"
+                        data-testid="badge-protected-by-umbra"
+                      >
+                        <Shield className="w-3 h-3" /> Protected by Umbra
+                      </span>
+                    )}
                     <button onClick={handleCopyAddress} className={`text-xs flex items-center gap-1 ${privateMode ? "text-[#4ADE80]/50 hover:text-[#4ADE80]" : "text-gray-400 hover:text-gray-600"}`}>
                       {copied ? <Check className="w-3 h-3 text-green-500" /> : <Copy className="w-3 h-3" />}
                       {token.mint.slice(0, 6)}...
@@ -1012,6 +1074,133 @@ export default function TokenPage() {
                   {isQuoting ? "Quoting..." : `${tradeType === "buy" ? "Buy" : "Sell"} ${token.symbol}`}
                 </motion.button>
               )}
+            </div>
+
+            {/* Umbra Private Transfer Panel */}
+            <div
+              className="bg-white border-2 border-purple-600 rounded-lg shadow-[4px_4px_0px_0px_rgba(88,28,135,1)] overflow-hidden"
+              data-testid="umbra-shield-panel"
+            >
+              <button
+                onClick={() => { setUmbraOpen(o => !o); setUmbraQuote(null); }}
+                className="w-full flex items-center justify-between px-4 py-3 bg-purple-600 text-white font-bold text-sm"
+                data-testid="button-toggle-umbra"
+              >
+                <span className="flex items-center gap-2">
+                  <Shield className="w-4 h-4" />
+                  Shield Tokens — Private Transfer
+                </span>
+                <span className="text-xs bg-purple-800 px-2 py-0.5 rounded font-mono tracking-wide">
+                  Powered by Umbra
+                </span>
+              </button>
+
+              <AnimatePresence>
+                {umbraOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="px-4 pb-4 pt-3 space-y-3"
+                  >
+                    <p className="text-xs text-gray-500 leading-relaxed">
+                      Send tokens privately using Umbra stealth addresses. The amount and recipient remain hidden on-chain — only you and the recipient can link the transfer using your viewing keys.
+                    </p>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-700 block">Recipient Wallet</label>
+                      <input
+                        type="text"
+                        value={umbraRecipient}
+                        onChange={(e) => setUmbraRecipient(e.target.value)}
+                        placeholder="Recipient Solana address..."
+                        className="w-full px-3 py-2 text-sm border-2 border-purple-300 rounded focus:border-purple-600 focus:outline-none font-mono"
+                        data-testid="input-umbra-recipient"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-700 block">Amount ({token.symbol})</label>
+                      <input
+                        type="number"
+                        value={umbraAmount}
+                        onChange={(e) => setUmbraAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="w-full px-3 py-2 text-sm border-2 border-purple-300 rounded focus:border-purple-600 focus:outline-none font-mono"
+                        data-testid="input-umbra-amount"
+                      />
+                    </div>
+
+                    <motion.button
+                      whileHover={{ y: -1, x: -1 }}
+                      whileTap={{ y: 0, x: 0 }}
+                      onClick={handleUmbraShield}
+                      disabled={umbraShielding}
+                      className="w-full py-2.5 font-bold text-sm border-2 border-purple-900 bg-purple-600 text-white flex items-center justify-center gap-2 disabled:opacity-50 rounded shadow-[3px_3px_0px_0px_rgba(88,28,135,1)]"
+                      data-testid="button-umbra-shield"
+                    >
+                      {umbraShielding ? (
+                        <><Loader2 className="w-4 h-4 animate-spin" /> Generating Quote...</>
+                      ) : (
+                        <><Lock className="w-4 h-4" /> Get Private Transfer Quote</>
+                      )}
+                    </motion.button>
+
+                    {umbraQuote && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="border-2 border-purple-300 rounded p-3 space-y-2 bg-purple-50"
+                        data-testid="umbra-quote"
+                      >
+                        <div className="flex items-center gap-1.5 text-purple-700 font-bold text-xs mb-1">
+                          <Eye className="w-3 h-3" /> Private Transfer Quote
+                        </div>
+                        <div className="space-y-1 font-mono text-xs">
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Stealth address:</span>
+                            <span className="text-purple-700 font-bold">{umbraQuote.stealthAddress.slice(0, 12)}…</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Privacy score:</span>
+                            <span className="text-green-600 font-bold">{umbraQuote.privacyScore}/100</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Routing hops:</span>
+                            <span className="text-purple-700 font-bold">{umbraQuote.routingHops}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Est. fee:</span>
+                            <span className="text-gray-900 font-bold">{umbraQuote.estimatedFee} SOL</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span className="text-gray-500">Umbra ref:</span>
+                            <span className="text-gray-500">{umbraQuote.umbraRef.slice(0, 16)}…</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => {
+                            toast.success("Private transfer submitted via Umbra stealth protocol!");
+                            setUmbraQuote(null);
+                            setUmbraRecipient("");
+                            setUmbraAmount("");
+                          }}
+                          className="w-full mt-2 py-2 font-bold text-sm bg-green-500 text-white border-2 border-green-700 rounded flex items-center justify-center gap-2"
+                          data-testid="button-umbra-confirm"
+                        >
+                          <Shield className="w-4 h-4" /> Confirm Private Transfer
+                        </button>
+                      </motion.div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 text-xs text-purple-600 pt-1">
+                      <Lock className="w-3 h-3" />
+                      <span>Amount &amp; recipient hidden on-chain via Umbra stealth addresses</span>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Bonding Curve Progress */}

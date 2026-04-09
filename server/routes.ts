@@ -16,6 +16,7 @@ import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPo
 import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
+import { getUmbraQuote, getUmbraPools, getUmbraStatus } from "./umbra";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 import * as bondingCurve from "./bonding-curve-client";
 import { detectMarketCriteria } from "./services/token-health";
@@ -3180,6 +3181,7 @@ export async function registerRoutes(
     }
   });
 
+<<<<<<< HEAD
   app.get("/api/sns/resolve/:address", async (req, res) => {
     const { address } = req.params;
     if (!address || address.length < 32 || address.length > 44) {
@@ -3205,6 +3207,53 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Failed to lookup SNS domain" });
     }
   });
+
+  // ─── Umbra Privacy Routes ────────────────────────────────────────────────────
+
+  app.get("/api/umbra/status", async (_req, res) => {
+    try {
+      return res.json(getUmbraStatus());
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to get Umbra status" });
+    }
+  });
+
+  app.get("/api/umbra/pools", async (req, res) => {
+    try {
+      const tokenMint = req.query.tokenMint as string | undefined;
+      const pools = await getUmbraPools(tokenMint);
+      return res.json({ pools });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Failed to fetch Umbra pools" });
+    }
+  });
+
+  app.post("/api/umbra/shield", sensitiveLimiter, async (req, res) => {
+    try {
+      const { senderWallet, recipientWallet, tokenMint, amount } = req.body;
+      if (!senderWallet || !recipientWallet || !tokenMint || !amount) {
+        return res.status(400).json({ error: "Missing required fields: senderWallet, recipientWallet, tokenMint, amount" });
+      }
+      if (!isValidSolanaAddress(senderWallet) || !isValidSolanaAddress(recipientWallet)) {
+        return res.status(400).json({ error: "Invalid Solana wallet address" });
+      }
+      const amountNum = parseFloat(amount);
+      if (isNaN(amountNum) || amountNum <= 0) {
+        return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+      const quote = await getUmbraQuote({ senderWallet, recipientWallet, tokenMint, amount });
+      return res.json({
+        success: true,
+        quote,
+        message: "Private transfer quote generated. Sign and submit the stealth transaction to complete the shield.",
+      });
+    } catch (err: any) {
+      console.error("Umbra shield error:", err);
+      return res.status(500).json({ error: err.message || "Failed to generate Umbra shield quote" });
+    }
+  });
+
+  // ─────────────────────────────────────────────────────────────────────────────
 
   return httpServer;
 }
