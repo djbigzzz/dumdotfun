@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2 } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2, RefreshCw } from "lucide-react";
 import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
 
@@ -209,7 +209,7 @@ export default function Profile() {
     enabled: !!connectedWallet && activeTab === "coins",
   });
 
-  const { data: holdingsData, isLoading: holdingsLoading } = useQuery<HoldingsResponse>({
+  const { data: holdingsData, isLoading: holdingsLoading, isFetching: holdingsFetching, refetch: refetchHoldings } = useQuery<HoldingsResponse>({
     queryKey: ["my-holdings", connectedWallet],
     queryFn: async () => {
       const res = await fetch(`/api/users/holdings/${connectedWallet}`);
@@ -880,7 +880,18 @@ export default function Profile() {
                         <>
                           {/* Portfolio total bar */}
                           <div className={`flex items-center justify-between mb-4 pb-3 border-b ${privateMode ? "border-zinc-700" : "border-gray-200"}`}>
-                            <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>Total portfolio value</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>Total portfolio value</span>
+                              <button
+                                onClick={() => refetchHoldings()}
+                                disabled={holdingsFetching}
+                                title="Refresh balances"
+                                data-testid="button-refresh-holdings"
+                                className={`p-1 rounded transition-colors ${privateMode ? "hover:bg-zinc-800 text-[#4ADE80]/50 hover:text-[#4ADE80]" : "hover:bg-gray-100 text-gray-400 hover:text-gray-700"}`}
+                              >
+                                <RefreshCw className={`w-3.5 h-3.5 ${holdingsFetching ? "animate-spin" : ""}`} />
+                              </button>
+                            </div>
                             <div className="text-right">
                               <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
                                 {totalSol.toFixed(4)} SOL

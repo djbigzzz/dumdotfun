@@ -449,9 +449,11 @@ export async function registerRoutes(
             };
           }
 
-          // dum.fun token — get live on-chain price from bonding curve
-          let priceInSol: number | null = Number(t.priceInSol) || 0.000001;
-          let marketCapSol: number | null = Number(t.marketCapSol) || 0;
+          // dum.fun token — get live on-chain price from bonding curve only.
+          // Never fall back to the stale DB price: if the curve fetch fails,
+          // we show "no price" rather than a wildly wrong value.
+          let priceInSol: number | null = null;
+          let marketCapSol: number | null = null;
           try {
             const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
             if (curveData) {
@@ -465,10 +467,10 @@ export async function registerRoutes(
               const totalSupply = totalSupplyRaw / 1_000_000;
               const tokensInCurve = tokensInCurveRaw / 1_000_000;
               const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
-              marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
+              marketCapSol = priceInSol !== null && !isNaN(circulatingSupply) ? priceInSol * circulatingSupply : null;
             }
           } catch {
-            // fall back to DB values if curve fetch fails
+            // curve fetch failed — priceInSol stays null, shown as "no price"
           }
 
           return {
