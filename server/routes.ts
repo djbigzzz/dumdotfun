@@ -2883,6 +2883,17 @@ export async function registerRoutes(
     return res.json(getMagicBlockStatus());
   });
 
+  // ========== ENCRYPT + IKA INTEGRATION (Colosseum Frontier $15K track) ==========
+  app.get("/api/encrypt/status", async (_req, res) => {
+    const { getEncryptStatus } = await import("./ika");
+    return res.json(getEncryptStatus());
+  });
+
+  app.get("/api/ika/status", async (_req, res) => {
+    const { getIkaStatus } = await import("./ika");
+    return res.json(getIkaStatus());
+  });
+
   // ========== POINTS SYSTEM ==========
   app.get("/api/points/og-card-info", async (_req, res) => {
     const { OG_CARD_PRICE_SOL, isMintOpen } = await import("./services/points");

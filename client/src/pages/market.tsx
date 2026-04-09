@@ -779,6 +779,39 @@ export default function MarketDetail() {
             )}
           </div>
 
+          <div className="px-6 pb-3">
+            <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-4 space-y-3">
+              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Powered By</p>
+              <div className="flex flex-wrap gap-3">
+                <a
+                  href="https://encrypt.xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ADE80]/10 border border-[#4ADE80]/30 text-[#4ADE80] text-xs font-bold hover:bg-[#4ADE80]/20 transition-colors"
+                  data-testid="badge-encrypt-fhe"
+                >
+                  <Lock className="w-3.5 h-3.5" />
+                  Encrypt FHE
+                  <span className="text-[#4ADE80]/50 font-normal">#encrypt_fn</span>
+                </a>
+                <a
+                  href="https://ika.xyz"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-colors"
+                  data-testid="badge-ika-dwallet"
+                >
+                  <Shield className="w-3.5 h-3.5" />
+                  Ika dWallets
+                  <span className="text-blue-400/50 font-normal">2PC-MPC</span>
+                </a>
+              </div>
+              <p className="text-xs text-zinc-500 leading-relaxed">
+                Bet amounts encrypted on-chain via Encrypt FHE (REFHE). Cross-chain collateral secured by Ika dWallet MPC — stake BTC or ETH without bridges.
+              </p>
+            </div>
+          </div>
+
           <div className="px-6 pb-6">
             <div className="flex items-center justify-between text-xs text-gray-500">
               <span>Created by: {market.creatorAddress.slice(0, 6)}...{market.creatorAddress.slice(-4)}</span>
