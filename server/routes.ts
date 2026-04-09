@@ -418,26 +418,27 @@ export async function registerRoutes(
         return res.json({ holdings: [] });
       }
 
-      // Cross-reference with dum.fun tokens in DB
-      const allTokens = await storage.getTokens(500);
-      const tokenMap = new Map(allTokens.map(t => [t.mint, t]));
-
-      const holdings = heldMints
-        .filter(h => tokenMap.has(h.mint))
-        .map(h => {
-          const t = tokenMap.get(h.mint)!;
+      // Cross-reference each held mint against dum.fun DB
+      const holdingResults = await Promise.all(
+        heldMints.map(async ({ mint, balance }) => {
+          const t = await storage.getTokenByMint(mint);
+          if (!t) return null;
           const priceInSol = Number(t.priceInSol) || 0.000001;
           return {
             mint: t.mint,
             name: t.name,
             symbol: t.symbol,
             imageUri: t.imageUri,
-            balance: h.balance,
+            balance,
             priceInSol,
-            valueInSol: h.balance * priceInSol,
+            valueInSol: balance * priceInSol,
             marketCapSol: Number(t.marketCapSol) || 0,
           };
         })
+      );
+
+      const holdings = holdingResults
+        .filter((h): h is NonNullable<typeof h> => h !== null)
         .sort((a, b) => b.valueInSol - a.valueInSol);
 
       return res.json({ holdings });
