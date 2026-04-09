@@ -13,6 +13,7 @@ import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction 
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, getSwapQuote, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
+import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
@@ -3176,6 +3177,32 @@ export async function registerRoutes(
     } catch (err: any) {
       console.error("Dune wallet portfolio error:", err?.response?.data || err.message);
       return res.status(502).json({ error: "Failed to fetch Dune wallet data", details: err.message });
+    }
+  });
+
+  app.get("/api/sns/resolve/:address", async (req, res) => {
+    const { address } = req.params;
+    if (!address || address.length < 32 || address.length > 44) {
+      return res.status(400).json({ error: "Invalid Solana address" });
+    }
+    try {
+      const domain = await snsResolveAddress(address);
+      return res.json({ address, domain });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to resolve SNS name" });
+    }
+  });
+
+  app.get("/api/sns/lookup/:domain", async (req, res) => {
+    const { domain } = req.params;
+    if (!domain) {
+      return res.status(400).json({ error: "Domain is required" });
+    }
+    try {
+      const address = await snsLookupDomain(domain);
+      return res.json({ domain: domain.toLowerCase().endsWith(".sol") ? domain : `${domain}.sol`, address });
+    } catch (error: any) {
+      return res.status(500).json({ error: "Failed to lookup SNS domain" });
     }
   });
 

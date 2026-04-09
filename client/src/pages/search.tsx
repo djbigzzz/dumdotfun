@@ -2,8 +2,9 @@ import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Search as SearchIcon, Loader2, X } from "lucide-react";
+import { Search as SearchIcon, Loader2, X, BadgeCheck } from "lucide-react";
 import { useState } from "react";
+import { useSnsLookup } from "@/hooks/use-sns";
 
 
 interface Token {
@@ -73,12 +74,16 @@ export default function SearchPage() {
   });
 
   const q = query.toLowerCase().trim();
+  const isSolDomain = q.endsWith(".sol") && q.length > 4;
+
+  const { data: snsLookupResult, isLoading: snsLoading } = useSnsLookup(isSolDomain ? q : null);
 
   const filteredTokens = q.length > 0
     ? (tokens || []).filter(t =>
         t.name.toLowerCase().includes(q) ||
         t.symbol.toLowerCase().includes(q) ||
-        t.mint.toLowerCase().includes(q)
+        t.mint.toLowerCase().includes(q) ||
+        (snsLookupResult?.address && t.creatorAddress.toLowerCase() === snsLookupResult.address.toLowerCase())
       )
     : [];
 
@@ -126,7 +131,52 @@ export default function SearchPage() {
           </div>
         )}
 
-        {q.length > 0 && filteredTokens.length === 0 && filteredMarkets.length === 0 && (
+        {isSolDomain && q.length > 0 && (
+          <div>
+            <h2 className={`text-sm font-bold uppercase tracking-wide mb-3 ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+              SNS Domain
+            </h2>
+            {snsLoading ? (
+              <div className={`flex items-center gap-2 p-3 ${privateMode ? "text-[#4ADE80]/60" : "text-gray-400"}`}>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="text-sm">Resolving {q}...</span>
+              </div>
+            ) : snsLookupResult?.address ? (
+              <Link href={`/user/${snsLookupResult.address}`}>
+                <motion.div
+                  whileTap={{ scale: 0.98 }}
+                  className={`flex items-center gap-3 p-3 cursor-pointer transition-all ${
+                    privateMode
+                      ? "bg-black border border-[#4ADE80]/30 hover:border-[#4ADE80]"
+                      : "bg-white border-2 border-black rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                  }`}
+                  data-testid="search-sns-result"
+                >
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 border ${
+                    privateMode ? "border-[#4ADE80]/30 bg-black" : "border-black bg-blue-500"
+                  }`}>
+                    <BadgeCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className={`font-bold text-sm flex items-center gap-1 ${privateMode ? "text-white" : "text-gray-900"}`}>
+                      {q}
+                      <BadgeCheck className="w-3.5 h-3.5 text-blue-500" />
+                    </div>
+                    <div className={`text-xs font-mono truncate ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+                      {snsLookupResult.address}
+                    </div>
+                  </div>
+                </motion.div>
+              </Link>
+            ) : (
+              <div className={`text-sm ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                No wallet found for {q}
+              </div>
+            )}
+          </div>
+        )}
+
+        {q.length > 0 && filteredTokens.length === 0 && filteredMarkets.length === 0 && !isSolDomain && (
           <div className={`text-center py-16 ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
             <p className="text-lg font-bold">{privateMode ? "// no results" : "No results found"}</p>
             <p className="text-sm mt-1">Try a different search term</p>

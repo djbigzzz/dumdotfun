@@ -1,10 +1,11 @@
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
+import { useSnsName } from "@/hooks/use-sns";
 
 import { motion } from "framer-motion";
 import { useParams, Link } from "wouter";
 import { useState } from "react";
-import { ExternalLink, Copy, Check, Coins, Calendar, ArrowLeft } from "lucide-react";
+import { ExternalLink, Copy, Check, Coins, Calendar, ArrowLeft, BadgeCheck } from "lucide-react";
 import defaultAvatar from "@assets/generated_images/derpy_blob_meme_mascot.png";
 
 function formatMarketCap(mcSol: number, solPrice: number | null): string {
@@ -66,6 +67,8 @@ export default function UserProfilePage() {
     refetchInterval: 30000,
   });
 
+  const { data: walletSns } = useSnsName(wallet);
+
   const copyWallet = () => {
     if (wallet) {
       navigator.clipboard.writeText(wallet);
@@ -102,9 +105,14 @@ export default function UserProfilePage() {
             <img src={defaultAvatar} alt={`Profile avatar for wallet ${wallet?.slice(0, 6)}`} loading="lazy" className="w-full h-full object-cover" />
           </div>
           <div className="flex-1">
-            <h1 className={`text-2xl font-black font-mono ${privateMode ? "text-white" : "text-gray-900"}`}>
-              {wallet?.slice(0, 6)}...{wallet?.slice(-4)}
-            </h1>
+            <div className="flex items-center gap-2">
+              <h1 className={`text-2xl font-black font-mono ${privateMode ? "text-white" : "text-gray-900"}`} data-testid="text-profile-name">
+                {walletSns?.domain ?? `${wallet?.slice(0, 6)}...${wallet?.slice(-4)}`}
+              </h1>
+              {walletSns?.domain && (
+                <BadgeCheck className="w-5 h-5 text-blue-500 flex-shrink-0" title="SNS verified .sol name" data-testid="badge-sns-verified" />
+              )}
+            </div>
             <div className="flex items-center gap-2 mt-2">
               <button
                 onClick={copyWallet}

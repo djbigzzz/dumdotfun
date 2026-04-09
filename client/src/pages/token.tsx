@@ -4,12 +4,13 @@ import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
-import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock, Share2 } from "lucide-react";
+import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock, Share2, BadgeCheck } from "lucide-react";
 import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import { usePageTitle } from "@/hooks/use-page-title";
+import { useSnsName } from "@/hooks/use-sns";
 import { TradingChart } from "@/components/trading-chart";
 import { Buffer } from "buffer";
 import { Transaction, Connection } from "@solana/web3.js";
@@ -215,6 +216,8 @@ export default function TokenPage() {
     },
     refetchInterval: 30000,
   });
+
+  const { data: creatorSns } = useSnsName(token?.creatorAddress);
 
   const { data: tokenBalance } = useQuery<{ balance: number }>({
     queryKey: ["token-balance", connectedWallet, mint],
@@ -579,7 +582,14 @@ export default function TokenPage() {
                     </button>
                   </div>
                   <div className={`flex items-center gap-3 mt-1 text-xs ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                    <span>by {token.creatorAddress.slice(0, 6)}</span>
+                    <Link href={`/user/${token.creatorAddress}`}>
+                      <span className="flex items-center gap-1 hover:underline cursor-pointer" data-testid="text-creator-name">
+                        by {creatorSns?.domain ?? `${token.creatorAddress.slice(0, 6)}...`}
+                        {creatorSns?.domain && (
+                          <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" title="SNS verified .sol name" />
+                        )}
+                      </span>
+                    </Link>
                     <span>{getTimeAgo(new Date(token.createdAt))} ago</span>
                     <div className="flex items-center gap-2">
                       {token.twitter && <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Twitter className="w-3.5 h-3.5" /></a>}
