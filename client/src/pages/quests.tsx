@@ -11,7 +11,6 @@ import {
   Award, Target, TrendingUp, ChevronRight, Lock, Zap, Check,
   CalendarCheck, Sparkles
 } from "lucide-react";
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
 
 interface QuestDef {
@@ -94,44 +93,21 @@ export default function QuestsPage() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const infoRes = await fetch("/api/points/og-card-info");
-      if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
-      const { priceSol, platformWallet, mainnetRpc } = await infoRes.json();
-      if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
-
-      const connection = new Connection(mainnetRpc || "https://api.mainnet-beta.solana.com");
-      const fromPubkey = new PublicKey(connectedWallet!);
-      const toPubkey = new PublicKey(platformWallet);
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({ fromPubkey, toPubkey, lamports: Math.round(priceSol * LAMPORTS_PER_SOL) })
-      );
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      toast.info("Sign the mainnet transaction in Phantom...");
-      const signedTx = await window.solana.signTransaction(transaction);
-      const rawTx = signedTx.serialize();
-      const signature = await connection.sendRawTransaction(rawTx, { skipPreflight: false });
-      toast.info("Transaction sent to mainnet! Confirming...");
-
-      await connection.confirmTransaction({ signature, blockhash, lastValidBlockHeight }, "confirmed");
-
-      const verifyRes = await fetch("/api/points/claim-og", {
+      const res = await fetch("/api/points/claim-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
+        body: JSON.stringify({ walletAddress: connectedWallet }),
       });
-      const result = await verifyRes.json();
-      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to activate OG Card");
       return result;
     },
     onSuccess: (data) => {
-      toast.success(data.message || "OG Card minted!");
+      toast.success(data.message || "OG Card activated!");
       queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
     },
     onError: (error: Error) => {
-      toast.error(error.message.includes("User rejected") ? "Transaction cancelled" : (error.message || "Failed to mint OG Card"));
+      toast.error(error.message || "Failed to activate OG Card");
     },
   });
 
@@ -249,7 +225,7 @@ export default function QuestsPage() {
                 </span>
                 {hasOg && (
                   <span className={`px-2 py-1 rounded font-bold ${pm ? "bg-purple-900/50 text-purple-300" : "bg-purple-100 text-purple-600 border border-purple-200"}`}>
-                    +50% OG
+                    +20% OG
                   </span>
                 )}
               </div>
@@ -297,7 +273,7 @@ export default function QuestsPage() {
                     <div className={`flex items-center gap-2 mt-2 px-2 py-1.5 rounded ${pm ? "bg-yellow-900/20 border border-yellow-500/30" : "bg-yellow-50 border border-yellow-300"}`} data-testid="text-og-bonus">
                       <Sparkles className="w-3.5 h-3.5 text-yellow-500 flex-shrink-0" />
                       <span className={`text-xs font-bold ${pm ? "text-yellow-400" : "text-yellow-700"}`}>
-                        +{pointsData.totalBonusPoints} bonus pts from 1.5x OG Card multiplier
+                        +{pointsData.totalBonusPoints} bonus pts from 1.2x OG Card multiplier
                       </span>
                     </div>
                   )}
@@ -448,15 +424,14 @@ export default function QuestsPage() {
                       <p className={`font-black text-sm ${hd}`}>DUM OG Card</p>
                       <p className={`text-[11px] ${sub}`}>Lifetime membership NFT</p>
                     </div>
-                    <span className={`text-sm font-black px-2 py-1 rounded ${pm ? "bg-purple-900/40 text-purple-400 border border-purple-500/30" : "bg-purple-100 text-purple-700 border border-purple-300"}`}>0.2 SOL</span>
+                    <span className={`text-sm font-black px-2 py-1 rounded ${pm ? "bg-green-900/40 text-green-400 border border-green-500/30" : "bg-green-100 text-green-700 border border-green-300"}`}>FREE</span>
                   </div>
 
                   <div className={`rounded-lg p-2.5 space-y-1.5 ${pm ? "bg-zinc-800/80 border border-[#4ADE80]/20" : "bg-gray-50 border border-gray-200"}`}>
                     <p className={`text-[10px] font-black uppercase tracking-wider ${pm ? "text-[#4ADE80]/60" : "text-gray-400"}`}>OG Holder Perks</p>
                     {[
-                      { icon: "⚡", label: "1.5x Points Multiplier", desc: "On all earned points, forever" },
-                      { icon: "🏆", label: "+500 Quest Reward", desc: "Instant points on mint" },
-                      { icon: "🎯", label: "Reduced Trading Fees", desc: "Lower fees on all trades" },
+                      { icon: "⚡", label: "1.2x Points Multiplier", desc: "On all earned points, forever" },
+                      { icon: "🏆", label: "+500 Quest Reward", desc: "Instant points on claim" },
                       { icon: "🚀", label: "Early Access", desc: "First look at new features" },
                       { icon: "👑", label: "OG Badge", desc: "Exclusive profile badge" },
                       { icon: "🎁", label: "Future Airdrops", desc: "Priority for token airdrops" },
@@ -487,7 +462,7 @@ export default function QuestsPage() {
                         } disabled:opacity-50 transition-all`}
                         data-testid="button-mint-og"
                       >
-                        {ogClaimMutation.isPending ? "Minting..." : "Mint OG Card — 0.2 SOL"}
+                        {ogClaimMutation.isPending ? "Claiming..." : "Get OG Card — FREE"}
                       </motion.button>
                     )
                   ) : (
@@ -531,7 +506,7 @@ function getDefaultQuests(category: string): QuestDef[] {
       { action: "streak_30", points: 600, completed: false, repeatable: false, category: "streaks", title: "30-Day Streak", description: "30 consecutive days" },
     ],
     special: [
-      { action: "mint_og_nft", points: 500, completed: false, repeatable: false, category: "special", title: "Mint OG Card", description: "Get the 1.5x points multiplier" },
+      { action: "mint_og_nft", points: 500, completed: false, repeatable: false, category: "special", title: "Claim OG Card", description: "Get the free 1.2x points multiplier" },
     ],
   };
   return defaults[category] || [];

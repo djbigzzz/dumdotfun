@@ -2,7 +2,7 @@ import { db } from "../db";
 import { userPoints, pointsHistory, users } from "@shared/schema";
 import { eq, desc, sql, and } from "drizzle-orm";
 
-const OG_MULTIPLIER = 1.5;
+const OG_MULTIPLIER = 1.2;
 
 const TIERS = [
   { name: "solana_god", minPoints: 10000, label: "On-Chain God", emoji: "💎" },
@@ -32,7 +32,7 @@ const QUESTS: QuestDefinition[] = [
   { id: "daily_login", action: "daily_login", category: "streaks", title: "Daily Check-in", description: "Log in daily for bonus points", points: 10, repeatable: true },
   { id: "streak_7", action: "streak_7", category: "streaks", title: "7-Day Streak", description: "Check in 7 days in a row", points: 150, repeatable: false },
   { id: "streak_30", action: "streak_30", category: "streaks", title: "30-Day Streak", description: "Check in 30 days in a row", points: 600, repeatable: false },
-  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Mint the OG Card for 0.2 SOL (1.5x boost)", points: 500, repeatable: false },
+  { id: "mint_og_nft", action: "mint_og_nft", category: "special", title: "OG Card", description: "Claim the free OG Card (1.2x boost)", points: 500, repeatable: false },
 ];
 
 function calculateTier(points: number): string {
@@ -258,7 +258,7 @@ export async function getUserPointsData(walletAddress: string) {
     nextTier: tierInfo.nextTier ? { name: tierInfo.nextTier.name, label: tierInfo.nextTier.label, minPoints: tierInfo.nextTier.minPoints } : null,
     ogNftMint: up.ogNftMint,
     hasOgCard: !!up.ogNftMint,
-    ogBoost: up.ogNftMint ? "50%" : "0%",
+    ogBoost: up.ogNftMint ? "20%" : "0%",
     ogMultiplier: isOgHolder ? OG_MULTIPLIER : 1,
     totalBonusPoints,
     lastDailyLogin: up.lastDailyLogin,
@@ -324,8 +324,8 @@ export async function getUserRank(walletAddress: string): Promise<number> {
   return Number(result?.rank) || 1;
 }
 
-export const OG_CARD_PRICE_SOL = 0.2;
-export const OG_CARD_PRICE_LAMPORTS = OG_CARD_PRICE_SOL * 1_000_000_000;
+export const OG_CARD_PRICE_SOL = 0;
+export const OG_CARD_PRICE_LAMPORTS = 0;
 
 function getMainnetConnection() {
   const { Connection } = require("@solana/web3.js");
@@ -409,10 +409,10 @@ export async function claimOgCard(walletAddress: string, txSignature: string): P
             metadata: {
               name: "Dum.fun OG Card",
               symbol: "DUMOG",
-              description: "Early supporter of dum.fun. Grants permanent 1.5x points boost and OG status on the leaderboard.",
+              description: "Early supporter of dum.fun. Grants permanent 1.2x points boost and OG status on the leaderboard.",
               image: process.env.OG_CARD_IMAGE_URL || "",
               attributes: [
-                { trait_type: "Boost", value: "+50%" },
+                { trait_type: "Boost", value: "+20%" },
                 { trait_type: "Status", value: "OG" },
                 { trait_type: "Minted", value: new Date().toISOString().split("T")[0] },
               ],
@@ -445,9 +445,67 @@ export async function claimOgCard(walletAddress: string, txSignature: string): P
   return {
     success: true,
     message: nftMintAddress
-      ? "OG Card NFT minted to your wallet! You now earn 1.5x points on all actions."
-      : "OG Card activated! NFT will be minted once Crossmint is configured. You now earn 1.5x points.",
-    points: 50,
+      ? "OG Card NFT minted to your wallet! You now earn 1.2x points on all actions."
+      : "OG Card activated! You now earn 1.2x points on all actions.",
+    points: 500,
+    nftMint: ogId,
+  };
+}
+
+export async function claimOgCardFree(walletAddress: string): Promise<{ success: boolean; message: string; points?: number; nftMint?: string }> {
+  const up = await getOrCreateUserPoints(walletAddress);
+  if (up.ogNftMint) {
+    return { success: false, message: "OG Card already claimed" };
+  }
+  if (!isMintOpen()) {
+    return { success: false, message: "OG Card minting is currently closed." };
+  }
+
+  let nftMintAddress: string | undefined;
+  if (process.env.CROSSMINT_API_KEY && process.env.CROSSMINT_COLLECTION_ID) {
+    try {
+      const crossmintRes = await fetch(
+        `https://www.crossmint.com/api/2022-06-09/collections/${process.env.CROSSMINT_COLLECTION_ID}/nfts`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-API-KEY": process.env.CROSSMINT_API_KEY },
+          body: JSON.stringify({
+            recipient: `solana:${walletAddress}`,
+            metadata: {
+              name: "Dum.fun OG Card",
+              symbol: "DUMOG",
+              description: "Early supporter of dum.fun. Grants permanent 1.2x points boost and OG status on the leaderboard.",
+              image: process.env.OG_CARD_IMAGE_URL || "",
+              attributes: [
+                { trait_type: "Boost", value: "+20%" },
+                { trait_type: "Status", value: "OG" },
+                { trait_type: "Minted", value: new Date().toISOString().split("T")[0] },
+              ],
+            },
+          }),
+        }
+      );
+      if (crossmintRes.ok) {
+        const d = await crossmintRes.json();
+        nftMintAddress = d.id || d.onChain?.mintHash;
+      }
+    } catch (err) {
+      console.error("[OG Card] Crossmint error:", err);
+    }
+  }
+
+  const ogId = nftMintAddress || `og_free_${walletAddress.slice(0, 8)}_${Date.now()}`;
+
+  await db.update(userPoints)
+    .set({ ogNftMint: ogId, ogCardVerifiedAt: new Date(), updatedAt: new Date() })
+    .where(eq(userPoints.walletAddress, walletAddress));
+
+  await awardQuest(walletAddress, "mint_og_nft");
+
+  return {
+    success: true,
+    message: "OG Card activated! You now earn 1.2x points on all actions.",
+    points: 500,
     nftMint: ogId,
   };
 }

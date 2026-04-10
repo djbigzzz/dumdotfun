@@ -361,7 +361,7 @@ function buildSections(): DocSection[] {
 
           <Heading>OG Card</Heading>
           <P>
-            The OG Card is a limited NFT (0.2 SOL on mainnet) that grants a permanent <strong>1.5x points multiplier</strong> on all activities. OG holders earn more points, climb tiers faster, and get bigger seasonal rewards.
+            The OG Card is a free NFT that grants a permanent <strong>1.2x points multiplier</strong> on all activities. OG holders earn more points, climb tiers faster, and get bigger seasonal rewards.
           </P>
         </>
       ),
@@ -430,7 +430,7 @@ const faqs = [
   { q: "What happens when a token graduates?", a: "When the bonding curve reaches 85 SOL in liquidity, the token automatically migrates to a Raydium CPMM pool. Trading continues on the open DEX with full liquidity." },
   { q: "How do prediction market odds work?", a: "Odds are determined by the ratio of YES to NO bets. If more people bet YES, YES becomes more expensive (reflecting a higher probability). Prices range from 0 to 1 SOL per share." },
   { q: "When do prediction markets resolve?", a: "Markets resolve when the outcome is determined. The platform checks on-chain data — developer holdings, token status, Raydium migration — to automatically resolve markets." },
-  { q: "What is the OG Card?", a: "The OG Card is a limited NFT that costs 0.2 SOL on mainnet. It gives you a permanent 1.5x multiplier on all points earned, helping you climb the leaderboard faster and earn bigger seasonal rewards." },
+  { q: "What is the OG Card?", a: "The OG Card is a free NFT available to early supporters. It gives you a permanent 1.2x multiplier on all points earned, helping you climb the leaderboard faster and earn bigger seasonal rewards." },
   { q: "How do seasons work?", a: "Seasons are competitive periods where the top 10 players on the leaderboard earn real SOL rewards. Season 1 'Genesis' runs until mainnet launch. Earn points through quests, trading, and creating tokens." },
   { q: "Is dum.fun safe?", a: "Trading experimental meme tokens involves high risk. The platform is currently on Solana Devnet (testnet) — no real money is at stake. Never trade more than you can afford to lose when we go to mainnet." },
 ];

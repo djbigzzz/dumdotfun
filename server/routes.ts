@@ -3112,15 +3112,15 @@ export async function registerRoutes(
 
   app.post("/api/points/claim-og", async (req, res) => {
     try {
-      const { walletAddress, txSignature } = req.body;
-      if (!walletAddress || !txSignature) return res.status(400).json({ error: "walletAddress and txSignature required" });
-      const { claimOgCard } = await import("./services/points");
-      const result = await claimOgCard(walletAddress, txSignature);
+      const { walletAddress } = req.body;
+      if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
+      const { claimOgCardFree } = await import("./services/points");
+      const result = await claimOgCardFree(walletAddress);
       if (!result.success) return res.status(400).json(result);
       return res.json(result);
     } catch (error: any) {
       console.error("[OG Card] Claim error:", error);
-      return res.status(500).json({ error: "Failed to verify OG Card transaction" });
+      return res.status(500).json({ error: "Failed to activate OG Card" });
     }
   });
 

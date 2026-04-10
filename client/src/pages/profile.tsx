@@ -6,7 +6,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2, RefreshCw } from "lucide-react";
-import { Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { toast } from "sonner";
 
 interface UserWithReferrals {
@@ -232,54 +231,21 @@ export default function Profile() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const infoRes = await fetch("/api/points/og-card-info");
-      if (!infoRes.ok) throw new Error("Failed to fetch OG Card info");
-      const { priceSol, platformWallet } = await infoRes.json();
-
-      if (!window.solana?.isPhantom) throw new Error("Phantom wallet not found");
-
-      const connection = new Connection("https://api.mainnet-beta.solana.com");
-      const fromPubkey = new PublicKey(connectedWallet!);
-      const toPubkey = new PublicKey(platformWallet);
-
-      const transaction = new Transaction().add(
-        SystemProgram.transfer({
-          fromPubkey,
-          toPubkey,
-          lamports: Math.round(priceSol * LAMPORTS_PER_SOL),
-        })
-      );
-
-      const { blockhash } = await connection.getLatestBlockhash();
-      transaction.recentBlockhash = blockhash;
-      transaction.feePayer = fromPubkey;
-
-      const { signature } = await window.solana.signAndSendTransaction(transaction);
-
-      toast.info("Transaction sent! Verifying on-chain...");
-
-      await new Promise(resolve => setTimeout(resolve, 3000));
-
-      const verifyRes = await fetch("/api/points/claim-og", {
+      const res = await fetch("/api/points/claim-og", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, txSignature: signature }),
+        body: JSON.stringify({ walletAddress: connectedWallet }),
       });
-
-      const result = await verifyRes.json();
-      if (!verifyRes.ok) throw new Error(result.message || "Verification failed");
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.message || "Failed to activate OG Card");
       return result;
     },
     onSuccess: (data) => {
-      toast.success(data.message || "OG Card minted!");
+      toast.success(data.message || "OG Card activated!");
       queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
     },
     onError: (error: Error) => {
-      if (error.message.includes("User rejected")) {
-        toast.error("Transaction cancelled");
-      } else {
-        toast.error(error.message || "Failed to mint OG Card");
-      }
+      toast.error(error.message || "Failed to activate OG Card");
     },
   });
 
@@ -586,11 +552,11 @@ export default function Profile() {
                           </div>
                           <div>
                             <p className={`text-sm font-black ${privateMode ? "text-white" : "text-black"}`}>OG Card Active</p>
-                            <p className={`text-xs ${privateMode ? "text-purple-400" : "text-purple-600"}`}>All points boosted by 1.5x</p>
+                            <p className={`text-xs ${privateMode ? "text-purple-400" : "text-purple-600"}`}>All points boosted by 1.2x</p>
                           </div>
                         </div>
                         <span className="text-lg font-black bg-gradient-to-r from-purple-500 to-pink-500 bg-clip-text text-transparent" data-testid="text-og-boost-active">
-                          +50%
+                          +20%
                         </span>
                       </div>
                     ) : (
@@ -598,8 +564,8 @@ export default function Profile() {
                         privateMode ? "border-[#4ADE80]/20 bg-zinc-900" : "border-gray-300 bg-gray-50"
                       }`}>
                         <div>
-                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Mint OG Card NFT</p>
-                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>0.2 SOL on mainnet — Permanent 1.5x boost</p>
+                          <p className={`text-sm font-bold ${privateMode ? "text-white" : "text-black"}`}>Get OG Card — Free</p>
+                          <p className={`text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>Free forever — Permanent 1.2x points boost</p>
                         </div>
                         <motion.button
                           onClick={() => ogClaimMutation.mutate()}
@@ -611,7 +577,7 @@ export default function Profile() {
                           } disabled:opacity-50`}
                           data-testid="button-claim-og"
                         >
-                          {ogClaimMutation.isPending ? "Minting..." : "Mint for 0.2 SOL"}
+                          {ogClaimMutation.isPending ? "Claiming..." : "Claim Free OG Card"}
                         </motion.button>
                       </div>
                     )}
