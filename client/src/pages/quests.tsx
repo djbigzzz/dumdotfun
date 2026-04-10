@@ -9,7 +9,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import {
   Wallet, Calendar, Gift, Trophy, Star, Flame, Shield, Diamond,
   Award, Target, TrendingUp, ChevronRight, Lock, Zap, Check,
-  CalendarCheck, Sparkles
+  CalendarCheck, Sparkles, ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +69,14 @@ const CAT_COLORS: Record<string, string> = {
   activity: "#EAB308",
   streaks: "#F97316",
   special: "#A855F7",
+};
+
+const QUEST_ACTIONS: Record<string, { label: string; href: string }> = {
+  first_trade:   { label: "Trade a token",    href: "/tokens" },
+  first_bet:     { label: "Place a bet",      href: "/predictions" },
+  first_token:   { label: "Create a token",   href: "/create" },
+  first_market:  { label: "Create a market",  href: "/create-market" },
+  first_win:     { label: "Browse bets",      href: "/predictions" },
 };
 
 export default function QuestsPage() {
@@ -327,49 +335,70 @@ export default function QuestsPage() {
                     <h3 className={`text-xs font-black uppercase tracking-wider ${pm ? "text-white/50" : "text-gray-400"}`} style={{ color: catColor }}>
                       {catLabel}
                     </h3>
-                    {catQuests.map((quest) => (
-                      <div
-                        key={quest.action}
-                        className={`${card} px-3 py-2.5 flex items-center gap-3 ${quest.completed ? "opacity-50" : ""}`}
-                        data-testid={`quest-${quest.action}`}
-                      >
-                        <div
-                          className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${
-                            quest.completed ? (pm ? "bg-[#4ADE80]/20" : "bg-green-100") : (pm ? "bg-zinc-800" : "bg-gray-50")
-                          }`}
-                          style={{ color: quest.completed ? (pm ? "#4ADE80" : "#22C55E") : catColor }}
+                    {catQuests.map((quest) => {
+                      const questAction = !quest.completed && !quest.canClaim ? QUEST_ACTIONS[quest.action] : undefined;
+                      const RowWrapper = questAction ? Link : "div";
+                      const wrapperProps = questAction ? { href: questAction.href } : {};
+                      return (
+                        <RowWrapper
+                          key={quest.action}
+                          {...(wrapperProps as any)}
                         >
-                          {quest.completed ? <Check className="w-4 h-4" /> : (QUEST_ICONS[quest.action] || <Star className="w-4 h-4" />)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-bold text-xs ${pm ? "text-white" : "text-zinc-900"}`}>{quest.title}</p>
-                          <p className={`text-[11px] ${sub} truncate`}>{quest.description}</p>
-                        </div>
-                        {quest.completed ? (
-                          <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-[#4ADE80]" : "text-green-500"}`}>
-                            <Check className="w-3.5 h-3.5" />
-                          </span>
-                        ) : quest.canClaim ? (
-                          <motion.button
-                            whileTap={{ scale: 0.9 }}
-                            onClick={(e) => { e.stopPropagation(); claimQuestMutation.mutate(quest.action); }}
-                            disabled={claimQuestMutation.isPending}
-                            className={`text-[10px] font-black px-2.5 py-1 rounded flex-shrink-0 ${
-                              pm
-                                ? "bg-[#4ADE80] text-black hover:bg-[#4ADE80]/80"
-                                : "bg-green-500 text-white border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
-                            } disabled:opacity-50`}
-                            data-testid={`button-claim-${quest.action}`}
+                          <motion.div
+                            whileHover={questAction ? { x: 2 } : {}}
+                            className={`${card} px-3 py-2.5 flex items-center gap-3 ${quest.completed ? "opacity-50" : ""} ${questAction ? "cursor-pointer hover:border-red-400 transition-colors" : ""}`}
+                            data-testid={`quest-${quest.action}`}
                           >
-                            Claim +{quest.points}
-                          </motion.button>
-                        ) : (
-                          <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-white/80" : "text-zinc-700"}`}>
-                            +{quest.points}
-                          </span>
-                        )}
-                      </div>
-                    ))}
+                            <div
+                              className={`w-7 h-7 rounded flex items-center justify-center flex-shrink-0 ${
+                                quest.completed ? (pm ? "bg-[#4ADE80]/20" : "bg-green-100") : (pm ? "bg-zinc-800" : "bg-gray-50")
+                              }`}
+                              style={{ color: quest.completed ? (pm ? "#4ADE80" : "#22C55E") : catColor }}
+                            >
+                              {quest.completed ? <Check className="w-4 h-4" /> : (QUEST_ICONS[quest.action] || <Star className="w-4 h-4" />)}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className={`font-bold text-xs ${pm ? "text-white" : "text-zinc-900"}`}>{quest.title}</p>
+                              <p className={`text-[11px] ${sub} truncate`}>{quest.description}</p>
+                            </div>
+                            {quest.completed ? (
+                              <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-[#4ADE80]" : "text-green-500"}`}>
+                                <Check className="w-3.5 h-3.5" />
+                              </span>
+                            ) : quest.canClaim ? (
+                              <motion.button
+                                whileTap={{ scale: 0.9 }}
+                                onClick={(e) => { e.stopPropagation(); claimQuestMutation.mutate(quest.action); }}
+                                disabled={claimQuestMutation.isPending}
+                                className={`text-[10px] font-black px-2.5 py-1 rounded flex-shrink-0 ${
+                                  pm
+                                    ? "bg-[#4ADE80] text-black hover:bg-[#4ADE80]/80"
+                                    : "bg-green-500 text-white border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] hover:shadow-none"
+                                } disabled:opacity-50`}
+                                data-testid={`button-claim-${quest.action}`}
+                              >
+                                Claim +{quest.points}
+                              </motion.button>
+                            ) : questAction ? (
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <span className={`text-[10px] font-black flex-shrink-0 ${pm ? "text-white/50" : "text-zinc-400"}`}>+{quest.points}</span>
+                                <span className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded ${
+                                  pm
+                                    ? "bg-red-500/20 text-red-400 border border-red-500/40"
+                                    : "bg-red-500 text-white border border-black shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+                                }`} data-testid={`button-go-${quest.action}`}>
+                                  {questAction.label} <ExternalLink className="w-2.5 h-2.5" />
+                                </span>
+                              </div>
+                            ) : (
+                              <span className={`text-xs font-black flex-shrink-0 ${pm ? "text-white/80" : "text-zinc-700"}`}>
+                                +{quest.points}
+                              </span>
+                            )}
+                          </motion.div>
+                        </RowWrapper>
+                      );
+                    })}
                   </div>
                 );
               })}
