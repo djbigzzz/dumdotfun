@@ -3,7 +3,7 @@ import { TokenCard } from "@/components/token-card";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
-import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles, Trophy } from "lucide-react";
+import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles, Trophy, X, Diamond } from "lucide-react";
 import { useState, useRef } from "react";
 import { toast } from "sonner";
 
@@ -123,6 +123,95 @@ function QuestsTeaser() {
   );
 }
 
+const OG_BANNER_DISMISS_KEY = "og_card_banner_dismissed_v1";
+
+function OgCardBanner() {
+  const { connectedWallet } = useWallet();
+  const [dismissed, setDismissed] = useState(() => {
+    try { return localStorage.getItem(OG_BANNER_DISMISS_KEY) === "1"; } catch { return false; }
+  });
+
+  const { data: pointsData } = useQuery<{ hasOgCard: boolean } | null>({
+    queryKey: ["og-banner-check", connectedWallet],
+    queryFn: async () => {
+      if (!connectedWallet) return null;
+      const res = await fetch(`/api/points/${connectedWallet}`);
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+    staleTime: 60000,
+  });
+
+  const dismiss = () => {
+    try { localStorage.setItem(OG_BANNER_DISMISS_KEY, "1"); } catch {}
+    setDismissed(true);
+  };
+
+  if (dismissed || pointsData?.hasOgCard) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -8 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -8 }}
+      className="relative bg-yellow-400 border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] overflow-hidden"
+      data-testid="banner-og-card"
+    >
+      {/* dismiss button */}
+      <button
+        onClick={dismiss}
+        className="absolute top-2.5 right-2.5 p-1 rounded hover:bg-black/10 transition-colors"
+        data-testid="button-dismiss-og-banner"
+        aria-label="Dismiss"
+      >
+        <X className="w-4 h-4 text-black/60" />
+      </button>
+
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 px-4 py-4 pr-10">
+        {/* left: icon + copy */}
+        <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div className="w-10 h-10 flex-shrink-0 bg-black rounded-lg flex items-center justify-center shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)]">
+            <Diamond className="w-5 h-5 text-yellow-400" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-black text-black leading-tight">OG Card — Claim Free</span>
+              <span className="px-1.5 py-0.5 bg-green-500 text-white text-[10px] font-black rounded border border-black leading-none">FREE</span>
+            </div>
+            <p className="text-xs text-black/70 font-medium mt-0.5">Get a permanent 1.2x points boost + OG status on the leaderboard</p>
+          </div>
+        </div>
+
+        {/* middle: perks */}
+        <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+          {[
+            { icon: "⚡", label: "1.2x Boost" },
+            { icon: "🏆", label: "+500 pts" },
+            { icon: "👑", label: "OG Badge" },
+          ].map((p) => (
+            <span key={p.label} className="flex items-center gap-1 px-2 py-1 bg-black/10 border border-black/20 rounded-lg text-xs font-bold text-black/80">
+              {p.icon} {p.label}
+            </span>
+          ))}
+        </div>
+
+        {/* right: CTA */}
+        <Link href="/quests">
+          <motion.button
+            whileHover={{ y: -1, x: -1 }}
+            whileTap={{ y: 0, x: 0 }}
+            className="flex-shrink-0 flex items-center gap-1.5 px-4 py-2 bg-black text-yellow-400 text-sm font-black rounded-lg border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,0.3)] hover:bg-zinc-800 transition-colors whitespace-nowrap"
+            data-testid="button-og-card-cta"
+          >
+            Claim OG Card <ChevronRight className="w-4 h-4" />
+          </motion.button>
+        </Link>
+      </div>
+    </motion.div>
+  );
+}
+
 export default function TokensPage() {
   usePageTitle("/tokens");
   const privateMode = false;
@@ -202,6 +291,8 @@ export default function TokensPage() {
   return (
     <Layout>
       <div className="space-y-6">
+        <OgCardBanner />
+
         {/* Now Trending Section */}
         {trendingTokens.length > 0 && (
           <div className="space-y-3">
