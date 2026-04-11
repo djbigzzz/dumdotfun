@@ -20,8 +20,8 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     description: "Create and launch your own SPL token on Solana in under 2 minutes. Free token creation with automatic bonding curves and Raydium migration.",
   },
   "/leaderboard": {
-    title: "Leaderboard & Seasons — Compete for SOL Rewards | Dum.fun",
-    description: "Compete in seasonal leaderboards on Dum.fun. Top 10 players earn SOL rewards. Earn points through quests, trading, and token creation.",
+    title: "Leaderboard & Seasons — Season 1 Genesis | Dum.fun",
+    description: "Compete in Season 1: Genesis on Dum.fun. Earn points through quests, trading, and token creation, and climb the leaderboard.",
   },
   "/quests": {
     title: "Quests & Points — Earn Rewards on Solana | Dum.fun",
@@ -29,7 +29,11 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
   },
   "/docs": {
     title: "Documentation — How Dum.fun Works | Privacy Protocols & Tokenomics",
-    description: "Learn about Dum.fun's 7 privacy protocols, bonding curves, Raydium migration, prediction markets, and the OG Card system.",
+    description: "Learn how dum.fun works: Solana devnet launchpad, bonding curves, token-page prediction markets, OG Card points, and Season 1 Genesis.",
+  },
+  "/careers": {
+    title: "Careers — Build Dum.fun | Solana Launchpad Jobs",
+    description: "Join dum.fun and help build the Solana token launchpad, leaderboard, quests, and live on-chain product experience.",
   },
   "/profile": {
     title: "Your Profile — Points, Quests & Portfolio | Dum.fun",

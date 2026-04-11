@@ -17,6 +17,7 @@ const TokenPage = lazy(() => import("@/pages/token"));
 const CreateToken = lazy(() => import("@/pages/create"));
 const MarketDetail = lazy(() => import("@/pages/market"));
 const DocsPage = lazy(() => import("@/pages/docs"));
+const CareersPage = lazy(() => import("@/pages/careers"));
 const AdminPage = lazy(() => import("@/pages/admin"));
 const TrendingPage = lazy(() => import("@/pages/trending"));
 const SearchPage = lazy(() => import("@/pages/search"));
@@ -54,6 +55,7 @@ function Router() {
         <Route path="/" component={TokensPage} />
         <Route path="/tokens" component={TokensPage} />
         <Route path="/docs" component={DocsPage} />
+        <Route path="/careers" component={CareersPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/profile" component={Profile} />
         <Route path="/token/:mint" component={TokenPage} />
