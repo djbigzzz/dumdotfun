@@ -1,12 +1,13 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Coins, Flame, Plus, User, Trophy } from "lucide-react";
+import { Coins, Flame, Plus, User, Trophy, Star } from "lucide-react";
 import { useWallet } from "@/lib/wallet-context";
 
 const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins },
   { path: "/trending", label: "Trending", icon: Flame },
   { path: "/create", label: "Create", icon: Plus, isAction: true },
+  { path: "/quests", label: "Quests", icon: Star },
   { path: "/leaderboard", label: "Ranks", icon: Trophy },
   { path: "/profile", label: "Profile", icon: User },
 ];
@@ -39,7 +40,7 @@ export function MobileBottomNav() {
             <Link key={item.path} href={item.path}>
               <motion.div
                 whileTap={{ scale: 0.9 }}
-                className={`flex flex-col items-center justify-center py-2 px-3 min-w-[56px] rounded-lg transition-colors relative ${
+                className={`flex flex-col items-center justify-center py-2 px-2 min-w-[48px] rounded-lg transition-colors relative ${
                   item.isAction
                     ? "text-white"
                     : active
