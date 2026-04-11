@@ -72,11 +72,10 @@ const CAT_COLORS: Record<string, string> = {
 };
 
 const QUEST_ACTIONS: Record<string, { label: string; href: string }> = {
-  first_trade:   { label: "Trade a token",    href: "/tokens" },
-  first_bet:     { label: "Find a token",     href: "/tokens" },
-  first_token:   { label: "Create a token",   href: "/create" },
-  first_market:  { label: "Create a market",  href: "/create-market" },
-  first_win:     { label: "Find a token",     href: "/tokens" },
+  first_trade:   { label: "Trade a token",   href: "/tokens" },
+  first_bet:     { label: "Find a token",    href: "/tokens" },
+  first_token:   { label: "Create a token",  href: "/create" },
+  first_win:     { label: "Find a token",    href: "/tokens" },
 };
 
 export default function QuestsPage() {

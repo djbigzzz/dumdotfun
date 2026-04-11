@@ -83,7 +83,6 @@ export async function registerRoutes(
         { url: "/", priority: "1.0", changefreq: "daily" },
         { url: "/tokens", priority: "0.9", changefreq: "hourly" },
         { url: "/trending", priority: "0.9", changefreq: "hourly" },
-        { url: "/predictions", priority: "0.9", changefreq: "hourly" },
         { url: "/create", priority: "0.8", changefreq: "weekly" },
         { url: "/leaderboard", priority: "0.8", changefreq: "daily" },
         { url: "/quests", priority: "0.8", changefreq: "weekly" },

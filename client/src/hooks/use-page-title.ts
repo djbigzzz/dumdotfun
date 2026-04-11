@@ -19,10 +19,6 @@ const PAGE_META: Record<string, { title: string; description: string }> = {
     title: "Launch a Token — Free Solana Token Creator | Dum.fun",
     description: "Create and launch your own SPL token on Solana in under 2 minutes. Free token creation with automatic bonding curves and Raydium migration.",
   },
-  "/predictions": {
-    title: "Prediction Markets — Bet on Crypto Outcomes | Dum.fun",
-    description: "Create and bet on prediction markets for token survival on Solana. Privacy-first betting with encrypted amounts via Inco Lightning.",
-  },
   "/leaderboard": {
     title: "Leaderboard & Seasons — Compete for SOL Rewards | Dum.fun",
     description: "Compete in seasonal leaderboards on Dum.fun. Top 10 players earn SOL rewards. Earn points through quests, trading, and token creation.",

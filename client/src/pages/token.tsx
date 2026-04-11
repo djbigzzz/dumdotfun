@@ -890,11 +890,6 @@ export default function TokenPage() {
                       {token.predictions.length}
                     </span>
                   </div>
-                  <Link href={`/create-market?token=${token.mint}&name=${encodeURIComponent(token.name)}`}>
-                    <button className={`text-xs px-2 py-1 font-bold border ${privateMode ? "bg-black border-yellow-500 text-yellow-400" : "bg-yellow-500 border-black text-black"}`} data-testid="button-create-market">
-                      <Plus className="w-3 h-3 inline" /> Create
-                    </button>
-                  </Link>
                 </div>
                 {(() => {
                   const sorted = [...token.predictions].sort((a, b) => {
