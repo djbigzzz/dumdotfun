@@ -96,17 +96,17 @@ function buildSections(): DocSection[] {
       title: "What is dum.fun?",
       content: (
         <>
-          <Heading>The Meme Token Launchpad with Prediction Markets</Heading>
+          <Heading>The Meme Token Launchpad with Integrated Prediction Markets</Heading>
           <P>
-            dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with integrated prediction markets on every token. Winner of the <strong>Solana Privacy Hackathon 2026</strong> and recipient of a <strong>Solana Foundation Ireland grant</strong>.
+            dum.fun is a token launchpad where you can create and trade meme tokens on Solana — with prediction markets attached to each token page. Winner of the <strong>Solana Privacy Hackathon 2026</strong> and recipient of a <strong>Solana Foundation Ireland grant</strong>.
           </P>
 
           <Table
             headers={["Feature", "Description"]}
             rows={[
               ["Token Launchpad", "Create SPL tokens with bonding curve pricing — free and instant"],
-              ["Prediction Markets", "Bet on whether tokens will survive, graduate, or rug"],
-              ["Seasonal Leaderboard", "Compete for SOL rewards in seasonal rankings"],
+              ["Token Pages", "Each token includes its own prediction markets"],
+              ["Seasonal Leaderboard", "Compete for points in Season 1: Genesis"],
               ["Raydium Migration", "Tokens auto-graduate to Raydium DEX at 85 SOL liquidity"],
               ["Quests & Points", "Earn points and climb tiers through gamified activities"],
             ]}
@@ -118,7 +118,7 @@ function buildSections(): DocSection[] {
             <><strong>Get Devnet SOL</strong> — Use the airdrop button (we're on Solana devnet)</>,
             <><strong>Launch a Token</strong> — Go to Launch, fill in details, deploy on-chain</>,
             <><strong>Trade on Bonding Curve</strong> — Buy and sell tokens with automatic pricing</>,
-            <><strong>Bet on Predictions</strong> — Each token has prediction markets you can bet on</>,
+            <><strong>Bet on a Token Page</strong> — Open any token to see its prediction markets</>,
           ]} />
 
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold bg-yellow-50 text-yellow-700 border border-yellow-200">
@@ -135,7 +135,7 @@ function buildSections(): DocSection[] {
         <>
           <Heading>Live on Solana Devnet</Heading>
           <P>
-            Deploy real SPL tokens on Solana devnet with integrated prediction markets, gamified quests, and seasonal leaderboards.
+            Deploy real SPL tokens on Solana devnet with integrated token-page prediction markets, gamified quests, and seasonal leaderboard points.
           </P>
 
           <Table
@@ -144,7 +144,7 @@ function buildSections(): DocSection[] {
               ["On-chain token creation", "✅ Live"],
               ["Phantom wallet connection", "✅ Live"],
               ["Bonding curve trading", "✅ Live"],
-              ["Prediction markets", "✅ Live"],
+              ["Token-page prediction markets", "✅ Live"],
               ["Quests & points system", "✅ Live"],
               ["Seasonal leaderboard", "✅ Live"],
               ["Raydium DEX migration", "✅ Live"],
@@ -162,7 +162,7 @@ function buildSections(): DocSection[] {
       content: (
         <>
           <P>
-            dum.fun is a Solana-based token launchpad with integrated prediction markets. Unlike other launchpads, every token launched here automatically gets prediction markets attached — so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
+            dum.fun is a Solana-based token launchpad with integrated prediction markets on token pages. Unlike other launchpads, every token launched here automatically gets a market attached — so you can bet on whether a token will moon, graduate to DEX, or if the dev will rug.
           </P>
           <P>
             We combine meme token culture with real prediction market functionality. Think pump.fun meets Kalshi, but for degens.
@@ -201,7 +201,7 @@ function buildSections(): DocSection[] {
 
           <Heading>Prediction Markets</Heading>
           <P>
-            Every token automatically gets prediction markets. Bet YES or NO on outcomes like:
+            Each token page includes prediction markets. Bet YES or NO on outcomes like:
           </P>
           <Ul items={[
             "Will the token graduate to DEX?",
@@ -251,7 +251,7 @@ function buildSections(): DocSection[] {
       content: (
         <>
           <P>
-            Every token on dum.fun comes with prediction markets — questions you can bet on with real SOL.
+            Every token page includes prediction markets — questions you can bet on with real SOL.
           </P>
 
           <Heading>How Betting Works</Heading>
@@ -297,7 +297,7 @@ function buildSections(): DocSection[] {
             ]}
           />
           <P>
-            All fees go to the platform treasury to fund development, liquidity, and seasonal leaderboard rewards.
+            All fees go to the platform treasury to fund development, liquidity, and seasonal leaderboard infrastructure.
           </P>
         </>
       ),
@@ -341,27 +341,14 @@ function buildSections(): DocSection[] {
             ]}
           />
 
-          <Heading>Seasonal Leaderboard</Heading>
+          <Heading>Season 1: Genesis</Heading>
           <P>
-            Compete in named seasons for SOL rewards. Season 1 "Genesis" runs until mainnet launch. Top 10 players earn real SOL.
+            Season 1 is called <strong>Genesis</strong>. Points are what matter right now.
           </P>
-
-          <Table
-            headers={["Rank", "Reward"]}
-            rows={[
-              ["#1", "1.5 SOL"],
-              ["#2", "1.0 SOL"],
-              ["#3", "0.75 SOL"],
-              ["#4 - #5", "0.5 SOL each"],
-              ["#6 - #7", "0.25 SOL each"],
-              ["#8 - #9", "0.1 SOL each"],
-              ["#10", "0.05 SOL"],
-            ]}
-          />
 
           <Heading>OG Card</Heading>
           <P>
-            The OG Card is a free NFT that grants a permanent <strong>1.2x points multiplier</strong> on all activities. OG holders earn more points, climb tiers faster, and get bigger seasonal rewards.
+            The OG Card is a free NFT that grants a permanent <strong>1.2x points multiplier</strong> on all activities. OG holders earn more points and climb tiers faster.
           </P>
         </>
       ),
@@ -376,7 +363,7 @@ function buildSections(): DocSection[] {
             <strong>Trading involves significant risk. Always do your own research (DYOR).</strong>
           </P>
           <P>
-            dum.fun is a platform for meme tokens and prediction markets. All tokens are currently launched on Solana Devnet (testnet).
+            dum.fun is a platform for meme tokens and token-page prediction markets. All tokens are currently launched on Solana Devnet (testnet).
           </P>
           <Heading>Safety Features</Heading>
           <Ul items={[
@@ -430,8 +417,8 @@ const faqs = [
   { q: "What happens when a token graduates?", a: "When the bonding curve reaches 85 SOL in liquidity, the token automatically migrates to a Raydium CPMM pool. Trading continues on the open DEX with full liquidity." },
   { q: "How do prediction market odds work?", a: "Odds are determined by the ratio of YES to NO bets. If more people bet YES, YES becomes more expensive (reflecting a higher probability). Prices range from 0 to 1 SOL per share." },
   { q: "When do prediction markets resolve?", a: "Markets resolve when the outcome is determined. The platform checks on-chain data — developer holdings, token status, Raydium migration — to automatically resolve markets." },
-  { q: "What is the OG Card?", a: "The OG Card is a free NFT available to early supporters. It gives you a permanent 1.2x multiplier on all points earned, helping you climb the leaderboard faster and earn bigger seasonal rewards." },
-  { q: "How do seasons work?", a: "Seasons are competitive periods where the top 10 players on the leaderboard earn real SOL rewards. Season 1 'Genesis' runs until mainnet launch. Earn points through quests, trading, and creating tokens." },
+  { q: "What is the OG Card?", a: "The OG Card is a free NFT for early supporters that gives holders a permanent 1.2x multiplier on all points earned." },
+  { q: "How do seasons work?", a: "Season 1 is Genesis. Points and leaderboard position are live now, and rewards have not been finalized yet." },
   { q: "Is dum.fun safe?", a: "Trading experimental meme tokens involves high risk. The platform is currently on Solana Devnet (testnet) — no real money is at stake. Never trade more than you can afford to lose when we go to mainnet." },
 ];
 
