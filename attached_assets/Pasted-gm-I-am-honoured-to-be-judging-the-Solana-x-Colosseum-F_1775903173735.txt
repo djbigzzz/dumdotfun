@@ -1,0 +1,134 @@
+gm, I am honoured to be judging the @Solana x @Colosseum Frontier hackathon.
+
+After receiving a few DMs, I figured I'd post a very exhaustive brain dump of what to keep in mind for your submission.
+Bookmark this post, read it, make it a skill, a reminder, a basis for your agentsmd.... happy building!! :)
+
+TL;DR
+
+-> Be extremely blunt about what you are building. Ensure someone outside crypto can understand it in 10 words.
+
+-> Find the web2 equivalent of your product, size the market, and know your positioning relative to both web2 and web3 firms.
+
+-> Start with @Grok, pro AI searches, and deep research to see what CT says, what already exists, to assess how realistic is your positioning.
+
+-> Talk to users early. If you already know to build, shortcut your GTM by talking to the people closest to the pain points.
+
+-> Build ONE (1) idea. Think BIG. Pivot fast if there is no believable path to revenue.
+
+-> Do unit economics early. Have assumptions you can defend and a path to $1m ARR.
+
+-> Many teams will have the same idea. Differentiation will be on users, liquidity, distribution, and speed of execution.
+
+-> @Colosseum is a VC. They want your best idea, full commitment, product mindset end-to-end, and something you would still want to build a year from now.
+
+-> If you can afford it, use Claude Code, Codex, or apps building on their harnesses and do not rely on VS Code extensions.
+
+-> Use AI aggressively: frontend Hero + CTAs, landing page / branding iteration with @Variantui or @stitchbygoogle, deck structure and copy audits, and video editing with @loom.
+
+1. Submission strategy
+
+-> Check @Colosseum blog posts. Ensure you read them all to build your to-do list and submission strategy across all the required documents.
+
+-> Additionally to the Colosseum's submission form, use Solana @Incubator, @Alliance and @YCombinator submission forms as input questions to drive your product, positioning and submission strategy.
+
+2. Positioning and clarity
+
+-> Avoid jargon in your 1-liner and landing page tagline (hero). Be extremely blunt about what you are building. Can someone outside crypto understand your product in 10 words?
+
+-> Find the web2 equivalent of your product. Are these markets more mature? What is your moat relative to the web2 firms in the same space? How about the web3 ones? How big is their market?
+
+-> This is gonna help judges anchor your product with better context, in the likes of "Think of <your product> as Polymarket for X" where X is your target product market.
+
+3. Market research and user discovery
+
+-> Start with @Grok searches to see what CT says on your positioning. Keep checking it as you refine the idea. If results are poor, update your prompt.
+
+-> Assess what solutions already exist, and do your market research with @Grok, pro AI searches, and AI agentic searches. Use AI to build better prompts, have AI audit the outputs, and iterate further. Do the same for the implementation plan once the product is locked, and for each implementation surface: frontend, backend, submission material...
+
+-> If you have an exact product in mind, shortcut all GTM by chatting with existing web3 users, e.g. LPs and liquidity takers. Sincerely, it's that dumb, and it just works.
+
+-> Tweet about your product idea. You are better off looking dumb early than mid-hackathon after burning a few AI weekly usages' worth of compute on your product.
+
+4. Product selection, market size, and revenue
+
+-> Think BIG. The biggest you can. At every chat with VCs at @mtndao (Colosseum, YC, Multicoin), I was indirectly told to think BIGGER. VCs need a WOW-level of returns on their investment to make it worthwhile, so think BIG.
+
+-> In this AI era, the @Solana x @Colosseum Frontier hackathon is gonna be more competitive than ever. Ensure you bring your best game, build ONE (1) idea, and pivot mid-hackathon if that idea has no path to revenue.
+
+-> As early as possible, assign a big chunk of your time to unit economics. Make realistic assumptions that you can defend. Size a path to $1m ARR. If revenues look terrible, or you think you are gonna have a hard time converting users, find a bigger market or pivot entirely.
+
+5. Moat, liquidity, and distribution
+
+-> Many projects will have the same idea, and I expect implementations to be mostly the same with slight variations based on the founders' opinions.
+
+-> Moat is liquidity and users. Taking heads-on against Polymarket or Hyperliquid is very bold, and unless you have a large distribution, this feels unrealistic to me in the time frame of the hackathon +1 month or even +1 year. Rather, consider building on top of these platforms vs. aiming to replace them. Or prove me wrong!
+
+-> I'd assign a big chunk of work to user acquisition: who to target precisely, how to reach out, what to tell, how to convert, onboard, maintain active, and offboard.
+
+6. What judges and Colosseum may look for
+
+@Colosseum is a VC. This has many implications, among which:
+
+-> They want to see you fully committed and building on your best idea.
+
+-> The submission of your project is the beginning of your journey. Also, yes, this is a journey!
+
+-> You can and should resubmit if you kept building on ideas you submitted in the past.
+
+-> You should prepare yourself to work on your idea through several hackathon submissions. Say, one year from now, you would still build that idea full-time, with minimal pivots? If not, why would somebody invest in you?
+
+-> You should have a product mindset end-to-end. What is your GTM? Path to revenues? If b2b, do you realistically add value, or can your target partners implement it on their own? In other words, what do you bring to the table that partners can't do now, i.e. what is your moat?
+
+-> Be in their shoes. Would you invest in your own idea? Now? But do you have traction to show for? How about 6 months from now? They have a backlog of companies with traction now, so set your own standards HIGH and adjust your expectations accordingly to avoid disappointing yourself with the outcomes, including if you land an interview because the success rate at each step is brutal.
+
+7. Execution, AI, and submission quality
+
+-> Open-source your repos so judges can more effectively evaluate your submission. Most tech can be rebuilt in no time anyway.
+
+-> Being active on Discord/Twitter brings you structure, helps you with GTM, and clarifies your own understanding of your product and target market. Don't cheat your numbers, this will have no positive impact on your submission.
+
+-> If you can afford it, please use Claude Code, Codex, or apps built on top of their harnesses. Avoid relying on VS Code extensions, you might otherwise get crushed by the productivity of other competitors given the length of the hackathon.
+
+-> AI is great at roasting the frontend, in particular Hero + CTAs. Define, or ask AI about benchmarks for your branding, e.g. I initially based @attndotmarkets on the copy and feel of @brexHQ and @tryramp.
+
+-> AI is good at roasting presentation decks and clarity, what slides are missing, what numbers are realistic, and how to say more with fewer words. Use @loom to record your videos and easily edit with their AI.
+
+-> Use @Variantui to quickly create a landing page and branding you love. I had chatgpt prompt another chatgpt to distil Brex and Ramp's landing pages. Then, with both the analysis and my existing landing page as code input, I prompted Variant, cycled through designs, and refined my prompt until I landed on the current @attndotmarkets' design. Then you can export to React and have Claude with frontend skills take over. I'd also try @stitchbygoogle.
+
+-> If you can join a hub, Colosseum offices, or Superteam's event go for it. You'll have a considerable advantage over hacking on your own.
+
+-> You can DM me for feedback. That said, ensure you have done as many roast iterations with your AI beforehand to best use everybody's time and expertise.
+
+8. Conviction, data, and proving people wrong
+
+-> Be very convinced about your own idea. While I can personally be dubious about an idea, if you prove me with data and traction that it works, then I must consider it. If I don't... shove it again in my face with your track record.
+
+-> For instance, @piggybank_fi applied to Cypherpunk, the previous Colosseum hackathon.
+-> I loved their branding, product progress, and they got some TVL, $400k iirc, which is a lot of initial traction tbf.
+-> Still... I was not convinced of their positioning of using tokenised stocks on one chain as collateral to borrow and do yield farming on other chains. I didn't feel that it was so innovative?
+-> To my surprise though, they won no prize whatsoever.
+-> In practice, they have been crushing it all along, with data to back it up.
+
+-> As a founder, Colosseum hackathon or not, just make it happen, prove naysayers wrong, and don't feel burdened by external validation if your data says it works. Someone will hear you out.
+
+9. What comes after
+
+-> @mtndao's 10th edition is this summer. Your @Solana founder journey from @Solana x @Colosseum Frontier to @mtndao will be a rocket launch if you manage to do both.
+
+-> Winning one of the hackathon's tracks is a good ice-breaker for conversations with anybody in the space :))
+
+-> Wonderful firms are created from the hackathon independently of their ranking on the prize list. Never stop building!
+
+Yes, that was a long rant. Anywho.
+
+My reasoning is quite analytical and builds the product brick by brick. If you have strong subject matter expertise or get traction namely growing sales/volume/profits on your live product, run with it and discard most of what I said.
+
+The above are stemming from my experiences by repeatedly applying to hackathons and incubators, as well as being roasted by fellow founders and senior operators at @mtndao.
+
+You can experience all the same firsthand by attending as many Solana events as possible and seeking as much feedback as possible. Next in line is @SolanaEvents' Accelerate in Miami btw :)
+
+Most recommendations stem from my own workflows. Feel free to roast them so we all learn some more.
+
+At last, I am incredibly thankful to @Solana and @Colosseum for such opportunities, enabling anybody to rise, no matter their track record, background, or whether originally from Solana or another ecosystem. 
+
+@Solana's Frontier Hackathon is a unique chance, and you must take it!
