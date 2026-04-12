@@ -203,7 +203,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
               <img src={pillLogo} alt="DUM.FUN" className="h-10 md:h-12 w-auto" />
-              <h1 className="text-xl md:text-2xl lg:text-3xl font-black tracking-tighter uppercase hidden sm:block text-red-500" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
+              <h1 className="text-xl md:text-2xl lg:text-3xl font-black tracking-tighter uppercase text-red-500" style={{ textShadow: "2px 2px 0px hsl(60 100% 50%)" }}>
                 DUM.FUN
               </h1>
             </div>
@@ -365,7 +365,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           © 2026 Dum.fun. All rights reserved.
         </p>
         <p className="text-xs mt-1 text-gray-400">
-          v1.0.0
+          v1.2.0
         </p>
       </footer>
     </div>
