@@ -1008,6 +1008,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Valid creator wallet address is required" });
       }
 
+      if (!imageUri || typeof imageUri !== "string" || imageUri.trim().length === 0) {
+        return res.status(400).json({ error: "Token image is required" });
+      }
+
       console.log(`[DEVNET] Building token transaction: ${name} (${symbol}) for ${creatorAddress}`);
 
       const result = await buildDevnetTokenTransaction({
@@ -1040,6 +1044,10 @@ export async function registerRoutes(
 
       if (!mint || !name || !symbol || !creatorAddress || !signature) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      if (!imageUri || typeof imageUri !== "string" || imageUri.trim().length === 0) {
+        return res.status(400).json({ error: "Token image is required" });
       }
 
       console.log(`[DEVNET] Confirming token: ${name} (${symbol}), mint: ${mint}, sig: ${signature}`);
