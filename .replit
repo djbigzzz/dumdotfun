@@ -9,7 +9,7 @@ packages = ["rustup", "cargo", "solana-cli", "anchor", "solana-validator", "bzip
 [deployment]
 deploymentTarget = "autoscale"
 build = ["npm", "run", "build"]
-run = ["npm", "run", "start"]
+run = ["node", "dist/index.cjs"]
 
 [[ports]]
 localPort = 5000
