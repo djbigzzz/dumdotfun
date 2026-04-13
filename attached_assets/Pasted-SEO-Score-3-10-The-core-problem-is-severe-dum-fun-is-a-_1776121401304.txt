@@ -1,0 +1,25 @@
+SEO Score: 3/10
+The core problem is severe: dum.fun is a client-side rendered SPA where every route returns identical HTML to crawlers. Google sees the exact same page whether it hits /, /docs, /tokens, or /trending. That alone tanks almost everything.
+What's working:
+The homepage has a decent title tag ("Token Launchpad & Prediction Market | Dum.fun") and a reasonable meta description ("Launch meme tokens with bonding curves and bet on their success"). The .fun TLD is memorable. The H1 includes strong keywords. The site is indexed (1 page).
+Critical issues to fix, ranked by impact:
+1. No server-side rendering (SSR) or static generation (SSG)
+Every route serves the same shell HTML. Google can partially render JS, but it's unreliable and slow. This means your /tokens, /docs, /trending, /leaderboard pages effectively don't exist to search engines. If you're on React/Next.js, enable SSR or SSG for all public routes. If you're on Vite/CRA, consider migrating to Next.js or adding prerendering (e.g. vite-plugin-ssr, prerender-spa-plugin).
+2. Only 1 page indexed
+A site:dum.fun search returns a single result. You have 7+ distinct routes that should each be indexable pages with unique titles, meta descriptions, and content. Right now Google treats your entire site as one page.
+3. No sitemap.xml or robots.txt (likely)
+Without these, you're relying entirely on Google discovering links organically. Add a sitemap.xml listing all key routes and submit it via Google Search Console.
+4. Zero backlinks / off-site presence
+Searching "dum.fun solana" returns no mentions of your site anywhere. Not in any launchpad ranking article, not on Solana ecosystem lists, not on DeFi directories. For a hackathon winner, this is a missed opportunity. Pump.fun dominates because it's referenced everywhere.
+5. No content layer
+You have no blog, no guides, no "how to launch a token on dum.fun" tutorial, no educational content. These are the pages that would rank for long-tail keywords like "how to create a solana meme coin" or "prediction market token launch." The /docs page should have real, crawlable content.
+6. Duplicate/thin meta tags
+Every page likely shares the same <title> and <meta description>. Each route needs unique metadata. Example: /tokens should have "Browse & Trade Solana Meme Coins | Dum.fun", /create should have "Launch Your Own Solana Token | Dum.fun".
+Quick wins you can ship this week:
+
+Add prerendering or SSR so each route outputs unique HTML
+Create unique <title> and <meta description> for every route
+Generate a sitemap.xml, add a robots.txt, submit to Google Search Console
+Add Open Graph and Twitter Card meta tags (these also help with link previews on X/Telegram, which drives your actual traffic)
+Write 2 to 3 SEO blog posts targeting keywords like "solana token launchpad," "create meme coin solana," "prediction market solana"
+Get listed on ecosystem directories: DeFi Llama, Solana ecosystem page, DappRadar, and pitch for inclusion in the "best Solana launchpads" roundup articles that already rank
