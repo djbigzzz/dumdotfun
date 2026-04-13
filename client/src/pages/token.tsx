@@ -138,7 +138,14 @@ export default function TokenPage() {
   const privateMode = false;
   const queryClient = useQueryClient();
   const [tokenTitle, setTokenTitle] = useState<string | undefined>();
-  usePageTitle(undefined, tokenTitle);
+  const [tokenMeta, setTokenMeta] = useState<{
+    description?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    ogUrl?: string;
+  } | undefined>();
+  usePageTitle(undefined, tokenTitle, tokenMeta);
   const [tradeAmount, setTradeAmount] = useState("");
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [tradeQuote, setTradeQuote] = useState<{ amountOut: string; priceImpact: number } | null>(null);
@@ -209,6 +216,16 @@ export default function TokenPage() {
       const data = await res.json();
       if (data?.name && data?.symbol) {
         setTokenTitle(`${data.name} ($${data.symbol}) — Trade on Solana`);
+        const shortDesc = data.description
+          ? `${data.description.slice(0, 120)}${data.description.length > 120 ? "..." : ""}`
+          : `${data.name} ($${data.symbol}) — Trade on Solana`;
+        setTokenMeta({
+          description: `${shortDesc} — MC: ${data.marketCapSol ? Number(data.marketCapSol).toFixed(2) : "0"} SOL`,
+          ogTitle: `${data.name} ($${data.symbol}) on Dum.fun`,
+          ogDescription: `${shortDesc} — Bonding curve: ${Math.min(Number(data.bondingCurveProgress) || 0, 100).toFixed(0)}% full`,
+          ogImage: data.imageUri || undefined,
+          ogUrl: `https://dum.fun/token/${mint}`,
+        });
       }
       return data;
     },
