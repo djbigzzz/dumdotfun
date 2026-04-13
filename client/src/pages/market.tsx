@@ -119,7 +119,7 @@ export default function MarketDetail() {
       if (!res.ok) throw new Error("Market not found");
       const data = await res.json();
       if (data?.question) {
-        setMarketTitle(`${data.question} | Dum.fun Prediction Market`);
+        setMarketTitle(`${data.question} — Prediction Market`);
         const shortDesc = data.description
           ? `${data.description.slice(0, 120)}${data.description.length > 120 ? "..." : ""}`
           : data.question;
