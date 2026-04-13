@@ -5,7 +5,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2, RefreshCw } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Award, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, X } from "lucide-react";
+import { Connection, Transaction } from "@solana/web3.js";
+import { Buffer } from "buffer";
 import { toast } from "sonner";
 
 interface UserWithReferrals {
@@ -71,6 +73,7 @@ interface HeldToken {
   valueInSol: number | null;
   marketCapSol: number | null;
   isDumFun: boolean;
+  isOnBondingCurve?: boolean;
 }
 
 interface HoldingsResponse {
@@ -141,6 +144,53 @@ export default function Profile() {
   const [questFilter, setQuestFilter] = useState<QuestFilter>("all");
   const [lbPeriod, setLbPeriod] = useState<"all" | "weekly" | "daily">("all");
   const queryClient = useQueryClient();
+  const [sellToken, setSellToken] = useState<HeldToken | null>(null);
+  const [sellPct, setSellPct] = useState(100);
+  const [isSelling, setIsSelling] = useState(false);
+
+  const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
+
+  const handleSell = async () => {
+    if (!sellToken || !connectedWallet) return;
+    const phantom = (window as any).phantom?.solana;
+    if (!phantom?.isPhantom) { toast.error("Phantom wallet not found"); return; }
+
+    setIsSelling(true);
+    try {
+      const tokenAmount = (sellToken.balance * sellPct) / 100;
+      const res = await fetch("/api/bonding-curve/sell", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ seller: connectedWallet, mint: sellToken.mint, tokenAmount: tokenAmount.toString(), minSolOut: "0" }),
+      });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed to build sell transaction"); }
+
+      const { transaction: txBase64 } = await res.json();
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      const signedTx = await phantom.signTransaction(transaction);
+
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      let sig: string;
+      try {
+        sig = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
+        await connection.confirmTransaction(sig, "confirmed");
+      } catch (err: any) {
+        if (err.message?.includes("already been processed")) {
+          const sigBytes = signedTx.signatures[0]?.signature;
+          sig = sigBytes ? Buffer.from(sigBytes).toString("base64") : "";
+        } else { throw err; }
+      }
+
+      toast.success(`Sold ${sellPct}% of ${sellToken.name} — SOL returned to wallet`);
+      setSellToken(null);
+      queryClient.invalidateQueries({ queryKey: ["my-holdings", connectedWallet] });
+    } catch (err: any) {
+      toast.error(err.message || "Sell failed");
+    } finally {
+      setIsSelling(false);
+    }
+  };
 
   useEffect(() => {
     if (!connectedWallet) {
@@ -903,9 +953,10 @@ export default function Profile() {
 
                             {/* SPL tokens */}
                             {holdingsData.holdings.map((token) => {
-                              const inner = (
+                              const canSell = token.isOnBondingCurve;
+                              const row = (
                                 <motion.div
-                                  whileHover={{ x: 4 }}
+                                  whileHover={{ x: canSell ? 0 : 4 }}
                                   className={rowClass}
                                   data-testid={`token-held-${token.mint}`}
                                 >
@@ -922,33 +973,50 @@ export default function Profile() {
                                     <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
                                     <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
                                       {formatBalance(token.balance)} ${token.symbol}
-                                      {!token.isDumFun && (
+                                      {!token.isDumFun && !token.isOnBondingCurve && (
                                         <span className={`ml-1.5 ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>· external</span>
+                                      )}
+                                      {token.isOnBondingCurve && !token.isDumFun && (
+                                        <span className="ml-1.5 text-orange-400">· orphaned</span>
                                       )}
                                     </div>
                                   </div>
-                                  <div className="text-right flex-shrink-0">
-                                    {token.valueInSol !== null ? (
-                                      <>
-                                        <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
-                                          {token.valueInSol.toFixed(4)} SOL
-                                        </div>
-                                        {solPrice && (
-                                          <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
-                                            ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <div className="text-right">
+                                      {token.valueInSol !== null ? (
+                                        <>
+                                          <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                                            {token.valueInSol.toFixed(4)} SOL
                                           </div>
-                                        )}
-                                      </>
-                                    ) : (
-                                      <div className={`text-xs italic ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>no price</div>
+                                          {solPrice && (
+                                            <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+                                              ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
+                                            </div>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <div className={`text-xs italic ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>no price</div>
+                                      )}
+                                    </div>
+                                    {canSell && (
+                                      <button
+                                        data-testid={`button-sell-${token.mint}`}
+                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSellToken(token); setSellPct(100); }}
+                                        className="flex items-center gap-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors flex-shrink-0"
+                                      >
+                                        <ArrowDownLeft className="w-3 h-3" />
+                                        Sell
+                                      </button>
                                     )}
                                   </div>
                                 </motion.div>
                               );
                               return token.isDumFun ? (
-                                <Link key={token.mint} href={`/token/${token.mint}`}>{inner}</Link>
+                                <Link key={token.mint} href={`/token/${token.mint}`}>{row}</Link>
+                              ) : token.isOnBondingCurve ? (
+                                <div key={token.mint}>{row}</div>
                               ) : (
-                                <a key={token.mint} href={`https://solscan.io/token/${token.mint}?cluster=devnet`} target="_blank" rel="noopener noreferrer">{inner}</a>
+                                <a key={token.mint} href={`https://solscan.io/token/${token.mint}?cluster=devnet`} target="_blank" rel="noopener noreferrer">{row}</a>
                               );
                             })}
                           </div>
@@ -967,6 +1035,72 @@ export default function Profile() {
           </div>
         </motion.div>
       </div>
+      {/* Sell Modal */}
+      {sellToken && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setSellToken(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-sm mx-4" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-black text-gray-900">Sell Tokens</h2>
+              <button onClick={() => setSellToken(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-3 mb-5 p-3 bg-gray-50 rounded-xl">
+              <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0">
+                {sellToken.imageUri ? (
+                  <img src={sellToken.imageUri} alt={sellToken.name} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center font-black text-sm bg-gray-200 text-gray-500">
+                    {(sellToken.symbol[0] || "?").toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div>
+                <div className="font-black text-gray-900">{sellToken.name}</div>
+                <div className="text-xs text-gray-500 font-mono">{sellToken.mint.slice(0, 8)}…{sellToken.mint.slice(-6)}</div>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <div className="flex justify-between text-sm mb-2">
+                <span className="text-gray-600">Amount to sell</span>
+                <span className="font-bold text-gray-900">{sellPct}%</span>
+              </div>
+              <input
+                type="range" min={1} max={100} value={sellPct}
+                onChange={(e) => setSellPct(Number(e.target.value))}
+                className="w-full accent-red-500"
+                data-testid="input-sell-percentage"
+              />
+              <div className="flex justify-between mt-2 gap-2">
+                {[25, 50, 75, 100].map((pct) => (
+                  <button key={pct} onClick={() => setSellPct(pct)}
+                    className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors ${sellPct === pct ? "bg-red-500 text-white border-red-500" : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"}`}>
+                    {pct}%
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-3 mb-5 text-sm">
+              <div className="flex justify-between text-gray-600"><span>Tokens to sell</span><span className="font-mono font-bold text-gray-900">{((sellToken.balance * sellPct) / 100).toLocaleString(undefined, { maximumFractionDigits: 0 })}</span></div>
+              {sellToken.valueInSol !== null && (
+                <div className="flex justify-between text-gray-600 mt-1"><span>Est. return</span><span className="font-bold text-green-600">~{((sellToken.valueInSol * sellPct) / 100).toFixed(4)} SOL</span></div>
+              )}
+            </div>
+
+            <button
+              data-testid="button-confirm-sell"
+              onClick={handleSell}
+              disabled={isSelling}
+              className="w-full py-3 rounded-xl bg-red-500 hover:bg-red-600 disabled:opacity-50 text-white font-black text-base transition-colors flex items-center justify-center gap-2"
+            >
+              {isSelling ? <><Loader2 className="w-4 h-4 animate-spin" /> Selling…</> : <><ArrowDownLeft className="w-4 h-4" /> Sell {sellPct}%</>}
+            </button>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

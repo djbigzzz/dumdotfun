@@ -433,18 +433,37 @@ export async function registerRoutes(
           const t = await storage.getTokenByMint(mint);
 
           if (!t) {
-            // Not a dum.fun token — show with name if known, otherwise abbreviate mint
+            // Not in the DB — check if it's an orphaned dum.fun bonding curve token
             const known = KNOWN_TOKENS[mint];
+            let isOnBondingCurve = false;
+            let priceInSol: number | null = null;
+            let valueInSol: number | null = null;
+            let marketCapSol: number | null = null;
+
+            if (!known) {
+              try {
+                const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
+                if (curveData) {
+                  isOnBondingCurve = true;
+                  priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+                  valueInSol = priceInSol !== null ? balance * priceInSol : null;
+                }
+              } catch {
+                // Not on our bonding curve — leave as external
+              }
+            }
+
             return {
               mint,
               name: known?.name ?? "Unknown Token",
               symbol: known?.symbol ?? mint.slice(0, 4) + "…" + mint.slice(-4),
               imageUri: null as string | null,
               balance,
-              priceInSol: null as number | null,
-              valueInSol: null as number | null,
-              marketCapSol: null as number | null,
+              priceInSol,
+              valueInSol,
+              marketCapSol,
               isDumFun: false,
+              isOnBondingCurve,
             };
           }
 
@@ -482,6 +501,7 @@ export async function registerRoutes(
             valueInSol: priceInSol !== null ? balance * priceInSol : null,
             marketCapSol,
             isDumFun: true,
+            isOnBondingCurve: true,
           };
         })
       );
