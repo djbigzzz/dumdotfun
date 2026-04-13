@@ -181,7 +181,7 @@ export default function CreateToken() {
         }
       };
 
-      await sendAndConfirm(signedTx);
+      const signature = await sendAndConfirm(signedTx);
       
       setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
       
@@ -212,7 +212,7 @@ export default function CreateToken() {
       
       setCreationStep("Executing dev buy...");
       
-      await sendAndConfirm(signedBuyTx);
+      const buySignature = await sendAndConfirm(signedBuyTx);
       
       setCreationStep("Saving token to database...");
       
