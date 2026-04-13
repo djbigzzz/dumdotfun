@@ -1199,10 +1199,14 @@ export async function registerRoutes(
 
   app.post("/api/bonding-curve/create-token", async (req, res) => {
     try {
-      const { creator, name, symbol, uri } = req.body;
+      const { creator, name, symbol, uri, description } = req.body;
       
       if (!creator || !name || !symbol) {
         return res.status(400).json({ error: "Creator, name, and symbol are required" });
+      }
+
+      if (!uri || typeof uri !== "string" || uri.trim().length === 0) {
+        return res.status(400).json({ error: "Token image is required" });
       }
 
       const initialized = await bondingCurve.checkPlatformInitialized();
@@ -1213,17 +1217,35 @@ export async function registerRoutes(
         });
       }
 
+      // If the URI is a Base64 data URL, upload to IPFS to get a short URL
+      // Solana transactions have a ~1232 byte limit — Base64 images are far too large
+      let metadataUri = uri;
+      if (uri.startsWith("data:")) {
+        try {
+          const ipfsResult = await uploadMetadataToIPFS(
+            { name, symbol, description: description || "" },
+            uri
+          );
+          metadataUri = ipfsResult.metadataUri;
+          console.log(`[bonding-curve] Image uploaded to IPFS: ${metadataUri}`);
+        } catch (ipfsError: any) {
+          console.error("[bonding-curve] IPFS upload failed:", ipfsError.message);
+          return res.status(500).json({ error: `Failed to upload image to IPFS: ${ipfsError.message}` });
+        }
+      }
+
       const result = await bondingCurve.buildCreateTokenTransaction(
         new PublicKey(creator),
         name,
         symbol,
-        uri || ""
+        metadataUri
       );
 
       return res.json({
         success: true,
         transaction: result.transaction,
         mint: result.mint,
+        metadataUri,
         message: "Sign this transaction to create your token on the bonding curve",
       });
     } catch (error: any) {

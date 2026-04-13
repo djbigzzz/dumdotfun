@@ -122,7 +122,7 @@ export default function CreateToken() {
         throw new Error("Minimum dev buy is 0.2 SOL");
       }
 
-      setCreationStep("Building token creation transaction...");
+      setCreationStep("Uploading image & building transaction...");
       
       const buildRes = await fetch("/api/bonding-curve/create-token", {
         method: "POST",
@@ -131,6 +131,7 @@ export default function CreateToken() {
           creator: connectedWallet,
           name: formData.name,
           symbol: formData.symbol,
+          description: formData.description || "",
           uri: imagePreview || "",
         }),
       });

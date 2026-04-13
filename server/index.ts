@@ -7,6 +7,10 @@ import { setupWebSocket } from "./websocket";
 const app = express();
 const httpServer = createServer(app);
 
+// Trust the proxy in front of this server (Replit's infrastructure)
+// Required for express-rate-limit to correctly identify client IPs
+app.set("trust proxy", 1);
+
 // Set up WebSocket server
 setupWebSocket(httpServer);
 
