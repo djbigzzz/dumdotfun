@@ -1,0 +1,8 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "fWH7X3C_4Ql-CV1SY839v"
+uri = "file://grant-application/superteam-agentic-grant-response.md"
+type = "text"
+title = "Superteam Grant — AI Session Response File"
