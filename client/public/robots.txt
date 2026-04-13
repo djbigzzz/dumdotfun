@@ -1,14 +1,29 @@
 User-agent: *
 Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /profile
 
 User-agent: Googlebot
 Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /profile
 
 User-agent: Bingbot
 Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /profile
+
+# Block resource-heavy scrapers from hammering the API
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: MJ12bot
+Disallow: /
 
 Sitemap: https://dum.fun/sitemap.xml
-
-# Crawl-delay for bots
-User-agent: *
-Crawl-delay: 1

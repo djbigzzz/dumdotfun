@@ -74,10 +74,13 @@ export async function registerRoutes(
   // SEO: Dynamic sitemap
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const tokens = await db.select().from(tokensTable).limit(100);
-      const markets = await storage.getMarkets(100);
+      const tokens = await db.select().from(tokensTable).limit(500);
+      const markets = await storage.getMarkets(200);
       const baseUrl = "https://dum.fun";
       const now = new Date().toISOString().split('T')[0];
+
+      const xmlEscape = (s: string) =>
+        s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
       const staticPages = [
         { url: "/", priority: "1.0", changefreq: "daily" },
@@ -90,7 +93,8 @@ export async function registerRoutes(
       ];
 
       let xml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
 `;
       for (const page of staticPages) {
         xml += `  <url>
@@ -102,24 +106,58 @@ export async function registerRoutes(
 `;
       }
 
-      for (const token of tokens.slice(0, 100)) {
+      // Sort tokens by market cap so most valuable appear first and get higher priority
+      const sortedTokens = [...tokens].sort((a, b) =>
+        (Number(b.marketCapSol) || 0) - (Number(a.marketCapSol) || 0)
+      );
+
+      for (const token of sortedTokens) {
         const tokenDate = token.createdAt ? new Date(token.createdAt).toISOString().split('T')[0] : now;
+        // Priority: graduated tokens (on Raydium) = 0.8, high-mc bonding curve = 0.7, others = 0.5
+        const mcSol = Number(token.marketCapSol) || 0;
+        const priority = token.isGraduated ? "0.8" : mcSol >= 5 ? "0.7" : mcSol >= 1 ? "0.6" : "0.5";
+        const changefreq = token.isGraduated ? "weekly" : "hourly";
+
         xml += `  <url>
     <loc>${baseUrl}/token/${token.mint}</loc>
     <lastmod>${tokenDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>`;
+
+        if (token.imageUri && token.imageUri.startsWith("http")) {
+          const title = `${token.name || "Token"} ($${token.symbol || "?"}) on Dum.fun`;
+          xml += `
+    <image:image>
+      <image:loc>${xmlEscape(token.imageUri)}</image:loc>
+      <image:title>${xmlEscape(title)}</image:title>
+      <image:caption>${xmlEscape(`${token.description?.slice(0, 200) || title} — Trade on Dum.fun`)}</image:caption>
+    </image:image>`;
+        }
+
+        xml += `
   </url>
 `;
       }
 
-      for (const market of markets.slice(0, 100)) {
+      for (const market of markets) {
         const marketDate = market.createdAt ? new Date(market.createdAt).toISOString().split('T')[0] : now;
+        const isOpen = market.status === "open";
+
         xml += `  <url>
     <loc>${baseUrl}/market/${market.id}</loc>
     <lastmod>${marketDate}</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.6</priority>
+    <changefreq>${isOpen ? "hourly" : "weekly"}</changefreq>
+    <priority>${isOpen ? "0.7" : "0.5"}</priority>`;
+
+        if (market.imageUri && market.imageUri.startsWith("http")) {
+          xml += `
+    <image:image>
+      <image:loc>${xmlEscape(market.imageUri)}</image:loc>
+      <image:title>${xmlEscape(`${market.question?.slice(0, 120) || "Prediction Market"} — Dum.fun`)}</image:title>
+    </image:image>`;
+        }
+
+        xml += `
   </url>
 `;
       }
@@ -127,6 +165,7 @@ export async function registerRoutes(
       xml += `</urlset>`;
 
       res.header("Content-Type", "application/xml");
+      res.header("Cache-Control", "public, max-age=3600");
       res.send(xml);
     } catch (error) {
       console.error("Error generating sitemap:", error);
