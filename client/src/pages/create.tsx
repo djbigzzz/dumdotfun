@@ -10,6 +10,7 @@ import { Link } from "wouter";
 import { Buffer } from "buffer";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Connection, Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
@@ -156,12 +157,35 @@ export default function CreateToken() {
       setCreationStep("Creating token on-chain...");
       
       const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
 
-      await connection.confirmTransaction(signature, "confirmed");
+      // sendAndConfirm helper: skips preflight to avoid "already been processed"
+      // errors when a previous attempt landed on-chain but confirmation timed out.
+      const sendAndConfirm = async (tx: Transaction): Promise<string> => {
+        let sig: string;
+        try {
+          sig = await connection.sendRawTransaction(tx.serialize(), {
+            skipPreflight: true,
+          });
+        } catch (err: any) {
+          if (err.message?.includes("already been processed")) {
+            // Extract the signature from the signed transaction's first slot
+            sig = bs58.encode(tx.signatures[0].signature!);
+          } else {
+            throw err;
+          }
+        }
+        try {
+          await connection.confirmTransaction(sig, "confirmed");
+        } catch (confirmErr: any) {
+          // If confirmation itself says it was already processed, treat as success
+          if (!confirmErr.message?.includes("already been processed")) {
+            throw confirmErr;
+          }
+        }
+        return sig;
+      };
+
+      await sendAndConfirm(signedTx);
       
       setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
       
@@ -192,12 +216,7 @@ export default function CreateToken() {
       
       setCreationStep("Executing dev buy...");
       
-      const buySignature = await connection.sendRawTransaction(signedBuyTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-
-      await connection.confirmTransaction(buySignature, "confirmed");
+      await sendAndConfirm(signedBuyTx);
       
       setCreationStep("Saving token to database...");
       
