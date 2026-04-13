@@ -161,28 +161,24 @@ export default function CreateToken() {
       // sendAndConfirm helper: skips preflight to avoid "already been processed"
       // errors when a previous attempt landed on-chain but confirmation timed out.
       const sendAndConfirm = async (tx: Transaction): Promise<string> => {
-        let sig: string;
+        // Pre-compute the signature from the signed tx (fee payer = slot 0)
+        const sigBytes = tx.signatures[0]?.signature;
+        const txSig = sigBytes ? bs58.encode(sigBytes) : null;
+
         try {
-          sig = await connection.sendRawTransaction(tx.serialize(), {
+          const sig = await connection.sendRawTransaction(tx.serialize(), {
             skipPreflight: true,
           });
+          await connection.confirmTransaction(sig, "confirmed");
+          return sig;
         } catch (err: any) {
           if (err.message?.includes("already been processed")) {
-            // Extract the signature from the signed transaction's first slot
-            sig = bs58.encode(tx.signatures[0].signature!);
-          } else {
-            throw err;
+            // Transaction was already on-chain — use the pre-computed signature
+            if (!txSig) throw new Error("Transaction was already processed but could not extract signature");
+            return txSig;
           }
+          throw err;
         }
-        try {
-          await connection.confirmTransaction(sig, "confirmed");
-        } catch (confirmErr: any) {
-          // If confirmation itself says it was already processed, treat as success
-          if (!confirmErr.message?.includes("already been processed")) {
-            throw confirmErr;
-          }
-        }
-        return sig;
       };
 
       await sendAndConfirm(signedTx);
