@@ -159,7 +159,7 @@ export async function requestDevnetAirdrop(address: string): Promise<{ success: 
     const connection = new Connection("https://api.devnet.solana.com", "confirmed");
     const pubkey = new PublicKey(address);
     
-    const signature = await connection.requestAirdrop(pubkey, 1 * LAMPORTS_PER_SOL);
+    const signature = await connection.requestAirdrop(pubkey, 2 * LAMPORTS_PER_SOL);
     await connection.confirmTransaction(signature, "confirmed");
     
     console.log("[Devnet] Airdrop successful:", signature);
