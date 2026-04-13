@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { usePageTitle } from "@/hooks/use-page-title";
 
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
@@ -135,6 +136,7 @@ type TabType = "overview" | "quests" | "leaderboard" | "coins" | "holdings";
 type QuestFilter = "all" | "in_progress" | "completed";
 
 export default function Profile() {
+  usePageTitle("/profile");
   const privateMode = false;
   const { connectedWallet, disconnectWallet } = useWallet();
   const [, setLocation] = useLocation();

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { tokens as tokensTable } from "@shared/schema";
+import { tokens as tokensTable, predictionMarkets } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const BASE_URL = "https://dum.fun";
@@ -106,6 +106,34 @@ const STATIC_META: Record<string, PageMeta> = {
   },
 };
 
+async function getMarketMeta(marketId: string): Promise<PageMeta | null> {
+  try {
+    const rows = await db.select().from(predictionMarkets).where(eq(predictionMarkets.id, marketId)).limit(1);
+    if (!rows.length) return null;
+    const market = rows[0];
+    const question = market.question || "Prediction Market";
+    const description = market.description
+      ? `${market.description.slice(0, 120)}${market.description.length > 120 ? "..." : ""}`
+      : question;
+    const image = market.imageUri || DEFAULT_IMAGE;
+    const url = `${BASE_URL}/market/${marketId}`;
+    const totalVolume = Number(market.totalVolume) || 0;
+    const status = market.status === "open" ? "Open" : market.status === "resolved" ? "Resolved" : "Closed";
+
+    return {
+      title: `${question} | Prediction Market on Dum.fun`,
+      description: `${description} — ${status} · ${totalVolume.toFixed(2)} SOL volume`,
+      ogTitle: `${question} | Dum.fun Prediction Market`,
+      ogDescription: `${description} — ${status} prediction market on Dum.fun. ${totalVolume.toFixed(2)} SOL in volume.`,
+      ogImage: image,
+      ogUrl: url,
+      canonical: url,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function getTokenMeta(mint: string): Promise<PageMeta | null> {
   try {
     const rows = await db.select().from(tokensTable).where(eq(tokensTable.mint, mint)).limit(1);
@@ -182,7 +210,9 @@ function escapeHtml(str: string): string {
 }
 
 export async function injectMeta(html: string, pathname: string): Promise<string> {
-  const tokenMatch = pathname.match(/^\/token\/([^/?#]+)/);
+  const cleanPath = pathname.split("?")[0].split("#")[0];
+
+  const tokenMatch = cleanPath.match(/^\/token\/([^/?#]+)/);
   if (tokenMatch) {
     const mint = tokenMatch[1];
     const meta = await getTokenMeta(mint);
@@ -190,7 +220,14 @@ export async function injectMeta(html: string, pathname: string): Promise<string
     return html;
   }
 
-  const cleanPath = pathname.split("?")[0].split("#")[0];
+  const marketMatch = cleanPath.match(/^\/market\/([^/?#]+)/);
+  if (marketMatch) {
+    const marketId = marketMatch[1];
+    const meta = await getMarketMeta(marketId);
+    if (meta) return setMeta(html, meta);
+    return html;
+  }
+
   const staticMeta = STATIC_META[cleanPath];
   if (staticMeta) return setMeta(html, staticMeta);
 

@@ -2,6 +2,7 @@ import { Layout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight, Flame, CalendarCheck, Trophy, Star } from "lucide-react";
 import { Link } from "wouter";
@@ -337,6 +338,7 @@ function DailyCheckInBanner() {
 }
 
 export default function Home() {
+  usePageTitle("/");
   const { connectedWallet, connectWallet } = useWallet();
   const [email, setEmail] = useState("");
   const [userType, setUserType] = useState<"creator" | "trader" | "both" | "">("");

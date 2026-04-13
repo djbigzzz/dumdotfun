@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
+import { usePageTitle } from "@/hooks/use-page-title";
 import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info, BookOpen, Zap, Scale, Timer } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
@@ -99,6 +100,15 @@ export default function MarketDetail() {
   const [error, setError] = useState<string | null>(null);
   const [useConfidentialBet, setUseConfidentialBet] = useState(false);
   const [showPrivacyInfo, setShowPrivacyInfo] = useState(false);
+  const [marketTitle, setMarketTitle] = useState<string | undefined>();
+  const [marketMeta, setMarketMeta] = useState<{
+    description?: string;
+    ogTitle?: string;
+    ogDescription?: string;
+    ogImage?: string;
+    ogUrl?: string;
+  } | undefined>();
+  usePageTitle(undefined, marketTitle, marketMeta);
 
   const [success, setSuccess] = useState<boolean>(false);
 
@@ -107,7 +117,22 @@ export default function MarketDetail() {
     queryFn: async () => {
       const res = await fetch(`/api/markets/${id}`);
       if (!res.ok) throw new Error("Market not found");
-      return res.json();
+      const data = await res.json();
+      if (data?.question) {
+        setMarketTitle(`${data.question} | Dum.fun Prediction Market`);
+        const shortDesc = data.description
+          ? `${data.description.slice(0, 120)}${data.description.length > 120 ? "..." : ""}`
+          : data.question;
+        const volume = Number(data.totalVolume) || 0;
+        setMarketMeta({
+          description: `${shortDesc} — ${volume.toFixed(2)} SOL volume`,
+          ogTitle: `${data.question} | Dum.fun Prediction Market`,
+          ogDescription: `${shortDesc} — ${volume.toFixed(2)} SOL in volume. Bet on outcomes on Dum.fun.`,
+          ogImage: data.imageUri || undefined,
+          ogUrl: `https://dum.fun/market/${id}`,
+        });
+      }
+      return data;
     },
   });
 
