@@ -1,0 +1,26 @@
+Ideas -> Prompt -> Prod
+TL;DR: The barrier to building software has collapsed. The Solana Frontier Hackathon has just begun, and this is the perfect moment to turn ideas into real products. This grant gives you $200 USDG to access a month of the highest tier of AI coding tools so you can build and ship something meaningful. Approved builders receive 50% upfront and 50% upon completion.
+
+Applications close May 04, 2026.
+
+The Hypothesis
+For the first time, building software is no longer gated by technical skill but by ideas and agency. AI coding tools have compressed weeks of work into hours. The people who win in this environment are the ones who have something they want to build, take initiative, and actually ship.
+
+Moments like the Solana Frontier Hackathon (running through April 6 – May 11) create a natural forcing function since Solana builders around the world are focused, experimenting, and putting ideas into the world. This grant exists to support that energy, especially when access to tools is the difference between an idea and a shipped product. This grant is a small nudge in that direction: give you access to a powerful coding tool at the right moment and help you ship your idea.
+
+You get $200 USDG to cover an AI coding Pro subscription. 50% upfront, 50% after you’ve shipped your project. The only requirement is that it should be a working Solana product.
+
+How It Works
+Apply on Superteam Earn with a clear description of what you want to build and how you’ll use AI tools.
+If approved, you'll receive 50% of the grant upfront (post KYC; to be done on this page on Earn) in the following weekly payout cycle. Approved KYC and payments are sent for processing on Mondays and paid to you by Friday of the same week. From there, you build within the Frontier window and submit your project to Colosseum before the May 11 deadline.
+After your product/MVP is live, share your project’s URL, github repo, and upload your coding subscription receipt to the tranche application form on this listing. This tranche application form will be visible to you after you have received your first tranche. Upon review and approval, you will receive the leftover 50% of the grant.  
+What We’re Looking For
+The scope in your application form should be clear and practical (read: shippable).   
+Your idea/project should have some Solana integration. 
+Submission to the Colosseum Frontier hackathon before the May 11 deadline. 
+FAQ
+Do I need to submit to the Frontier hackathon to get the grant?
+Yes, it’s mandatory to submit to the Frontier hackathon to get this grant.
+Is the code needed to be open source?
+While open-source repos are encouraged, you may keep your repo private. If you decide to close-source your code, you are required to share access with abhwshek@gmail.com so that we can review the code. 
+🚁 Questions? Reach out to support@superteam.fun for help.
