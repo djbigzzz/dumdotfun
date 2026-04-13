@@ -203,9 +203,17 @@ function broadcastToClients(update: TokenUpdate) {
 
 // Set up WebSocket server
 export function setupWebSocket(server: Server): WebSocketServer {
-  const wss = new WebSocketServer({ 
-    server,
-    path: "/ws",
+  const wss = new WebSocketServer({ noServer: true });
+
+  // Route only /ws upgrade requests to this WSS.
+  // Using noServer so we don't block upgrades for other paths (e.g. Vite HMR at /vite-hmr).
+  server.on("upgrade", (req, socket, head) => {
+    const pathname = req.url?.split("?")[0];
+    if (pathname === "/ws") {
+      wss.handleUpgrade(req, socket, head, (ws) => {
+        wss.emit("connection", ws, req);
+      });
+    }
   });
 
   wss.on("connection", (ws) => {
