@@ -4,6 +4,34 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { setupWebSocket } from "./websocket";
 
+function isNeonConnectionError(err: any): boolean {
+  return (
+    err?.code === "57P01" ||
+    (typeof err?.message === "string" &&
+      (err.message.includes("terminating connection") ||
+        err.message.includes("Connection terminated") ||
+        err.message.includes("Unhandled error")))
+  );
+}
+
+process.on("uncaughtException", (err: any) => {
+  if (isNeonConnectionError(err)) {
+    console.warn("[server] Caught Neon connection termination (uncaughtException) — continuing:", err.message);
+    return;
+  }
+  console.error("[server] Uncaught exception — exiting:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason: any) => {
+  if (isNeonConnectionError(reason)) {
+    console.warn("[server] Caught Neon connection termination (unhandledRejection) — continuing:", reason?.message);
+    return;
+  }
+  console.error("[server] Unhandled rejection — exiting:", reason);
+  process.exit(1);
+});
+
 const app = express();
 const httpServer = createServer(app);
 
