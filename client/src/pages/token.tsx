@@ -193,6 +193,13 @@ export default function TokenPage() {
   const [activeBet, setActiveBet] = useState<{ predictionId: string; side: "yes" | "no" } | null>(null);
   const [betAmount, setBetAmount] = useState("");
 
+  const [showCreateMarket, setShowCreateMarket] = useState(false);
+  const [marketQuestion, setMarketQuestion] = useState("");
+  const [marketDescription, setMarketDescription] = useState("");
+  const [marketResolutionDate, setMarketResolutionDate] = useState("");
+  const [marketInitialSide, setMarketInitialSide] = useState<"yes" | "no">("yes");
+  const [marketInitialBet, setMarketInitialBet] = useState("0.5");
+
   const [copied, setCopied] = useState(false);
 
   const [umbraOpen, setUmbraOpen] = useState(false);
@@ -387,6 +394,71 @@ export default function TokenPage() {
     onError: (error: Error) => toast.error(error.message),
   });
 
+
+  const createMarketMutation = useMutation({
+    mutationFn: async () => {
+      if (!connectedWallet) throw new Error("Wallet not connected");
+      if (!token) throw new Error("Token not loaded");
+      const phantom = (window as any).phantom?.solana;
+      if (!phantom?.isPhantom) throw new Error("Phantom wallet not found");
+
+      const prepareRes = await fetch("/api/markets/prepare-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: marketQuestion.trim(),
+          description: marketDescription.trim() || undefined,
+          creatorAddress: connectedWallet,
+          tokenMint: token.mint,
+          resolutionDate: marketResolutionDate,
+          initialBetSide: marketInitialSide,
+          initialBetAmount: parseFloat(marketInitialBet),
+        }),
+      });
+      if (!prepareRes.ok) {
+        const err = await prepareRes.json();
+        throw new Error(err.error || "Failed to prepare market");
+      }
+      const { transaction: txBase64, pendingMarketId, totalCost } = await prepareRes.json();
+
+      toast.info(`Approve ${totalCost} SOL transaction in your wallet…`);
+      const txBytes = Buffer.from(txBase64, "base64");
+      const transaction = Transaction.from(txBytes);
+      let signedTx;
+      try {
+        signedTx = await phantom.signTransaction(transaction);
+      } catch (e: any) {
+        if (e.message?.includes("User rejected")) throw new Error("Transaction cancelled");
+        throw new Error("Failed to sign: " + e.message);
+      }
+
+      const connection = new Connection(SOLANA_RPC, "confirmed");
+      const signature = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
+      await connection.confirmTransaction(signature, "confirmed");
+
+      const confirmRes = await fetch("/api/markets/confirm-create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pendingMarketId, signature }),
+      });
+      if (!confirmRes.ok) {
+        const err = await confirmRes.json();
+        throw new Error(err.error || "Failed to confirm market");
+      }
+      return confirmRes.json();
+    },
+    onSuccess: () => {
+      toast.success("Prediction market created!");
+      setShowCreateMarket(false);
+      setMarketQuestion("");
+      setMarketDescription("");
+      setMarketResolutionDate("");
+      setMarketInitialBet("0.5");
+      setMarketInitialSide("yes");
+      queryClient.invalidateQueries({ queryKey: ["token", mint] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
 
   const handleQuickBuy = (amount: number) => {
     setTradeAmount(amount.toString());
@@ -898,17 +970,118 @@ export default function TokenPage() {
             </div>
 
             {/* Predictions */}
-            {token.predictions && token.predictions.length > 0 && (
-              <div className={`${cardStyle} p-4 ${privateMode ? "border-yellow-500" : "border-yellow-500"}`} style={{ boxShadow: privateMode ? "none" : "4px 4px 0px 0px rgba(234,179,8,1)" }}>
+            <div className={`${cardStyle} p-4 ${privateMode ? "border-yellow-500" : "border-yellow-500"}`} style={{ boxShadow: privateMode ? "none" : "4px 4px 0px 0px rgba(234,179,8,1)" }}>
                 <div className="flex items-center justify-between mb-3">
                   <div className={`flex items-center gap-2 font-bold ${privateMode ? "text-yellow-400" : "text-yellow-700"}`}>
                     <Target className="w-4 h-4" /> Prediction Markets
-                    <span className={`text-xs font-normal px-1.5 py-0.5 rounded ${privateMode ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-700"}`}>
-                      {token.predictions.length}
-                    </span>
+                    {token.predictions && token.predictions.length > 0 && (
+                      <span className={`text-xs font-normal px-1.5 py-0.5 rounded ${privateMode ? "bg-yellow-500/20 text-yellow-400" : "bg-yellow-100 text-yellow-700"}`}>
+                        {token.predictions.length}
+                      </span>
+                    )}
                   </div>
+                  <button
+                    onClick={() => {
+                      if (!connectedWallet) { toast.error("Connect wallet to create a market"); return; }
+                      setShowCreateMarket(v => !v);
+                    }}
+                    className={`flex items-center gap-1 text-xs px-2.5 py-1.5 font-bold border-2 transition-all ${showCreateMarket ? (privateMode ? "bg-yellow-500 text-black border-yellow-500" : "bg-yellow-500 text-white border-yellow-500") : (privateMode ? "bg-transparent border-yellow-500 text-yellow-400 hover:bg-yellow-500/10" : "bg-transparent border-yellow-500 text-yellow-700 hover:bg-yellow-50")}`}
+                    data-testid="button-create-market"
+                  >
+                    <Plus className="w-3 h-3" /> Create Market
+                  </button>
                 </div>
-                {(() => {
+
+                {/* Create Market Form */}
+                <AnimatePresence>
+                  {showCreateMarket && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className={`mb-4 p-3 border-2 border-dashed ${privateMode ? "border-yellow-500/40 bg-black/40" : "border-yellow-400 bg-yellow-50/50"}`}
+                    >
+                      <p className={`text-xs font-bold mb-3 uppercase tracking-wider ${privateMode ? "text-yellow-400" : "text-yellow-700"}`}>New Prediction Market</p>
+                      <div className="space-y-2">
+                        <textarea
+                          value={marketQuestion}
+                          onChange={e => setMarketQuestion(e.target.value)}
+                          placeholder="Will this token reach 5 SOL market cap by end of month?"
+                          rows={2}
+                          className={`w-full px-3 py-2 text-sm resize-none ${inputStyle}`}
+                          data-testid="input-market-question"
+                        />
+                        <input
+                          type="text"
+                          value={marketDescription}
+                          onChange={e => setMarketDescription(e.target.value)}
+                          placeholder="Description (optional)"
+                          className={`w-full px-3 py-2 text-sm ${inputStyle}`}
+                          data-testid="input-market-description"
+                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${privateMode ? "text-zinc-400" : "text-gray-600"}`}>Resolves on</label>
+                            <input
+                              type="date"
+                              value={marketResolutionDate}
+                              onChange={e => setMarketResolutionDate(e.target.value)}
+                              min={new Date(Date.now() + 86400000).toISOString().split("T")[0]}
+                              className={`w-full px-3 py-2 text-sm ${inputStyle}`}
+                              data-testid="input-market-resolution-date"
+                            />
+                          </div>
+                          <div>
+                            <label className={`text-xs font-bold block mb-1 ${privateMode ? "text-zinc-400" : "text-gray-600"}`}>Initial bet (min 0.5 SOL)</label>
+                            <input
+                              type="number"
+                              value={marketInitialBet}
+                              onChange={e => setMarketInitialBet(e.target.value)}
+                              min="0.5"
+                              step="0.1"
+                              placeholder="0.5"
+                              className={`w-full px-3 py-2 text-sm ${inputStyle}`}
+                              data-testid="input-market-initial-bet"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className={`text-xs font-bold block mb-1 ${privateMode ? "text-zinc-400" : "text-gray-600"}`}>Your initial bet side</label>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              onClick={() => setMarketInitialSide("yes")}
+                              className={`py-2 text-sm font-bold border-2 ${marketInitialSide === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/40 text-green-400" : "bg-green-50 border-green-400 text-green-700"}`}
+                              data-testid="button-market-side-yes"
+                            >YES</button>
+                            <button
+                              onClick={() => setMarketInitialSide("no")}
+                              className={`py-2 text-sm font-bold border-2 ${marketInitialSide === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/40 text-red-400" : "bg-red-50 border-red-400 text-red-700"}`}
+                              data-testid="button-market-side-no"
+                            >NO</button>
+                          </div>
+                        </div>
+                        <p className={`text-xs ${privateMode ? "text-zinc-500" : "text-gray-500"}`}>
+                          Cost: 0.05 SOL creation fee + {marketInitialBet || "0.5"} SOL initial bet
+                        </p>
+                        <button
+                          onClick={() => createMarketMutation.mutate()}
+                          disabled={createMarketMutation.isPending || !marketQuestion.trim() || marketQuestion.trim().length < 10 || !marketResolutionDate}
+                          className={`w-full py-2.5 font-bold text-sm border-2 flex items-center justify-center gap-2 transition-all ${privateMode ? "bg-yellow-500 text-black border-yellow-500 hover:bg-yellow-400 disabled:opacity-40" : "bg-yellow-500 text-white border-yellow-600 hover:bg-yellow-600 disabled:opacity-40"}`}
+                          data-testid="button-submit-create-market"
+                        >
+                          {createMarketMutation.isPending ? <><Loader2 className="w-4 h-4 animate-spin" /> Creating…</> : "Launch Prediction Market"}
+                        </button>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {(!token.predictions || token.predictions.length === 0) && !showCreateMarket && (
+                  <p className={`text-sm text-center py-3 ${privateMode ? "text-zinc-500" : "text-gray-400"}`}>
+                    No prediction markets yet. Be the first to create one!
+                  </p>
+                )}
+                {token.predictions && token.predictions.length > 0 && (() => {
                   const sorted = [...token.predictions].sort((a, b) => {
                     const aOpen = a.status === "open";
                     const bOpen = b.status === "open";
@@ -1002,7 +1175,6 @@ export default function TokenPage() {
                   );
                 })()}
               </div>
-            )}
           </div>
 
           {/* Right Column - Trade Panel */}
