@@ -1,5 +1,10 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "knR8T5CA79Dxu95lOOCdU"
+uri = "file://attached_assets/generated_images/opengraph_v2.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "fWH7X3C_4Ql-CV1SY839v"

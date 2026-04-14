@@ -3,7 +3,7 @@ import { tokens as tokensTable, predictionMarkets } from "@shared/schema";
 import { eq } from "drizzle-orm";
 
 const BASE_URL = "https://dum.fun";
-const DEFAULT_IMAGE = `${BASE_URL}/opengraph.jpg`;
+const DEFAULT_IMAGE = `${BASE_URL}/opengraph.png`;
 
 interface PageMeta {
   title: string;
@@ -321,6 +321,16 @@ function setMeta(html: string, meta: PageMeta): string {
   html = replaceMeta(html, 'name="twitter:title"', `content="${escapeHtml(meta.ogTitle || meta.title)}"`);
   html = replaceMeta(html, 'name="twitter:description"', `content="${escapeHtml(meta.ogDescription || meta.description)}"`);
   html = replaceMeta(html, 'name="twitter:image"', `content="${escapeHtml(image)}"`);
+
+  // When using a custom token/market image (not the default OG), clear width/height so
+  // crawlers detect actual dimensions rather than using wrong hints.
+  if (image !== DEFAULT_IMAGE) {
+    html = html.replace(/<meta\s[^>]*property="og:image:width"[^>]*>\n?/i, "");
+    html = html.replace(/<meta\s[^>]*property="og:image:height"[^>]*>\n?/i, "");
+    html = html.replace(/<meta\s[^>]*property="og:image:type"[^>]*>\n?/i, "");
+    html = html.replace(/<meta\s[^>]*name="twitter:image:width"[^>]*>\n?/i, "");
+    html = html.replace(/<meta\s[^>]*name="twitter:image:height"[^>]*>\n?/i, "");
+  }
 
   // Inject og:image:alt and twitter:image:alt (insert after og:image tag)
   if (!html.includes('property="og:image:alt"')) {
