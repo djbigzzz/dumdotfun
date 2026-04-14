@@ -337,6 +337,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <a href="/create" className="transition-colors hover:text-black" data-testid="footer-link-create">
             Launch Token
           </a>
+          <a href="/predictions" className="transition-colors hover:text-black" data-testid="footer-link-predictions">
+            Prediction Markets
+          </a>
           <a href="/quests" className="transition-colors hover:text-black" data-testid="footer-link-quests">
             Quests
           </a>
