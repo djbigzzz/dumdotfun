@@ -138,7 +138,7 @@ type QuestFilter = "all" | "in_progress" | "completed";
 export default function Profile() {
   usePageTitle("/profile");
   const privateMode = false;
-  const { connectedWallet, disconnectWallet } = useWallet();
+  const { connectedWallet, disconnectWallet, connectWallet } = useWallet();
   const [, setLocation] = useLocation();
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
@@ -194,11 +194,7 @@ export default function Profile() {
     }
   };
 
-  useEffect(() => {
-    if (!connectedWallet) {
-      setLocation("/");
-    }
-  }, [connectedWallet, setLocation]);
+  // No redirect — handled below by showing a connect-wallet prompt
 
   const copyWallet = () => {
     if (connectedWallet) {
@@ -305,6 +301,27 @@ export default function Profile() {
     await disconnectWallet();
     setLocation("/");
   };
+
+  if (!connectedWallet) {
+    return (
+      <Layout>
+        <div className="min-h-[calc(100vh-200px)] flex flex-col items-center justify-center gap-5 text-center px-4">
+          <div className="text-5xl">👤</div>
+          <div>
+            <p className="text-xl font-black text-gray-900 mb-1">Your Profile</p>
+            <p className="text-gray-500">Connect your wallet to view your profile, points, and holdings.</p>
+          </div>
+          <button
+            onClick={() => connectWallet()}
+            className="px-8 py-3 bg-red-500 text-white font-black text-lg rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+            data-testid="button-connect-wallet-profile"
+          >
+            Connect Wallet
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   if (isLoading) {
     return (

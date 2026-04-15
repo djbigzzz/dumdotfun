@@ -184,6 +184,8 @@ export default function PredictionsPage() {
       if (!res.ok) throw new Error("Failed to fetch events");
       return res.json();
     },
+    staleTime: 60 * 1000,
+    gcTime: 5 * 60 * 1000,
   });
 
   const { data: searchResults, isLoading: isSearching } = useQuery({

@@ -578,15 +578,31 @@ export default function TokenPage() {
   }
 
   if (error || !token) {
+    const isNotFound = (error as any)?.message?.includes("404") || (error as any)?.message?.includes("not found");
     return (
       <Layout>
         <div className="min-h-[60vh] flex flex-col items-center justify-center gap-4">
-          <p className={`font-mono ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>Token not found</p>
-          <Link href="/tokens">
-            <button className={`flex items-center gap-2 ${privateMode ? "text-[#4ADE80]" : "text-gray-500 hover:text-gray-700"}`}>
-              <ArrowLeft className="w-4 h-4" /> Back to tokens
-            </button>
-          </Link>
+          <p className={`font-mono text-lg font-bold ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}>
+            {isNotFound ? "Token not found" : "Failed to load token"}
+          </p>
+          <p className={`text-sm ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
+            {isNotFound ? "This token may have been removed or the address is invalid." : "Something went wrong. Check your connection and try again."}
+          </p>
+          <div className="flex gap-3">
+            {!isNotFound && (
+              <button
+                onClick={() => window.location.reload()}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500 text-white font-bold rounded-lg border-2 border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] transition-all"
+              >
+                Retry
+              </button>
+            )}
+            <Link href="/tokens">
+              <button className={`flex items-center gap-2 px-4 py-2 border-2 border-black rounded-lg font-bold shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] ${privateMode ? "text-[#4ADE80] bg-black" : "text-gray-700 bg-white hover:bg-gray-50"}`}>
+                <ArrowLeft className="w-4 h-4" /> Back to tokens
+              </button>
+            </Link>
+          </div>
         </div>
       </Layout>
     );

@@ -523,7 +523,7 @@ export default function CreateToken() {
                 }`}
                 data-testid="button-connect-wallet"
               >
-                Connect Phantom Wallet
+                Connect Wallet
               </button>
             </div>
           )}
@@ -860,32 +860,41 @@ export default function CreateToken() {
             </div>
           )}
 
-          {/* Submit Button */}
-          <motion.button
-            type="submit"
-            disabled={createTokenMutation.isPending || !connectedWallet || !imagePreview}
-            whileHover={{ y: createTokenMutation.isPending || !connectedWallet || !imagePreview ? 0 : -2, x: createTokenMutation.isPending || !connectedWallet || !imagePreview ? 0 : -2 }}
-            whileTap={{ y: 0, x: 0 }}
-            className={`w-full py-4 font-black text-lg rounded-lg border-2 border-black transition-all ${
-              createTokenMutation.isPending || !connectedWallet || !imagePreview
-                ? `bg-gray-300 text-gray-500 cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] ${privateMode ? "opacity-30" : ""}`
-                : privateMode 
-                  ? "bg-black border-[#4ADE80] text-[#4ADE80] hover:shadow-[0_0_20px_rgba(57,255,20,0.4)] font-mono" 
+          {/* Submit / Connect Button */}
+          {!connectedWallet ? (
+            <motion.button
+              type="button"
+              onClick={() => connectWallet()}
+              whileHover={{ y: -2, x: -2 }}
+              whileTap={{ y: 0, x: 0 }}
+              className="w-full py-4 font-black text-lg rounded-lg border-2 border-black bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all"
+              data-testid="button-connect-wallet-deploy"
+            >
+              Connect Wallet to Deploy
+            </motion.button>
+          ) : (
+            <motion.button
+              type="submit"
+              disabled={createTokenMutation.isPending || !imagePreview}
+              whileHover={{ y: createTokenMutation.isPending || !imagePreview ? 0 : -2, x: createTokenMutation.isPending || !imagePreview ? 0 : -2 }}
+              whileTap={{ y: 0, x: 0 }}
+              className={`w-full py-4 font-black text-lg rounded-lg border-2 border-black transition-all ${
+                createTokenMutation.isPending || !imagePreview
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"
                   : "bg-red-500 text-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"
-            }`}
-            data-testid="button-create-token"
-          >
-            {createTokenMutation.isPending ? (
-              <span className="flex items-center justify-center gap-2">
-                <Loader2 className="w-5 h-5 animate-spin" />
-                {privateMode ? "EXECUTING_MINT..." : "Deploying to Devnet..."}
-              </span>
-            ) : !connectedWallet ? (
-              privateMode ? "CONNECT_SESSION" : 'Connect Wallet to Deploy'
-            ) : (
-              privateMode ? "AUTHORIZE_DEPLOYMENT" : 'Deploy Token on Devnet'
-            )}
-          </motion.button>
+              }`}
+              data-testid="button-create-token"
+            >
+              {createTokenMutation.isPending ? (
+                <span className="flex items-center justify-center gap-2">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  Deploying to Devnet...
+                </span>
+              ) : (
+                "Deploy Token on Devnet"
+              )}
+            </motion.button>
+          )}
         </form>
         )}
       </div>
