@@ -80,6 +80,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     const checkPhantom = async () => {
       if (window.solana?.isPhantom) {
         setHasPhantom(true);
+        // Auto-reconnect if Phantom already has a trusted session
         if (window.solana.publicKey) {
           const walletAddress = window.solana.publicKey.toString();
           try {
@@ -96,15 +97,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    if (!shouldUseMobileAdapter) {
-      if (document.readyState === "complete") {
-        checkPhantom();
-      } else {
-        window.addEventListener("load", checkPhantom);
-        return () => window.removeEventListener("load", checkPhantom);
-      }
+    // Always check for injected Phantom (covers desktop extension + Phantom mobile browser)
+    if (document.readyState === "complete") {
+      checkPhantom();
+    } else {
+      window.addEventListener("load", checkPhantom);
+      return () => window.removeEventListener("load", checkPhantom);
     }
-  }, [shouldUseMobileAdapter]);
+  }, []);
 
   const syncUserToDatabase = useCallback(async (walletAddress: string, referralCode?: string) => {
     try {
@@ -134,6 +134,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const connectWallet = async (referralCode?: string) => {
+    // Priority 1: injected Phantom wallet (desktop extension OR Phantom mobile browser)
+    if (window.solana?.isPhantom) {
+      try {
+        const response = await window.solana.connect({ onlyIfTrusted: false });
+        const walletAddress = response.publicKey.toString();
+        await syncUserToDatabase(walletAddress, referralCode);
+        setConnectedWallet(walletAddress);
+        toast.success("Wallet connected!", { duration: 2500 });
+      } catch (err: any) {
+        if (err?.code === 4001 || err?.message?.includes("rejected")) {
+          toast.error("Connection cancelled.");
+        } else {
+          console.error("Failed to connect wallet:", err);
+          toast.error("Failed to connect wallet.");
+        }
+      }
+      return;
+    }
+
+    // Priority 2: Mobile Wallet Adapter (MWA) — for native mobile wallet apps
     if (shouldUseMobileAdapter && mobileAdapter) {
       try {
         await mobileAdapter.connect();
@@ -142,30 +162,20 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           await syncUserToDatabase(walletAddress, referralCode);
           setConnectedWallet(walletAddress);
           setIsMobileWallet(true);
+          toast.success("Wallet connected!", { duration: 2500 });
         }
         return;
       } catch (err) {
         console.error("Mobile wallet connection failed:", err);
-        return;
+        // Fall through to prompt install
       }
     }
 
-    if (!window.solana?.isPhantom) {
-      if (isMobileDevice()) {
-        openExternalLink("https://phantom.app/download");
-      } else {
-        window.open("https://phantom.app/", "_blank");
-      }
-      return;
-    }
-
-    try {
-      const response = await window.solana.connect({ onlyIfTrusted: false });
-      const walletAddress = response.publicKey.toString();
-      await syncUserToDatabase(walletAddress, referralCode);
-      setConnectedWallet(walletAddress);
-    } catch (err) {
-      console.error("Failed to connect wallet:", err);
+    // No wallet found — prompt user to install Phantom
+    if (isMobileDevice()) {
+      openExternalLink("https://phantom.app/download");
+    } else {
+      window.open("https://phantom.app/", "_blank");
     }
   };
 
