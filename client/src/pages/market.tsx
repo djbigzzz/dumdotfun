@@ -151,7 +151,7 @@ export default function MarketDetail() {
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
-      const phantom = (window as any).phantom?.solana;
+      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
       if (!phantom) {
         throw new Error("Phantom wallet not found");
       }

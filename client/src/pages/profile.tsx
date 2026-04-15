@@ -154,8 +154,8 @@ export default function Profile() {
 
   const handleSell = async () => {
     if (!sellToken || !connectedWallet) return;
-    const phantom = (window as any).phantom?.solana;
-    if (!phantom?.isPhantom) { toast.error("Phantom wallet not found"); return; }
+    const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+    if (!phantom) { toast.error("Phantom wallet not found"); return; }
 
     setIsSelling(true);
     try {

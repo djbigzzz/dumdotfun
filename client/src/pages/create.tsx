@@ -113,8 +113,8 @@ export default function CreateToken() {
         throw new Error("Connect wallet to deploy on devnet");
       }
 
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
+      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+      if (!phantom) {
         throw new Error("Phantom wallet required for devnet deployment");
       }
 

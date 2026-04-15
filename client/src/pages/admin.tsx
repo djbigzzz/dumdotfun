@@ -89,8 +89,8 @@ export default function AdminPage() {
         throw new Error("Connect wallet first");
       }
 
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
+      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+      if (!phantom) {
         throw new Error("Phantom wallet required");
       }
 

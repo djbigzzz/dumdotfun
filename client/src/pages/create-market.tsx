@@ -153,7 +153,7 @@ export default function CreateMarket() {
       const { pendingMarketId, transaction, totalCost: cost } = prepareData;
 
       // Step 2: Sign transaction with Phantom wallet
-      const phantom = (window as any).phantom?.solana;
+      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
       if (!phantom) {
         throw new Error("Phantom wallet not found");
       }

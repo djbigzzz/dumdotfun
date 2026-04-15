@@ -320,8 +320,8 @@ export default function TokenPage() {
     mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
       if (!connectedWallet) throw new Error("Wallet not connected");
       
-      const phantom = (window as any).phantom?.solana;
-      if (!phantom?.isPhantom) {
+      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+      if (!phantom) {
         throw new Error("Phantom wallet not found");
       }
 
