@@ -116,7 +116,9 @@ export async function checkTokenHealth(mint: string): Promise<TokenHealthStatus>
                 if (parsed?.info?.owner === token.creatorAddress) {
                   creatorBalance += Number(acc.amount);
                 }
-              } catch {}
+              } catch (err) {
+                console.warn(`[TokenHealth] Failed to read account ${acc.address.toBase58()}:`, err instanceof Error ? err.message : err);
+              }
             }
           }
 

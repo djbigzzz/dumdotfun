@@ -555,7 +555,9 @@ export default function TokenPage() {
             toast.success(`+${p.points} pts — First Trade!`, { duration: 3000 });
           }
         }
-      } catch {}
+      } catch (err) {
+        console.warn("[Token] Failed to record trade points:", err);
+      }
       
       // Refresh data
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
@@ -698,7 +700,9 @@ export default function TokenPage() {
                       <span className="flex items-center gap-1 hover:underline cursor-pointer" data-testid="text-creator-name">
                         by {creatorSns?.domain ?? `${token.creatorAddress.slice(0, 6)}...`}
                         {creatorSns?.domain && (
-                          <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" title="SNS verified .sol name" />
+                          <span title="SNS verified .sol name" className="inline-flex">
+                            <BadgeCheck className="w-3 h-3 text-blue-500 flex-shrink-0" />
+                          </span>
                         )}
                       </span>
                     </a>
@@ -775,7 +779,9 @@ export default function TokenPage() {
                             if (meta.blockTime) blockTime = meta.blockTime;
                             if (meta.signature) signature = meta.signature;
                           }
-                        } catch {}
+                        } catch (err) {
+                          console.debug("[Token] Failed to parse activity metadata:", err);
+                        }
                         
                         // Use blockchain timestamp if available, otherwise use createdAt
                         const displayTime = blockTime 

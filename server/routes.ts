@@ -652,7 +652,7 @@ export async function registerRoutes(
   });
   
   // Trading API - Build transaction for buy/sell
-  app.post("/api/trade/build", async (req, res) => {
+  app.post("/api/trade/build", sensitiveLimiter, requireAuthWithMatchingWallet("userWallet"), async (req, res) => {
     try {
       const { userWallet, tokenMint, amount, isBuy, slippageBps } = req.body;
       
@@ -690,7 +690,7 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("Error building trade transaction:", error);
-      return res.status(500).json({ error: error.message || "Failed to build transaction" });
+      return res.status(500).json({ error: "Failed to build transaction" });
     }
   });
 
@@ -713,12 +713,12 @@ export async function registerRoutes(
       return res.json({ success: true, quote });
     } catch (error: any) {
       console.error("Error getting trade quote:", error);
-      return res.status(500).json({ error: error.message || "Failed to get quote" });
+      return res.status(500).json({ error: "Failed to get quote" });
     }
   });
 
   // Record trade after successful on-chain confirmation
-  app.post("/api/trade/record", async (req, res) => {
+  app.post("/api/trade/record", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress, tokenMint, amount, side, signature } = req.body;
       
@@ -793,7 +793,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/analyze-wallet", async (req, res) => {
+  app.post("/api/analyze-wallet", sensitiveLimiter, async (req, res) => {
     try {
       const { walletAddress } = req.body;
 
@@ -836,7 +836,7 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error analyzing wallet:", error);
       return res.status(500).json({ 
-        error: error.message || "Failed to analyze wallet" 
+        error: "Failed to analyze wallet" 
       });
     }
   });
@@ -1008,98 +1008,8 @@ export async function registerRoutes(
     }
   });
 
-  // Demo mode token creation - saves directly to database without blockchain
-  app.post("/api/tokens/demo-create", async (req, res) => {
-    try {
-      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, privacyMode } = req.body;
-
-      // Validate required fields
-      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
-        return res.status(400).json({ error: "Name is required (max 32 characters)" });
-      }
-
-      if (!symbol || typeof symbol !== "string" || symbol.trim().length === 0 || symbol.length > 10) {
-        return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
-      }
-
-      // Privacy mode allows anonymous creator - no wallet required
-      const isAnonymous = privacyMode || creatorAddress === "anonymous";
-      if (!isAnonymous && (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0)) {
-        return res.status(400).json({ error: "Creator wallet address is required (or enable privacy mode)" });
-      }
-      
-      // Handle privacy mode - use anonymous address for public display
-      const displayAddress = isAnonymous ? "anonymous" : creatorAddress;
-
-      // Generate a demo mint address (random base58-like string)
-      const chars = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
-      let demoMint = "";
-      for (let i = 0; i < 44; i++) {
-        demoMint += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
-
-      console.log(`[DEMO] Creating token: ${name} (${symbol}) for ${displayAddress}${privacyMode ? ' (PRIVATE)' : ''}, mint: ${demoMint}`);
-
-      // Save token to database with privacy-aware creator address
-      const token = await storage.createToken({
-        mint: demoMint,
-        name: name.trim(),
-        symbol: symbol.trim().toUpperCase(),
-        description: description?.trim() || null,
-        imageUri: imageUri || null,
-        creatorAddress: displayAddress,
-        twitter: sanitizeUrl(twitter),
-        telegram: sanitizeUrl(telegram),
-        website: sanitizeUrl(website),
-      });
-
-      console.log(`[DEMO] Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}${privacyMode ? ' [PRIVATE LAUNCH]' : ''}`);
-
-      // Auto-create a default "Will it rug?" prediction market for the token (3 day resolution)
-      try {
-        await storage.createMarket({
-          question: `Will $${token.symbol} rug?`,
-          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
-          imageUri: token.imageUri,
-          creatorAddress: displayAddress,
-          predictionType: "survival",
-          tokenMint: demoMint,
-          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-          survivalCriteria: "dev_sells",
-        });
-        console.log(`[DEMO] Auto-created "Will it rug?" market for ${token.symbol}`);
-      } catch (marketError) {
-        console.error("[DEMO] Failed to create prediction market:", marketError);
-      }
-
-      // Record token creation activity
-      try {
-        await storage.addActivity({
-          activityType: "token_created",
-          walletAddress: displayAddress,
-          tokenMint: demoMint,
-          amount: "0",
-          side: null,
-          metadata: JSON.stringify({ name: token.name, symbol: token.symbol }),
-        });
-        console.log(`[DEMO] Recorded token creation activity for ${token.symbol}`);
-      } catch (activityError) {
-        console.error("[DEMO] Failed to record creation activity:", activityError);
-      }
-
-      return res.json({
-        success: true,
-        token,
-        message: "Token created in demo mode",
-      });
-    } catch (error: any) {
-      console.error("[DEMO] Error creating token:", error);
-      return res.status(500).json({ error: "Failed to create token" });
-    }
-  });
-
   // DEVNET: Build real on-chain token creation transaction
-  app.post("/api/tokens/devnet-create", async (req, res) => {
+  app.post("/api/tokens/devnet-create", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
     try {
       const { name, symbol, creatorAddress, description, imageUri } = req.body;
 
@@ -1140,12 +1050,12 @@ export async function registerRoutes(
       });
     } catch (error: any) {
       console.error("[DEVNET] Error building token transaction:", error);
-      return res.status(500).json({ error: error.message || "Failed to build token transaction" });
+      return res.status(500).json({ error: "Failed to build token transaction" });
     }
   });
 
   // DEVNET: Confirm token creation after user signs and submits
-  app.post("/api/tokens/devnet-confirm", async (req, res) => {
+  app.post("/api/tokens/devnet-confirm", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
     try {
       const { mint, name, symbol, description, imageUri, creatorAddress, signature } = req.body;
 
@@ -1210,7 +1120,7 @@ export async function registerRoutes(
       const balance = await getDevnetBalance(address);
       return res.json({ address, balance, network: "devnet" });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1240,7 +1150,7 @@ export async function registerRoutes(
         return res.json({ wallet, mint, balance: 0, rawBalance: "0", decimals: 6, network: "devnet" });
       }
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1259,7 +1169,7 @@ export async function registerRoutes(
       
       return res.json({ success: true, signature: result.signature });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1273,7 +1183,7 @@ export async function registerRoutes(
         platformInitialized: initialized,
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1300,11 +1210,11 @@ export async function registerRoutes(
         message: "Sign this transaction to initialize the platform with your fee wallet",
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/bonding-curve/create-token", async (req, res) => {
+  app.post("/api/bonding-curve/create-token", sensitiveLimiter, requireAuthWithMatchingWallet("creator"), async (req, res) => {
     try {
       const { creator, name, symbol, uri, description } = req.body;
       
@@ -1356,11 +1266,11 @@ export async function registerRoutes(
         message: "Sign this transaction to create your token on the bonding curve",
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/bonding-curve/buy", async (req, res) => {
+  app.post("/api/bonding-curve/buy", sensitiveLimiter, requireAuthWithMatchingWallet("buyer"), async (req, res) => {
     try {
       const { buyer, mint, solAmount, minTokensOut } = req.body;
       
@@ -1381,11 +1291,11 @@ export async function registerRoutes(
         message: "Sign this transaction to buy tokens",
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/bonding-curve/sell", async (req, res) => {
+  app.post("/api/bonding-curve/sell", sensitiveLimiter, requireAuthWithMatchingWallet("seller"), async (req, res) => {
     try {
       const { seller, mint, tokenAmount, minSolOut } = req.body;
       
@@ -1406,11 +1316,11 @@ export async function registerRoutes(
         message: "Sign this transaction to sell tokens",
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
-  app.post("/api/bonding-curve/confirm-trade", sensitiveLimiter, async (req, res) => {
+  app.post("/api/bonding-curve/confirm-trade", sensitiveLimiter, requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress, tokenMint, side, amount, signature } = req.body;
       
@@ -1443,7 +1353,7 @@ export async function registerRoutes(
       return res.json({ success: true });
     } catch (error: any) {
       console.error("Error logging trade activity:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1492,7 +1402,7 @@ export async function registerRoutes(
         creator: curveData.creator,
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1516,12 +1426,12 @@ export async function registerRoutes(
         progressToGraduation: (curveData.realSolReserves / (85 * LAMPORTS_PER_SOL)) * 100,
       });
     } catch (error: any) {
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
   // Token creation endpoint - now uses PumpPortal for real on-chain deployment
-  app.post("/api/tokens/create", sensitiveLimiter, async (req, res) => {
+  app.post("/api/tokens/create", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
     try {
       const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, mintPublicKey, initialBuyAmount } = req.body;
 
@@ -1774,7 +1684,7 @@ export async function registerRoutes(
       return res.json(status);
     } catch (error: any) {
       console.error("Error getting graduation status:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1786,7 +1696,7 @@ export async function registerRoutes(
       return res.json(result);
     } catch (error: any) {
       console.error("Error graduating token:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1798,7 +1708,7 @@ export async function registerRoutes(
       return res.json(result);
     } catch (error: any) {
       console.error("Error retrying graduation:", error);
-      return res.status(500).json({ error: error.message });
+      return res.status(500).json({ error: "Internal server error" });
     }
   });
 
@@ -1911,7 +1821,7 @@ export async function registerRoutes(
   });
 
   // Step 1: Prepare market creation - builds transaction, returns pendingMarketId
-  app.post("/api/markets/prepare-create", async (req, res) => {
+  app.post("/api/markets/prepare-create", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
     try {
       const { 
         question, description, imageUri, creatorAddress, predictionType, tokenMint, resolutionDate,
@@ -2024,7 +1934,7 @@ export async function registerRoutes(
   });
 
   // Step 2: Confirm market creation - verifies signature on-chain and creates market
-  app.post("/api/markets/confirm-create", async (req, res) => {
+  app.post("/api/markets/confirm-create", sensitiveLimiter, requireAuth, async (req, res) => {
     try {
       const { pendingMarketId, signature } = req.body;
 
@@ -2481,7 +2391,7 @@ export async function registerRoutes(
   });
 
   // Resolve a prediction market and calculate payouts
-  app.post("/api/markets/:id/resolve", async (req, res) => {
+  app.post("/api/markets/:id/resolve", sensitiveLimiter, requireAuthWithMatchingWallet("resolverAddress"), async (req, res) => {
     try {
       const { id } = req.params;
       const { outcome, resolverAddress } = req.body;
