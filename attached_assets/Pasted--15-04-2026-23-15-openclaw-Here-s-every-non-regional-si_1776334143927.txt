@@ -1,0 +1,136 @@
+[15/04/2026 23:15] openclaw: Here's every non-regional side track:
+
+───
+
+$50,000 — Security Audit Credits (Adevar Labs)
+
+Not cash — audit credits for your smart contract. Adevar Labs is a Solana security firm. If you win, they audit your code for free. Best for teams with on-chain programs that need professional review before mainnet. Good to apply for but it's credits, not prize money.
+
+───
+
+$20,000 — Eitherway (Solflare/Kamino/DFlow/Quicknode)
+
+Build a live dApp using the Eitherway platform with at least one partner integration. DFlow sub-track is perfect for prediction markets (they specifically mention prediction market trading). Must deploy on mainnet. Grand prize $3K + $2K per partner track. They want apps that "still exist 30 days after submission." Prize pool went up from $11K to $20K since we last checked.
+
+───
+
+$15,000 — Encrypt & Ika (Privacy/FHE/MPC)
+
+Build using Encrypt's FHE (Fully Homomorphic Encryption) for confidential on-chain computation and/or Ika's MPC for cross-chain custody. Private prediction markets, sealed-bid auctions, confidential DeFi. Prizes: $10K / $3K / $1K / $500 / $500. SDKs on devnet.
+
+───
+
+$10,000 — Superteam IE (Ireland) 🇮🇪
+
+This is YOUR track. Superteam Ireland + Quantum Ireland partnership. Open to builders in Ireland. Should be an easy submission since you're Ireland-based.
+
+───
+
+$10,000 — Umbra (Privacy Infrastructure)
+
+Umbra is the privacy layer for Solana — confidential transfers, private balances, viewing keys, shield any asset, private swaps. They have an SDK. Build anything that integrates transactional privacy using the Umbra SDK. Similar to Encrypt but different tech.
+
+───
+
+$10,000 — RPC Fast (Infrastructure Credits)
+
+Not cash — RPC subscription credits (up to 3 months) for up to 17 teams. Free high-performance Solana RPC during and after hackathon. Worth applying for the free infra alone.
+
+───
+
+$10,000 — SuperteamNG x Raenest (Africa)
+
+African builders track. Raenest does financial rails for Africa's digital workforce. Regional — requires Africa connection.
+
+───
+
+$10,000 — La Familia (Spain/Real-World Products)
+
+Spanish Solana community. Wants real-world products with adoption potential. Need connection to Spain/Spanish-speaking regions.
+
+───
+
+$10,000 — Canada (IGWM & SuperteamCA)
+
+Canada-only. Requires Canadian location.
+
+───
+
+$6,000 — Dune Analytics (Data Sidetrack)
+
+Incorporate Dune's SIM API (real-time blockchain data) into your project. Wallet balances, token metadata, transaction history, webhook subscriptions. Prize is a $6K Dune plan. Easy integration — just use their API for on-chain analytics in your app.
+
+───
+
+$5,000 — Zerion CLI (Autonomous Agent)
+
+Build an autonomous on-chain agent using Zerion's CLI tool. Zerion is a self-custodial wallet covering 60+ EVM chains + Solana. Agent that manages portfolio, executes trades, tracks positions autonomously.
+
+───
+
+$5,000 — Privacy Track (MagicBlock)
+
+Privacy-first systems using MagicBlock's Ephemeral Rollups + Private Payments API. Private by default — data, intent, and interactions stay hidden. Think autonomous agents that transact privately.
+
+───
+
+$5,000 — SNS Identity Track
+
+Build identity on Solana using .sol domains. Social identity or agent identity. On-chain reputation, social graphs, sybil resistance. Requires registering as "Malaysia" or "Network State" on Colosseum.
+
+───
+
+$3,000 — Jupiter ("Not Your Regular Bounty")
+
+They don't want "best app built with Jupiter." They want something creative and unexpected — combine Jupiter APIs in ways they didn't design for. "If we have to sit with your submission for a minute before we realize it's genius, that's what we want."
+
+───
+
+$3,000 — GoldRush (Covalent Data)
+
+Use Covalent's GoldRush API for blockchain data across 100+ networks including Solana. Balances, transactions, pricing, NFT metadata. Single API key, no indexer needed.
+
+───
+
+$3,000 — Torque MCP (Retention/Loyalty)
+[15/04/2026 23:15] openclaw: Build with Torque's retention primitives — leaderboards, rebates, raffles, gifts. Powers teams like Raydium and Axiom. Has Sybil resistance built in. Use their MCP tools.
+
+───
+
+$2,500 — LI.FI (http://li.fi/) (Cross-chain, Germany)
+
+Universal liquidity infrastructure — cross-chain swaps via Jupiter, DFlow, bridges. Single API for swaps across 60+ chains. Germany-focused.
+
+───
+
+$2,000 — Jito Infrastructure
+
+Build on Jito's MEV and block-building stack — Bundles, ShredStream, JitoSOL, Block Assembly Marketplace. For builders who need fast, fair transaction execution.
+
+───
+
+$1,505 — KIRAPAY (Payments)
+
+Non-custodial cross-chain payment gateway. SDK & API for sending/receiving payments across chains. E-commerce, SaaS integration focus.
+
+───
+
+$900 — LPAgent.io (http://lpagent.io/) (LP Data)
+
+Meteora LP portfolio tracker API. Use their data for LP bots, trading bots, games, or portfolio trackers. Smallest prize but easy integration.
+
+───
+
+For dum.fun, the best targets:
+
+| Track             | Prize        | Effort                                    |
+| ----------------- | ------------ | ----------------------------------------- |
+| Superteam IE 🇮🇪 | $10,000      | You're in Ireland — just submit           |
+| Eitherway/DFlow   | up to $5,000 | Integrate DFlow prediction market trading |
+| Encrypt & Ika     | $15,000      | Add FHE confidential betting              |
+| Umbra             | $10,000      | Privacy layer for private bets            |
+| Jupiter           | $3,000       | Creative API combo                        |
+| Dune              | $6,000 plan  | Add analytics dashboard with their API    |
+| Audit Credits     | $50,000      | Apply — free smart contract audit         |
+
+Which ones do you want to target?
