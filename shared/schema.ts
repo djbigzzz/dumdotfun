@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, integer, timestamp, real, boolean, decimal } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, timestamp, real, boolean, decimal, numeric } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -19,9 +19,9 @@ export const tokens = pgTable("tokens", {
   description: text("description"),
   imageUri: text("image_uri"),
   creatorAddress: text("creator_address").notNull(),
-  bondingCurveProgress: real("bonding_curve_progress").notNull().default(0),
-  marketCapSol: real("market_cap_sol").notNull().default(0),
-  priceInSol: real("price_in_sol").notNull().default(0.000001),
+  bondingCurveProgress: numeric("bonding_curve_progress", { precision: 6, scale: 3 }).notNull().default("0"),
+  marketCapSol: numeric("market_cap_sol", { precision: 20, scale: 9 }).notNull().default("0"),
+  priceInSol: numeric("price_in_sol", { precision: 30, scale: 12 }).notNull().default("0.000001"),
   isGraduated: boolean("is_graduated").notNull().default(false),
   deploymentStatus: text("deployment_status").notNull().default("pending"),
   twitter: text("twitter"),
@@ -205,7 +205,7 @@ export const insertActivitySchema = createInsertSchema(activityFeed).omit({
 export const privateDeposits = pgTable("private_deposits", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletAddress: text("wallet_address").notNull(),
-  amount: real("amount").notNull(),
+  amount: numeric("amount", { precision: 20, scale: 9 }).notNull(),
   token: text("token").notNull().default("SOL"),
   signature: text("signature").notNull().unique(), // On-chain tx signature
   poolAddress: text("pool_address").notNull(),
@@ -217,7 +217,7 @@ export const privateDeposits = pgTable("private_deposits", {
 export const poolBalances = pgTable("pool_balances", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   walletAddress: text("wallet_address").notNull().unique(),
-  solBalance: real("sol_balance").notNull().default(0),
+  solBalance: numeric("sol_balance", { precision: 20, scale: 9 }).notNull().default("0"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -226,7 +226,7 @@ export const poolTransfers = pgTable("pool_transfers", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   senderAddress: text("sender_address").notNull(),
   recipientAddress: text("recipient_address").notNull(),
-  amount: real("amount").notNull(),
+  amount: numeric("amount", { precision: 20, scale: 9 }).notNull(),
   token: text("token").notNull().default("SOL"),
   transferType: text("transfer_type").notNull().default("internal"), // internal (amount hidden) or external (sender hidden)
   commitment: text("commitment"), // ZK commitment hash for verification
@@ -248,7 +248,7 @@ export const privacyActivity = pgTable("privacy_activity", {
   walletAddress: text("wallet_address").notNull(),
   activityType: text("activity_type").notNull(), // shadowwire, stealth, token2022, arcium, deposit, withdraw
   description: text("description").notNull(),
-  amount: real("amount"),
+  amount: numeric("amount", { precision: 20, scale: 9 }),
   token: text("token"),
   status: text("status").notNull(), // success, pending, failed
   txSignature: text("tx_signature"),

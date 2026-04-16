@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useMemo, ReactNode, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Connection, clusterApiUrl, Transaction } from "@solana/web3.js";
+import { setSessionToken, getSessionToken } from "./queryClient";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
 import { toast } from "sonner";
@@ -76,6 +77,56 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   }, [shouldUseMobileAdapter]);
 
+  // ===== Sign-In-With-Solana =====
+  // Signs a server-issued nonce with the user's wallet and exchanges it for
+  // a session token. The session token is sent as `Authorization: Bearer ...`
+  // on subsequent API calls (see queryClient.ts).
+  const signInWithSolana = useCallback(
+    async (walletAddress: string, signer: (msg: Uint8Array) => Promise<Uint8Array>) => {
+      const nonceRes = await fetch("/api/auth/nonce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress }),
+      });
+      if (!nonceRes.ok) throw new Error("Failed to fetch nonce");
+      const { message } = await nonceRes.json();
+      const sigBytes = await signer(new TextEncoder().encode(message));
+      const sigB64 = btoa(String.fromCharCode(...Array.from(sigBytes)));
+      const verifyRes = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress, signature: sigB64 }),
+      });
+      if (!verifyRes.ok) {
+        const t = await verifyRes.text();
+        throw new Error(`Verify failed: ${t}`);
+      }
+      const { sessionToken } = await verifyRes.json();
+      setSessionToken(sessionToken);
+      return sessionToken as string;
+    },
+    [],
+  );
+
+  const ensureValidSession = useCallback(
+    async (walletAddress: string, signer: (msg: Uint8Array) => Promise<Uint8Array>) => {
+      const existing = getSessionToken();
+      if (existing) {
+        try {
+          const me = await fetch("/api/auth/me", { headers: { Authorization: `Bearer ${existing}` } });
+          if (me.ok) {
+            const data = await me.json();
+            if (data?.walletAddress === walletAddress) return existing;
+          }
+        } catch {
+          /* fall through to re-auth */
+        }
+      }
+      return signInWithSolana(walletAddress, signer);
+    },
+    [signInWithSolana],
+  );
+
   useEffect(() => {
     const checkPhantom = async () => {
       if (window.solana?.isPhantom) {
@@ -83,15 +134,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         // Auto-reconnect if Phantom already has a trusted session
         if (window.solana.publicKey) {
           const walletAddress = window.solana.publicKey.toString();
-          try {
-            await fetch("/api/users/connect", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ walletAddress }),
-            });
-          } catch (err) {
-            console.error("Failed to sync user on load:", err);
-          }
+          // Don't force a re-sign on page load — wait until the user takes
+          // an action that needs auth, or until they explicitly reconnect.
           setConnectedWallet(walletAddress);
         }
       }
@@ -110,10 +154,13 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch("/api/users/connect", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          ...(getSessionToken() ? { Authorization: `Bearer ${getSessionToken()}` } : {}),
+        },
         body: JSON.stringify({ walletAddress, referralCode }),
       });
-      
+
       if (res.ok) {
         try {
           const data = await res.json();
@@ -127,6 +174,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         } catch {
           queryClient.invalidateQueries({ queryKey: ["user", walletAddress] });
         }
+      } else if (res.status === 401) {
+        console.warn("[connect] not authenticated yet — session will be created on next sign-in");
       }
     } catch (err) {
       console.error("Failed to create user:", err);
@@ -139,6 +188,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       try {
         const response = await window.solana.connect({ onlyIfTrusted: false });
         const walletAddress = response.publicKey.toString();
+        // SIWS: sign nonce -> get session token -> then sync user
+        try {
+          await ensureValidSession(walletAddress, async (msg) => {
+            const r = await window.solana!.signMessage(msg);
+            return r.signature;
+          });
+        } catch (e: any) {
+          console.error("[SIWS] sign-in failed:", e);
+          toast.error("Sign-in cancelled. Wallet connected but you'll need to sign in to earn points.");
+        }
         await syncUserToDatabase(walletAddress, referralCode);
         setConnectedWallet(walletAddress);
         toast.success("Wallet connected!", { duration: 2500 });
@@ -159,6 +218,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         await mobileAdapter.connect();
         if (mobileAdapter.publicKey) {
           const walletAddress = mobileAdapter.publicKey.toBase58();
+          try {
+            await ensureValidSession(walletAddress, async (msg) => {
+              return await mobileAdapter.signMessage(msg);
+            });
+          } catch (e: any) {
+            console.error("[SIWS] mobile sign-in failed:", e);
+            toast.error("Sign-in cancelled.");
+          }
           await syncUserToDatabase(walletAddress, referralCode);
           setConnectedWallet(walletAddress);
           setIsMobileWallet(true);
@@ -256,6 +323,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         console.error("Error disconnecting:", err);
       }
     }
+    // Clear SIWS session
+    try {
+      const tok = getSessionToken();
+      if (tok) {
+        await fetch("/api/auth/logout", { method: "POST", headers: { Authorization: `Bearer ${tok}` } });
+      }
+    } catch (err) {
+      console.error("Logout request failed:", err);
+    }
+    setSessionToken(null);
     setConnectedWallet(null);
     setIsMobileWallet(false);
   };

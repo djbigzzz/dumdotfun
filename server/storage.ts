@@ -164,9 +164,9 @@ export class DatabaseStorage implements IStorage {
       twitter: insertToken.twitter ?? null,
       telegram: insertToken.telegram ?? null,
       website: insertToken.website ?? null,
-      bondingCurveProgress: 0,
-      marketCapSol: 0,
-      priceInSol: 0.000001,
+      bondingCurveProgress: "0",
+      marketCapSol: "0",
+      priceInSol: "0.000001",
       isGraduated: false,
     }).returning();
     return token;

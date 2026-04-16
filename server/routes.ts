@@ -20,6 +20,7 @@ import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } f
 import * as bondingCurve from "./bonding-curve-client";
 import { detectMarketCriteria } from "./services/token-health";
 import rateLimit from "express-rate-limit";
+import { attachSession, requireAuth, requireAuthWithMatchingWallet, createNonce, verifyAndCreateSession, buildSiwsMessage, destroySession } from "./auth";
 
 const generalLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -69,6 +70,54 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   app.use("/api/", generalLimiter);
+  app.use("/api/", attachSession);
+
+  // ===== Sign-In-With-Solana (SIWS) =====
+  app.post("/api/auth/nonce", sensitiveLimiter, async (req, res) => {
+    try {
+      const { walletAddress } = req.body || {};
+      if (!walletAddress || typeof walletAddress !== "string" || !isValidSolanaAddress(walletAddress)) {
+        return res.status(400).json({ error: "Valid walletAddress required" });
+      }
+      const nonce = createNonce(walletAddress);
+      return res.json({ nonce, message: buildSiwsMessage(walletAddress, nonce) });
+    } catch (e: any) {
+      console.error("[auth] nonce error:", e);
+      return res.status(500).json({ error: "Failed to issue nonce" });
+    }
+  });
+
+  app.post("/api/auth/verify", sensitiveLimiter, async (req, res) => {
+    try {
+      const { walletAddress, signature } = req.body || {};
+      if (!walletAddress || typeof walletAddress !== "string" || !isValidSolanaAddress(walletAddress)) {
+        return res.status(400).json({ error: "Valid walletAddress required" });
+      }
+      if (!signature || typeof signature !== "string") {
+        return res.status(400).json({ error: "signature required (base64)" });
+      }
+      const result = verifyAndCreateSession(walletAddress, signature);
+      if ("error" in result) return res.status(401).json(result);
+      return res.json({ sessionToken: result.token, expiresAt: result.expiresAt, walletAddress });
+    } catch (e: any) {
+      console.error("[auth] verify error:", e);
+      return res.status(500).json({ error: "Failed to verify signature" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const h = req.headers["authorization"];
+      if (typeof h === "string" && h.startsWith("Bearer ")) destroySession(h.slice(7).trim());
+      return res.json({ ok: true });
+    } catch {
+      return res.json({ ok: true });
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    return res.json({ walletAddress: req.authedWallet ?? null });
+  });
 
   // SEO: Dynamic sitemap
   app.get("/sitemap.xml", async (_req, res) => {
@@ -340,7 +389,7 @@ export async function registerRoutes(
   });
 
 
-  app.post("/api/users/connect", async (req, res) => {
+  app.post("/api/users/connect", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress, referralCode } = req.body;
 
@@ -567,8 +616,8 @@ export async function registerRoutes(
       
       const tokensWithMarketCap = await Promise.all(
         tokensCreated.map(async (t) => {
-          let marketCapSol = t.marketCapSol || 0;
-          let virtualSolReserves = t.virtualSolReserves || 30;
+          let marketCapSol: number = Number(t.marketCapSol) || 0;
+          let virtualSolReserves: number = Number(t.virtualSolReserves) || 30;
           
           try {
             const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(t.mint));
@@ -584,7 +633,7 @@ export async function registerRoutes(
             symbol: t.symbol,
             imageUri: t.imageUri,
             marketCapSol: marketCapSol > 0 ? marketCapSol : virtualSolReserves,
-            priceInSol: t.priceInSol || 0.000001,
+            priceInSol: Number(t.priceInSol) || 0.000001,
           };
         })
       );
@@ -2987,7 +3036,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/points/daily-login", async (req, res) => {
+  app.post("/api/points/daily-login", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress } = req.body;
       if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
@@ -2999,7 +3048,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/checkin", async (req, res) => {
+  app.post("/api/checkin", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress } = req.body;
       if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
@@ -3052,7 +3101,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/points/claim-quest", async (req, res) => {
+  app.post("/api/points/claim-quest", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress, questAction } = req.body;
       if (!walletAddress || !questAction) return res.status(400).json({ error: "walletAddress and questAction required" });
@@ -3065,7 +3114,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/points/claim-og", async (req, res) => {
+  app.post("/api/points/claim-og", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
       const { walletAddress } = req.body;
       if (!walletAddress) return res.status(400).json({ error: "walletAddress required" });
