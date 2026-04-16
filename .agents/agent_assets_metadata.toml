@@ -11,3 +11,9 @@ id = "fWH7X3C_4Ql-CV1SY839v"
 uri = "file://grant-application/superteam-agentic-grant-response.md"
 type = "text"
 title = "Superteam Grant — AI Session Response File"
+
+[[outputs]]
+id = "kgoYArl0Qytl1H2JUNF2B"
+uri = "file://client/public/pitch/dum-fun-pitch.pptx"
+type = "slides"
+title = "dum.fun Pitch Deck — Colosseum Frontier 2026"
