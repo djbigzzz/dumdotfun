@@ -1,7 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
 import { Coins, Flame, Plus, User, Trophy, Star } from "lucide-react";
-import { useWallet } from "@/lib/wallet-context";
 
 const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins },
@@ -14,7 +13,6 @@ const navItems = [
 
 export function MobileBottomNav() {
   const [location] = useLocation();
-  const { connectedWallet } = useWallet();
 
   const isActive = (path: string) => {
     if (path === "/tokens" && (location === "/" || location === "/tokens")) return true;
@@ -31,10 +29,6 @@ export function MobileBottomNav() {
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = item.icon;
-
-          if (item.path === "/profile" && !connectedWallet) {
-            return null;
-          }
 
           return (
             <Link key={item.path} href={item.path}>

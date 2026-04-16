@@ -261,6 +261,18 @@ export default function TokenPage() {
     refetchInterval: 10000,
   });
 
+  const { data: solBalanceData } = useQuery<{ balance: number }>({
+    queryKey: ["devnetBalance", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/devnet/balance/${connectedWallet}`);
+      if (!res.ok) return { balance: 0 };
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+    refetchInterval: 15000,
+  });
+  const solBalance = solBalanceData?.balance ?? null;
+
   const { data: graduationStatus } = useQuery<{
     isGraduated: boolean;
     graduationStatus: string;
@@ -1126,7 +1138,16 @@ export default function TokenPage() {
               <div className="grid grid-cols-4 gap-2 mb-4">
                 {tradeType === "buy" ? (
                   ["0.1", "0.5", "1", "Max"].map((amt) => (
-                    <button key={amt} onClick={() => amt === "Max" ? setTradeAmount("1") : setTradeAmount(amt)} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                    <button key={amt} onClick={() => {
+                      if (amt === "Max") {
+                        // Use wallet SOL balance, leaving a small buffer for fees
+                        const bal = solBalance ?? 0;
+                        const usable = Math.max(0, bal - 0.01);
+                        setTradeAmount(usable.toFixed(4));
+                      } else {
+                        setTradeAmount(amt);
+                      }
+                    }} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
                       {amt === "Max" ? amt : `${amt}`}
                     </button>
                   ))

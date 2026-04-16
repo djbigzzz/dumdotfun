@@ -72,7 +72,7 @@ const CAT_CONFIG: Record<string, { label: string; color: string; bg: string; emo
 
 const QUEST_ACTIONS: Record<string, { label: string; href: string }> = {
   first_trade:  { label: "Trade now",   href: "/tokens" },
-  first_bet:    { label: "Bet now",     href: "/predictions" },
+  first_bet:    { label: "Bet now",     href: "/tokens" },
   first_token:  { label: "Create now",  href: "/create" },
   first_win:    { label: "View tokens", href: "/tokens" },
   first_market: { label: "Create market", href: "/create-market" },

@@ -11,7 +11,6 @@ import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
-import { isDFlowConfigured, hasDFlowApiKey, getDFlowStatus, fetchEvents, fetchMarkets, fetchMarketByTicker, fetchOrderbook, fetchTrades, searchEvents, getSwapQuote, formatEventForDisplay, formatMarketForDisplay } from "./dflow";
 import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
 import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
 
@@ -373,7 +372,7 @@ export async function registerRoutes(
           if (connectResult.awarded) pointsAwarded.push({ action: "connect_wallet", points: connectResult.points });
           const dailyResult = await awardDailyLogin(walletAddress);
           if (dailyResult.awarded) pointsAwarded.push({ action: "daily_login", points: dailyResult.points });
-        } catch {}
+        } catch (e) { console.error("[points] connect/daily award failed:", e); }
         return res.json({ ...existing, referralCount, pointsAwarded });
       }
 
@@ -383,7 +382,7 @@ export async function registerRoutes(
         const { awardQuest } = await import("./services/points");
         const r = await awardQuest(walletAddress, "connect_wallet");
         if (r.awarded) pointsAwarded.push({ action: "connect_wallet", points: r.points });
-      } catch {}
+      } catch (e) { console.error("[points] connect_wallet award failed:", e); }
       return res.json({ ...newUser, referralCount: 0, pointsAwarded });
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
@@ -577,7 +576,7 @@ export async function registerRoutes(
               virtualSolReserves = Number(curveData.virtualSolReserves) / 1e9;
               marketCapSol = virtualSolReserves;
             }
-          } catch {}
+          } catch (e) { console.warn(`[curve] failed to fetch curve data for ${t.mint}:`, (e as Error).message); }
           
           return {
             mint: t.mint,
@@ -692,7 +691,7 @@ export async function registerRoutes(
         const { awardQuest } = await import("./services/points");
         const r = await awardQuest(walletAddress, "first_trade");
         if (r.awarded) pointsAwarded.push({ action: "first_trade", points: r.points });
-      } catch {}
+      } catch (e) { console.error("[points] first_trade award failed:", e); }
 
       if (side === "buy") {
         try {
@@ -1141,7 +1140,7 @@ export async function registerRoutes(
       try {
         const { awardQuest } = await import("./services/points");
         await awardQuest(creatorAddress, "first_token");
-      } catch {}
+      } catch (e) { console.error("[points] first_token award failed:", e); }
 
       return res.json({
         success: true,
@@ -2095,7 +2094,7 @@ export async function registerRoutes(
         const { awardQuest } = await import("./services/points");
         await awardQuest(pendingMarket.creatorAddress, "first_market");
         await awardQuest(pendingMarket.creatorAddress, "first_bet");
-      } catch {}
+      } catch (e) { console.error("[points] first_market/first_bet award failed:", e); }
 
       // Use actual pool values from the created market
       const actualYesPool = Number(market.yesPool);
@@ -2408,7 +2407,7 @@ export async function registerRoutes(
       try {
         const { awardQuest } = await import("./services/points");
         await awardQuest(pendingBet.walletAddress, "first_bet");
-      } catch {}
+      } catch (e) { console.error("[points] first_bet award failed:", e); }
 
       return res.json({
         success: true,
@@ -2946,138 +2945,6 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching fees:", error);
       return res.status(500).json({ error: "Failed to fetch fee info" });
-    }
-  });
-
-  // DFlow Prediction Markets API
-  app.get("/api/dflow/status", async (req, res) => {
-    return res.json(getDFlowStatus());
-  });
-
-  app.get("/api/dflow/events", async (req, res) => {
-    try {
-
-      const { limit, cursor, status, sort } = req.query;
-      const result = await fetchEvents({
-        limit: limit ? parseInt(limit as string) : 20,
-        cursor: cursor ? parseInt(cursor as string) : undefined,
-        status: status as string,
-        sort: sort as any,
-        withNestedMarkets: true,
-      });
-
-      return res.json({
-        events: result.events.map(formatEventForDisplay),
-        cursor: result.cursor,
-        configured: true,
-      });
-    } catch (error: any) {
-      console.error("Error fetching DFlow events:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/dflow/markets", async (req, res) => {
-    try {
-
-      const { limit, cursor, status, sort } = req.query;
-      const result = await fetchMarkets({
-        limit: limit ? parseInt(limit as string) : 20,
-        cursor: cursor ? parseInt(cursor as string) : undefined,
-        status: status as string,
-        sort: sort as any,
-      });
-
-      return res.json({
-        markets: result.markets.map(formatMarketForDisplay),
-        cursor: result.cursor,
-        configured: true,
-      });
-    } catch (error: any) {
-      console.error("Error fetching DFlow markets:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/dflow/markets/:ticker", async (req, res) => {
-    try {
-
-      const market = await fetchMarketByTicker(req.params.ticker);
-      if (!market) {
-        return res.status(404).json({ error: "Market not found" });
-      }
-
-      return res.json(formatMarketForDisplay(market));
-    } catch (error: any) {
-      console.error("Error fetching DFlow market:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/dflow/orderbook/:ticker", async (req, res) => {
-    try {
-
-      const orderbook = await fetchOrderbook(req.params.ticker);
-      if (!orderbook) {
-        return res.status(404).json({ error: "Orderbook not available" });
-      }
-
-      return res.json(orderbook);
-    } catch (error: any) {
-      console.error("Error fetching DFlow orderbook:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/dflow/trades/:ticker", async (req, res) => {
-    try {
-
-      const { limit, cursor } = req.query;
-      const result = await fetchTrades(req.params.ticker, {
-        limit: limit ? parseInt(limit as string) : 50,
-        cursor: cursor ? parseInt(cursor as string) : undefined,
-      });
-
-      return res.json(result);
-    } catch (error: any) {
-      console.error("Error fetching DFlow trades:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  app.get("/api/dflow/search", async (req, res) => {
-    try {
-      const { q } = req.query;
-      if (!q || typeof q !== "string") {
-        return res.status(400).json({ error: "Query parameter 'q' is required" });
-      }
-      const events = await searchEvents(q);
-      return res.json({ events: events.map(formatEventForDisplay) });
-    } catch (error: any) {
-      console.error("Error searching DFlow:", error);
-      return res.status(500).json({ error: error.message });
-    }
-  });
-
-  // MEV-protected swap quote via DFlow (Eitherway track)
-  app.get("/api/dflow/quote", async (req, res) => {
-    try {
-      const { inputMint, outputMint, amount, userPublicKey, slippageBps } = req.query;
-      if (!inputMint || !outputMint || !amount || !userPublicKey) {
-        return res.status(400).json({ error: "inputMint, outputMint, amount, userPublicKey are required" });
-      }
-      const quote = await getSwapQuote({
-        inputMint: inputMint as string,
-        outputMint: outputMint as string,
-        amount: Number(amount),
-        userPublicKey: userPublicKey as string,
-        slippageBps: slippageBps ? Number(slippageBps) : 50,
-      });
-      if (!quote) return res.status(503).json({ error: "DFlow quote unavailable" });
-      return res.json(quote);
-    } catch (error: any) {
-      console.error("DFlow quote error:", error);
-      return res.status(500).json({ error: error.message });
     }
   });
 

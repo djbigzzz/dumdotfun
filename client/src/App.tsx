@@ -17,8 +17,6 @@ const TokenPage = lazy(() => import("@/pages/token"));
 const CreateToken = lazy(() => import("@/pages/create"));
 const CreateMarket = lazy(() => import("@/pages/create-market"));
 const MarketDetail = lazy(() => import("@/pages/market"));
-const PredictionDetail = lazy(() => import("@/pages/prediction-detail"));
-const PredictionsPage = lazy(() => import("@/pages/predictions"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 const AdminPage = lazy(() => import("@/pages/admin"));
 const TrendingPage = lazy(() => import("@/pages/trending"));
@@ -56,8 +54,6 @@ function Router() {
       <Switch>
         <Route path="/" component={TokensPage} />
         <Route path="/tokens" component={TokensPage} />
-        <Route path="/predictions" component={PredictionsPage} />
-        <Route path="/prediction/:ticker" component={PredictionDetail} />
         <Route path="/docs" component={DocsPage} />
         <Route path="/admin" component={AdminPage} />
         <Route path="/profile" component={Profile} />
