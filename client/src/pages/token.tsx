@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
@@ -134,7 +135,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const [, setLocation] = useLocation();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession } = useWallet();
   const privateMode = false;
   const queryClient = useQueryClient();
   const [tokenTitle, setTokenTitle] = useState<string | undefined>();
@@ -496,23 +497,31 @@ export default function TokenPage() {
       const amountInBaseUnits = isBuy
         ? Math.floor(amount * 1e9).toString()
         : Math.floor(amount * 1e6).toString();
-      
-      const buildResponse = await fetch("/api/trade/build", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+
+      try {
+        await ensureSession();
+      } catch (e: any) {
+        toast.error(e?.message || "Wallet sign-in required");
+        return;
+      }
+
+      let buildResult: any;
+      try {
+        const buildResponse = await apiRequest("POST", "/api/trade/build", {
           userWallet: connectedWallet,
           tokenMint: token.mint,
           amount: amountInBaseUnits,
           isBuy,
           slippageBps: 500,
-        }),
-      });
-      
-      const buildResult = await buildResponse.json();
-      
-      if (!buildResult.success || !buildResult.transaction) {
-        toast.error(buildResult.error || "Failed to build transaction");
+        });
+        buildResult = await buildResponse.json();
+      } catch (err: any) {
+        toast.error(err?.message || "Failed to build transaction");
+        return;
+      }
+
+      if (!buildResult?.success || !buildResult?.transaction) {
+        toast.error(buildResult?.error || "Failed to build transaction");
         return;
       }
       
@@ -537,18 +546,14 @@ export default function TokenPage() {
       
       toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
       
-      const recordRes = await fetch("/api/trade/record", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      try {
+        const recordRes = await apiRequest("POST", "/api/trade/record", {
           walletAddress: connectedWallet,
           tokenMint: token.mint,
           amount: tradeAmount,
           side: isBuy ? "buy" : "sell",
           signature,
-        }),
-      });
-      try {
+        });
         const recordData = await recordRes.json();
         if (recordData.pointsAwarded && Array.isArray(recordData.pointsAwarded)) {
           for (const p of recordData.pointsAwarded) {
