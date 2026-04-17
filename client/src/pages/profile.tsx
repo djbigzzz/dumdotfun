@@ -278,14 +278,9 @@ export default function Profile() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/points/claim-og", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to activate OG Card");
-      return result;
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/points/claim-og", { walletAddress: connectedWallet });
+      return res.json();
     },
     onSuccess: (data) => {
       toast.success(data.message || "OG Card activated!");

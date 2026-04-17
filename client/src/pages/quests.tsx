@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
@@ -104,7 +105,7 @@ function getDefaultQuests(category: string): QuestDef[] {
 
 export default function QuestsPage() {
   usePageTitle("/quests");
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession } = useWallet();
   const queryClient = useQueryClient();
   const [isConnecting, setIsConnecting] = useState(false);
   const [claiming, setClaiming] = useState(false);
@@ -123,14 +124,9 @@ export default function QuestsPage() {
 
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/points/claim-og", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
-      });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.message || "Failed to activate OG Card");
-      return result;
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/points/claim-og", { walletAddress: connectedWallet });
+      return res.json();
     },
     onSuccess: (data) => {
       toast.success(data.message || "OG Card activated!");
@@ -143,14 +139,9 @@ export default function QuestsPage() {
 
   const claimQuestMutation = useMutation({
     mutationFn: async (questAction: string) => {
-      const res = await fetch("/api/points/claim-quest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, questAction }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to claim");
-      return data;
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/points/claim-quest", { walletAddress: connectedWallet, questAction });
+      return res.json();
     },
     onSuccess: (data) => {
       if (data.awarded) {
@@ -174,11 +165,8 @@ export default function QuestsPage() {
     if (!connectedWallet || claiming) return;
     setClaiming(true);
     try {
-      const res = await fetch("/api/points/daily-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
-      });
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/points/daily-login", { walletAddress: connectedWallet });
       const data = await res.json();
       if (data.awarded) {
         setClaimed(true);

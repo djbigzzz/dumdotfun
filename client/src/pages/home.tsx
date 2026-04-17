@@ -2,6 +2,7 @@ import { Layout } from "@/components/layout";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Copy, Check, Users, Rocket, Zap, TrendingUp, Target, Clock, ChevronRight, Flame, CalendarCheck, Trophy, Star } from "lucide-react";
@@ -200,7 +201,7 @@ function QuestsTeaser() {
 }
 
 function DailyCheckInBanner() {
-  const { connectedWallet } = useWallet();
+  const { connectedWallet, ensureSession } = useWallet();
   const queryClient = useQueryClient();
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
@@ -234,11 +235,8 @@ function DailyCheckInBanner() {
     if (!connectedWallet || claiming) return;
     setClaiming(true);
     try {
-      const res = await fetch("/api/points/daily-login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet }),
-      });
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/points/daily-login", { walletAddress: connectedWallet });
       const data = await res.json();
       if (data.awarded) {
         setPointsAwarded(data.points);

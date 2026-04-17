@@ -338,22 +338,16 @@ export default function TokenPage() {
         throw new Error("Phantom wallet not found");
       }
 
-      // Step 1: Prepare bet (get transaction to sign)
-      const prepareRes = await fetch(`/api/markets/${marketId}/prepare-bet`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: connectedWallet,
-          side,
-          amount,
-        }),
-      });
-      
-      if (!prepareRes.ok) {
-        const errorData = await prepareRes.json();
-        throw new Error(errorData.error || "Failed to prepare bet");
+      try { await ensureSession(); } catch (e: any) {
+        throw new Error(e?.message || "Wallet sign-in required");
       }
-      
+
+      // Step 1: Prepare bet (get transaction to sign)
+      const prepareRes = await apiRequest("POST", `/api/markets/${marketId}/prepare-bet`, {
+        walletAddress: connectedWallet,
+        side,
+        amount,
+      });
       const { transaction: txBase64, betId } = await prepareRes.json();
 
       // Step 2: Sign transaction with Phantom
@@ -379,17 +373,7 @@ export default function TokenPage() {
       await connection.confirmTransaction(signature, "confirmed");
 
       // Step 4: Confirm bet with server
-      const confirmRes = await fetch(`/api/markets/${marketId}/confirm-bet`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ betId, signature }),
-      });
-      
-      if (!confirmRes.ok) {
-        const errorData = await confirmRes.json();
-        throw new Error(errorData.error || "Failed to confirm bet");
-      }
-      
+      const confirmRes = await apiRequest("POST", `/api/markets/${marketId}/confirm-bet`, { betId, signature });
       return confirmRes.json();
     },
     onSuccess: (_, variables) => {
