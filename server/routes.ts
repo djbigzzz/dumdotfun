@@ -1866,6 +1866,22 @@ export async function registerRoutes(
 
       const totalCost = CREATION_FEE + betAmount;
 
+      // Guard against misconfiguration: if FEE_RECIPIENT_WALLET equals the
+      // creator, the on-chain transfer becomes a self-transfer and the
+      // confirm step's balance-delta check will (correctly) reject it. Fail
+      // fast here with a clear message instead of letting the user pay gas
+      // for a transaction that can never be verified.
+      try {
+        const feeRecipientCheck = getFeeRecipientWallet();
+        if (feeRecipientCheck.toBase58() === creatorAddress) {
+          return res.status(500).json({
+            error: "Server misconfiguration: FEE_RECIPIENT_WALLET is set to your own wallet. Ask the operator to set it to a different address.",
+          });
+        }
+      } catch (e: any) {
+        return res.status(500).json({ error: e?.message || "Fee recipient not configured" });
+      }
+
       // Build transaction for the total cost (creation fee + initial bet)
       let blockhash: string;
       try {
