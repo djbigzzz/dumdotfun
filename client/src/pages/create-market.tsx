@@ -5,6 +5,7 @@ import { useMutation } from "@tanstack/react-query";
 import { useLocation, useSearch } from "wouter";
 import { Target, Calendar, AlertCircle, CheckCircle, Loader2, ArrowLeft, Coins, Scale } from "lucide-react";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 import { Link } from "wouter";
 
 const CRITERIA_OPTIONS = [
@@ -76,7 +77,7 @@ interface MarketFormData {
 export default function CreateMarket() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession } = useWallet();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   
@@ -129,26 +130,18 @@ export default function CreateMarket() {
   const createMarketMutation = useMutation({
     mutationFn: async (data: MarketFormData) => {
       // Step 1: Prepare market creation (get transaction to sign)
-      const prepareResponse = await fetch("/api/markets/prepare-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          question: data.question,
-          description: data.description,
-          tokenMint: data.tokenMint,
-          resolutionDate: data.resolutionDate,
-          creatorAddress: publicKey,
-          initialBetSide: data.initialBetSide,
-          initialBetAmount: data.initialBetAmount,
-          criteria: data.criteria,
-        }),
+      await ensureSession();
+      const prepareResponse = await apiRequest("POST", "/api/markets/prepare-create", {
+        question: data.question,
+        description: data.description,
+        tokenMint: data.tokenMint,
+        resolutionDate: data.resolutionDate,
+        creatorAddress: publicKey,
+        initialBetSide: data.initialBetSide,
+        initialBetAmount: data.initialBetAmount,
+        criteria: data.criteria,
       });
-      
-      if (!prepareResponse.ok) {
-        const errorData = await prepareResponse.json();
-        throw new Error(errorData.error || "Failed to prepare market creation");
-      }
-      
+
       const prepareData = await prepareResponse.json();
       const { pendingMarketId, transaction, totalCost: cost } = prepareData;
 
@@ -181,20 +174,11 @@ export default function CreateMarket() {
       await connection.confirmTransaction(signature, "confirmed");
 
       // Step 4: Confirm market creation with server
-      const confirmResponse = await fetch("/api/markets/confirm-create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          pendingMarketId,
-          signature,
-        }),
+      const confirmResponse = await apiRequest("POST", "/api/markets/confirm-create", {
+        pendingMarketId,
+        signature,
       });
-      
-      if (!confirmResponse.ok) {
-        const errorData = await confirmResponse.json();
-        throw new Error(errorData.error || "Failed to confirm market creation");
-      }
-      
+
       return confirmResponse.json();
     },
     onSuccess: (data) => {

@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
@@ -29,7 +30,7 @@ interface CreatedToken {
 export default function CreateToken() {
   usePageTitle("/create");
   const privateMode = false;
-  const { connectedWallet, connectWallet } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession } = useWallet();
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -123,26 +124,30 @@ export default function CreateToken() {
         throw new Error("Minimum dev buy is 0.2 SOL");
       }
 
+      setCreationStep("Signing in with wallet...");
+      try {
+        await ensureSession();
+      } catch (e: any) {
+        throw new Error(e?.message || "Wallet sign-in required to deploy");
+      }
+
       setCreationStep("Uploading image & building transaction...");
-      
-      const buildRes = await fetch("/api/bonding-curve/create-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+
+      let buildRes: Response;
+      try {
+        buildRes = await apiRequest("POST", "/api/bonding-curve/create-token", {
           creator: connectedWallet,
           name: formData.name,
           symbol: formData.symbol,
           description: formData.description || "",
           uri: imagePreview || "",
-        }),
-      });
-
-      if (!buildRes.ok) {
-        const error = await buildRes.json();
-        if (error.needsInit) {
+        });
+      } catch (err: any) {
+        const msg = err?.message || "Failed to build transaction";
+        if (msg.includes("needsInit")) {
           throw new Error("Platform not initialized. Contact platform admin to initialize the bonding curve.");
         }
-        throw new Error(error.error || "Failed to build transaction");
+        throw new Error(msg);
       }
 
       const { transaction: txBase64, mint } = await buildRes.json();
@@ -185,21 +190,12 @@ export default function CreateToken() {
       
       setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
       
-      const buyRes = await fetch("/api/bonding-curve/buy", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          buyer: connectedWallet,
-          mint: mint,
-          solAmount: devBuySol.toString(),
-          minTokensOut: "0",
-        }),
+      const buyRes = await apiRequest("POST", "/api/bonding-curve/buy", {
+        buyer: connectedWallet,
+        mint: mint,
+        solAmount: devBuySol.toString(),
+        minTokensOut: "0",
       });
-
-      if (!buyRes.ok) {
-        const error = await buyRes.json();
-        throw new Error(error.error || "Failed to build dev buy transaction");
-      }
 
       const { transaction: buyTxBase64 } = await buyRes.json();
       
@@ -216,37 +212,24 @@ export default function CreateToken() {
       
       setCreationStep("Saving token to database...");
       
-      const confirmRes = await fetch("/api/tokens/devnet-confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          mint,
-          name: formData.name,
-          symbol: formData.symbol,
-          description: formData.description || null,
-          imageUri: imagePreview || null,
-          creatorAddress: connectedWallet,
-          signature,
-        }),
+      const confirmRes = await apiRequest("POST", "/api/tokens/devnet-confirm", {
+        mint,
+        name: formData.name,
+        symbol: formData.symbol,
+        description: formData.description || null,
+        imageUri: imagePreview || null,
+        creatorAddress: connectedWallet,
+        signature,
       });
 
-      if (!confirmRes.ok) {
-        const error = await confirmRes.json();
-        throw new Error(error.error || "Failed to confirm token");
-      }
-
       const { token } = await confirmRes.json();
-      
-      await fetch("/api/bonding-curve/confirm-trade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          walletAddress: connectedWallet,
-          tokenMint: mint,
-          side: "buy",
-          amount: devBuySol,
-          signature: buySignature,
-        }),
+
+      await apiRequest("POST", "/api/bonding-curve/confirm-trade", {
+        walletAddress: connectedWallet,
+        tokenMint: mint,
+        side: "buy",
+        amount: devBuySol,
+        signature: buySignature,
       });
       
       setCreationStep("Token launched with dev buy!");

@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
+import { apiRequest } from "@/lib/queryClient";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -138,7 +139,7 @@ type QuestFilter = "all" | "in_progress" | "completed";
 export default function Profile() {
   usePageTitle("/profile");
   const privateMode = false;
-  const { connectedWallet, disconnectWallet, connectWallet } = useWallet();
+  const { connectedWallet, disconnectWallet, connectWallet, ensureSession } = useWallet();
   const [, setLocation] = useLocation();
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
@@ -160,12 +161,10 @@ export default function Profile() {
     setIsSelling(true);
     try {
       const tokenAmount = (sellToken.balance * sellPct) / 100;
-      const res = await fetch("/api/bonding-curve/sell", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ seller: connectedWallet, mint: sellToken.mint, tokenAmount: tokenAmount.toString(), minSolOut: "0" }),
+      await ensureSession();
+      const res = await apiRequest("POST", "/api/bonding-curve/sell", {
+        seller: connectedWallet, mint: sellToken.mint, tokenAmount: tokenAmount.toString(), minSolOut: "0",
       });
-      if (!res.ok) { const e = await res.json(); throw new Error(e.error || "Failed to build sell transaction"); }
 
       const { transaction: txBase64 } = await res.json();
       const txBytes = Buffer.from(txBase64, "base64");

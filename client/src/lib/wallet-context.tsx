@@ -45,6 +45,7 @@ interface WalletContextType {
   signAndSendTransaction: (transaction: any) => Promise<string>;
   getPublicKey: () => any;
   disconnectWallet: () => Promise<void>;
+  ensureSession: () => Promise<string>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -337,6 +338,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     setIsMobileWallet(false);
   };
 
+  // Public helper: any gated mutation should `await ensureSession()` before
+  // calling a `requireAuth` endpoint. This handles the case where Phantom
+  // auto-reconnected on page load but no SIWS session exists yet.
+  const ensureSession = useCallback(async (): Promise<string> => {
+    if (!connectedWallet) {
+      throw new Error("Connect your wallet first");
+    }
+    const signer = async (msg: Uint8Array): Promise<Uint8Array> => {
+      if (isMobileWallet && mobileAdapter) {
+        return await mobileAdapter.signMessage(msg);
+      }
+      if (!window.solana?.isPhantom) {
+        throw new Error("Phantom wallet not available");
+      }
+      const r = await window.solana.signMessage(msg);
+      return r.signature;
+    };
+    return ensureValidSession(connectedWallet, signer);
+  }, [connectedWallet, isMobileWallet, mobileAdapter, ensureValidSession]);
+
   return (
     <WalletContext.Provider value={{ 
       connectedWallet, 
@@ -346,7 +367,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       signMessage, 
       signAndSendTransaction, 
       getPublicKey, 
-      disconnectWallet 
+      disconnectWallet,
+      ensureSession,
     }}>
       {children}
     </WalletContext.Provider>
