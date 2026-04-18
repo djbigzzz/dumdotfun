@@ -368,6 +368,45 @@ export default function MarketDetail() {
             </div>
           </div>
 
+          {/* "If resolved now" preview — gives bettors a real signal before they commit SOL */}
+          {!isResolved && resolutionData?.evaluation && (
+            <div className="px-6 py-4 border-b border-zinc-800" data-testid="section-resolution-preview">
+              <div className={`rounded-xl border p-4 ${
+                resolutionData.projectedOutcome === "yes"
+                  ? "bg-green-500/5 border-green-500/30"
+                  : "bg-red-500/5 border-red-500/30"
+              }`}>
+                <div className="flex items-start gap-3">
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
+                    resolutionData.projectedOutcome === "yes"
+                      ? "bg-green-500/20 text-green-400"
+                      : "bg-red-500/20 text-red-400"
+                  }`}>
+                    {resolutionData.projectedOutcome === "yes" ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">If resolved right now</span>
+                      <span className={`text-xs font-black px-2 py-0.5 rounded ${
+                        resolutionData.projectedOutcome === "yes"
+                          ? "bg-green-500/20 text-green-400"
+                          : "bg-red-500/20 text-red-400"
+                      }`}>
+                        {resolutionData.projectedOutcome.toUpperCase()} would win
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-200" data-testid="text-projected-reason">
+                      {resolutionData.evaluation.reason}
+                    </p>
+                    <p className="text-[11px] text-gray-500 mt-2">
+                      Live on-chain check. The actual outcome is determined at the resolution time, not now.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Market Rules & Settlement - Polymarket/Kalshi style */}
           <div className="p-6 border-b border-zinc-800" data-testid="section-market-rules">
             <div className="flex items-center gap-2 mb-4">
@@ -536,47 +575,75 @@ export default function MarketDetail() {
           </div>
 
           <div className="p-6">
-            <h2 className="text-lg font-bold text-white mb-4">Current Odds</h2>
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <button
-                onClick={() => canBet && setSelectedSide("yes")}
-                disabled={!canBet}
-                className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
-                  selectedSide === "yes"
-                    ? "bg-green-600/30 border-green-500"
-                    : canBet
-                    ? "bg-green-600/10 border-green-600/40 hover:bg-green-600/20"
-                    : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
-                }`}
-                data-testid="button-bet-yes"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-green-400 font-bold text-lg">YES</span>
-                  <TrendingUp className="w-5 h-5 text-green-400" />
-                </div>
-                <p className="text-2xl md:text-4xl font-black text-green-400">{market.yesOdds}%</p>
-                <p className="text-sm text-gray-500 mt-2">{market.yesPool.toFixed(2)} SOL in pool</p>
-              </button>
-              <button
-                onClick={() => canBet && setSelectedSide("no")}
-                disabled={!canBet}
-                className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
-                  selectedSide === "no"
-                    ? "bg-red-600/30 border-red-500"
-                    : canBet
-                    ? "bg-red-600/10 border-red-600/40 hover:bg-red-600/20"
-                    : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
-                }`}
-                data-testid="button-bet-no"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-red-400 font-bold text-lg">NO</span>
-                  <TrendingDown className="w-5 h-5 text-red-400" />
-                </div>
-                <p className="text-2xl md:text-4xl font-black text-red-400">{market.noOdds}%</p>
-                <p className="text-sm text-gray-500 mt-2">{market.noPool.toFixed(2)} SOL in pool</p>
-              </button>
-            </div>
+            {(() => {
+              // Hide odds until at least 2 independent bettors — pari-mutuel seed alone
+              // anchors odds at 100/0, which is misleading.
+              const hasConsensus = (market.totalPositions || 0) >= 2;
+              const isRug = criteria === "dev_sells";
+              const yesLabel = isRug ? "YES (it rugs)" : "YES";
+              const noLabel = isRug ? "NO (it doesn't)" : "NO";
+              return (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-bold text-white">Current Odds</h2>
+                    {!hasConsensus && (
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded">
+                        No consensus yet
+                      </span>
+                    )}
+                  </div>
+                  {!hasConsensus && (
+                    <div className="mb-4 p-3 bg-zinc-800/60 border border-yellow-500/20 rounded-lg text-xs text-gray-400" data-testid="banner-no-consensus">
+                      Only the creator's seed bet has been placed. Odds shown below are not a market signal until more bettors join — be the first to set a real line.
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 gap-4 mb-6">
+                    <button
+                      onClick={() => canBet && setSelectedSide("yes")}
+                      disabled={!canBet}
+                      className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
+                        selectedSide === "yes"
+                          ? "bg-green-600/30 border-green-500"
+                          : canBet
+                          ? "bg-green-600/10 border-green-600/40 hover:bg-green-600/20"
+                          : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
+                      }`}
+                      data-testid="button-bet-yes"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-green-400 font-bold text-lg">{yesLabel}</span>
+                        <TrendingUp className="w-5 h-5 text-green-400" />
+                      </div>
+                      <p className="text-2xl md:text-4xl font-black text-green-400">
+                        {hasConsensus ? `${market.yesOdds}%` : "—"}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">{market.yesPool.toFixed(2)} SOL in pool</p>
+                    </button>
+                    <button
+                      onClick={() => canBet && setSelectedSide("no")}
+                      disabled={!canBet}
+                      className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
+                        selectedSide === "no"
+                          ? "bg-red-600/30 border-red-500"
+                          : canBet
+                          ? "bg-red-600/10 border-red-600/40 hover:bg-red-600/20"
+                          : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
+                      }`}
+                      data-testid="button-bet-no"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-red-400 font-bold text-lg">{noLabel}</span>
+                        <TrendingDown className="w-5 h-5 text-red-400" />
+                      </div>
+                      <p className="text-2xl md:text-4xl font-black text-red-400">
+                        {hasConsensus ? `${market.noOdds}%` : "—"}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">{market.noPool.toFixed(2)} SOL in pool</p>
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
 
             {canBet && (
               <div className={`rounded-xl p-6 transition-all ${

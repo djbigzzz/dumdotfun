@@ -14,50 +14,50 @@ const CRITERIA_OPTIONS = [
     label: "Will it survive?",
     icon: "🛡️",
     questionTemplate: (name: string) => `Will $${name} survive?`,
-    description: "Checks if the creator still holds their tokens",
-    yesCondition: "YES wins if the creator still holds 20%+ of supply AND the token has 2+ holders.",
-    noCondition: "NO wins if the creator holds less than 20% of supply OR the token has no liquidity.",
-    thresholds: ["Min dev holdings: 20% of supply", "Min holders: 2+"],
+    description: "Dev keeps skin in the game (counts curve-locked supply)",
+    yesCondition: "YES wins if the dev's effective stake (wallet + bonding curve) is 20%+ of supply AND the token meets the liquidity floor.",
+    noCondition: "NO wins if the dev's effective stake drops below 20% OR liquidity dries up.",
+    thresholds: ["Min effective stake: 20% of supply", "Liquidity floor: 5+ holders & 1 SOL in curve (or graduated)"],
   },
   {
     value: "dev_sells",
-    label: "Will it rug?",
+    label: "Will it rug? (YES = rugs)",
     icon: "💀",
     questionTemplate: (name: string) => `Will $${name} rug?`,
-    description: "Checks if the creator dumps their tokens",
-    yesCondition: "YES wins if the token creator sold 80%+ of the total supply by the resolution date.",
-    noCondition: "NO wins if the creator still holds more than 20% of the total supply.",
-    thresholds: ["Rug threshold: creator sells 80%+ of supply", "Safe: creator holds >20%"],
+    description: "YES wins if the dev dumps. NO wins if the dev holds.",
+    yesCondition: "YES wins if the dev's effective stake (wallet + curve) drops to 20% or less of supply by the resolution date — i.e. they moved 80%+ of supply.",
+    noCondition: "NO wins if the dev still controls more than 20% of supply at resolution.",
+    thresholds: ["Rug threshold: 80%+ of supply moved", "Safe: dev still controls >20%"],
   },
   {
     value: "graduated",
     label: "Will it graduate?",
     icon: "🎓",
-    questionTemplate: (name: string) => `Will $${name} graduate to DEX?`,
-    description: "Checks if token reaches enough holders and liquidity",
-    yesCondition: "YES wins if the token has 10+ holders with active liquidity.",
-    noCondition: "NO wins if the token has fewer than 10 holders.",
-    thresholds: ["Min holders: 10+", "Liquidity required: active"],
+    questionTemplate: (name: string) => `Will $${name} graduate to Raydium?`,
+    description: "Bonding curve fills 85 SOL and migrates to Raydium",
+    yesCondition: "YES wins if the token has graduated to Raydium by the resolution date (real graduation flag).",
+    noCondition: "NO wins if the token has not graduated by resolution.",
+    thresholds: ["Bonding curve must reach 85 SOL", "Raydium pool must be live"],
   },
   {
     value: "recent_activity",
     label: "Will it stay active?",
     icon: "📊",
     questionTemplate: (name: string) => `Will $${name} stay active?`,
-    description: "Checks if token has recent trading activity",
-    yesCondition: "YES wins if the token had on-chain activity in the last 7 days.",
-    noCondition: "NO wins if there was zero on-chain activity in 7 days.",
-    thresholds: ["Activity window: 7 days", "Min transactions: 1+"],
+    description: "Multiple distinct buyers in the last 7 days",
+    yesCondition: "YES wins if 3+ distinct buyer wallets traded the token in the 7 days before resolution.",
+    noCondition: "NO wins if fewer than 3 distinct buyers traded in that window.",
+    thresholds: ["Window: 7 days before resolution", "Min distinct buyers: 3+"],
   },
   {
     value: "has_liquidity",
     label: "Will it keep liquidity?",
     icon: "💧",
     questionTemplate: (name: string) => `Will $${name} keep liquidity?`,
-    description: "Checks if token maintains liquidity",
-    yesCondition: "YES wins if the token has 2+ holders with non-zero balances.",
-    noCondition: "NO wins if the token has only 1 holder or zero balances.",
-    thresholds: ["Min holders: 2+"],
+    description: "Real liquidity, not just two wallets",
+    yesCondition: "YES wins if the token has 5+ holders AND 1+ SOL in the bonding curve, OR has graduated to Raydium.",
+    noCondition: "NO wins if the token fails to maintain that floor.",
+    thresholds: ["Min holders: 5+", "Min SOL in curve: 1 SOL", "Bypass: graduated to Raydium"],
   },
 ] as const;
 
@@ -223,8 +223,10 @@ export default function CreateMarket() {
   };
 
   const minDate = new Date();
-  minDate.setDate(minDate.getDate() + 1);
-  const minDateStr = minDate.toISOString().split("T")[0];
+  minDate.setHours(minDate.getHours() + 1);
+  // datetime-local needs YYYY-MM-DDTHH:mm in local time, not UTC
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const minDateStr = `${minDate.getFullYear()}-${pad(minDate.getMonth() + 1)}-${pad(minDate.getDate())}T${pad(minDate.getHours())}:${pad(minDate.getMinutes())}`;
 
   return (
     <Layout>
@@ -389,7 +391,7 @@ export default function CreateMarket() {
                 RESOLUTION DATE *
               </label>
               <input
-                type="date"
+                type="datetime-local"
                 value={formData.resolutionDate}
                 onChange={(e) => setFormData({ ...formData, resolutionDate: e.target.value })}
                 min={minDateStr}
@@ -397,7 +399,7 @@ export default function CreateMarket() {
                 data-testid="input-resolution-date"
               />
               <p className="mt-1 text-xs text-gray-500">
-                The date when the outcome will be determined
+                Exact date and time the market will auto-resolve. Times shown in your local timezone.
               </p>
             </div>
 

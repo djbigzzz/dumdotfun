@@ -17,6 +17,7 @@ const TokenPage = lazy(() => import("@/pages/token"));
 const CreateToken = lazy(() => import("@/pages/create"));
 const CreateMarket = lazy(() => import("@/pages/create-market"));
 const MarketDetail = lazy(() => import("@/pages/market"));
+const MarketsPage = lazy(() => import("@/pages/markets"));
 const DocsPage = lazy(() => import("@/pages/docs"));
 const AdminPage = lazy(() => import("@/pages/admin"));
 const TrendingPage = lazy(() => import("@/pages/trending"));
@@ -60,6 +61,7 @@ function Router() {
         <Route path="/token/:mint" component={TokenPage} />
         <Route path="/create" component={CreateToken} />
         <Route path="/create-market" component={CreateMarket} />
+        <Route path="/markets" component={MarketsPage} />
         <Route path="/market/:id" component={MarketDetail} />
         <Route path="/trending" component={TrendingPage} />
         <Route path="/search" component={SearchPage} />

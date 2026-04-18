@@ -1597,15 +1597,46 @@ export async function registerRoutes(
   // Get all prediction markets
   app.get("/api/markets", async (req, res) => {
     try {
-      const markets = await storage.getMarkets(24);
-      return res.json(markets.map(m => ({
-        ...m,
-        yesPool: Number(m.yesPool),
-        noPool: Number(m.noPool),
-        totalVolume: Number(m.totalVolume),
-        yesOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "yes"),
-        noOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "no"),
-      })));
+      const limit = Math.min(Math.max(parseInt(String(req.query.limit || "100"), 10) || 100, 1), 200);
+      const status = String(req.query.status || "all"); // open | resolved | ending_soon | all
+      const sort = String(req.query.sort || "newest");  // newest | volume | ending_soon
+
+      const all = await storage.getMarkets(200);
+      const now = Date.now();
+
+      let filtered = all;
+      if (status === "open") {
+        filtered = filtered.filter(m => m.status === "open" && new Date(m.resolutionDate).getTime() > now);
+      } else if (status === "resolved") {
+        filtered = filtered.filter(m => m.status === "resolved");
+      } else if (status === "ending_soon") {
+        const dayMs = 24 * 60 * 60 * 1000;
+        filtered = filtered.filter(m => {
+          const t = new Date(m.resolutionDate).getTime();
+          return m.status === "open" && t > now && t - now <= dayMs;
+        });
+      }
+
+      const enriched = await Promise.all(filtered.map(async m => {
+        const positions = await storage.getPositionsByMarket(m.id).catch(() => []);
+        return {
+          ...m,
+          yesPool: Number(m.yesPool),
+          noPool: Number(m.noPool),
+          totalVolume: Number(m.totalVolume),
+          yesOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "yes"),
+          noOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "no"),
+          totalPositions: positions.length,
+        };
+      }));
+
+      if (sort === "volume") {
+        enriched.sort((a, b) => b.totalVolume - a.totalVolume);
+      } else if (sort === "ending_soon") {
+        enriched.sort((a, b) => new Date(a.resolutionDate).getTime() - new Date(b.resolutionDate).getTime());
+      } // newest is default order from storage
+
+      return res.json(enriched.slice(0, limit));
     } catch (error: any) {
       console.error("Error fetching markets:", error);
       return res.status(500).json({ error: "Failed to fetch markets" });
@@ -2207,6 +2238,19 @@ export async function registerRoutes(
 
       if (new Date(market.resolutionDate) <= new Date()) {
         return res.status(400).json({ error: "Market has expired" });
+      }
+
+      // Block the creator from betting on their own dev-behavior markets
+      // (they have direct control over the outcome — clear conflict of interest)
+      const devBehaviorCriteria = ["dev_holds", "dev_sells"];
+      if (
+        market.creatorAddress === walletAddress &&
+        market.survivalCriteria &&
+        devBehaviorCriteria.includes(market.survivalCriteria)
+      ) {
+        return res.status(403).json({
+          error: "The token creator cannot bet on their own dev-behavior market — outcome would be self-determined.",
+        });
       }
 
       const amountNum = Number(amount);
