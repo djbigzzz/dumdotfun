@@ -7,13 +7,13 @@
 A neo-brutalist Solana launchpad where every coin ships with its own on-chain prediction market.
 
 [![Devnet](https://img.shields.io/badge/Solana-Devnet-9945FF?style=for-the-badge&logo=solana&logoColor=white)](https://explorer.solana.com/?cluster=devnet)
-[![Live Demo](https://img.shields.io/badge/Live-dum--fun.replit.app-14F195?style=for-the-badge&logo=vercel&logoColor=black)](https://dum-fun.replit.app)
+[![Live Demo](https://img.shields.io/badge/Live-dum.fun-14F195?style=for-the-badge&logo=vercel&logoColor=black)](https://dum.fun)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![Stack](https://img.shields.io/badge/Built%20with-React%20%2B%20TS%20%2B%20Solana-red?style=for-the-badge)](#-tech-stack)
 
 ---
 
-**[🚀 Try the live app](https://dum-fun.replit.app) · [📜 What it does](#-what-is-dumfun) · [⚡ Features](#-features) · [🛠️ Run locally](#%EF%B8%8F-getting-started) · [🗺️ Roadmap](#%EF%B8%8F-roadmap)**
+**[🚀 Try the live app](https://dum.fun) · [📜 What it does](#-what-is-dumfun) · [⚡ Features](#-features) · [🛠️ Run locally](#%EF%B8%8F-getting-started) · [🗺️ Roadmap](#%EF%B8%8F-roadmap)**
 
 </div>
 
