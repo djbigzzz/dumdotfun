@@ -179,7 +179,9 @@ export default function Profile() {
       } catch (err: any) {
         if (err.message?.includes("already been processed")) {
           const sigBytes = signedTx.signatures[0]?.signature;
-          sig = sigBytes ? Buffer.from(sigBytes).toString("base64") : "";
+          if (!sigBytes) throw err;
+          const bs58 = (await import("bs58")).default;
+          sig = bs58.encode(sigBytes);
         } else { throw err; }
       }
 

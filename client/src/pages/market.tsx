@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { apiRequest } from "@/lib/queryClient";
 import { Transaction, Connection } from "@solana/web3.js";
+import bs58 from "bs58";
 import { useEffect } from "react";
 
 const SOLANA_RPC = "https://api.devnet.solana.com";
@@ -194,13 +195,28 @@ export default function MarketDetail() {
         throw new Error("Failed to sign transaction: " + signError.message);
       }
 
-      // Step 3: Send signed transaction
+      // Step 3: Send signed transaction.
+      // skipPreflight + tolerant retry: if the tx already landed on-chain (e.g. wallet
+      // auto-broadcast, network hiccup, double-click), grab the signature off the signed
+      // tx and continue rather than surfacing a confusing "already processed" error.
       const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: false,
-        preflightCommitment: "confirmed",
-      });
-      await connection.confirmTransaction(signature, "confirmed");
+      const sigBytes = signedTx.signatures[0]?.signature;
+      const precomputedSig = sigBytes ? bs58.encode(sigBytes) : null;
+      let signature: string;
+      try {
+        signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true,
+          preflightCommitment: "confirmed",
+        });
+        await connection.confirmTransaction(signature, "confirmed");
+      } catch (sendErr: any) {
+        const msg = sendErr?.message || "";
+        if ((msg.includes("already been processed") || msg.includes("already processed")) && precomputedSig) {
+          signature = precomputedSig;
+        } else {
+          throw sendErr;
+        }
+      }
 
       // Step 4: Confirm bet with server
       const confirmRes = await apiRequest("POST", `/api/markets/${id}/confirm-bet`, { betId, signature });

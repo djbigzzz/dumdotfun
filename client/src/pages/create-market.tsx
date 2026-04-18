@@ -165,13 +165,24 @@ export default function CreateMarket() {
         throw new Error("Failed to sign transaction: " + signError.message);
       }
 
-      // Step 3: Send signed transaction
+      // Step 3: Send signed transaction (skip preflight + tolerate "already processed")
       const { Connection } = await import("@solana/web3.js");
+      const bs58 = (await import("bs58")).default;
       const connection = new Connection("https://api.devnet.solana.com", "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize());
-      
-      // Wait for confirmation
-      await connection.confirmTransaction(signature, "confirmed");
+      const sigBytes = signedTx.signatures[0]?.signature;
+      const precomputedSig = sigBytes ? bs58.encode(sigBytes) : null;
+      let signature: string;
+      try {
+        signature = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
+        await connection.confirmTransaction(signature, "confirmed");
+      } catch (sendErr: any) {
+        const msg = sendErr?.message || "";
+        if ((msg.includes("already been processed") || msg.includes("already processed")) && precomputedSig) {
+          signature = precomputedSig;
+        } else {
+          throw sendErr;
+        }
+      }
 
       // Step 4: Confirm market creation with server
       const confirmResponse = await apiRequest("POST", "/api/markets/confirm-create", {

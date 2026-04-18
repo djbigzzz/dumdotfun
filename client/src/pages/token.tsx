@@ -15,6 +15,7 @@ import { useSnsName } from "@/hooks/use-sns";
 import { TradingChart } from "@/components/trading-chart";
 import { Buffer } from "buffer";
 import { Transaction, Connection } from "@solana/web3.js";
+import bs58 from "bs58";
 
 const SOLANA_RPC = "https://api.devnet.solana.com";
 import defaultAvatar from "@assets/generated_images/derpy_blob_meme_mascot.png";
@@ -379,13 +380,25 @@ export default function TokenPage() {
         throw new Error("Failed to sign: " + signError.message);
       }
 
-      // Step 3: Send signed transaction
+      // Step 3: Send signed transaction (tolerate "already processed")
       const connection = new Connection(SOLANA_RPC, "confirmed");
-      const signature = await connection.sendRawTransaction(signedTx.serialize(), {
-        skipPreflight: true,
-        preflightCommitment: "confirmed",
-      });
-      await connection.confirmTransaction(signature, "confirmed");
+      const sigBytes = signedTx.signatures[0]?.signature;
+      const precomputedSig = sigBytes ? bs58.encode(sigBytes) : null;
+      let signature: string;
+      try {
+        signature = await connection.sendRawTransaction(signedTx.serialize(), {
+          skipPreflight: true,
+          preflightCommitment: "confirmed",
+        });
+        await connection.confirmTransaction(signature, "confirmed");
+      } catch (sendErr: any) {
+        const msg = sendErr?.message || "";
+        if ((msg.includes("already been processed") || msg.includes("already processed")) && precomputedSig) {
+          signature = precomputedSig;
+        } else {
+          throw sendErr;
+        }
+      }
 
       // Step 4: Confirm bet with server
       const confirmRes = await apiRequest("POST", `/api/markets/${marketId}/confirm-bet`, { betId, signature });
