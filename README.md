@@ -1,306 +1,141 @@
-# 🔒 dum.fun - Privacy-First Solana Token Launchpad
+# dum.fun
 
-> **Zero-Knowledge Payments Meet Meme Tokens** — Built for [Solana Privacy Hack 2026](https://solana.com/privacyhack)
+> **Launch a token. Bet on whether it survives.**
+> A Solana Devnet launchpad with built-in prediction markets, bonding curves, and gamified seasonal rewards.
 
-**A comprehensive privacy infrastructure for Solana featuring 8 integrated privacy protocols, real on-chain token launches, and confidential prediction markets.**
-
----
-
-## 🎥 Demo & Live Deployment
-
-- **🌐 Live on Devnet**: [dum.fun](https://dum-fun.replit.app) *(Running on Solana Devnet)*
-- **📊 Contract Explorer**: [View on Solscan](https://solscan.io/account/6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh?cluster=devnet)
-- **💻 Source Code**: Open source under MIT License
+- **Live on Devnet:** [dum-fun.replit.app](https://dum-fun.replit.app)
+- **Status:** Solana Devnet only — no mainnet yet
+- **License:** MIT
 
 ---
 
-## 📖 For Judges
+## What is dum.fun?
 
-**[HACKATHON.md](HACKATHON.md)** - All 9 bounties, verification commands, on-chain proofs
+A pump.fun-style token launchpad where every coin ships with its own **on-chain prediction market**. Anyone can:
 
-Quick test: Connect Phantom (Devnet) → Privacy Hub → Place confidential bet
+- Launch a real SPL token on Solana Devnet via a bonding curve
+- Bet SOL on a token's "will it survive / will it rug" market
+- Earn points and climb seasonal leaderboards for real SOL rewards
+- Watch tokens auto-graduate to a Raydium CPMM pool once liquidity hits 85 SOL
 
----
-
-## 💡 The Problem
-
-**Meme token trading is completely transparent — and that's a problem.**
-
-When you launch or trade tokens on Solana:
-- ❌ **Whales get front-run** — bots see your buys before they confirm
-- ❌ **Dev wallets are tracked** — your trading strategy is public
-- ❌ **Prediction bets are visible** — others can copy or counter your positions
-- ❌ **Your portfolio is exposed** — anyone can see exactly what you hold
-
-**For token launchers and traders**, this kills edge:
-- Snipers front-run new token launches
-- Large holders get targeted by copy-traders
-- Market predictions become self-defeating when visible
-- No privacy means no alpha
-
-**Existing solutions** don't work for Solana DeFi:
-- Centralized mixers can steal your funds
-- Monero/Zcash are separate chains, not SPL tokens
-- No production-ready privacy for Solana prediction markets... until now
+The UI is intentionally loud — neo-brutalist black, red, yellow, green — to make on-chain trading feel like an arcade.
 
 ---
 
-## ✨ Our Solution
+## Features
 
-**dum.fun** is a **token launchpad + prediction market platform** with **enterprise-grade privacy built into every layer**.
+### Token launchpad
+- Real SPL token mints on Solana Devnet (no mocks, no demo mode)
+- Bonding-curve pricing with a fixed 1% platform fee
+- Automatic Raydium CPMM migration at the 85 SOL liquidity threshold
+- Live OHLC candlestick charts with volume bars and dev-trade bubbles
 
-We've integrated **7 privacy protocols** from the Solana ecosystem into a single, cohesive platform where:
+### Prediction markets
+- Each token gets a paired market (`Will $TOKEN survive?` / `Will it rug?`)
+- Auto-resolved on-chain by reading dev holdings, supply, liquidity, and Raydium graduation status
+- Two-step bet flow (`prepare-bet` → wallet sign → `confirm-bet`) with on-chain signature verification
+- Tolerant of network hiccups and double-clicks (extracts the signature from the signed tx if the broadcast says "already processed")
+- Discovery page with sort, filter, and ending-soon pills
+- "If resolved now" preview banner so you can see which side the on-chain criteria currently favor
+- "No consensus yet" guard when only the creator has seeded the pool — odds collapse to `—` instead of misleading 100/0
 
-✅ **ShadowWire Bulletproofs** hide transfer amounts with zero-knowledge proofs
-✅ **Token-2022 Confidential Transfers** encrypt balances on-chain
-✅ **Stealth Addresses** make receiving tokens unlinkable
-✅ **Privacy Cash SDK** breaks on-chain payment links
-✅ **Arcium MPC** enables confidential smart contract execution
-✅ **Inco Lightning** provides confidential betting in prediction markets
-✅ **Privacy Pools** anonymize senders through mixing
-✅ **AI Agent Markets** create prediction markets autonomously
+### Gamification (Points & Quests v1)
+- 10 quests across onboarding, activity, streaks, and special tiers
+- 5 rank tiers from **Fresh Pill** (0–499) to **On-Chain God** (10,000+)
+- Daily check-in with streak tracking
+- OG Card NFT mint (0.2 SOL on mainnet) → permanent **1.5× points multiplier**
 
-**The result?** On-chain privacy for transfers via **ShadowWire** (amounts hidden with ZK proofs), unlinkable receiving via **stealth addresses**, and **confidential betting** via Inco commitments — all on Solana with sub-second finality.
+### Seasonal leaderboards
+- Arkada-style named seasons (Season 1 — *Genesis*)
+- Top 10 win SOL from a configurable per-season pool: 1.5 / 1.0 / 0.75 / 0.5 / 0.5 / 0.25 / 0.25 / 0.1 / 0.1 / 0.05 SOL
+- Toggle between **Seasonal** and **All-time** views
 
----
+### Token-level transparency
+- Full holder breakdown and on-chain activity feed
+- Dev wallet trade tagging and rug-risk badges
+- Token health score computed from supply, liquidity, holder count, and recent activity
 
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                      dum.fun Platform                           │
-│                                                                 │
-│  ┌────────────────┐  ┌────────────────┐  ┌──────────────────┐  │
-│  │ Token Launchpad│  │ Prediction     │  │ Privacy Hub      │  │
-│  │ • Bonding curve│  │ Markets        │  │ • 8 integrations │  │
-│  │ • Real SPL     │  │ • Confidential │  │ • Unified UI     │  │
-│  │ • 1% platform  │  │   betting      │  │ • Activity log   │  │
-│  │   fee          │  │ • AI agents    │  │ • Pool mgmt      │  │
-│  └────────┬───────┘  └───────┬────────┘  └────────┬─────────┘  │
-│           │                  │                     │            │
-│           └──────────────────┴─────────────────────┘            │
-│                              │                                  │
-└──────────────────────────────┼──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                    Privacy Layer (8 Protocols)                  │
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ ShadowWire   │  │ Token-2022   │  │ Stealth Addr │          │
-│  │ Bulletproofs │  │ Confidential │  │ Anoncoin     │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ Privacy Cash │  │ Arcium MPC   │  │ Inco         │          │
-│  │ SDK          │  │ C-SPL        │  │ Lightning    │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│  ┌──────────────┐  ┌──────────────┐                            │
-│  │ Privacy Pool │  │ PNP AI       │                            │
-│  │ Authority    │  │ Agents       │                            │
-│  └──────────────┘  └──────────────┘                            │
-└──────────────────────────────┬──────────────────────────────────┘
-                               │
-┌──────────────────────────────▼──────────────────────────────────┐
-│                     Solana Blockchain (Devnet)                  │
-│                                                                 │
-│  • Helius RPC for all connections                               │
-│  • Real SPL token creation                                      │
-│  • On-chain bonding curve program                               │
-│  • Phantom wallet integration                                   │
-└─────────────────────────────────────────────────────────────────┘
-```
+### Mobile
+- Capacitor-wrapped Android build for the Solana dApp Store
+- Saga / mobile wallet adapter support
 
 ---
 
-## 🚀 Key Features
+## Tech stack
 
-### 1. **Token Launchpad** (Production Ready)
-- ✅ Real SPL token creation on Solana Devnet
-- ✅ Bonding curve price discovery (0 → 85 SOL)
-- ✅ Market cap tracking & token graduation
-- ✅ 1% platform trading fee
-- ✅ WebSocket real-time price updates via PumpPortal
-
-### 2. **Prediction Markets** (With Privacy)
-- ✅ Binary YES/NO outcome betting
-- ✅ **Confidential betting** — amounts encrypted using Inco Lightning SDK
-- ✅ Pool-based liquidity with automatic settlement
-- ✅ AI agent market creation using LLMs
-
-### 3. **Privacy Infrastructure** (8 Integrations)
-
-#### **ShadowWire (Radr)**
-- **Bulletproof zero-knowledge proofs** for hidden transfer amounts
-- **22 token support** (SOL, RADR, USDC, BONK, etc.)
-- **Two privacy modes:**
-  - Internal: Amount hidden, parties visible
-  - External: Sender anonymous, amount visible
-- **Client-side WASM proof generation**
-- **~20ms on-chain verification, 672-byte proofs**
-
-#### **Token-2022 Confidential Transfers**
-- **Pedersen commitments** for balance encryption
-- **Range proofs** for amount validation
-- **Hybrid strategy:** Works today (fallback mode), auto-upgrades to v0.5.x+
-- **Zero code changes** required for future API
-
-#### **Stealth Addresses (Anoncoin)**
-- **One-time receive addresses** — unlinkable to your main wallet
-- **View tag optimization** for efficient transaction scanning
-- **Ephemeral keys** prevent address reuse
-- **Sweep functionality** to claim received funds
-
-#### **Privacy Cash SDK**
-- **Private deposits/withdrawals** that break on-chain links
-- **Nullifier scheme** prevents double-spending
-- **Multi-token support** (SOL, USDC, USDT)
-
-#### **Arcium C-SPL (MPC)**
-- **Multi-Party Computation** for confidential DeFi
-- **Hidden balances during computation**
-- **Program ID:** `Arc1umqwQTBocXKzfJRqNrVkDCmQmP7zQ6y4b9qFpUFX`
-
-#### **Inco Lightning SDK**
-- **Confidential betting** with client-side encryption
-- **Commitment scheme:** SHA-256(amount:side:nonce:address)
-- **Aggregated proofs** for gas efficiency
-- **Program ID:** `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj`
-
-#### **Privacy Pool Authority (Custom)**
-- **On-chain privacy pool** for sender anonymity
-- **Internal balance tracking** (no on-chain record)
-- **Deposit/withdraw mixing**
-
-#### **PNP Exchange AI Agents**
-- **LLM-powered market creation**
-- **Autonomous market makers**
-- **Natural language market descriptions**
+**Frontend:** React 18 · TypeScript · Vite · Wouter · Tailwind v4 · Shadcn/ui (Radix) · Framer Motion · Lightweight Charts
+**Backend:** Express + TypeScript · WebSockets · Drizzle ORM · PostgreSQL
+**Solana:** Helius RPC · `@solana/web3.js` · `@solana/spl-token` · Raydium SDK v2 · Phantom & Solana Mobile wallet adapters
+**Other services:** Jupiter (SOL price) · CoinGecko (fallback) · Dune SIM API (on-chain analytics) · SendGrid (waitlist email)
 
 ---
 
-## 🏆 Hackathon Bounty Submissions
-
-| Sponsor | Status | Integration |
-|---------|--------|-------------|
-| **Radr (ShadowWire)** | ✅ Active | Bulletproof ZK private transfers (22 tokens) |
-| **Token-2022** | ✅ Active | Hybrid confidential transfers (fallback + real) |
-| **Anoncoin** | ✅ Active | Stealth addresses with view tags |
-| **Arcium** | ✅ Active | MPC confidential token operations |
-| **Privacy Cash** | ✅ Active | Private deposits/withdrawals |
-| **Helius** | ✅ Active | All Solana connections use Helius RPC |
-| **Inco Lightning** | ✅ Active | Confidential prediction market betting |
-| **PNP Exchange** | ✅ Active | AI agent prediction markets |
-| **encrypt.trade** | ✅ Active | Privacy education documentation |
-
-**Why we chose each sponsor tech:**
-- **ShadowWire**: Best-in-class Bulletproofs, no trusted setup, production-ready
-- **Token-2022**: Future-proof, native Solana, compliance-friendly with auditor keys
-- **Anoncoin**: Unlinkability is critical for payment privacy
-- **Arcium**: MPC enables confidential smart contracts
-- **Privacy Cash**: Proven SDK with OFAC compliance
-- **Helius**: Fastest RPC, essential for real-time WebSocket feeds
-- **Inco**: Only confidential betting solution on Solana
-- **PNP**: AI agents reduce market creation friction
-
----
-
-## 💻 Technology Stack
-
-- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS v4 + Shadcn/ui (30+ components) + Phantom wallet
-- **Backend**: Express.js + PostgreSQL (Drizzle ORM) + WebSocket real-time + Helius RPC
-- **Blockchain**: Solana Devnet + Token-2022 ready + SPL Token SDKs
-- **Privacy Crypto**: Bulletproofs (ZK proofs) + Pedersen Commitments + ElGamal + ECDH stealth keys + SHA-256 commitments
-
-**Total codebase**: ~10,000 lines TypeScript (100% type-safe), 2,636 lines privacy implementations
-
----
-
-## 📦 Deployed Contracts & Addresses
-
-### **Solana Devnet**
-
-| Component | Address | Network |
-|-----------|---------|---------|
-| **Bonding Curve Program** | `6WSsUceUttSpcy8P5ofy5cYDG6pyYLWRz3XTnx95EJWh` | Devnet |
-| **Platform Authority** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` | Devnet |
-| **Fee Recipient** | `G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM` | Devnet |
-| **Platform Config PDA** | `Eh2U3Es7rHzMx62GFRoGQWfGXXrakd3A3rx5Tk1iAzDB` | Devnet |
-| **Inco Lightning Program** | `5sjEbPiqgZrYwR31ahR6Uk9wf5awoX61YGg7jExQSwaj` | Devnet |
-| **Arcium C-SPL Program** | `Arcj82pX7HxYKLR92qvgZUAd7vGS1k4hQvAFcPATFdEQ` | Devnet |
-
----
-
-## 🛠️ Getting Started
+## Getting started
 
 ### Prerequisites
-- Node.js 18+
-- PostgreSQL database
-- Helius API key ([free tier](https://helius.dev))
+- Node 20+
+- A PostgreSQL database (Neon works great)
+- A Helius API key (Devnet)
+- Phantom wallet on Devnet with some test SOL ([faucet](https://faucet.solana.com))
 
-### Environment Variables
-
-```bash
-DATABASE_URL=postgresql://...
-HELIUS_API_KEY=your-helius-api-key
-SOLANA_NETWORK=devnet
-```
-
-### Installation
-
+### Run locally
 ```bash
 npm install
-npm run db:push
-npm run dev
+cp .env.example .env   # fill in DATABASE_URL, HELIUS_API_KEY, FEE_RECIPIENT_WALLET, etc.
+npm run db:push        # apply Drizzle schema
+npm run dev            # serves frontend + backend on :5000
 ```
 
-Open http://localhost:5000 and connect Phantom wallet (set to Devnet).
+### Required environment variables
+| Var | Purpose |
+|---|---|
+| `DATABASE_URL` | Postgres connection string |
+| `HELIUS_API_KEY` | Solana Devnet RPC |
+| `FEE_RECIPIENT_WALLET` | Receives platform fees (must be ≠ your test wallet) |
+| `SESSION_SECRET` | Express session signing |
+| `SENDGRID_API_KEY` | (Optional) waitlist email |
+| `DUNE_API_KEY` | (Optional) richer on-chain activity feed |
 
 ---
 
-## 📝 API Endpoints
+## Project layout
 
-| Endpoint | Description |
-|----------|-------------|
-| `GET /api/privacy/status` | Privacy stack status |
-| `GET /api/tokens` | List all tokens |
-| `POST /api/tokens` | Create new token |
-| `GET /api/markets` | List prediction markets |
-| `POST /api/markets/:id/bet` | Place a bet |
-| `POST /api/privacy/stealth-address` | Generate stealth address |
-| `POST /api/privacy/confidential-transfer` | Create confidential transfer |
+```
+client/        React frontend (pages, components, hooks)
+server/        Express API, Solana services, auto-resolver, websockets
+shared/        Drizzle schema + zod types shared between client & server
+```
 
----
+Key files worth knowing:
 
-## 📄 License
-
-MIT License - See [LICENSE](LICENSE) file for details.
-
----
-
-## 🙏 Acknowledgments
-
-Special thanks to our hackathon sponsors:
-- **Radr** for ShadowWire SDK
-- **Helius** for RPC infrastructure
-- **Inco Network** for Lightning SDK
-- **Arcium** for MPC technology
-- **Privacy Cash** for deposit/withdrawal SDK
+- `shared/schema.ts` — single source of truth for all data models
+- `server/routes.ts` — every API endpoint (markets, bets, tokens, points, seasons)
+- `server/services/token-health.ts` — on-chain reads for survival-criteria resolution
+- `server/auto-resolver.ts` — background loop that closes expired markets
+- `client/src/pages/market.tsx` & `markets.tsx` — Polymarket-style detail + discovery
+- `client/src/pages/token.tsx` — token detail page with paired market widget
 
 ---
 
-## 🔗 Links
+## Roadmap
 
-- [Solana Privacy Hack](https://solana.com/privacyhack)
-- [Helius RPC](https://helius.dev)
-- [Inco Network](https://inco.org)
-- [Arcium](https://arcium.com)
-- [Radr ShadowWire](https://github.com/Radrdotfun/ShadowWire)
+- **Now:** Solana Devnet launchpad + prediction markets, points & seasons, Raydium auto-migration
+- **Next:** Challenge windows / tentative resolutions, slimmer create-market UX, mainnet readiness audit
+- **Colosseum Frontier 2026 (May 12 deadline):** Confidential betting layer using **Encrypt FHE** + **Ika dWallets** — bet amounts hidden until market resolution
+- **Later:** Full mainnet launch, on-chain governance, secondary markets
 
 ---
 
-<div align="center">
+## Contributing
 
-**🔒 Privacy is a human right 🔒**
+Issues and PRs welcome. Please:
 
-Built with ❤️ for the Solana Privacy Hack 2026
+1. Open an issue describing the change before large refactors
+2. Run `npm run check` (typecheck) before submitting
+3. Keep `data-testid` attributes on every interactive element
 
-</div>
+---
+
+## License
+
+MIT — do whatever you want, just don't blame us when memes happen.
