@@ -52,14 +52,14 @@ function getCriteriaLabel(criteria: string): string {
 
 function getCriteriaDescription(criteria: string): string {
   switch (criteria) {
-    case "dev_sells": return "YES wins if the token creator sold 80%+ of the supply (rugged). NO wins if the dev still holds a significant portion.";
-    case "dev_holds": return "YES wins if the creator still holds 20%+ of the supply and the token has liquidity. NO wins if the dev dumped their tokens.";
-    case "has_liquidity": return "YES wins if the token has active liquidity with multiple holders. NO wins if liquidity dried up.";
-    case "recent_activity": return "YES wins if the token had on-chain transactions within the last 7 days. NO wins if there was no activity.";
-    case "graduated": return "YES wins if the token has 10+ holders with active liquidity (graduated to DEX). NO wins if it didn't graduate.";
-    case "high_survival": return "YES wins if the token scores 75/100+ on the survival score (checks liquidity, activity, dev holdings, and graduation).";
-    case "token_exists": return "YES wins if the token has liquidity and the dev still holds their tokens. NO wins if the token is dead or the dev dumped.";
-    default: return "YES wins if the token has liquidity and the dev still holds their tokens. NO wins if the token is dead or the dev dumped.";
+    case "dev_sells": return "YES wins if the dev's effective stake (wallet + bonding curve) drops to 20% or less of supply by resolution — i.e. 80%+ moved out. NO wins if the dev still controls more than 20% of supply.";
+    case "dev_holds": return "YES wins if the dev's effective stake (wallet + bonding curve) is 20%+ of supply AND the token meets the liquidity floor. NO wins if effective stake drops below 20% or liquidity dies.";
+    case "has_liquidity": return "YES wins if the token has 5+ holders AND 1+ SOL in the bonding curve, OR has graduated to Raydium. NO wins if it fails that floor.";
+    case "recent_activity": return "YES wins if 3+ distinct buyer wallets traded the token in the 7 days before resolution. NO wins if fewer than 3 distinct buyers traded.";
+    case "graduated": return "YES wins if the bonding curve filled 85 SOL and the token graduated to Raydium by resolution. NO wins if it has not graduated.";
+    case "high_survival": return "YES wins if the token scores 75/100+ on the composite survival score (existence + liquidity + dev holdings + activity + graduation).";
+    case "token_exists": return "YES wins if the token has active liquidity AND the dev's effective stake is 20%+. NO wins if either fails.";
+    default: return "YES wins if the token has active liquidity AND the dev's effective stake is 20%+. NO wins if either fails.";
   }
 }
 

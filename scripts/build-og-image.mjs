@@ -1,222 +1,235 @@
 import sharp from "sharp";
-import { writeFileSync } from "fs";
 
 const W = 1408;
 const H = 768;
 
-// Neo-brutalist palette pulled from the live app
-const BG = "#0A0A0A";
-const RED = "#EF4444";
-const GREEN = "#22C55E";
-const YELLOW = "#FACC15";
+const BG = "#000000";
+const RED = "#FF1744";
+const GREEN = "#00E676";
+const YELLOW = "#FFEA00";
 const WHITE = "#FFFFFF";
-const CARD_BG = "#171717";
-const STROKE = "#FFFFFF";
+const CARD_BG = "#0F0F0F";
 
 const svg = `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>
-    <filter id="brutalShadow" x="-10%" y="-10%" width="120%" height="120%">
-      <feOffset dx="8" dy="8"/>
-      <feFlood flood-color="${YELLOW}"/>
-      <feComposite in2="SourceAlpha" operator="in"/>
-    </filter>
-    <filter id="brutalShadowRed" x="-10%" y="-10%" width="120%" height="120%">
-      <feOffset dx="8" dy="8"/>
-      <feFlood flood-color="${RED}"/>
-      <feComposite in2="SourceAlpha" operator="in"/>
-    </filter>
+    <radialGradient id="redGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${RED}" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="${RED}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="greenGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${GREEN}" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="${GREEN}" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="yellowGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="${YELLOW}" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="${YELLOW}" stop-opacity="0"/>
+    </radialGradient>
   </defs>
 
   <!-- Background -->
   <rect width="${W}" height="${H}" fill="${BG}"/>
 
+  <!-- Background drama glows -->
+  <ellipse cx="280" cy="500" rx="450" ry="320" fill="url(#greenGlow)"/>
+  <ellipse cx="1100" cy="500" rx="450" ry="320" fill="url(#redGlow)"/>
+  <ellipse cx="704" cy="280" rx="600" ry="160" fill="url(#yellowGlow)"/>
+
   <!-- Subtle dotted grid -->
   ${Array.from({ length: 40 }, (_, i) =>
     Array.from({ length: 22 }, (_, j) =>
-      `<circle cx="${i * 36 + 18}" cy="${j * 36 + 18}" r="1" fill="#222"/>`
+      `<circle cx="${i * 36 + 18}" cy="${j * 36 + 18}" r="1" fill="#1a1a1a"/>`
     ).join("")
   ).join("")}
 
-  <!-- ===== TOP BAR: brand wordmark ===== -->
-  <g transform="translate(60, 50)">
-    <!-- Pill icon: red+white tilted capsule (matches favicon) -->
+  <!-- ===== TOP BAR ===== -->
+  <g transform="translate(60, 38)">
+    <!-- Pill icon -->
     <g transform="translate(0, 6) rotate(-25, 36, 36)">
-      <rect x="0" y="20" width="72" height="32" rx="16" ry="16"
-            fill="${WHITE}" stroke="${BG}" stroke-width="4"/>
-      <rect x="0" y="20" width="36" height="32" rx="16" ry="16"
-            fill="${RED}" stroke="${BG}" stroke-width="4"/>
-      <line x1="36" y1="22" x2="36" y2="50" stroke="${BG}" stroke-width="4"/>
+      <rect x="2" y="22" width="72" height="32" rx="16" ry="16"
+            fill="${WHITE}" stroke="${BG}" stroke-width="5"/>
+      <rect x="2" y="22" width="36" height="32" rx="16" ry="16"
+            fill="${RED}" stroke="${BG}" stroke-width="5"/>
+      <line x1="38" y1="24" x2="38" y2="52" stroke="${BG}" stroke-width="5"/>
     </g>
     <!-- Wordmark -->
-    <text x="100" y="68" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="72" font-weight="900" fill="${WHITE}"
-          letter-spacing="-2">
+    <text x="100" y="62" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="62" font-weight="900" letter-spacing="-2">
       <tspan fill="${RED}">DUM</tspan><tspan fill="${WHITE}">.FUN</tspan>
     </text>
   </g>
 
-  <!-- Top-right: tiny URL chip -->
-  <g transform="translate(${W - 240}, 60)">
-    <rect x="0" y="0" width="180" height="48" rx="6" ry="6"
-          fill="${BG}" stroke="${WHITE}" stroke-width="3"/>
-    <text x="90" y="32" font-family="'Courier New', monospace"
-          font-size="22" font-weight="700" fill="${WHITE}" text-anchor="middle">
-      dum.fun
+  <!-- Top-right: live devnet badge -->
+  <g transform="translate(${W - 280}, 50)">
+    <rect x="0" y="0" width="220" height="46" rx="4" ry="4"
+          fill="${BG}" stroke="${GREEN}" stroke-width="3"/>
+    <circle cx="22" cy="23" r="6" fill="${GREEN}"/>
+    <text x="42" y="32" font-family="'Courier New', monospace"
+          font-size="20" font-weight="700" fill="${WHITE}">
+      LIVE • DEVNET
     </text>
   </g>
 
-  <!-- ===== LEFT CARD: TOKEN LAUNCHPAD ===== -->
-  <g transform="translate(70, 200)">
+  <!-- ===== HERO QUESTION ===== -->
+  <text x="${W / 2}" y="200" font-family="Impact, 'Arial Black', sans-serif"
+        font-size="100" font-weight="900" fill="${WHITE}" text-anchor="middle"
+        letter-spacing="-3">
+    WILL THE DEV <tspan fill="${RED}">RUG?</tspan>
+  </text>
+
+  <!-- subtitle under hero -->
+  <text x="${W / 2}" y="248" font-family="'Courier New', monospace"
+        font-size="24" font-weight="700" fill="${YELLOW}" text-anchor="middle"
+        letter-spacing="3">
+    LAUNCH IT  •  BET ON IT  •  RUG OR MOON
+  </text>
+
+  <!-- ===== LEFT CARD: TOKEN ===== -->
+  <g transform="translate(70, 310)">
     <!-- shadow -->
-    <rect x="10" y="10" width="600" height="440" fill="${YELLOW}"/>
-    <!-- card -->
-    <rect x="0" y="0" width="600" height="440" fill="${CARD_BG}"
+    <rect x="10" y="10" width="600" height="370" fill="${YELLOW}"/>
+    <rect x="0" y="0" width="600" height="370" fill="${CARD_BG}"
           stroke="${WHITE}" stroke-width="5"/>
 
     <!-- Section label -->
-    <rect x="0" y="0" width="160" height="36" fill="${YELLOW}"/>
-    <text x="80" y="26" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="20" font-weight="900" fill="${BG}" text-anchor="middle"
-          letter-spacing="1">
+    <rect x="0" y="0" width="200" height="42" fill="${YELLOW}"/>
+    <text x="100" y="30" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="22" font-weight="900" fill="${BG}" text-anchor="middle"
+          letter-spacing="3">
       LAUNCH
     </text>
 
-    <!-- Token avatar circle -->
-    <circle cx="80" cy="110" r="42" fill="${YELLOW}" stroke="${WHITE}" stroke-width="4"/>
-    <text x="80" y="124" font-family="Impact, 'Arial Black', sans-serif"
+    <!-- Token avatar -->
+    <circle cx="80" cy="120" r="42" fill="${YELLOW}" stroke="${WHITE}" stroke-width="4"/>
+    <text x="80" y="135" font-family="Impact, 'Arial Black', sans-serif"
           font-size="46" font-weight="900" fill="${BG}" text-anchor="middle">$</text>
 
     <!-- Token info -->
-    <text x="148" y="98" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="40" font-weight="900" fill="${WHITE}">
+    <text x="148" y="108" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="44" font-weight="900" fill="${WHITE}">
       $DEGEN
     </text>
-    <text x="148" y="130" font-family="'Courier New', monospace"
+    <text x="148" y="142" font-family="'Courier New', monospace"
           font-size="22" fill="#9CA3AF">
-      0.0042 SOL  •  +147%
+      0.0042 SOL  <tspan fill="${GREEN}" font-weight="700">+147%</tspan>
     </text>
 
-    <!-- Sparkline (going up) -->
-    <polyline points="40,260 110,250 170,235 230,220 290,180 350,200 410,160 470,140 530,90 560,70"
+    <!-- Sparkline -->
+    <polyline points="40,240 110,228 170,210 230,200 290,160 350,180 410,140 470,118 530,72 560,52"
               fill="none" stroke="${GREEN}" stroke-width="6"
               stroke-linejoin="round" stroke-linecap="round"/>
-    <!-- baseline -->
-    <line x1="40" y1="280" x2="560" y2="280" stroke="#333" stroke-width="2" stroke-dasharray="4 6"/>
+    <line x1="40" y1="260" x2="560" y2="260" stroke="#222" stroke-width="2" stroke-dasharray="4 6"/>
 
-    <!-- BUY button -->
-    <rect x="40" y="320" width="240" height="80" fill="${GREEN}"
+    <!-- BUY -->
+    <rect x="40" y="285" width="240" height="64" fill="${GREEN}"
           stroke="${WHITE}" stroke-width="4"/>
-    <text x="160" y="372" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="38" font-weight="900" fill="${BG}" text-anchor="middle"
-          letter-spacing="1">
-      BUY
+    <text x="160" y="328" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="34" font-weight="900" fill="${BG}" text-anchor="middle"
+          letter-spacing="3">
+      APE IN
     </text>
-
-    <!-- amount -->
-    <rect x="300" y="320" width="260" height="80" fill="${BG}"
+    <rect x="300" y="285" width="260" height="64" fill="${BG}"
           stroke="${WHITE}" stroke-width="4"/>
-    <text x="430" y="372" font-family="'Courier New', monospace"
-          font-size="32" font-weight="700" fill="${WHITE}" text-anchor="middle">
+    <text x="430" y="328" font-family="'Courier New', monospace"
+          font-size="28" font-weight="700" fill="${WHITE}" text-anchor="middle">
       0.5 SOL
     </text>
   </g>
 
-  <!-- ===== MIDDLE: PLUS SIGN connector ===== -->
-  <g transform="translate(680, 380)">
-    <circle cx="36" cy="36" r="36" fill="${YELLOW}" stroke="${WHITE}" stroke-width="5"/>
-    <text x="36" y="56" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="60" font-weight="900" fill="${BG}" text-anchor="middle">
-      +
+  <!-- ===== MIDDLE: VS connector ===== -->
+  <g transform="translate(680, 470)">
+    <circle cx="36" cy="36" r="46" fill="${BG}" stroke="${YELLOW}" stroke-width="5"/>
+    <text x="36" y="54" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="44" font-weight="900" fill="${YELLOW}" text-anchor="middle"
+          letter-spacing="-1">
+      VS
     </text>
   </g>
 
   <!-- ===== RIGHT CARD: PREDICTION MARKET ===== -->
-  <g transform="translate(770, 200)">
+  <g transform="translate(770, 310)">
     <!-- shadow -->
-    <rect x="10" y="10" width="600" height="440" fill="${RED}"/>
-    <!-- card -->
-    <rect x="0" y="0" width="600" height="440" fill="${CARD_BG}"
+    <rect x="10" y="10" width="600" height="370" fill="${RED}"/>
+    <rect x="0" y="0" width="600" height="370" fill="${CARD_BG}"
           stroke="${WHITE}" stroke-width="5"/>
 
     <!-- Section label -->
-    <rect x="0" y="0" width="160" height="36" fill="${RED}"/>
-    <text x="80" y="26" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="20" font-weight="900" fill="${WHITE}" text-anchor="middle"
-          letter-spacing="1">
+    <rect x="0" y="0" width="200" height="42" fill="${RED}"/>
+    <text x="100" y="30" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="22" font-weight="900" fill="${WHITE}" text-anchor="middle"
+          letter-spacing="3">
       BET
     </text>
 
     <!-- Question -->
-    <text x="40" y="100" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="36" font-weight="900" fill="${WHITE}">
-      Will $DEGEN survive?
+    <text x="40" y="108" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="38" font-weight="900" fill="${WHITE}">
+      Will $DEGEN dev <tspan fill="${RED}">rug?</tspan>
     </text>
-    <text x="40" y="132" font-family="'Courier New', monospace"
+    <text x="40" y="138" font-family="'Courier New', monospace"
           font-size="20" fill="#9CA3AF">
-      2.4 SOL pool  •  18 bets  •  3d 14h
+      2.4 SOL pool  •  18 bets  •  3d 14h left
     </text>
 
     <!-- YES bar -->
-    <g transform="translate(40, 170)">
-      <rect x="0" y="0" width="520" height="50" fill="#1F1F1F" stroke="${WHITE}" stroke-width="3"/>
-      <rect x="0" y="0" width="350" height="50" fill="${GREEN}"/>
-      <text x="20" y="34" font-family="Impact, 'Arial Black', sans-serif"
-            font-size="26" font-weight="900" fill="${BG}">
-        YES
+    <g transform="translate(40, 168)">
+      <rect x="0" y="0" width="520" height="46" fill="#1a1a1a" stroke="${WHITE}" stroke-width="3"/>
+      <rect x="0" y="0" width="172" height="46" fill="${RED}"/>
+      <text x="20" y="32" font-family="Impact, 'Arial Black', sans-serif"
+            font-size="24" font-weight="900" fill="${WHITE}" letter-spacing="2">
+        YES, RUGS
       </text>
-      <text x="500" y="34" font-family="Impact, 'Arial Black', sans-serif"
-            font-size="26" font-weight="900" fill="${WHITE}" text-anchor="end">
-        67%
-      </text>
-    </g>
-
-    <!-- NO bar -->
-    <g transform="translate(40, 240)">
-      <rect x="0" y="0" width="520" height="50" fill="#1F1F1F" stroke="${WHITE}" stroke-width="3"/>
-      <rect x="0" y="0" width="172" height="50" fill="${RED}"/>
-      <text x="20" y="34" font-family="Impact, 'Arial Black', sans-serif"
-            font-size="26" font-weight="900" fill="${WHITE}">
-        NO
-      </text>
-      <text x="500" y="34" font-family="Impact, 'Arial Black', sans-serif"
-            font-size="26" font-weight="900" fill="${WHITE}" text-anchor="end">
+      <text x="500" y="32" font-family="Impact, 'Arial Black', sans-serif"
+            font-size="24" font-weight="900" fill="${WHITE}" text-anchor="end">
         33%
       </text>
     </g>
 
+    <!-- NO bar -->
+    <g transform="translate(40, 226)">
+      <rect x="0" y="0" width="520" height="46" fill="#1a1a1a" stroke="${WHITE}" stroke-width="3"/>
+      <rect x="0" y="0" width="350" height="46" fill="${GREEN}"/>
+      <text x="20" y="32" font-family="Impact, 'Arial Black', sans-serif"
+            font-size="24" font-weight="900" fill="${BG}" letter-spacing="2">
+        NO, SURVIVES
+      </text>
+      <text x="500" y="32" font-family="Impact, 'Arial Black', sans-serif"
+            font-size="24" font-weight="900" fill="${WHITE}" text-anchor="end">
+        67%
+      </text>
+    </g>
+
     <!-- BET buttons -->
-    <rect x="40" y="320" width="252" height="80" fill="${GREEN}"
+    <rect x="40" y="285" width="252" height="64" fill="${RED}"
           stroke="${WHITE}" stroke-width="4"/>
-    <text x="166" y="372" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="32" font-weight="900" fill="${BG}" text-anchor="middle"
-          letter-spacing="1">
+    <text x="166" y="328" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="30" font-weight="900" fill="${WHITE}" text-anchor="middle"
+          letter-spacing="3">
       BET YES
     </text>
-    <rect x="308" y="320" width="252" height="80" fill="${RED}"
+    <rect x="308" y="285" width="252" height="64" fill="${GREEN}"
           stroke="${WHITE}" stroke-width="4"/>
-    <text x="434" y="372" font-family="Impact, 'Arial Black', sans-serif"
-          font-size="32" font-weight="900" fill="${WHITE}" text-anchor="middle"
-          letter-spacing="1">
+    <text x="434" y="328" font-family="Impact, 'Arial Black', sans-serif"
+          font-size="30" font-weight="900" fill="${BG}" text-anchor="middle"
+          letter-spacing="3">
       BET NO
     </text>
   </g>
 
-  <!-- ===== BOTTOM TAGLINE ===== -->
-  <text x="${W / 2}" y="710" font-family="Impact, 'Arial Black', sans-serif"
-        font-size="38" font-weight="900" fill="${WHITE}" text-anchor="middle"
-        letter-spacing="1">
-    LAUNCH A TOKEN. <tspan fill="${YELLOW}">BET ON WHETHER IT SURVIVES.</tspan>
-  </text>
-
-  <!-- thin top + bottom border accents -->
+  <!-- top + bottom border accents -->
   <rect x="0" y="0" width="${W}" height="6" fill="${RED}"/>
   <rect x="0" y="${H - 6}" width="${W}" height="6" fill="${GREEN}"/>
+
+  <!-- bottom-right URL -->
+  <text x="${W - 50}" y="${H - 28}" font-family="'Courier New', monospace"
+        font-size="22" font-weight="700" fill="#666" text-anchor="end" letter-spacing="2">
+    DUM.FUN
+  </text>
 </svg>
 `;
 
 await sharp(Buffer.from(svg))
   .png({ quality: 100, compressionLevel: 9 })
-  .toFile("attached_assets/generated_images/og_v3.png");
+  .toFile("attached_assets/generated_images/og_v5.png");
 
-console.log("Wrote attached_assets/generated_images/og_v3.png");
+console.log("Wrote attached_assets/generated_images/og_v5.png");
