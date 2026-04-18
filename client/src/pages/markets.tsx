@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Target, Clock, TrendingUp, Loader2, Filter, ArrowUpDown } from "lucide-react";
+import { Target, Clock, TrendingUp, Loader2 } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 interface MarketListItem {
@@ -83,65 +83,46 @@ export default function MarketsPage() {
 
   return (
     <Layout>
-      <div className="max-w-6xl mx-auto space-y-6">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <Target className="w-7 h-7 text-yellow-400" />
-            <h1 className="text-3xl font-black text-white">Prediction Markets</h1>
-          </div>
-          <p className="text-gray-400 text-sm">
-            Bet on what happens to launchpad tokens. All markets resolve automatically from Solana on-chain data.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-gray-500 uppercase font-bold">Markets</p>
-            <p className="text-2xl font-black text-white">{stats.count}</p>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4">
-            <p className="text-xs text-gray-500 uppercase font-bold">Total Volume</p>
-            <p className="text-2xl font-black text-yellow-400">{stats.volume.toFixed(2)} SOL</p>
-          </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-4 col-span-2 md:col-span-1">
-            <p className="text-xs text-gray-500 uppercase font-bold">Resolution</p>
-            <p className="text-sm text-white mt-1">Auto from on-chain data</p>
+      <div className="max-w-5xl mx-auto space-y-4">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-2">
+              <Target className="w-6 h-6 text-yellow-400" />
+              Markets
+            </h1>
+            <p className="text-xs text-gray-500 mt-1">
+              {stats.count} {stats.count === 1 ? "market" : "markets"} · {stats.volume.toFixed(2)} SOL total volume · auto-resolved on-chain
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 bg-zinc-900 border border-zinc-800 rounded-lg p-3">
-          <div className="flex items-center gap-2">
-            <Filter className="w-4 h-4 text-gray-500" />
-            <div className="flex flex-wrap gap-1">
-              {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(key => (
-                <button
-                  key={key}
-                  onClick={() => setStatus(key)}
-                  className={`px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-                    status === key
-                      ? "bg-yellow-500 text-black"
-                      : "bg-zinc-800 text-gray-400 hover:bg-zinc-700 hover:text-white"
-                  }`}
-                  data-testid={`filter-status-${key}`}
-                >
-                  {STATUS_LABELS[key]}
-                </button>
-              ))}
-            </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap gap-1">
+            {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(key => (
+              <button
+                key={key}
+                onClick={() => setStatus(key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                  status === key
+                    ? "bg-yellow-500 text-black"
+                    : "bg-zinc-900 text-gray-400 hover:bg-zinc-800 hover:text-white border border-zinc-800"
+                }`}
+                data-testid={`filter-status-${key}`}
+              >
+                {STATUS_LABELS[key]}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-2 ml-auto">
-            <ArrowUpDown className="w-4 h-4 text-gray-500" />
-            <select
-              value={sort}
-              onChange={(e) => setSort(e.target.value as SortFilter)}
-              className="bg-zinc-800 border border-zinc-700 rounded text-xs text-white px-3 py-1.5 focus:outline-none focus:border-yellow-500"
-              data-testid="select-sort"
-            >
-              {(Object.keys(SORT_LABELS) as SortFilter[]).map(key => (
-                <option key={key} value={key}>{SORT_LABELS[key]}</option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={sort}
+            onChange={(e) => setSort(e.target.value as SortFilter)}
+            className="ml-auto bg-zinc-900 border border-zinc-800 rounded-full text-xs text-white px-3 py-1.5 focus:outline-none focus:border-yellow-500"
+            data-testid="select-sort"
+          >
+            {(Object.keys(SORT_LABELS) as SortFilter[]).map(key => (
+              <option key={key} value={key}>{SORT_LABELS[key]}</option>
+            ))}
+          </select>
         </div>
 
         {isLoading ? (

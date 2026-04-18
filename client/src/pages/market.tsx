@@ -4,7 +4,7 @@ import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { Target, Clock, Users, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, EyeOff, Info, BookOpen, Zap, Scale, Timer } from "lucide-react";
+import { Target, Clock, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, Info, ChevronDown } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { apiRequest } from "@/lib/queryClient";
@@ -112,6 +112,7 @@ export default function MarketDetail() {
   usePageTitle(undefined, marketTitle, marketMeta);
 
   const [success, setSuccess] = useState<boolean>(false);
+  const [showDetails, setShowDetails] = useState<boolean>(false);
 
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
@@ -285,112 +286,74 @@ export default function MarketDetail() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-zinc-900 border border-yellow-600/30 rounded-xl overflow-hidden"
         >
-          <div className="p-6 border-b border-zinc-800">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-lg bg-yellow-500/20 border border-yellow-500/50 flex items-center justify-center flex-shrink-0">
-                <Target className="w-8 h-8 text-yellow-500" />
-              </div>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <span className={`text-xs px-2 py-0.5 rounded ${
-                    market.marketType === "token" 
-                      ? "bg-red-600/20 text-red-400" 
-                      : "bg-blue-600/20 text-blue-400"
-                  }`}>
-                    {market.marketType === "token" ? "TOKEN" : "GENERAL"}
-                  </span>
-                  {isResolved && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-gray-600/20 text-gray-400">
-                      RESOLVED: {market.outcome?.toUpperCase()}
+          {/* Compact header */}
+            <div className="p-5 border-b border-zinc-800">
+              <div className="flex items-start gap-3">
+                {market.imageUri ? (
+                  <img src={market.imageUri} alt="" className="w-12 h-12 rounded-lg object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-12 h-12 rounded-lg bg-yellow-500/15 border border-yellow-500/40 flex items-center justify-center flex-shrink-0">
+                    <Target className="w-6 h-6 text-yellow-500" />
+                  </div>
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded uppercase ${
+                      market.marketType === "token" ? "bg-red-500/15 text-red-400" : "bg-blue-500/15 text-blue-400"
+                    }`}>
+                      {market.marketType === "token" ? "Token" : "General"}
                     </span>
-                  )}
-                  {isExpired && !isResolved && (
-                    <span className="text-xs px-2 py-0.5 rounded bg-yellow-600/20 text-yellow-400">
-                      PENDING RESOLUTION
-                    </span>
-                  )}
+                    {isResolved && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase bg-gray-600/20 text-gray-300" data-testid="badge-resolved">
+                        Resolved · {market.outcome?.toUpperCase()}
+                      </span>
+                    )}
+                    {isExpired && !isResolved && (
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase bg-yellow-500/15 text-yellow-400">
+                        Pending
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="text-xl md:text-2xl font-black text-white leading-tight">{market.question}</h1>
                 </div>
-                <h1 className="text-2xl font-black text-white mb-2">{market.question}</h1>
-                {market.description && (
-                  <p className="text-gray-400 text-sm">{market.description}</p>
+              </div>
+
+              {/* one-line stats strip */}
+              <div className="flex items-center gap-4 mt-4 text-xs text-gray-400 flex-wrap">
+                <span data-testid="stat-volume"><span className="text-white font-bold">{market.totalVolume.toFixed(2)}</span> SOL volume</span>
+                <span className="text-zinc-600">·</span>
+                <span data-testid="stat-positions"><span className="text-white font-bold">{market.totalPositions}</span> bets</span>
+                <span className="text-zinc-600">·</span>
+                {isResolved ? (
+                  <span>Resolved</span>
+                ) : isExpired ? (
+                  <span className="text-yellow-400">Resolving…</span>
+                ) : (
+                  <span data-testid="countdown-timer" className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    {countdown.days > 0 && `${countdown.days}d `}
+                    {String(countdown.hours).padStart(2,'0')}h {String(countdown.minutes).padStart(2,'0')}m left
+                  </span>
                 )}
               </div>
             </div>
-          </div>
 
-          <div className="grid md:grid-cols-3 gap-4 p-6 border-b border-zinc-800">
-            <div className="bg-zinc-800/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                <Users className="w-4 h-4" />
-                Total Volume
-              </div>
-              <p className="text-2xl font-black text-white">{market.totalVolume.toFixed(2)} SOL</p>
-            </div>
-            <div className="bg-zinc-800/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                <Target className="w-4 h-4" />
-                Positions
-              </div>
-              <p className="text-2xl font-black text-white">{market.totalPositions}</p>
-            </div>
-            <div className="bg-zinc-800/50 rounded-lg p-4">
-              <div className="flex items-center gap-2 text-gray-400 text-sm mb-1">
-                <Clock className="w-4 h-4" />
-                Time Left
-              </div>
-              {isResolved ? (
-                <p className="text-2xl font-black text-white">Resolved</p>
-              ) : isExpired ? (
-                <p className="text-2xl font-black text-yellow-400">Resolving...</p>
-              ) : (
-                <div className="flex gap-2" data-testid="countdown-timer">
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-white">{countdown.days}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">days</p>
-                  </div>
-                  <span className="text-2xl font-black text-gray-600">:</span>
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-white">{String(countdown.hours).padStart(2, '0')}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">hrs</p>
-                  </div>
-                  <span className="text-2xl font-black text-gray-600">:</span>
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-white">{String(countdown.minutes).padStart(2, '0')}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">min</p>
-                  </div>
-                  <span className="text-2xl font-black text-gray-600">:</span>
-                  <div className="text-center">
-                    <p className="text-2xl font-black text-white">{String(countdown.seconds).padStart(2, '0')}</p>
-                    <p className="text-[10px] text-gray-500 uppercase">sec</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* "If resolved now" preview — gives bettors a real signal before they commit SOL */}
-          {!isResolved && resolutionData?.evaluation && (
-            <div className="px-6 py-4 border-b border-zinc-800" data-testid="section-resolution-preview">
-              <div className={`rounded-xl border p-4 ${
-                resolutionData.projectedOutcome === "yes"
-                  ? "bg-green-500/5 border-green-500/30"
-                  : "bg-red-500/5 border-red-500/30"
-              }`}>
-                <div className="flex items-start gap-3">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    resolutionData.projectedOutcome === "yes"
-                      ? "bg-green-500/20 text-green-400"
-                      : "bg-red-500/20 text-red-400"
-                  }`}>
-                    {resolutionData.projectedOutcome === "yes" ? <CheckCircle className="w-5 h-5" /> : <AlertCircle className="w-5 h-5" />}
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">If resolved right now</span>
-                      <span className={`text-xs font-black px-2 py-0.5 rounded ${
-                        resolutionData.projectedOutcome === "yes"
-                          ? "bg-green-500/20 text-green-400"
-                          : "bg-red-500/20 text-red-400"
+            {/* Hero: "If resolved right now" */}
+            {!isResolved && resolutionData?.evaluation && (
+              <div className="px-5 pt-5" data-testid="section-resolution-preview">
+                <div className={`rounded-lg border p-3.5 flex items-start gap-3 ${
+                  resolutionData.projectedOutcome === "yes"
+                    ? "bg-green-500/5 border-green-500/30"
+                    : "bg-red-500/5 border-red-500/30"
+                }`}>
+                  {resolutionData.projectedOutcome === "yes"
+                    ? <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0 mt-0.5" />
+                    : <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-[10px] uppercase tracking-widest font-bold text-gray-400">If resolved now</span>
+                      <span className={`text-[11px] font-black ${
+                        resolutionData.projectedOutcome === "yes" ? "text-green-400" : "text-red-400"
                       }`}>
                         {resolutionData.projectedOutcome.toUpperCase()} would win
                       </span>
@@ -398,493 +361,294 @@ export default function MarketDetail() {
                     <p className="text-sm text-gray-200" data-testid="text-projected-reason">
                       {resolutionData.evaluation.reason}
                     </p>
-                    <p className="text-[11px] text-gray-500 mt-2">
-                      Live on-chain check. The actual outcome is determined at the resolution time, not now.
-                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Market Rules & Settlement - Polymarket/Kalshi style */}
-          <div className="p-6 border-b border-zinc-800" data-testid="section-market-rules">
-            <div className="flex items-center gap-2 mb-4">
-              <BookOpen className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-lg font-bold text-white">Resolution Rules</h2>
-            </div>
-            
-            <div className="space-y-4">
-              {/* YES / NO Conditions */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div className="bg-green-500/5 border border-green-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-green-500/20 flex items-center justify-center">
-                      <span className="text-green-400 text-xs font-black">Y</span>
-                    </div>
-                    <span className="text-sm font-bold text-green-400">YES Wins If</span>
-                  </div>
-                  <p className="text-xs text-gray-300 leading-relaxed">
-                    {resolutionData?.rules?.yesCondition || getCriteriaDescription(criteria)}
-                  </p>
-                </div>
-                <div className="bg-red-500/5 border border-red-500/20 rounded-lg p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 rounded-full bg-red-500/20 flex items-center justify-center">
-                      <span className="text-red-400 text-xs font-black">N</span>
-                    </div>
-                    <span className="text-sm font-bold text-red-400">NO Wins If</span>
-                  </div>
-                  <p className="text-xs text-gray-300 leading-relaxed">
-                    {resolutionData?.rules?.noCondition || "The opposite condition is met at resolution time."}
-                  </p>
-                </div>
-              </div>
-
-              {/* Thresholds & Live Data */}
-              <div className="bg-zinc-800/50 rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Scale className="w-4 h-4 text-yellow-400" />
-                  <span className="text-sm font-bold text-white">Exact Thresholds</span>
-                </div>
-                <div className="space-y-2">
-                  {resolutionData?.rules?.thresholds?.map((t: { label: string; value: string }, i: number) => (
-                    <div key={i} className="flex justify-between items-center text-xs">
-                      <span className="text-gray-400">{t.label}</span>
-                      <span className="text-yellow-400 font-mono font-bold">{t.value}</span>
-                    </div>
-                  )) || (
-                    <>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Criteria</span>
-                        <span className="text-yellow-400 font-mono font-bold">{getCriteriaLabel(criteria)}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                {/* Live on-chain data */}
-                {resolutionData?.health && (
-                  <div className="mt-3 pt-3 border-t border-zinc-700">
-                    <div className="flex items-center gap-2 mb-2">
-                      <Zap className="w-3 h-3 text-blue-400" />
-                      <span className="text-xs font-bold text-blue-400">LIVE ON-CHAIN STATUS</span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {resolutionData.health.creatorBalancePercent !== null && (
-                        <div className="flex justify-between items-center text-xs">
-                          <span className="text-gray-400">Dev holdings</span>
-                          <span className={`font-mono font-bold ${
-                            criteria === "dev_sells"
-                              ? (resolutionData.health.creatorSoldPercent >= 80 ? "text-red-400" : "text-green-400")
-                              : (resolutionData.health.creatorBalancePercent >= 20 ? "text-green-400" : "text-red-400")
-                          }`}>
-                            {resolutionData.health.creatorBalancePercent}% of supply
-                            {criteria === "dev_sells" && ` (sold ${resolutionData.health.creatorSoldPercent}%)`}
-                          </span>
-                        </div>
-                      )}
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Holders</span>
-                        <span className="text-white font-mono">{resolutionData.health.holderCount}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Liquidity</span>
-                        <span className={`font-mono font-bold ${resolutionData.health.hasLiquidity ? "text-green-400" : "text-red-400"}`}>
-                          {resolutionData.health.hasLiquidity ? "Active" : "None"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Recent activity</span>
-                        <span className={`font-mono font-bold ${resolutionData.health.criteria.recent_activity ? "text-green-400" : "text-red-400"}`}>
-                          {resolutionData.health.criteria.recent_activity 
-                            ? `${resolutionData.health.lastTradeAge}d ago` 
-                            : "No activity"}
-                        </span>
-                      </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <span className="text-gray-400">Survival score</span>
-                        <span className={`font-mono font-bold ${
-                          resolutionData.health.survivalScore >= 75 ? "text-green-400" : 
-                          resolutionData.health.survivalScore >= 50 ? "text-yellow-400" : "text-red-400"
-                        }`}>
-                          {resolutionData.health.survivalScore}/100
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Resolution Details */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="bg-zinc-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Timer className="w-3.5 h-3.5 text-purple-400" />
-                    <span className="text-xs font-bold text-gray-300">Resolution Date</span>
-                  </div>
-                  <p className="text-xs text-white font-mono">
-                    {new Date(market.resolutionDate).toLocaleString(undefined, {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    })}
-                  </p>
-                </div>
-                <div className="bg-zinc-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Zap className="w-3.5 h-3.5 text-green-400" />
-                    <span className="text-xs font-bold text-gray-300">Verification</span>
-                  </div>
-                  <p className="text-xs text-white">
-                    {isAutoResolve ? "Automatic — Solana on-chain data" : "Manual — market creator"}
-                  </p>
-                </div>
-                <div className="bg-zinc-800/50 rounded-lg p-3">
-                  <div className="flex items-center gap-1.5 mb-1">
-                    <Scale className="w-3.5 h-3.5 text-blue-400" />
-                    <span className="text-xs font-bold text-gray-300">Source</span>
-                  </div>
-                  <p className="text-xs text-white">
-                    Solana RPC (Helius)
-                  </p>
-                </div>
-              </div>
-
-              {/* Pool & Payout */}
-              <div className="bg-zinc-800/50 rounded-lg p-4">
-                <span className="text-sm font-bold text-white block mb-2">Pool & Payout</span>
-                <p className="text-xs text-gray-400 mb-2">
-                  Your payout = (your bet / winning pool) x total pool
-                </p>
-                <div className="bg-zinc-900 rounded p-2">
-                  <div className="flex justify-between text-xs">
-                    <span className="text-gray-500">YES Pool</span>
-                    <span className="text-green-400 font-bold">{market.yesPool.toFixed(2)} SOL</span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1">
-                    <span className="text-gray-500">NO Pool</span>
-                    <span className="text-red-400 font-bold">{market.noPool.toFixed(2)} SOL</span>
-                  </div>
-                  <div className="flex justify-between text-xs mt-1 border-t border-zinc-700 pt-1">
-                    <span className="text-gray-500">Total Pool</span>
-                    <span className="text-yellow-400 font-bold">{market.totalVolume.toFixed(2)} SOL</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {(() => {
-              // Hide odds until at least 2 independent bettors — pari-mutuel seed alone
-              // anchors odds at 100/0, which is misleading.
-              const hasConsensus = (market.totalPositions || 0) >= 2;
-              const isRug = criteria === "dev_sells";
-              const yesLabel = isRug ? "YES (it rugs)" : "YES";
-              const noLabel = isRug ? "NO (it doesn't)" : "NO";
-              return (
-                <>
-                  <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-bold text-white">Current Odds</h2>
+            {/* Combined trade panel: YES/NO + bet input together */}
+            <div className="p-5">
+              {(() => {
+                const hasConsensus = (market.totalPositions || 0) >= 2;
+                const isRug = criteria === "dev_sells";
+                const yesLabel = isRug ? "YES (rugs)" : "YES";
+                const noLabel = isRug ? "NO (doesn't)" : "NO";
+                return (
+                  <>
                     {!hasConsensus && (
-                      <span className="text-[10px] uppercase tracking-widest font-bold text-yellow-400 bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded">
-                        No consensus yet
-                      </span>
+                      <p className="text-[11px] text-yellow-400/80 mb-2" data-testid="banner-no-consensus">
+                        No consensus yet — be first to set the line.
+                      </p>
                     )}
-                  </div>
-                  {!hasConsensus && (
-                    <div className="mb-4 p-3 bg-zinc-800/60 border border-yellow-500/20 rounded-lg text-xs text-gray-400" data-testid="banner-no-consensus">
-                      Only the creator's seed bet has been placed. Odds shown below are not a market signal until more bettors join — be the first to set a real line.
-                    </div>
-                  )}
-                  <div className="grid grid-cols-2 gap-4 mb-6">
-                    <button
-                      onClick={() => canBet && setSelectedSide("yes")}
-                      disabled={!canBet}
-                      className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
-                        selectedSide === "yes"
-                          ? "bg-green-600/30 border-green-500"
-                          : canBet
-                          ? "bg-green-600/10 border-green-600/40 hover:bg-green-600/20"
-                          : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
-                      }`}
-                      data-testid="button-bet-yes"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-green-400 font-bold text-lg">{yesLabel}</span>
-                        <TrendingUp className="w-5 h-5 text-green-400" />
-                      </div>
-                      <p className="text-2xl md:text-4xl font-black text-green-400">
-                        {hasConsensus ? `${market.yesOdds}%` : "—"}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">{market.yesPool.toFixed(2)} SOL in pool</p>
-                    </button>
-                    <button
-                      onClick={() => canBet && setSelectedSide("no")}
-                      disabled={!canBet}
-                      className={`p-4 md:p-6 rounded-xl border-2 transition-all ${
-                        selectedSide === "no"
-                          ? "bg-red-600/30 border-red-500"
-                          : canBet
-                          ? "bg-red-600/10 border-red-600/40 hover:bg-red-600/20"
-                          : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
-                      }`}
-                      data-testid="button-bet-no"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-red-400 font-bold text-lg">{noLabel}</span>
-                        <TrendingDown className="w-5 h-5 text-red-400" />
-                      </div>
-                      <p className="text-2xl md:text-4xl font-black text-red-400">
-                        {hasConsensus ? `${market.noOdds}%` : "—"}
-                      </p>
-                      <p className="text-sm text-gray-500 mt-2">{market.noPool.toFixed(2)} SOL in pool</p>
-                    </button>
-                  </div>
-                </>
-              );
-            })()}
-
-            {canBet && (
-              <div className={`rounded-xl p-6 transition-all ${
-                useConfidentialBet 
-                  ? "bg-black/80 border-2 border-[#4ADE80]/50 shadow-[0_0_20px_rgba(57,255,20,0.15)]" 
-                  : "bg-zinc-800/50"
-              }`}>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className={`text-lg font-bold ${useConfidentialBet ? "text-[#4ADE80] font-mono" : "text-white"}`}>
-                    {useConfidentialBet ? "🔒 Confidential Bet" : "Place Your Bet"}
-                  </h3>
-                  
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
-                      className={`p-1.5 rounded transition-colors ${
-                        useConfidentialBet ? "text-[#4ADE80]/60 hover:text-[#4ADE80]" : "text-gray-500 hover:text-gray-300"
-                      }`}
-                      data-testid="button-privacy-info"
-                    >
-                      <Info className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => setUseConfidentialBet(!useConfidentialBet)}
-                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                        useConfidentialBet
-                          ? "bg-[#4ADE80]/20 text-[#4ADE80] border border-[#4ADE80]/50"
-                          : "bg-zinc-700 text-gray-400 hover:bg-zinc-600 border border-transparent"
-                      }`}
-                      data-testid="button-toggle-confidential"
-                    >
-                      {useConfidentialBet ? <Lock className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      {useConfidentialBet ? "Private" : "Public"}
-                    </button>
-                  </div>
-                </div>
-
-                <AnimatePresence>
-                  {showPrivacyInfo && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className={`mb-4 p-4 rounded-lg text-sm ${
-                        useConfidentialBet 
-                          ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" 
-                          : "bg-zinc-700/50 border border-zinc-600"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Shield className={`w-5 h-5 mt-0.5 flex-shrink-0 ${useConfidentialBet ? "text-[#4ADE80]" : "text-blue-400"}`} />
-                        <div>
-                          <p className={`font-bold mb-1 ${useConfidentialBet ? "text-[#4ADE80]" : "text-white"}`}>
-                            {useConfidentialBet ? "Encrypt FHE — Confidential Mode" : "Privacy Options"}
-                          </p>
-                          <p className={useConfidentialBet ? "text-[#4ADE80]/70" : "text-gray-400"}>
-                            {useConfidentialBet 
-                              ? "Your bet amount is encrypted on-chain using Encrypt's Fully Homomorphic Encryption (FHE). Pool balances update via #[encrypt_fn] circuits — no one can see your position size."
-                              : "Enable confidential betting to hide your bet amount from other traders using Encrypt FHE on Solana."
-                            }
-                          </p>
-                          {useConfidentialBet && (
-                            <div className="mt-2 flex items-center gap-2 text-xs text-[#4ADE80]/50 font-mono">
-                              <span>encrypt.xyz · #encrypt_fn DSL</span>
-                              <span>•</span>
-                              <span>Colosseum Frontier Track</span>
-                            </div>
-                          )}
+                    <div className="grid grid-cols-2 gap-2 md:gap-3 mb-4">
+                      <button
+                        onClick={() => canBet && setSelectedSide("yes")}
+                        disabled={!canBet}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          selectedSide === "yes"
+                            ? "bg-green-600/25 border-green-500"
+                            : canBet
+                            ? "bg-green-600/5 border-green-600/30 hover:bg-green-600/15 hover:border-green-500/60"
+                            : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
+                        }`}
+                        data-testid="button-bet-yes"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-green-400 font-bold text-sm">{yesLabel}</span>
+                          <TrendingUp className="w-4 h-4 text-green-400" />
                         </div>
-                      </div>
+                        <p className="text-3xl font-black text-green-400 mt-1">
+                          {hasConsensus ? `${market.yesOdds}%` : "—"}
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-1">{market.yesPool.toFixed(2)} SOL pool</p>
+                      </button>
+                      <button
+                        onClick={() => canBet && setSelectedSide("no")}
+                        disabled={!canBet}
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${
+                          selectedSide === "no"
+                            ? "bg-red-600/25 border-red-500"
+                            : canBet
+                            ? "bg-red-600/5 border-red-600/30 hover:bg-red-600/15 hover:border-red-500/60"
+                            : "bg-zinc-800 border-zinc-700 opacity-50 cursor-not-allowed"
+                        }`}
+                        data-testid="button-bet-no"
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-red-400 font-bold text-sm">{noLabel}</span>
+                          <TrendingDown className="w-4 h-4 text-red-400" />
+                        </div>
+                        <p className="text-3xl font-black text-red-400 mt-1">
+                          {hasConsensus ? `${market.noOdds}%` : "—"}
+                        </p>
+                        <p className="text-[10px] text-gray-500 mt-1">{market.noPool.toFixed(2)} SOL pool</p>
+                      </button>
+                    </div>
+                  </>
+                );
+              })()}
+
+              {canBet && (
+                <div className={`rounded-lg p-4 ${
+                  useConfidentialBet
+                    ? "bg-black border border-[#4ADE80]/40"
+                    : "bg-zinc-800/60 border border-zinc-700"
+                }`}>
+                  {success && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`mb-3 px-3 py-2 rounded text-sm font-bold flex items-center gap-2 ${
+                        useConfidentialBet
+                          ? "bg-[#4ADE80]/15 text-[#4ADE80] border border-[#4ADE80]/40"
+                          : "bg-green-500/15 text-green-400 border border-green-500/40"
+                      }`}
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Bet placed!
                     </motion.div>
                   )}
-                </AnimatePresence>
-                
-                {success && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`mb-4 p-3 border rounded-lg flex items-center gap-2 ${
-                      useConfidentialBet 
-                        ? "bg-[#4ADE80]/20 border-[#4ADE80]/50 text-[#4ADE80]" 
-                        : "bg-green-600/20 border-green-600/50 text-green-400"
-                    }`}
-                  >
-                    <CheckCircle className="w-4 h-4" />
-                    <p className="text-sm font-bold">
-                      {useConfidentialBet ? "Confidential bet placed successfully!" : "Bet placed successfully!"}
-                    </p>
-                  </motion.div>
-                )}
+                  {error && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mb-3 px-3 py-2 rounded text-sm bg-red-500/15 border border-red-500/40 text-red-400 flex items-center gap-2"
+                    >
+                      <AlertCircle className="w-4 h-4 flex-shrink-0" />
+                      {error}
+                    </motion.div>
+                  )}
 
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-4 p-3 bg-red-600/20 border border-red-600/50 rounded-lg flex items-center gap-2"
-                  >
-                    <AlertCircle className="w-4 h-4 text-red-500" />
-                    <p className="text-red-400 text-sm">{error}</p>
-                  </motion.div>
-                )}
-
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-sm text-gray-400 mb-2">Amount (SOL)</label>
+                  <div className="flex gap-2">
                     <input
                       type="number"
                       value={betAmount}
                       onChange={(e) => setBetAmount(e.target.value)}
-                      placeholder="0.1"
+                      placeholder="0.10"
                       step="0.01"
                       min="0.01"
-                      className="w-full bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500 transition-colors"
+                      className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500"
                       data-testid="input-bet-amount"
                     />
-                  </div>
-                  <div className="flex items-end">
                     {!connected ? (
-                      <motion.button
+                      <button
                         onClick={() => connectWallet()}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className="bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white font-bold py-3 px-6 rounded-lg transition-all"
+                        className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-4 py-2.5 rounded-lg whitespace-nowrap"
                         data-testid="button-connect"
                       >
-                        Connect Wallet
-                      </motion.button>
+                        Connect
+                      </button>
                     ) : (
-                      <motion.button
+                      <button
                         onClick={handlePlaceBet}
                         disabled={placeBetMutation.isPending || !selectedSide}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`font-bold py-3 px-6 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 ${
+                        className={`font-bold px-5 py-2.5 rounded-lg whitespace-nowrap flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           selectedSide === "yes"
-                            ? "bg-gradient-to-r from-green-500 to-green-600 text-white"
+                            ? "bg-green-500 hover:bg-green-600 text-white"
                             : selectedSide === "no"
-                            ? "bg-gradient-to-r from-red-500 to-red-600 text-white"
+                            ? "bg-red-500 hover:bg-red-600 text-white"
                             : "bg-zinc-700 text-gray-400"
                         }`}
                         data-testid="button-place-bet"
                       >
                         {placeBetMutation.isPending ? (
-                          <>
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                            {useConfidentialBet ? "Encrypting..." : "Placing..."}
-                          </>
+                          <><Loader2 className="w-4 h-4 animate-spin" /> {useConfidentialBet ? "Encrypting" : "Placing"}</>
+                        ) : useConfidentialBet ? (
+                          <><Lock className="w-4 h-4" /> Private bet</>
                         ) : (
-                          <>
-                            {useConfidentialBet ? <Lock className="w-4 h-4" /> : <CheckCircle className="w-4 h-4" />}
-                            {useConfidentialBet ? "Private Bet" : `Bet ${selectedSide?.toUpperCase() || "..."}`}
-                          </>
+                          <>Bet {selectedSide ? selectedSide.toUpperCase() : "—"}</>
                         )}
-                      </motion.button>
+                      </button>
                     )}
                   </div>
-                </div>
 
-                {selectedSide && betAmount && parseFloat(betAmount) > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className={`mt-4 p-3 rounded-lg ${
-                      useConfidentialBet ? "bg-black border border-[#4ADE80]/30" : "bg-zinc-900"
-                    }`}
-                  >
-                    <p className={`text-sm ${useConfidentialBet ? "text-[#4ADE80]/80 font-mono" : "text-gray-400"}`}>
-                      {useConfidentialBet ? (
-                        <>
-                          <Lock className="w-3.5 h-3.5 inline mr-1" />
-                          Betting <span className="text-[#4ADE80] font-bold">{betAmount} SOL</span> on{" "}
-                          <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
-                            {selectedSide.toUpperCase()}
-                          </span>
-                          <span className="text-[#4ADE80]/50 ml-2">(amount will be encrypted)</span>
-                        </>
-                      ) : (
-                        <>
-                          You're betting <span className="text-white font-bold">{betAmount} SOL</span> on{" "}
-                          <span className={selectedSide === "yes" ? "text-green-400" : "text-red-400"}>
-                            {selectedSide.toUpperCase()}
-                          </span>
-                        </>
-                      )}
+                  {selectedSide && betAmount && parseFloat(betAmount) > 0 && (
+                    <p className={`mt-2 text-xs ${useConfidentialBet ? "text-[#4ADE80]/70 font-mono" : "text-gray-400"}`}>
+                      {useConfidentialBet && <Lock className="w-3 h-3 inline mr-1" />}
+                      Betting <span className="text-white font-bold">{betAmount} SOL</span> on{" "}
+                      <span className={selectedSide === "yes" ? "text-green-400 font-bold" : "text-red-400 font-bold"}>
+                        {selectedSide.toUpperCase()}
+                      </span>
+                      {useConfidentialBet && <span className="text-[#4ADE80]/50"> — amount encrypted on-chain</span>}
                     </p>
+                  )}
+
+                  {/* Privacy toggle — small inline link */}
+                  <div className="mt-3 pt-3 border-t border-zinc-700/60 flex items-center justify-between">
+                    <button
+                      onClick={() => setUseConfidentialBet(!useConfidentialBet)}
+                      className={`flex items-center gap-1.5 text-xs font-bold transition-colors ${
+                        useConfidentialBet ? "text-[#4ADE80]" : "text-gray-400 hover:text-white"
+                      }`}
+                      data-testid="button-toggle-confidential"
+                    >
+                      {useConfidentialBet ? <Lock className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                      {useConfidentialBet ? "Private (FHE)" : "Make this bet private"}
+                    </button>
+                    <button
+                      onClick={() => setShowPrivacyInfo(!showPrivacyInfo)}
+                      className="text-gray-500 hover:text-gray-300"
+                      data-testid="button-privacy-info"
+                    >
+                      <Info className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                  <AnimatePresence>
+                    {showPrivacyInfo && (
+                      <motion.p
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        className="text-[11px] text-gray-500 mt-2 leading-relaxed"
+                      >
+                        Private bets encrypt the amount on-chain via Encrypt FHE — pool sizes update without revealing your stake.
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )}
+
+              {!canBet && (
+                <div className="bg-zinc-800/50 rounded-lg p-4 text-center text-sm text-gray-400">
+                  {isResolved
+                    ? `This market resolved ${market.outcome?.toUpperCase()}`
+                    : "Market closed — pending resolution"}
+                </div>
+              )}
+            </div>
+
+            {/* Collapsible: Rules & on-chain status */}
+            <div className="border-t border-zinc-800">
+              <button
+                onClick={() => setShowDetails(!showDetails)}
+                className="w-full flex items-center justify-between px-5 py-3 text-left hover:bg-zinc-800/40 transition-colors"
+                data-testid="button-toggle-details"
+              >
+                <span className="text-sm font-bold text-gray-300">Rules & on-chain status</span>
+                <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showDetails ? "rotate-180" : ""}`} />
+              </button>
+              <AnimatePresence>
+                {showDetails && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: "auto", opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-5 pb-5 space-y-3">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div className="bg-green-500/5 border border-green-500/20 rounded p-3">
+                          <p className="text-[10px] uppercase font-bold text-green-400 mb-1">YES wins if</p>
+                          <p className="text-xs text-gray-300 leading-snug">
+                            {resolutionData?.rules?.yesCondition || getCriteriaDescription(criteria)}
+                          </p>
+                        </div>
+                        <div className="bg-red-500/5 border border-red-500/20 rounded p-3">
+                          <p className="text-[10px] uppercase font-bold text-red-400 mb-1">NO wins if</p>
+                          <p className="text-xs text-gray-300 leading-snug">
+                            {resolutionData?.rules?.noCondition || "The opposite of the YES condition is met."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {resolutionData?.health && (
+                        <div className="bg-zinc-800/40 rounded p-3">
+                          <p className="text-[10px] uppercase font-bold text-blue-400 mb-2">Live on-chain status</p>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+                            {resolutionData.health.creatorBalancePercent !== null && (
+                              <>
+                                <span className="text-gray-400">Dev holdings</span>
+                                <span className="text-right font-mono text-white">{resolutionData.health.creatorBalancePercent}%</span>
+                              </>
+                            )}
+                            <span className="text-gray-400">Holders</span>
+                            <span className="text-right font-mono text-white">{resolutionData.health.holderCount}</span>
+                            <span className="text-gray-400">Liquidity</span>
+                            <span className={`text-right font-mono ${resolutionData.health.hasLiquidity ? "text-green-400" : "text-red-400"}`}>
+                              {resolutionData.health.hasLiquidity ? "Active" : "None"}
+                            </span>
+                            <span className="text-gray-400">Recent activity</span>
+                            <span className={`text-right font-mono ${resolutionData.health.criteria.recent_activity ? "text-green-400" : "text-red-400"}`}>
+                              {resolutionData.health.criteria.recent_activity ? `${resolutionData.health.lastTradeAge}d ago` : "None"}
+                            </span>
+                            <span className="text-gray-400">Survival score</span>
+                            <span className={`text-right font-mono ${
+                              resolutionData.health.survivalScore >= 75 ? "text-green-400" :
+                              resolutionData.health.survivalScore >= 50 ? "text-yellow-400" : "text-red-400"
+                            }`}>{resolutionData.health.survivalScore}/100</span>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="text-[11px] text-gray-500 leading-relaxed">
+                        Resolves <span className="text-gray-300 font-mono">{new Date(market.resolutionDate).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span> · {isAutoResolve ? "Auto from Solana on-chain data" : "Manual resolution"} · Source: Helius RPC
+                      </div>
+
+                      <div className="text-[11px] text-gray-500">
+                        Payout = (your bet ÷ winning pool) × total pool · Created by <span className="font-mono">{market.creatorAddress.slice(0,6)}…{market.creatorAddress.slice(-4)}</span>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 pt-1">
+                        <a
+                          href="https://encrypt.xyz" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded bg-[#4ADE80]/10 border border-[#4ADE80]/30 text-[#4ADE80] text-[10px] font-bold"
+                          data-testid="badge-encrypt-fhe"
+                        >
+                          <Lock className="w-3 h-3" /> Encrypt FHE
+                        </a>
+                        <a
+                          href="https://ika.xyz" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-bold"
+                          data-testid="badge-ika-dwallet"
+                        >
+                          <Shield className="w-3 h-3" /> Ika dWallets
+                        </a>
+                      </div>
+                    </div>
                   </motion.div>
                 )}
-              </div>
-            )}
-
-            {!canBet && (
-              <div className="bg-zinc-800/50 rounded-xl p-6 text-center">
-                <p className="text-gray-400">
-                  {isResolved 
-                    ? `This market has been resolved. Outcome: ${market.outcome?.toUpperCase()}`
-                    : "This market is pending resolution"
-                  }
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="px-6 pb-3">
-            <div className="rounded-xl border border-zinc-700/60 bg-zinc-900/60 p-4 space-y-3">
-              <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Powered By</p>
-              <div className="flex flex-wrap gap-3">
-                <a
-                  href="https://encrypt.xyz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#4ADE80]/10 border border-[#4ADE80]/30 text-[#4ADE80] text-xs font-bold hover:bg-[#4ADE80]/20 transition-colors"
-                  data-testid="badge-encrypt-fhe"
-                >
-                  <Lock className="w-3.5 h-3.5" />
-                  Encrypt FHE
-                  <span className="text-[#4ADE80]/50 font-normal">#encrypt_fn</span>
-                </a>
-                <a
-                  href="https://ika.xyz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-bold hover:bg-blue-500/20 transition-colors"
-                  data-testid="badge-ika-dwallet"
-                >
-                  <Shield className="w-3.5 h-3.5" />
-                  Ika dWallets
-                  <span className="text-blue-400/50 font-normal">2PC-MPC</span>
-                </a>
-              </div>
-              <p className="text-xs text-zinc-500 leading-relaxed">
-                Bet amounts encrypted on-chain via Encrypt FHE (REFHE). Cross-chain collateral secured by Ika dWallet MPC — stake BTC or ETH without bridges.
-              </p>
+              </AnimatePresence>
             </div>
-          </div>
-
-          <div className="px-6 pb-6">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span>Created by: {market.creatorAddress.slice(0, 6)}...{market.creatorAddress.slice(-4)}</span>
-              <span>Resolution: {new Date(market.resolutionDate).toLocaleDateString()}</span>
-            </div>
-          </div>
         </motion.div>
       </div>
     </Layout>
