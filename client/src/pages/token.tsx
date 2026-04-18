@@ -106,6 +106,21 @@ interface DuneTokenData {
   total: number;
 }
 
+function formatTimeLeft(resolutionDate: string): string {
+  const diff = new Date(resolutionDate).getTime() - Date.now();
+  if (diff <= 0) return "Resolving…";
+  const hours = diff / 3_600_000;
+  const days = Math.floor(hours / 24);
+  if (days >= 1) return `${days}d ${Math.floor(hours % 24)}h left`;
+  if (hours >= 1) return `${Math.floor(hours)}h ${Math.floor((hours % 1) * 60)}m left`;
+  return `${Math.floor(diff / 60_000)}m left`;
+}
+
+function predictionHasConsensus(p: { totalVolume?: number }): boolean {
+  // Treat anything below ~0.05 SOL of pooled volume as "creator seed only" — odds aren't meaningful yet.
+  return (p.totalVolume || 0) >= 0.05;
+}
+
 function getTimeAgo(date: Date): string {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return `${seconds}s`;
@@ -975,14 +990,25 @@ export default function TokenPage() {
                             </div>
                             <div className="grid grid-cols-2 gap-2">
                               <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
-                                <span className="block font-bold">{prediction.yesOdds}%</span>
+                                <span className="block font-bold">{predictionHasConsensus(prediction) ? `${prediction.yesOdds}%` : "—"}</span>
                                 <span className="text-xs">YES</span>
                               </button>
                               <button onClick={(e) => handleBetClick(prediction.id, "no", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
-                                <span className="block font-bold">{prediction.noOdds}%</span>
+                                <span className="block font-bold">{predictionHasConsensus(prediction) ? `${prediction.noOdds}%` : "—"}</span>
                                 <span className="text-xs">NO</span>
                               </button>
                             </div>
+                            <div className={`mt-2 flex items-center justify-between text-[11px] ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`} data-testid={`meta-${prediction.id}`}>
+                              <span>
+                                <span className="font-bold">{(prediction.totalVolume || 0).toFixed(2)}</span> SOL pool
+                              </span>
+                              <span>{formatTimeLeft(prediction.resolutionDate)}</span>
+                            </div>
+                            {!predictionHasConsensus(prediction) && (
+                              <p className={`mt-1 text-[10px] font-bold ${privateMode ? "text-yellow-400/80" : "text-yellow-600"}`}>
+                                No consensus yet — be first to set the line
+                              </p>
+                            )}
                             {isBettingActive && (
                               <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
                                 <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
