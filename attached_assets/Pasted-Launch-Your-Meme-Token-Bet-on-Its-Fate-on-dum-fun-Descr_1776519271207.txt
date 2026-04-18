@@ -1,0 +1,57 @@
+Launch Your Meme Token & Bet on Its Fate on dum.fun
+
+Description:
+
+The Challenge
+
+Launch a meme token on dum.fun. Then let the community decide — will it survive, graduate, or rug?
+
+dum.fun is a token launchpad where every token comes with built-in prediction markets. Create a token, trade it on the bonding curve, and bet on whether other tokens will make it or die.
+
+🌐 App: dum.fun (https://dum-fun.replit.app/) (Solana Devnet)
+💬 Telegram: t.me/dumfun
+🐦 X: @dumfun
+
+How It Works
+
+1. Launch a token — pick a name, design a logo, write a description. Your token goes live on a bonding curve instantly.
+
+2. Bet on tokens — every token has prediction markets:
+
+• 🫧 Will it survive?
+• 🏴‍☠️ Will it rug?
+• 🎓 Will it graduate?
+• 📊 Will it stay active?
+• 💧 Will it keep liquidity?
+
+Markets resolve automatically from on-chain data. No trust required.
+
+3. Trade — buy tokens you believe in, sell ones you don't. The bonding curve sets the price.
+
+Your Mission
+
+1. Connect Phantom wallet at dum.fun (https://dum-fun.replit.app/) (Devnet)
+2. Launch at least one token — make it creative, make people want to trade it
+3. Place bets on other tokens — will they survive or rug? Put your SOL where your mouth is
+4. Trade — buy and sell on at least 2 token bonding curves
+5. Post on X — share what you launched, tag @dumfun, show your bets
+6. Join Telegram — share your token with the community
+
+Submission
+
+• Link to your token on dum.fun
+• Screenshot of your bets on prediction markets
+• X post or thread about your experience (tag @dumfun)
+• Wallet address used
+• Quick feedback: What's good? What's broken? What's missing?
+
+Prizes
+
+• 🥇 Best Token Launch — 150 USDC
+Most creative token that got the most trading activity
+• 🔮 Best Predictor — 150 USDC
+Most accurate bets across prediction markets
+• 📣 Best X Content — 100 USDC
+Most engaging post/thread about dum.fun
+• 🐛 Best Feedback / Bug Report — 100 USDC
+Found something broken? Detailed report wins
