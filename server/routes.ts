@@ -240,6 +240,7 @@ export async function registerRoutes(
               noOdds: total > 0 ? Math.round((noPool / total) * 100) : 50,
               totalVolume: Number(market.totalVolume) || 0,
               status: market.status,
+              resolutionDate: market.resolutionDate,
             };
           });
           

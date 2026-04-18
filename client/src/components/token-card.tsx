@@ -10,6 +10,23 @@ interface TokenPrediction {
   noOdds: number;
   totalVolume: number;
   status: string;
+  resolutionDate?: string | null;
+}
+
+function formatTimeRemaining(target: string | null | undefined): { text: string; urgent: boolean; ended: boolean } {
+  if (!target) return { text: "", urgent: false, ended: false };
+  const ms = new Date(target).getTime() - Date.now();
+  if (Number.isNaN(ms)) return { text: "", urgent: false, ended: false };
+  if (ms <= 0) return { text: "Ended", urgent: false, ended: true };
+  const sec = Math.floor(ms / 1000);
+  const days = Math.floor(sec / 86400);
+  const hrs = Math.floor((sec % 86400) / 3600);
+  const mins = Math.floor((sec % 3600) / 60);
+  let text: string;
+  if (days >= 1) text = `${days}d ${hrs}h left`;
+  else if (hrs >= 1) text = `${hrs}h ${mins}m left`;
+  else text = `${mins}m left`;
+  return { text, urgent: ms < 60 * 60 * 1000, ended: false };
 }
 
 interface TokenWithPredictions {
@@ -179,6 +196,24 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
             
             <div className={`flex items-center justify-between mt-2 text-[10px] font-mono ${privateMode ? "text-[#4ADE80]/80" : "text-gray-500"}`}>
               <span>{topPrediction.totalVolume.toFixed(2)} SOL VOL</span>
+              {(() => {
+                const tr = formatTimeRemaining(topPrediction.resolutionDate);
+                if (!tr.text) return null;
+                const color = tr.ended
+                  ? (privateMode ? "text-[#FF1744]" : "text-gray-400")
+                  : tr.urgent
+                    ? (privateMode ? "text-[#FF1744]" : "text-red-500")
+                    : (privateMode ? "text-[#4ADE80]" : "text-gray-700");
+                return (
+                  <span
+                    className={`flex items-center gap-1 font-bold ${color}`}
+                    data-testid={`text-prediction-time-${topPrediction.id}`}
+                  >
+                    <Clock className="w-3 h-3" />
+                    {tr.text}
+                  </span>
+                );
+              })()}
               {token.predictions && token.predictions.length > 1 && (
                 <span className={privateMode ? "text-white" : "text-pink-500"}>
                   {privateMode ? `+${token.predictions.length - 1}_MODULES` : `+${token.predictions.length - 1} more`}
