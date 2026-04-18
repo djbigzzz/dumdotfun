@@ -29,3 +29,9 @@ id = "tmXczXPnoNnCCLsGgR_Fk"
 uri = "file://attached_assets/generated_images/og_verdict_split_v1.png"
 type = "image"
 title = "Proposed OG image — Verdict Split"
+
+[[outputs]]
+id = "ViQQu6Cz5QBDrkDpRd4dl"
+uri = "file://attached_assets/generated_images/og_v3.png"
+type = "image"
+title = "Proposed OG image v3 — launch + bet"
