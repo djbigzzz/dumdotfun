@@ -35,3 +35,9 @@ id = "ViQQu6Cz5QBDrkDpRd4dl"
 uri = "file://attached_assets/generated_images/og_v3.png"
 type = "image"
 title = "Proposed OG image v3 — launch + bet"
+
+[[outputs]]
+id = "eyfwcCtpjyRLDviAXM0wM"
+uri = "file://attached_assets/generated_images/og_v6.png"
+type = "image"
+title = "OG Banner v6 — Clean & Simple"
