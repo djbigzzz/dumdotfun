@@ -253,14 +253,25 @@ export async function registerRoutes(
             const curveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
             if (curveData) {
               priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
-              const virtualSolReserves = Number(curveData.virtualSolReserves) / 1e9;
-              const graduationThreshold = 85;
-              bondingCurveProgress = Math.min((virtualSolReserves / graduationThreshold) * 100, 100);
-              marketCapSol = virtualSolReserves;
+              const bnToNum = (val: any) => {
+                if (val == null) return 0;
+                return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
+              };
+              // Market cap = price × circulating supply (tokens already bought out of curve)
+              const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
+              const tokensInCurveRaw = bnToNum(curveData.realTokenReserves);
+              const totalSupply = totalSupplyRaw / 1_000_000;
+              const tokensInCurve = tokensInCurveRaw / 1_000_000;
+              const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
+              marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
+              // Progress = real SOL deposited / 85 SOL graduation target
+              const realSolReservesNum = bnToNum(curveData.realSolReserves);
+              const graduationThresholdLamports = 85 * LAMPORTS_PER_SOL;
+              bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThresholdLamports) * 100);
             }
           } catch {
             if (marketCapSol === 0) {
-              marketCapSol = 30;
+              marketCapSol = 0;
               priceInSol = 0.000001;
               bondingCurveProgress = 0;
             }
