@@ -41,3 +41,9 @@ id = "eyfwcCtpjyRLDviAXM0wM"
 uri = "file://attached_assets/generated_images/og_v6.png"
 type = "image"
 title = "OG Banner v6 — Clean & Simple"
+
+[[outputs]]
+id = "EnBDDYp-h0S51jlWiwak0"
+uri = "file://attached_assets/generated_images/og_v7.png"
+type = "image"
+title = "OG Banner v7 — with live token preview"
