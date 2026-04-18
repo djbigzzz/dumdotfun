@@ -55,20 +55,28 @@ export function metaImagesPlugin(): Plugin {
   };
 }
 
+// Public production URL — this is what social media crawlers (Twitter, Facebook,
+// LinkedIn, Discord) need to be able to reach. Internal Replit domains like
+// REPLIT_INTERNAL_APP_DOMAIN do NOT resolve publicly and will break OG previews.
+const PRODUCTION_URL = 'https://dum.fun';
+
 function getDeploymentUrl(): string | null {
-  if (process.env.REPLIT_INTERNAL_APP_DOMAIN) {
-    const url = `https://${process.env.REPLIT_INTERNAL_APP_DOMAIN}`;
-    log('[meta-images] using internal app domain:', url);
-    return url;
+  // In production builds, always use the public custom domain.
+  if (process.env.NODE_ENV === 'production') {
+    log('[meta-images] using production domain:', PRODUCTION_URL);
+    return PRODUCTION_URL;
   }
 
+  // In dev, prefer the public dev domain so live previews work over the internet.
   if (process.env.REPLIT_DEV_DOMAIN) {
     const url = `https://${process.env.REPLIT_DEV_DOMAIN}`;
     log('[meta-images] using dev domain:', url);
     return url;
   }
 
-  return null;
+  // Fall back to the production URL so the static HTML always has a valid
+  // absolute image URL even when no env vars are set.
+  return PRODUCTION_URL;
 }
 
 function log(...args: any[]): void {
