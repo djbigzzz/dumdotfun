@@ -213,6 +213,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/create">
               <span className="font-bold transition-colors cursor-pointer text-gray-700 hover:text-red-500">Launch</span>
             </Link>
+            <Link href="/markets">
+              <span className="font-bold transition-colors cursor-pointer text-gray-700 hover:text-green-500">Markets</span>
+            </Link>
             <Link href="/quests">
               <span className="font-bold transition-colors cursor-pointer text-gray-700 hover:text-purple-500">Quests</span>
             </Link>
@@ -333,6 +336,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </a>
           <a href="/trending" className="transition-colors hover:text-black" data-testid="footer-link-trending">
             Trending
+          </a>
+          <a href="/markets" className="transition-colors hover:text-black" data-testid="footer-link-markets">
+            Markets
           </a>
           <a href="/create" className="transition-colors hover:text-black" data-testid="footer-link-create">
             Launch Token
