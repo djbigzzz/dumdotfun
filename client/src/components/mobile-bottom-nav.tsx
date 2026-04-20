@@ -1,10 +1,11 @@
 import { useLocation, Link } from "wouter";
 import { motion } from "framer-motion";
-import { Coins, Flame, Plus, User, Trophy, Star } from "lucide-react";
+import { Coins, Flame, Plus, User, Trophy, Star, BarChart3 } from "lucide-react";
 
 const navItems = [
   { path: "/tokens", label: "Tokens", icon: Coins },
   { path: "/trending", label: "Trending", icon: Flame },
+  { path: "/markets", label: "Markets", icon: BarChart3 },
   { path: "/create", label: "Create", icon: Plus, isAction: true },
   { path: "/quests", label: "Quests", icon: Star },
   { path: "/leaderboard", label: "Ranks", icon: Trophy },
@@ -25,7 +26,7 @@ export function MobileBottomNav() {
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       data-testid="nav-mobile-bottom"
     >
-      <div className="flex items-center justify-around px-1 py-1">
+      <div className="flex items-center justify-around px-0.5 py-1">
         {navItems.map((item) => {
           const active = isActive(item.path);
           const Icon = item.icon;
@@ -34,7 +35,7 @@ export function MobileBottomNav() {
             <Link key={item.path} href={item.path}>
               <motion.div
                 whileTap={{ scale: 0.9 }}
-                className={`flex flex-col items-center justify-center py-2 px-2 min-w-[48px] rounded-lg transition-colors relative ${
+                className={`flex flex-col items-center justify-center py-2 px-1.5 min-w-[44px] rounded-lg transition-colors relative ${
                   item.isAction
                     ? "text-white"
                     : active
