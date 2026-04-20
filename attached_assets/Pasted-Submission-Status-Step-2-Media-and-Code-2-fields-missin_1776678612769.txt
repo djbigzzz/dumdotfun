@@ -1,0 +1,135 @@
+Submission Status
+Step 2: Media and Code — 2 fields missing
+Product demo video
+Pitch video
+Go to step 2
+What happens after you submit?
+After submission, your project details will be locked for judging. A small set of fields will still be editable up until the submission deadline:
+
+Live product link
+Optional access instructions
+Anything else judges should know
+How far along are you? Do you have users?
+Entity formation
+Investment
+Fundraising
+Live token
+Submission Preview
+Edit project
+Step 1: Project Info
+Project name
+Dum.fun
+Category
+Consumer Apps
+Brief description
+The Solana meme launchpad where every token comes with built-in prediction markets. Launch it, bet on whether it rugs or moons, auto-graduate to Raydium.
+Project website
+https://dum.fun/
+Mobile-focused dApp
+Yes
+What are you building, and who is it for?
+dum.fun is a Solana token launchpad where every newly minted token automatically gets a suite of prediction markets attached to it. Anyone can launch a meme token on a bonding curve in seconds - and from the moment it goes live, traders can bet YES/NO on questions like "Will the dev rug?", "Will it graduate to Raydium?", or "Will it survive 7 days?". Markets resolve automatically from on-chain signals (dev wallet behavior, holder counts, bonding-curve liquidity, graduation status) - no oracles, no human intervention.
+
+Who it's for:
+
+Degens who want a sharper game than blind aping into pump.fun clones - now they can short the rug.
+Token launchers who want immediate price discovery and social signal on whether the market believes them.
+Prediction-market traders looking for high-velocity, on-chain-resolvable markets that don't depend on slow oracle feeds.
+Solana builders who can plug into our open APIs to spin up new market types, bots, dashboards, and integrations.
+Why did you decide to build this, and why build it now?
+I built dum.fun because I lost money on another launchpad, like 99% of the people who try. Bots are always in first, devs always rug, and even when you can see the rug coming, there's no way to actually make money from being right. You can either ape and hope or sit out and watch.
+
+dum.fun fixes that. Every token has a prediction market attached. If you think the dev is going to rug, you bet on it and get paid when they do. You stop being a passive victim of the launchpad game and start playing it.
+
+Why now: Solana finally makes on-chain auto-resolution cheap, the meme launchpad market just proved demand at scale, and FHE primitives let us build sealed bets so whales can't snipe each other.
+What technologies are you using or integrating with to build your product?
+Blockchain: Solana (Devnet), Token-2022, Anchor, Helius RPC, Raydium CPMM, Phantom wallet adapter.  Frontend: React, TypeScript, Vite, Wouter, TanStack Query, Tailwind, Framer Motion, Lightweight Charts.  Backend: Node.js, Express, PostgreSQL with Drizzle ORM, WebSocket server for live odds, on-chain auto-resolver service.  Integrations: SendGrid, IPFS for token metadata.  Frontier track (in progress): Encrypt FHE for sealed bets, Ika dWallets for cross-chain custody and threshold-signed resolut
+Step 2: Media and Code
+Project logo
+Project logo or graphic
+asdasd.png
+GitHub link
+https://github.com/djbigzzz/dumdotfun
+Product demo video
+—
+Demo video visibility
+Judges only
+Pitch video
+—
+Live product link
+https://dum.fun/
+Access instructions
+—
+Important GitHub repo context
+—
+Step 3: Team
+Where is your team primarily based?
+Ireland {Republic}
+Team members
+Galin
+Team Telegram contact
+galindim
+X profile
+galinonchain
+Accelerator application
+Applying
+Did anyone not listed on the team do meaningful work on this project?
+—
+Anything else judges should know about your project?
+—
+Step 4: Accelerator
+How do you know people actually need, or will need this product?
+Four signals, ranked by strength.
+
+First, real users: 200 to 300 testers are already on the platform, have launched and traded tokens, placed bets, and given positive feedback. Pre-mainnet, with no incentive program yet, that's organic conviction.
+
+Second, validation by people who judge for a living: we won the Superteam Ireland Pitchathon, won the Solana Privacy Hackathon, and received a Superteam grant. Three independent panels saw the thesis and backed it.
+
+Third, the personal one: I lost money on pump.fun like 99% of users. Every degen I've talked to in 12 years of web3 marketing has the same story. The pain is universal and persistent.
+
+Fourth, the market one: pump.fun has done billions in volume across millions of tokens, almost all of which rugged. That's a multi-million-user market actively losing money to a problem nobody has solved. Combine that with the proven appetite for prediction markets (Polymarket, Kalshi), and the gap is obvious.
+How far along are you? Do you have users? Please be as specific as possible.
+Live on Solana Devnet at https://dum.fun, with 200 to 300 users already following the project, testing the platform, and giving strong positive feedback.
+
+The full core loop is shipped and working end to end:
+
+On-chain SPL token creation with bonding curve pricing
+Phantom wallet connection and Devnet trading with TradingView charts
+Token-page prediction markets with YES/NO betting
+Auto-resolution from on-chain signals (dev wallet, holder counts, liquidity, graduation)
+Markets discovery page with sort and filter
+Quests, points, tiers, OG Card NFT, seasonal leaderboard
+Raydium CPMM auto-graduation at 85 SOL
+Validation so far: winner of the Superteam Ireland Pitchathon, winner of the Solana Privacy Hackathon, and recipient of a Superteam grant. We just launched a verified 500 USDC bounty on Superteam Earn (Frontier track) inviting builders to launch a token, place real bets, and ship structured feedback. That's our first wave of organized user activity ahead of mainnet, with submissions f
+Who else is building in this space, and what do you think they're getting wrong?
+Three buckets of competitors, all missing the same thing.
+
+Meme launchpads (pump.fun, moonshot, believe, daos.fun): great at launching, zero protection or instrument for the user. They've moved billions but their users have lost more. They treat rugs as an externality. We treat rugs as a market.
+
+Prediction markets (Polymarket, Kalshi, Drift BET): excellent UX, but they focus on macro and politics. They don't speak crypto-native event types like rug detection, dev wallet behavior, or graduation outcomes. Their resolution is human-juried or oracle-fed and slow. Ours is fully on-chain and automatic.
+
+Token analytics tools (Bubblemaps, Photon, GMGN): show you the rug risk but give you nothing actionable. They tell you the dev wallet looks suspicious, then leave you to either ape and pray or sit out.
+
+Nobody has fused launchpad mechanics with native prediction markets and automatic on-chain resolution.  That gap is our wedge.
+How do you make money, or how do you plan to?
+Four streams, all on-chain and transparent:
+
+Token creation fee: 0.05 SOL per launch
+Market creation fee: 0.05 SOL per custom market
+Trading fee: 1% on bonding curve buys and sells
+Betting fee: 2% on prediction market bets
+Pump.fun proved 1 to 2M USD per day in revenue at a 1% trade fee alone. Adding a 2% betting fee on top of every token's prediction markets is meaningful upside per active token, since bets compound across the token's full lifecycle, not just its trading window.
+How long have you each been working on this? Have you been working on it full time?
+I have been working on it since December. I came up with the concept, then I went to Abu Dhabi's Breakpoint conference and validated the idea with 50+ founders/builders. They all loved the idea. Then I started building.
+Where is each member of the team currently based, and do you work in-person together?
+I am a solo founder. I am based in Ireland. 
+
+I do go and help out and attend our Superteam Ireland meetings every Friday.
+Have you formed a legal entity yet?
+No
+Have you taken any investment yet?
+No
+Are you currently fundraising?
+No
+Do you have a live token?
+No
