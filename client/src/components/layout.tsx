@@ -2,7 +2,8 @@ import React, { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
-import { X, Wifi } from "lucide-react";
+import { X, Wifi, HelpCircle, CheckCircle2, AlertTriangle } from "lucide-react";
+import { isMobileDevice } from "@/lib/mobile-utils";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
@@ -104,67 +105,204 @@ const WalletModal = ({ isOpen, onClose, onConnect }: WalletModalProps) => {
   );
 };
 
+// Quick devnet check: ping our devnet RPC for the user's balance.
+// If they have any devnet SOL we know they've used devnet before,
+// which is a strong signal Phantom is configured correctly.
+async function checkDevnetReady(walletAddress: string): Promise<{ ok: boolean; balance: number }> {
+  try {
+    const res = await fetch(`/api/devnet/balance/${walletAddress}`);
+    if (!res.ok) return { ok: false, balance: 0 };
+    const data = await res.json();
+    const balance = Number(data?.balance ?? 0);
+    return { ok: balance > 0, balance };
+  } catch {
+    return { ok: false, balance: 0 };
+  }
+}
+
+const DevnetHelpModal = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+  if (!open) return null;
+  const onMobile = isMobileDevice();
+  return (
+    <div
+      className="fixed inset-0 z-[100] bg-black/70 flex items-center justify-center p-4"
+      onClick={onClose}
+      data-testid="modal-devnet-help"
+    >
+      <motion.div
+        initial={{ scale: 0.95, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        onClick={(e) => e.stopPropagation()}
+        className="bg-white border-4 border-black p-5 md:p-6 max-w-md w-full shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] max-h-[90vh] overflow-y-auto"
+      >
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-black uppercase">Switch Phantom to Devnet</h3>
+          <button onClick={onClose} className="p-1" data-testid="button-close-devnet-help">
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <p className="text-sm text-gray-700 mb-4">
+          Dum.fun runs on Solana Devnet (a free test network). Switch Phantom to Devnet so you see the right balances and approve the right transactions.
+        </p>
+
+        {onMobile ? (
+          <div>
+            <p className="font-black text-xs uppercase mb-2 text-purple-700">Phantom Mobile</p>
+            <ol className="text-sm space-y-2 list-decimal list-inside text-gray-800">
+              <li>Open the Phantom app</li>
+              <li>Tap the menu (top-left) then the gear icon</li>
+              <li>Tap <span className="font-bold">Developer Settings</span></li>
+              <li>Turn ON <span className="font-bold">Testnet Mode</span></li>
+              <li>Back on the main screen, tap your wallet name and pick <span className="font-bold">Devnet</span></li>
+            </ol>
+          </div>
+        ) : (
+          <div>
+            <p className="font-black text-xs uppercase mb-2 text-purple-700">Phantom Browser Extension</p>
+            <ol className="text-sm space-y-2 list-decimal list-inside text-gray-800">
+              <li>Click the Phantom icon in your browser toolbar</li>
+              <li>Click the gear icon (Settings)</li>
+              <li>Scroll down and click <span className="font-bold">Developer Settings</span></li>
+              <li>Click <span className="font-bold">Testnet Mode</span> and turn it ON</li>
+              <li>Back at the wallet, click the network dropdown and pick <span className="font-bold">Devnet</span></li>
+            </ol>
+          </div>
+        )}
+
+        <div className="mt-4 p-3 bg-yellow-100 border-2 border-yellow-400 text-xs text-yellow-900">
+          <span className="font-black">Tip:</span> Once on Devnet, your mainnet SOL won't show. That's normal. Use the airdrop button on the Launch page to get free Devnet SOL.
+        </div>
+
+        <button
+          onClick={onClose}
+          className="mt-4 w-full font-mono font-black uppercase py-2 bg-red-500 text-white border-2 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+          data-testid="button-devnet-help-done"
+        >
+          Got it
+        </button>
+      </motion.div>
+    </div>
+  );
+};
+
 const DevnetBanner = () => {
+  const { connectedWallet } = useWallet();
   const [dismissed, setDismissed] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [status, setStatus] = useState<"unknown" | "ready" | "warn">("unknown");
+  const [checked, setChecked] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!connectedWallet || checked === connectedWallet) return;
+    setChecked(connectedWallet);
+    checkDevnetReady(connectedWallet).then((r) => {
+      setStatus(r.ok ? "ready" : "warn");
+    });
+  }, [connectedWallet, checked]);
 
   const switchToDevnet = async () => {
+    const phantom = (window as any).phantom?.solana ?? (window as any).solana;
+    if (!phantom?.isPhantom) {
+      // Mobile (MWA) or no injected Phantom: show instructions.
+      setHelpOpen(true);
+      return;
+    }
     try {
-      const phantom = (window as any).solana;
-      if (!phantom?.isPhantom) {
-        toast.error("Phantom wallet not detected");
+      if (phantom.request) {
+        await phantom.request({ method: "switchNetwork", params: { network: "devnet" } });
+        toast.success("Switched Phantom to Devnet!");
+        if (connectedWallet) {
+          const r = await checkDevnetReady(connectedWallet);
+          setStatus(r.ok ? "ready" : "warn");
+        }
         return;
       }
-      if (phantom.request) {
-        await phantom.request({
-          method: "switchNetwork",
-          params: { network: "devnet" },
-        });
-        toast.success("Switched to Solana Devnet!");
-      } else {
-        toast.info("Open Phantom → Settings → Developer Settings → Change Network to Devnet");
-      }
+      setHelpOpen(true);
     } catch (err: any) {
       if (err?.code === 4001) {
         toast.info("Network switch cancelled");
       } else {
-        toast.info("Open Phantom → Settings → Developer Settings → Change Network to Devnet");
+        setHelpOpen(true);
       }
     }
   };
 
-  if (dismissed) return null;
+  if (dismissed) return <DevnetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />;
+
+  const bg = status === "ready" ? "bg-green-50 border-green-300" : "bg-yellow-50 border-yellow-300";
+  const dot = status === "ready" ? "bg-green-500" : "bg-yellow-500";
+  const titleColor = status === "ready" ? "text-green-800" : "text-yellow-800";
+  const noteColor = status === "ready" ? "text-green-700" : "text-yellow-700";
 
   return (
-    <div className="relative z-20 px-3 py-2 flex items-center justify-center gap-3 text-sm bg-yellow-50 border-b-2 border-yellow-300" data-testid="banner-devnet">
-      <div className="flex items-center gap-2">
-        <motion.div
-          animate={{ opacity: [1, 0.4, 1] }}
-          transition={{ repeat: Infinity, duration: 2 }}
-          className="w-2 h-2 bg-yellow-500 rounded-full flex-shrink-0"
-        />
-        <span className="font-bold text-xs text-yellow-800">
-          Devnet Mode
-        </span>
-        <span className="text-xs hidden sm:inline text-yellow-700">
-          — This app runs on Solana Devnet. Make sure your wallet is set to devnet.
-        </span>
+    <>
+      <div className={`relative z-20 px-3 py-2 flex items-center justify-center gap-3 text-sm border-b-2 ${bg}`} data-testid="banner-devnet">
+        <div className="flex items-center gap-2">
+          <motion.div
+            animate={{ opacity: [1, 0.4, 1] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+            className={`w-2 h-2 rounded-full flex-shrink-0 ${dot}`}
+          />
+          <span className={`font-bold text-xs ${titleColor}`}>
+            {status === "ready" ? "Devnet Ready" : "Devnet Mode"}
+          </span>
+          <span className={`text-xs hidden sm:inline ${noteColor}`}>
+            {status === "ready"
+              ? "— Your wallet has Devnet SOL. You're good to trade."
+              : "— Make sure your wallet is set to Devnet to trade."}
+          </span>
+        </div>
+        <button
+          onClick={switchToDevnet}
+          className="text-[11px] font-black px-3 py-1 rounded flex items-center gap-1.5 transition-all flex-shrink-0 bg-yellow-400 text-yellow-900 border border-yellow-500 hover:bg-yellow-500 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
+          data-testid="button-switch-devnet"
+        >
+          <Wifi className="w-3 h-3" />
+          {status === "ready" ? "Re-check" : "Switch to Devnet"}
+        </button>
+        <button
+          onClick={() => setHelpOpen(true)}
+          className="p-1 text-yellow-700 hover:text-yellow-900 flex-shrink-0"
+          data-testid="button-devnet-help"
+          aria-label="Devnet help"
+        >
+          <HelpCircle className="w-4 h-4" />
+        </button>
+        <button
+          onClick={() => setDismissed(true)}
+          className="p-0.5 rounded transition-colors flex-shrink-0 text-yellow-600 hover:text-yellow-800"
+          data-testid="button-dismiss-devnet"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
       </div>
-      <button
-        onClick={switchToDevnet}
-        className="text-[11px] font-black px-3 py-1 rounded flex items-center gap-1.5 transition-all flex-shrink-0 bg-yellow-400 text-yellow-900 border border-yellow-500 hover:bg-yellow-500 shadow-[1px_1px_0px_0px_rgba(0,0,0,1)]"
-        data-testid="button-switch-devnet"
-      >
-        <Wifi className="w-3 h-3" />
-        Switch to Devnet
-      </button>
-      <button
-        onClick={() => setDismissed(true)}
-        className="p-0.5 rounded transition-colors flex-shrink-0 text-yellow-600 hover:text-yellow-800"
-        data-testid="button-dismiss-devnet"
-      >
-        <X className="w-3.5 h-3.5" />
-      </button>
-    </div>
+      <DevnetHelpModal open={helpOpen} onClose={() => setHelpOpen(false)} />
+    </>
+  );
+};
+
+const NetworkPill = () => {
+  const { connectedWallet } = useWallet();
+  const [status, setStatus] = useState<"unknown" | "ready" | "warn">("unknown");
+  useEffect(() => {
+    if (!connectedWallet) { setStatus("unknown"); return; }
+    checkDevnetReady(connectedWallet).then((r) => setStatus(r.ok ? "ready" : "warn"));
+  }, [connectedWallet]);
+  const cls = status === "ready"
+    ? "bg-green-100 text-green-800 border-green-600"
+    : status === "warn"
+    ? "bg-yellow-100 text-yellow-800 border-yellow-600"
+    : "bg-gray-100 text-gray-700 border-gray-500";
+  const Icon = status === "ready" ? CheckCircle2 : status === "warn" ? AlertTriangle : Wifi;
+  return (
+    <span
+      className={`hidden md:inline-flex items-center gap-1 font-mono font-bold text-[10px] uppercase px-2 py-1 border ${cls}`}
+      data-testid="badge-network"
+      title={status === "ready" ? "Wallet is on Devnet" : status === "warn" ? "Wallet may not be on Devnet" : "Devnet network"}
+    >
+      <Icon className="w-3 h-3" />
+      Devnet
+    </span>
   );
 };
 
@@ -232,6 +370,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <NotificationBell />
           {connectedWallet ? (
             <>
+              <NetworkPill />
               <div className="hidden sm:flex items-center gap-2 border px-3 py-2 font-mono text-sm bg-purple-100 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
                 <span className="font-bold text-purple-700">
                   {solBalance != null ? `${Number(solBalance).toFixed(2)} SOL` : '---'}
