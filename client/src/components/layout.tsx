@@ -371,11 +371,11 @@ export function Layout({ children }: { children: React.ReactNode }) {
           {connectedWallet ? (
             <>
               <NetworkPill />
-              <div className="hidden sm:flex items-center gap-2 border px-3 py-2 font-mono text-sm bg-purple-100 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+              <div className="flex items-center gap-1 sm:gap-2 border px-2 sm:px-3 py-1.5 sm:py-2 font-mono text-xs sm:text-sm bg-purple-100 border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]" data-testid="badge-sol-balance">
                 <span className="font-bold text-purple-700">
                   {solBalance != null ? `${Number(solBalance).toFixed(2)} SOL` : '---'}
                 </span>
-                <span className="text-xs text-purple-500">(devnet)</span>
+                <span className="text-[10px] sm:text-xs text-purple-500 hidden sm:inline">(devnet)</span>
               </div>
               <Link href="/profile">
                 <button 
