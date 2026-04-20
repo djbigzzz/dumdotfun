@@ -139,7 +139,7 @@ type QuestFilter = "all" | "in_progress" | "completed";
 export default function Profile() {
   usePageTitle("/profile");
   const privateMode = false;
-  const { connectedWallet, disconnectWallet, connectWallet, ensureSession } = useWallet();
+  const { connectedWallet, disconnectWallet, connectWallet, ensureSession, signTransaction } = useWallet();
   const [, setLocation] = useLocation();
   const [copiedWallet, setCopiedWallet] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
@@ -155,9 +155,6 @@ export default function Profile() {
 
   const handleSell = async () => {
     if (!sellToken || !connectedWallet) return;
-    const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-    if (!phantom) { toast.error("Phantom wallet not found"); return; }
-
     setIsSelling(true);
     try {
       const tokenAmount = (sellToken.balance * sellPct) / 100;
@@ -169,7 +166,7 @@ export default function Profile() {
       const { transaction: txBase64 } = await res.json();
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
-      const signedTx = await phantom.signTransaction(transaction);
+      const signedTx = await signTransaction(transaction);
 
       const connection = new Connection(SOLANA_RPC, "confirmed");
       let sig: string;

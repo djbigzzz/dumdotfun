@@ -77,7 +77,7 @@ interface MarketFormData {
 export default function CreateMarket() {
   const [, setLocation] = useLocation();
   const searchString = useSearch();
-  const { connectedWallet, connectWallet, ensureSession } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession, signTransaction } = useWallet();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   
@@ -145,19 +145,14 @@ export default function CreateMarket() {
       const prepareData = await prepareResponse.json();
       const { pendingMarketId, transaction, totalCost: cost } = prepareData;
 
-      // Step 2: Sign transaction with Phantom wallet
-      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
+      // Step 2: Sign transaction with the connected wallet
       const { Transaction } = await import("@solana/web3.js");
       const txBuffer = Buffer.from(transaction, "base64");
       const tx = Transaction.from(txBuffer);
       
       let signedTx;
       try {
-        signedTx = await phantom.signTransaction(tx);
+        signedTx = await signTransaction(tx);
       } catch (signError: any) {
         if (signError.message?.includes("User rejected")) {
           throw new Error("Transaction cancelled by user");

@@ -42,6 +42,7 @@ interface WalletContextType {
   isMobileWallet: boolean;
   connectWallet: (referralCode?: string) => Promise<void>;
   signMessage: (message: string) => Promise<string>;
+  signTransaction: (transaction: any) => Promise<any>;
   signAndSendTransaction: (transaction: any) => Promise<string>;
   getPublicKey: () => any;
   disconnectWallet: () => Promise<void>;
@@ -277,32 +278,38 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Sign a transaction with whichever wallet is connected (desktop Phantom,
+  // Phantom in-app browser, or Mobile Wallet Adapter on mobile Chrome).
+  // Pages that need to handle their own send/confirm logic (e.g. tolerating
+  // "already processed") should use this and submit themselves.
+  const signTransaction = async (transaction: any): Promise<any> => {
+    if (isMobileWallet && mobileAdapter) {
+      try {
+        return await mobileAdapter.signTransaction(transaction);
+      } catch (err) {
+        console.error("Mobile wallet sign failed:", err);
+        throw err;
+      }
+    }
+    const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+    if (!phantom || !connectedWallet) {
+      throw new Error("Wallet not available or not connected");
+    }
+    try {
+      return await phantom.signTransaction(transaction);
+    } catch (err) {
+      console.error("Phantom sign failed:", err);
+      throw err;
+    }
+  };
+
   const signAndSendTransaction = async (transaction: any): Promise<string> => {
     // Always submit through our own devnet RPC. Phantom's signAndSendTransaction
     // routes through whatever cluster the wallet is set to (often mainnet),
     // which causes "Signature verification failed" errors when the tx targets
     // devnet programs. Sign locally, then broadcast to devnet ourselves.
     const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
-
-    let signedTx: any;
-    if (isMobileWallet && mobileAdapter) {
-      try {
-        signedTx = await mobileAdapter.signTransaction(transaction);
-      } catch (err) {
-        console.error("Mobile wallet sign failed:", err);
-        throw err;
-      }
-    } else if (window.solana?.isPhantom && connectedWallet) {
-      try {
-        signedTx = await window.solana.signTransaction(transaction);
-      } catch (err) {
-        console.error("Phantom sign failed:", err);
-        throw err;
-      }
-    } else {
-      throw new Error("Wallet not available or not connected");
-    }
-
+    const signedTx = await signTransaction(transaction);
     try {
       const raw = signedTx.serialize();
       const signature = await connection.sendRawTransaction(raw, {
@@ -378,6 +385,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       isMobileWallet,
       connectWallet, 
       signMessage, 
+      signTransaction,
       signAndSendTransaction, 
       getPublicKey, 
       disconnectWallet,

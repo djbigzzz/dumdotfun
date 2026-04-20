@@ -151,7 +151,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const [, setLocation] = useLocation();
-  const { connectedWallet, connectWallet, ensureSession, signAndSendTransaction } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession, signAndSendTransaction, signTransaction } = useWallet();
   const privateMode = false;
   const queryClient = useQueryClient();
   const [tokenTitle, setTokenTitle] = useState<string | undefined>();
@@ -349,11 +349,6 @@ export default function TokenPage() {
     mutationFn: async ({ marketId, side, amount }: { marketId: string; side: "yes" | "no"; amount: number }) => {
       if (!connectedWallet) throw new Error("Wallet not connected");
       
-      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
       try { await ensureSession(); } catch (e: any) {
         throw new Error(e?.message || "Wallet sign-in required");
       }
@@ -372,7 +367,7 @@ export default function TokenPage() {
       
       let signedTx;
       try {
-        signedTx = await phantom.signTransaction(transaction);
+        signedTx = await signTransaction(transaction);
       } catch (signError: any) {
         if (signError.message?.includes("User rejected")) {
           throw new Error("Transaction cancelled");

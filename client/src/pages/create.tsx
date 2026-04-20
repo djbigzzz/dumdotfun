@@ -30,7 +30,7 @@ interface CreatedToken {
 export default function CreateToken() {
   usePageTitle("/create");
   const privateMode = false;
-  const { connectedWallet, connectWallet, ensureSession } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession, signTransaction } = useWallet();
   const [formData, setFormData] = useState({
     name: "",
     symbol: "",
@@ -114,11 +114,6 @@ export default function CreateToken() {
         throw new Error("Connect wallet to deploy on devnet");
       }
 
-      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-      if (!phantom) {
-        throw new Error("Phantom wallet required for devnet deployment");
-      }
-
       const devBuySol = parseFloat(devBuyAmount);
       if (isNaN(devBuySol) || devBuySol < 0.2) {
         throw new Error("Minimum dev buy is 0.2 SOL");
@@ -157,7 +152,7 @@ export default function CreateToken() {
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
       
-      const signedTx = await phantom.signTransaction(transaction);
+      const signedTx = await signTransaction(transaction);
       
       setCreationStep("Creating token on-chain...");
       
@@ -204,7 +199,7 @@ export default function CreateToken() {
       const buyTxBytes = Buffer.from(buyTxBase64, "base64");
       const buyTransaction = Transaction.from(buyTxBytes);
       
-      const signedBuyTx = await phantom.signTransaction(buyTransaction);
+      const signedBuyTx = await signTransaction(buyTransaction);
       
       setCreationStep("Executing dev buy...");
       

@@ -93,7 +93,7 @@ function useCountdown(targetDate: string) {
 
 export default function MarketDetail() {
   const { id } = useParams<{ id: string }>();
-  const { connectedWallet, connectWallet, ensureSession } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession, signTransaction } = useWallet();
   const connected = !!connectedWallet;
   const publicKey = connectedWallet;
   const queryClient = useQueryClient();
@@ -154,11 +154,6 @@ export default function MarketDetail() {
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
-      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
-      if (!phantom) {
-        throw new Error("Phantom wallet not found");
-      }
-
       try { await ensureSession(); } catch (e: any) {
         throw new Error(e?.message || "Wallet sign-in required");
       }
@@ -187,7 +182,7 @@ export default function MarketDetail() {
       
       let signedTx;
       try {
-        signedTx = await phantom.signTransaction(transaction);
+        signedTx = await signTransaction(transaction);
       } catch (signError: any) {
         if (signError.message?.includes("User rejected")) {
           throw new Error("Transaction cancelled by user");
