@@ -278,27 +278,40 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   };
 
   const signAndSendTransaction = async (transaction: any): Promise<string> => {
+    // Always submit through our own devnet RPC. Phantom's signAndSendTransaction
+    // routes through whatever cluster the wallet is set to (often mainnet),
+    // which causes "Signature verification failed" errors when the tx targets
+    // devnet programs. Sign locally, then broadcast to devnet ourselves.
+    const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
+
+    let signedTx: any;
     if (isMobileWallet && mobileAdapter) {
       try {
-        const connection = new Connection(clusterApiUrl(SOLANA_NETWORK));
-        const signedTx = await mobileAdapter.signTransaction(transaction);
-        const signature = await connection.sendRawTransaction(signedTx.serialize());
-        return signature;
+        signedTx = await mobileAdapter.signTransaction(transaction);
       } catch (err) {
-        console.error("Mobile wallet transaction failed:", err);
+        console.error("Mobile wallet sign failed:", err);
         throw err;
       }
-    }
-
-    if (!window.solana?.isPhantom || !connectedWallet) {
-      throw new Error("Phantom not available or wallet not connected");
+    } else if (window.solana?.isPhantom && connectedWallet) {
+      try {
+        signedTx = await window.solana.signTransaction(transaction);
+      } catch (err) {
+        console.error("Phantom sign failed:", err);
+        throw err;
+      }
+    } else {
+      throw new Error("Wallet not available or not connected");
     }
 
     try {
-      const result = await window.solana.signAndSendTransaction(transaction);
-      return result.signature;
+      const raw = signedTx.serialize();
+      const signature = await connection.sendRawTransaction(raw, {
+        skipPreflight: false,
+        preflightCommitment: "confirmed",
+      });
+      return signature;
     } catch (err) {
-      console.error("Failed to sign and send transaction:", err);
+      console.error("Failed to broadcast signed transaction:", err);
       throw err;
     }
   };
