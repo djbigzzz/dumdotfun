@@ -1,5 +1,8 @@
 import { VersionedTransaction } from "@solana/web3.js";
-import bs58 from "bs58";
+import bs58Module from "bs58";
+const bs58 = ((bs58Module as any).default ?? bs58Module) as { encode: (b: Uint8Array) => string; decode: (s: string) => Uint8Array };
+const bs58Encode = bs58.encode;
+const bs58Decode = bs58.decode;
 import FormData from "form-data";
 import sharp from "sharp";
 import axios from "axios";
@@ -177,7 +180,7 @@ export async function buildCreateTokenTransaction(
   const transactionData = await response.arrayBuffer();
   const transactionBytes = new Uint8Array(transactionData);
   
-  const transaction = bs58.encode(transactionBytes);
+  const transaction = bs58Encode(transactionBytes);
 
   return {
     transaction,
@@ -216,7 +219,7 @@ export async function buildBuyTransaction(
   }
 
   const transactionData = await response.arrayBuffer();
-  const transaction = bs58.encode(new Uint8Array(transactionData));
+  const transaction = bs58Encode(new Uint8Array(transactionData));
 
   return { transaction };
 }
@@ -252,12 +255,12 @@ export async function buildSellTransaction(
   }
 
   const transactionData = await response.arrayBuffer();
-  const transaction = bs58.encode(new Uint8Array(transactionData));
+  const transaction = bs58Encode(new Uint8Array(transactionData));
 
   return { transaction };
 }
 
 export function deserializeTransaction(base58Transaction: string): VersionedTransaction {
-  const transactionBytes = bs58.decode(base58Transaction);
+  const transactionBytes = bs58Decode(base58Transaction);
   return VersionedTransaction.deserialize(transactionBytes);
 }

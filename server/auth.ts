@@ -1,7 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
 import { randomBytes } from "crypto";
 import nacl from "tweetnacl";
-import bs58 from "bs58";
+import bs58Module from "bs58";
+const bs58 = ((bs58Module as any).default ?? bs58Module) as { encode: (b: Uint8Array) => string; decode: (s: string) => Uint8Array };
+const bs58Decode = bs58.decode;
 
 const NONCE_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -56,7 +58,7 @@ export function verifyAndCreateSession(
 
   let publicKeyBytes: Uint8Array;
   try {
-    publicKeyBytes = bs58.decode(walletAddress);
+    publicKeyBytes = bs58Decode(walletAddress);
   } catch {
     return { error: "Invalid wallet address" };
   }
