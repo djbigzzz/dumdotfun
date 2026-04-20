@@ -76,7 +76,8 @@ export async function registerRoutes(
   app.post("/api/auth/nonce", sensitiveLimiter, async (req, res) => {
     try {
       const { walletAddress } = req.body || {};
-      if (!walletAddress || typeof walletAddress !== "string" || !isValidSolanaAddress(walletAddress)) {
+      if (!walletAddress || typeof walletAddress !== "string" || !(await isValidSolanaAddress(walletAddress))) {
+        console.warn("[auth] /nonce rejected wallet:", JSON.stringify(walletAddress));
         return res.status(400).json({ error: "Valid walletAddress required" });
       }
       const nonce = createNonce(walletAddress);
@@ -90,14 +91,18 @@ export async function registerRoutes(
   app.post("/api/auth/verify", sensitiveLimiter, async (req, res) => {
     try {
       const { walletAddress, signature } = req.body || {};
-      if (!walletAddress || typeof walletAddress !== "string" || !isValidSolanaAddress(walletAddress)) {
+      if (!walletAddress || typeof walletAddress !== "string" || !(await isValidSolanaAddress(walletAddress))) {
+        console.warn("[auth] /verify rejected wallet:", JSON.stringify(walletAddress));
         return res.status(400).json({ error: "Valid walletAddress required" });
       }
       if (!signature || typeof signature !== "string") {
         return res.status(400).json({ error: "signature required (base64)" });
       }
       const result = verifyAndCreateSession(walletAddress, signature);
-      if ("error" in result) return res.status(401).json(result);
+      if ("error" in result) {
+        console.warn("[auth] /verify failed for", walletAddress, "->", result.error);
+        return res.status(401).json(result);
+      }
       return res.json({ sessionToken: result.token, expiresAt: result.expiresAt, walletAddress });
     } catch (e: any) {
       console.error("[auth] verify error:", e);
