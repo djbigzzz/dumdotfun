@@ -149,6 +149,46 @@ export default function Profile() {
   const queryClient = useQueryClient();
   const [sellToken, setSellToken] = useState<HeldToken | null>(null);
   const [sellPct, setSellPct] = useState(100);
+  const [maxSafePct, setMaxSafePct] = useState<number>(100);
+  const [curveLoading, setCurveLoading] = useState(false);
+
+  useEffect(() => {
+    if (!sellToken) { setMaxSafePct(100); return; }
+    let cancelled = false;
+    setCurveLoading(true);
+    (async () => {
+      try {
+        const r = await fetch(`/api/bonding-curve/curve/${sellToken.mint}`);
+        if (!r.ok) { if (!cancelled) { setMaxSafePct(100); setCurveLoading(false); } return; }
+        const d = await r.json();
+        const realSol = Number(d.realSolReserves) || 0;
+        const vSol = Number(d.virtualSolReserves) || 0;
+        const vTok = Number(d.virtualTokenReserves) || 0;
+        if (!realSol || !vSol || !vTok || !sellToken.balance) {
+          if (!cancelled) { setMaxSafePct(100); setCurveLoading(false); }
+          return;
+        }
+        // 5% safety margin so the deployed program never hits the boundary
+        const maxSolOut = realSol * 0.95;
+        const k = vSol * vTok;
+        const denom = vSol - maxSolOut;
+        let maxTokensInRaw = Number.MAX_SAFE_INTEGER;
+        if (denom > 0) maxTokensInRaw = (k / denom) - vTok;
+        // Convert raw token units (with decimals) to UI tokens. balance is already in UI units.
+        const decimals = 6; // bonding curve mints use 6 decimals
+        const maxTokensInUi = maxTokensInRaw / Math.pow(10, decimals);
+        const pct = Math.max(1, Math.min(100, Math.floor((maxTokensInUi / sellToken.balance) * 100)));
+        if (!cancelled) {
+          setMaxSafePct(pct);
+          setSellPct((prev) => Math.min(prev, pct));
+          setCurveLoading(false);
+        }
+      } catch {
+        if (!cancelled) { setMaxSafePct(100); setCurveLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [sellToken]);
   const [isSelling, setIsSelling] = useState(false);
 
   const SOLANA_RPC = import.meta.env.VITE_SOLANA_RPC_URL || "https://api.devnet.solana.com";
@@ -1116,19 +1156,30 @@ export default function Profile() {
                 <span className="font-bold text-gray-900">{sellPct}%</span>
               </div>
               <input
-                type="range" min={1} max={100} value={sellPct}
+                type="range" min={1} max={maxSafePct} value={sellPct}
                 onChange={(e) => setSellPct(Number(e.target.value))}
                 className="w-full accent-red-500"
                 data-testid="input-sell-percentage"
               />
               <div className="flex justify-between mt-2 gap-2">
-                {[25, 50, 75, 100].map((pct) => (
-                  <button key={pct} onClick={() => setSellPct(pct)}
-                    className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors ${sellPct === pct ? "bg-red-500 text-white border-red-500" : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"}`}>
-                    {pct}%
-                  </button>
-                ))}
+                {[25, 50, 75, 100].map((pct) => {
+                  const disabled = pct > maxSafePct;
+                  return (
+                    <button key={pct} onClick={() => !disabled && setSellPct(pct)} disabled={disabled}
+                      className={`flex-1 py-1 rounded-lg text-xs font-bold border transition-colors ${
+                        disabled ? "bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed" :
+                        sellPct === pct ? "bg-red-500 text-white border-red-500" : "bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200"
+                      }`}>
+                      {pct}%
+                    </button>
+                  );
+                })}
               </div>
+              {!curveLoading && maxSafePct < 100 && (
+                <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-2 py-1.5 leading-snug" data-testid="text-sell-cap-notice">
+                  Curve liquidity caps this sell at <span className="font-bold">{maxSafePct}%</span>. Sell what's available now, the rest as the curve fills up.
+                </div>
+              )}
             </div>
 
             <div className="bg-gray-50 rounded-xl p-3 mb-5 text-sm">
