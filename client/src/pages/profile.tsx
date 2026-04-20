@@ -186,7 +186,21 @@ export default function Profile() {
       setSellToken(null);
       queryClient.invalidateQueries({ queryKey: ["my-holdings", connectedWallet] });
     } catch (err: any) {
-      toast.error(err.message || "Sell failed");
+      const msg = err?.message || String(err) || "";
+      if (msg.includes("subtract with overflow") || msg.includes("panicked")) {
+        toast.error(
+          `Curve doesn't have enough liquidity for ${sellPct}% sell. Try a smaller amount (e.g. 25%).`,
+          { duration: 6000 },
+        );
+      } else if (msg.includes("InsufficientLiquidity")) {
+        toast.error("Bonding curve is low on SOL. Try selling a smaller amount.");
+      } else if (msg.includes("SlippageExceeded")) {
+        toast.error("Price moved too much. Try again.");
+      } else if (msg.includes("User rejected") || msg.includes("rejected")) {
+        toast.error("Transaction cancelled.");
+      } else {
+        toast.error(msg.length > 140 ? "Sell failed. Try a smaller amount." : msg);
+      }
     } finally {
       setIsSelling(false);
     }
