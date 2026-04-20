@@ -151,7 +151,7 @@ function formatMarketCap(mcSol: number, solPrice: number | null): string {
 export default function TokenPage() {
   const { mint } = useParams<{ mint: string }>();
   const [, setLocation] = useLocation();
-  const { connectedWallet, connectWallet, ensureSession } = useWallet();
+  const { connectedWallet, connectWallet, ensureSession, signAndSendTransaction } = useWallet();
   const privateMode = false;
   const queryClient = useQueryClient();
   const [tokenTitle, setTokenTitle] = useState<string | undefined>();
@@ -539,22 +539,14 @@ export default function TokenPage() {
       
       // Deserialize the transaction
       const transactionBytes = Uint8Array.from(atob(buildResult.transaction), c => c.charCodeAt(0));
-      
-      // Get Phantom wallet provider
-      const provider = (window as any).solana;
-      if (!provider || !provider.isPhantom) {
-        toast.error("Please install Phantom wallet");
-        return;
-      }
-      
-      // Sign and send the transaction
+
+      // Sign and send the transaction (works for both desktop Phantom and mobile wallet adapter)
       toast.info("Please approve the transaction in your wallet...");
-      
-      const { Connection, Transaction } = await import("@solana/web3.js");
+
+      const { Transaction } = await import("@solana/web3.js");
       const transaction = Transaction.from(transactionBytes);
-      
-      // Sign and send with Phantom
-      const { signature } = await provider.signAndSendTransaction(transaction);
+
+      const signature = await signAndSendTransaction(transaction);
       
       toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
       

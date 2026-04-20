@@ -278,6 +278,17 @@ export default function Profile() {
     enabled: activeTab === "coins" || activeTab === "holdings",
   });
 
+  const { data: walletBalance } = useQuery<{ address: string; balance: number; network: string }>({
+    queryKey: ["devnetBalance", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/devnet/balance/${connectedWallet}`);
+      if (!res.ok) throw new Error("Failed to fetch balance");
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+    refetchInterval: 30000,
+  });
+
   const ogClaimMutation = useMutation({
     mutationFn: async () => {
       await ensureSession();
@@ -438,7 +449,18 @@ export default function Profile() {
                     </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
+                  <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${privateMode ? "border-[#4ADE80]/30 bg-zinc-800" : "border-black bg-green-50"}`} data-testid="card-sol-balance">
+                    <Wallet className={`w-5 h-5 ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`} />
+                    <div>
+                      <p className={`text-lg font-black leading-none ${privateMode ? "text-white font-mono" : "text-black"}`} data-testid="text-sol-balance">
+                        {walletBalance ? walletBalance.balance.toFixed(3) : "—"}
+                      </p>
+                      <p className={`text-[10px] font-bold uppercase ${privateMode ? "text-[#4ADE80]/40" : "text-gray-500"}`}>
+                        SOL Balance
+                      </p>
+                    </div>
+                  </div>
                   <div className={`flex items-center gap-2 px-3 py-2 rounded-lg border-2 ${privateMode ? "border-[#4ADE80]/30 bg-zinc-800" : "border-black bg-orange-50"}`}>
                     <Flame className={`w-5 h-5 ${streak > 0 ? "text-orange-500" : privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`} />
                     <div>
