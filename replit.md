@@ -57,6 +57,39 @@ The PostgreSQL database includes tables for `users` (wallet addresses, profiles)
 -   **@lightweight-charts/react-wrapper:** For interactive trading charts.
 -   **Raydium SDK V2:** For creating CPMM pools on Raydium.
 
+## Mainnet Readiness Checklist
+
+The platform is currently on Solana Devnet. Before flipping the switch to mainnet, the following must be addressed:
+
+### Blocker: Prediction market manipulation defenses
+
+For dev-behavior markets (`dev_holds`, `dev_sells`), the creator literally controls the on-chain outcome (they can rug or hold at will). On devnet this is harmless, but on mainnet a creator could extract real SOL from honest bettors. The current single per-wallet block on the creator is trivial to bypass with alt wallets.
+
+Required mitigations before mainnet (each is roughly half a day of work):
+
+1. **TWAP / multi-snapshot resolution** - sample dev wallet balance and liquidity at 5+ random moments in the last 24h before resolution and take the average/majority. Stops single-instant snapshot gaming where creators briefly transfer tokens out at the resolution moment.
+
+2. **Randomized resolution time** - auto-resolver currently fires at exactly the expiration time. Change it to fire at a random moment within the last 6h. Stops creators from sniping a huge bet right before resolution.
+
+3. **Sybil wallet detection** - extend the per-wallet bet block to cover any wallet that received >0.1 SOL from the creator within the last 30 days. Block them from betting on any of that creator's markets. Trivial on-chain check, kills the alt-wallet attack.
+
+4. **Honest-side seed enforcement** - force the creator's initial seed bet onto the "honest" side: `dev_holds` markets must seed YES, `dev_sells` markets must seed NO. Aligns the creator's seed with non-rug behavior so cheating costs them their own seed first.
+
+5. **One dev-behavior market per token** - hard cap. Currently nothing prevents spawning 5 `dev_sells` markets on the same token and winning them all with one rug.
+
+### Other mainnet blockers
+
+- **Bonding curve overflow bug** - the deployed program panics on large sells (`subtract with overflow` at lib.rs:188). Source code is already fixed with checked math, but the deployed binary is older. Redeploy a fresh program ID before mainnet. Client-side cap on max sell percentage is in place as a stopgap.
+- **Fee recipient wallet** - confirm the production fee recipient is a hardware-wallet-controlled address, not a hot wallet.
+- **RPC rate limits** - mainnet Helius traffic will be much higher. Confirm the Helius plan supports expected load and add fallback RPCs.
+- **Rugcheck integration** - currently no automated dev wallet labeling. Consider integrating a third-party rugcheck source for richer creator history before mainnet.
+- **Vanity grinder** - production vanity pool persists across restarts; confirm `.local/state/vanity-pool.json` is preserved on the deployment target. If not, the pool will need to rebuild from zero on each deploy.
+
+### v2 (post-mainnet, not blockers)
+
+- **Optimistic dispute window** - Polymarket-style. Anyone can dispute an auto-resolution within 24h by staking SOL. Wrong dispute loses stake to platform. Crowdsources fraud detection. Multi-week build.
+- **Whale cap on late bets** - cap individual bets in the last 60min to 5% of pool. Stops late snipes without affecting retail volume.
+
 ## Security Notes
 
 - **npm overrides:** `bfj` is overridden to `^9.1.3` in `package.json` to eliminate the transitive dependency on `jsonpath@1.2.1` (critical CVE). The `bfj` 9.x release dropped `jsonpath` entirely.
