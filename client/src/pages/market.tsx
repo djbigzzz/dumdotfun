@@ -573,10 +573,15 @@ export default function MarketDetail() {
                   data-testid={isOwnDevMarket ? "banner-creator-cannot-bet" : "banner-market-closed"}
                 >
                   {isOwnDevMarket ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <Shield className="w-4 h-4 flex-shrink-0" />
-                      Creators can't bet on their own dev-behavior market - the outcome would be self-determined.
-                    </span>
+                    <div className="flex items-start gap-2 text-left">
+                      <Shield className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold mb-0.5">Your seed bet is locked in</div>
+                        <div className="text-yellow-200/80 text-xs leading-relaxed">
+                          The {market.yesPool > 0 && market.noPool === 0 ? "YES" : market.noPool > 0 && market.yesPool === 0 ? "NO" : ""} stake you put down when you created this market counts as your bet, and shows up in your "My Bets" tab. Stacking more on top isn't allowed since you control the outcome.
+                        </div>
+                      </div>
+                    </div>
                   ) : isResolved ? (
                     `This market resolved ${market.outcome?.toUpperCase()}`
                   ) : (
