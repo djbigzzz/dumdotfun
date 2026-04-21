@@ -100,6 +100,14 @@ app.use((req, res, next) => {
 (async () => {
   await registerRoutes(httpServer, app);
 
+  // Start background vanity mint grinder (pre-mines mints ending in "dum"/"DUM")
+  try {
+    const { startVanityGrinder } = await import("./vanity-pool");
+    startVanityGrinder();
+  } catch (error) {
+    console.error("Failed to start vanity grinder:", error);
+  }
+
   // Check for expired markets on startup and log them
   const checkExpiredMarkets = async () => {
     try {
