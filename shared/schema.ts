@@ -8,6 +8,7 @@ export const users = pgTable("users", {
   walletAddress: text("wallet_address").notNull().unique(),
   referralCode: text("referral_code").unique(),
   referredBy: text("referred_by"),
+  displayName: text("display_name"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

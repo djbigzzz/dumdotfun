@@ -3137,6 +3137,62 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/users/:wallet/display-name", async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const { db } = await import("./db");
+      const { users } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const [u] = await db.select({ displayName: users.displayName }).from(users).where(eq(users.walletAddress, wallet));
+      return res.json({ displayName: u?.displayName ?? null });
+    } catch {
+      return res.status(500).json({ error: "Failed to fetch display name" });
+    }
+  });
+
+  app.patch("/api/users/:wallet/display-name", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
+    try {
+      const { wallet } = req.params;
+      const { walletAddress, displayName } = req.body || {};
+      if (walletAddress !== wallet) return res.status(403).json({ error: "Wallet mismatch" });
+
+      const raw = typeof displayName === "string" ? displayName.trim() : "";
+      const cleared = raw.length === 0;
+      if (!cleared) {
+        if (raw.length < 2 || raw.length > 20) {
+          return res.status(400).json({ error: "Name must be 2-20 characters" });
+        }
+        if (!/^[a-zA-Z0-9_.\-]+$/.test(raw)) {
+          return res.status(400).json({ error: "Only letters, numbers, _ . - allowed" });
+        }
+      }
+
+      const { db } = await import("./db");
+      const { users } = await import("@shared/schema");
+      const { eq, and, ne, sql } = await import("drizzle-orm");
+
+      if (!cleared) {
+        const [taken] = await db
+          .select({ wallet: users.walletAddress })
+          .from(users)
+          .where(and(sql`LOWER(${users.displayName}) = LOWER(${raw})`, ne(users.walletAddress, wallet)));
+        if (taken) return res.status(409).json({ error: "Name already taken" });
+      }
+
+      const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.walletAddress, wallet));
+      if (!existing) {
+        await db.insert(users).values({ walletAddress: wallet, displayName: cleared ? null : raw });
+      } else {
+        await db.update(users).set({ displayName: cleared ? null : raw }).where(eq(users.walletAddress, wallet));
+      }
+
+      return res.json({ success: true, displayName: cleared ? null : raw });
+    } catch (e: any) {
+      console.error("Failed to set display name:", e);
+      return res.status(500).json({ error: "Failed to update name" });
+    }
+  });
+
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const period = (req.query.period as "daily" | "weekly" | "all") || "all";
@@ -3144,6 +3200,7 @@ export async function registerRoutes(
       const leaderboard = await getLeaderboard(period);
       return res.json(leaderboard);
     } catch (error: any) {
+      console.error("Failed to fetch leaderboard:", error);
       return res.status(500).json({ error: "Failed to fetch leaderboard" });
     }
   });

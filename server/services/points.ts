@@ -275,9 +275,22 @@ export async function getUserPointsData(walletAddress: string) {
   };
 }
 
+async function attachDisplayNames<T extends { walletAddress: string }>(rows: T[]): Promise<(T & { displayName: string | null })[]> {
+  if (rows.length === 0) return [];
+  const wallets = rows.map(r => r.walletAddress);
+  const { users } = await import("@shared/schema");
+  const { inArray } = await import("drizzle-orm");
+  const userRows = await db
+    .select({ walletAddress: users.walletAddress, displayName: users.displayName })
+    .from(users)
+    .where(inArray(users.walletAddress, wallets));
+  const nameMap = new Map(userRows.map(u => [u.walletAddress, u.displayName]));
+  return rows.map(r => ({ ...r, displayName: nameMap.get(r.walletAddress) ?? null }));
+}
+
 export async function getLeaderboard(period: "daily" | "weekly" | "all" = "all", limit: number = 50) {
   if (period === "all") {
-    return db.select({
+    const rows = await db.select({
       walletAddress: userPoints.walletAddress,
       totalPoints: userPoints.totalPoints,
       tier: userPoints.tier,
@@ -286,6 +299,7 @@ export async function getLeaderboard(period: "daily" | "weekly" | "all" = "all",
       .from(userPoints)
       .orderBy(desc(userPoints.totalPoints))
       .limit(limit);
+    return attachDisplayNames(rows);
   }
 
   const since = new Date();
@@ -313,7 +327,7 @@ export async function getLeaderboard(period: "daily" | "weekly" | "all" = "all",
     };
   }));
 
-  return enriched;
+  return attachDisplayNames(enriched);
 }
 
 export async function getUserRank(walletAddress: string): Promise<number> {

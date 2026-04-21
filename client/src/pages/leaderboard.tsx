@@ -10,6 +10,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 
 interface LeaderboardEntry {
   walletAddress: string;
+  displayName?: string | null;
   totalPoints: number;
   periodPoints?: number;
   tier: string;
@@ -95,7 +96,7 @@ function LeaderboardRow({ entry, rank, isYou }: {
           : "bg-gray-100 border-2 border-black"
       }`}>
         <span className={`text-xs font-black ${entry.ogNftMint ? "text-white" : "text-black"}`}>
-          {entry.walletAddress.slice(0, 2).toUpperCase()}
+          {(entry.displayName || entry.walletAddress).slice(0, 2).toUpperCase()}
         </span>
       </div>
 
@@ -105,10 +106,10 @@ function LeaderboardRow({ entry, rank, isYou }: {
         rel="noopener noreferrer"
         className="min-w-0"
       >
-        <span className={`font-mono text-sm font-bold cursor-pointer hover:underline block truncate ${
-          isYou ? "text-red-500" : "text-black"
-        }`}>
-          {entry.walletAddress.slice(0, 4)}...{entry.walletAddress.slice(-4)}
+        <span className={`text-sm font-bold cursor-pointer hover:underline block truncate ${
+          entry.displayName ? "" : "font-mono"
+        } ${isYou ? "text-red-500" : "text-black"}`}>
+          {entry.displayName || `${entry.walletAddress.slice(0, 4)}...${entry.walletAddress.slice(-4)}`}
           {isYou && <span className="ml-1.5 text-[10px] opacity-60">(you)</span>}
         </span>
       </a>

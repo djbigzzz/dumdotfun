@@ -283,6 +283,48 @@ export default function Profile() {
     }
   };
 
+  const { data: displayNameData, refetch: refetchDisplayName } = useQuery<{ displayName: string | null }>({
+    queryKey: ["displayName", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${connectedWallet}/display-name`);
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+  });
+  const [editingName, setEditingName] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [savingName, setSavingName] = useState(false);
+
+  useEffect(() => {
+    setNameDraft(displayNameData?.displayName || "");
+  }, [displayNameData?.displayName]);
+
+  const saveDisplayName = async () => {
+    if (!connectedWallet) return;
+    setSavingName(true);
+    try {
+      await ensureSession();
+      const res = await fetch(`/api/users/${connectedWallet}/display-name`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ walletAddress: connectedWallet, displayName: nameDraft }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "Could not save name");
+        return;
+      }
+      toast.success(data.displayName ? `Name set to ${data.displayName}` : "Name cleared");
+      setEditingName(false);
+      await refetchDisplayName();
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+    } catch (e: any) {
+      toast.error(e?.message || "Could not save name");
+    } finally {
+      setSavingName(false);
+    }
+  };
+
   const copyReferralLink = () => {
     if (user?.referralCode) {
       const link = `https://dum.fun?ref=${user.referralCode}`;
@@ -699,6 +741,63 @@ export default function Profile() {
                       >
                         View on Solscan <ExternalLink className="w-3 h-3" />
                       </a>
+
+                      <div className={`pt-3 mt-1 border-t ${privateMode ? "border-[#4ADE80]/20" : "border-gray-200"}`}>
+                        <div className="flex items-center justify-between mb-2">
+                          <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/60 font-mono" : "text-gray-500"}`}>
+                            Display Name
+                          </span>
+                          {!editingName && (
+                            <button
+                              onClick={() => setEditingName(true)}
+                              className={`text-xs font-bold underline ${privateMode ? "text-[#4ADE80]" : "text-red-500"}`}
+                              data-testid="button-edit-display-name"
+                            >
+                              {displayNameData?.displayName ? "Edit" : "Add a name"}
+                            </button>
+                          )}
+                        </div>
+                        {editingName ? (
+                          <div className="space-y-2">
+                            <input
+                              type="text"
+                              value={nameDraft}
+                              onChange={(e) => setNameDraft(e.target.value)}
+                              placeholder="e.g. degen_alice"
+                              maxLength={20}
+                              className={`w-full px-3 py-2 text-sm border-2 rounded ${privateMode ? "bg-black border-[#4ADE80]/40 text-white" : "border-black bg-white text-black"} font-mono`}
+                              data-testid="input-display-name"
+                            />
+                            <p className={`text-[11px] ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                              2-20 chars. Letters, numbers, _ . - only. Shown on the leaderboard instead of your wallet.
+                            </p>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={saveDisplayName}
+                                disabled={savingName}
+                                className={`flex-1 py-2 text-xs font-bold border-2 ${privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-red-500 text-white border-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]"} disabled:opacity-50`}
+                                data-testid="button-save-display-name"
+                              >
+                                {savingName ? "Saving..." : "Save"}
+                              </button>
+                              <button
+                                onClick={() => { setEditingName(false); setNameDraft(displayNameData?.displayName || ""); }}
+                                className={`px-3 py-2 text-xs font-bold border-2 ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]" : "bg-white border-black text-black"}`}
+                                data-testid="button-cancel-display-name"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </div>
+                        ) : (
+                          <p
+                            className={`text-sm font-bold ${displayNameData?.displayName ? (privateMode ? "text-white" : "text-black") : (privateMode ? "text-[#4ADE80]/40" : "text-gray-400 italic")}`}
+                            data-testid="text-display-name"
+                          >
+                            {displayNameData?.displayName || "(none - shown as wallet)"}
+                          </p>
+                        )}
+                      </div>
                     </div>
 
                     {/* Referral Card */}
