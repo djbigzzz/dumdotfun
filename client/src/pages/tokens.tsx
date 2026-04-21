@@ -257,7 +257,7 @@ export default function TokensPage() {
     },
   });
 
-  const PAGE_SIZE = 50;
+  const PAGE_SIZE = 24;
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
