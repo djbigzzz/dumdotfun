@@ -10,6 +10,7 @@ import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
+import { txToast, pointsAwarded, betPlaced, friendlyError } from "@/lib/notify";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { useSnsName } from "@/hooks/use-sns";
 import { TradingChart } from "@/components/trading-chart";
@@ -399,13 +400,21 @@ export default function TokenPage() {
       const confirmRes = await apiRequest("POST", `/api/markets/${marketId}/confirm-bet`, { betId, signature });
       return confirmRes.json();
     },
-    onSuccess: (_, variables) => {
-      toast.success("Bet placed!");
+    onSuccess: (data, variables) => {
+      const stake = parseFloat(variables.amount) || 0;
+      const payout = data?.potentialPayout ? Number(data.potentialPayout) : undefined;
+      betPlaced({
+        side: variables.side as "yes" | "no",
+        amountSol: stake,
+        potentialPayoutSol: payout,
+        signature: data?.signature,
+        marketHref: undefined,
+      });
       setActiveBet(null);
       setBetAmount("");
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error) => toast.error("Bet failed", { description: friendlyError(error) }),
   });
 
 
@@ -496,10 +505,10 @@ export default function TokenPage() {
     }
     
     const isBuy = tradeType === "buy";
-    toast.info(isBuy 
-      ? `Buying ${tradeAmount} SOL worth of ${token.symbol}...` 
-      : `Selling ${tradeAmount} ${token.symbol}...`);
-    
+    const tx = txToast(isBuy ? "buy" : "sell", isBuy
+      ? `${tradeAmount} SOL worth of ${token.symbol}`
+      : `${tradeAmount} ${token.symbol}`);
+
     try {
       const amountInBaseUnits = isBuy
         ? Math.floor(amount * 1e9).toString()
@@ -508,7 +517,7 @@ export default function TokenPage() {
       try {
         await ensureSession();
       } catch (e: any) {
-        toast.error(e?.message || "Wallet sign-in required");
+        tx.error(e?.message || "Wallet sign-in required");
         return;
       }
 
@@ -523,28 +532,33 @@ export default function TokenPage() {
         });
         buildResult = await buildResponse.json();
       } catch (err: any) {
-        toast.error(err?.message || "Failed to build transaction");
+        tx.error(friendlyError(err));
         return;
       }
 
       if (!buildResult?.success || !buildResult?.transaction) {
-        toast.error(buildResult?.error || "Failed to build transaction");
+        tx.error(buildResult?.error || "Failed to build transaction");
         return;
       }
-      
-      // Deserialize the transaction
+
       const transactionBytes = Uint8Array.from(atob(buildResult.transaction), c => c.charCodeAt(0));
 
-      // Sign and send the transaction (works for both desktop Phantom and mobile wallet adapter)
-      toast.info("Please approve the transaction in your wallet...");
+      tx.signing();
 
       const { Transaction } = await import("@solana/web3.js");
       const transaction = Transaction.from(transactionBytes);
 
       const signature = await signAndSendTransaction(transaction);
-      
-      toast.success(`Transaction submitted! Signature: ${signature.slice(0, 8)}...`);
-      
+
+      tx.submitting();
+
+      tx.success({
+        signature,
+        description: isBuy
+          ? `Bought ${token.symbol} for ${tradeAmount} SOL`
+          : `Sold ${tradeAmount} ${token.symbol}`,
+      });
+
       try {
         const recordRes = await apiRequest("POST", "/api/trade/record", {
           walletAddress: connectedWallet,
@@ -556,27 +570,22 @@ export default function TokenPage() {
         const recordData = await recordRes.json();
         if (recordData.pointsAwarded && Array.isArray(recordData.pointsAwarded)) {
           for (const p of recordData.pointsAwarded) {
-            toast.success(`+${p.points} pts — First Trade!`, { duration: 3000 });
+            pointsAwarded(p.points, p.reason || "First trade");
           }
         }
       } catch (err) {
         console.warn("[Token] Failed to record trade points:", err);
       }
-      
-      // Refresh data
+
       queryClient.invalidateQueries({ queryKey: ["token", mint] });
       queryClient.invalidateQueries({ queryKey: ["tokenActivity", mint] });
       queryClient.invalidateQueries({ queryKey: ["devnetBalance", connectedWallet] });
-      
+
       setTradeAmount("");
-      
+
     } catch (error: any) {
       console.error("Trade error:", error);
-      if (error.message?.includes("User rejected")) {
-        toast.error("Transaction cancelled");
-      } else {
-        toast.error(error.message || "Trade failed");
-      }
+      tx.error(friendlyError(error));
     }
   };
 

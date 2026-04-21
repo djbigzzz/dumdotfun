@@ -131,3 +131,65 @@
     100% { clip: rect(15px, 9999px, 90px, 0); }
   }
 }
+
+
+/* ============================================================
+   Branded Sonner toasts — neo-brutalist
+   ============================================================ */
+[data-sonner-toaster][data-theme="light"] [data-sonner-toast].dum-toast,
+[data-sonner-toaster] [data-sonner-toast].dum-toast {
+  border: 2px solid #000 !important;
+  border-radius: 12px !important;
+  box-shadow: 4px 4px 0 0 rgba(0,0,0,1) !important;
+  font-family: inherit;
+  padding: 14px 16px !important;
+  gap: 10px;
+}
+[data-sonner-toast].dum-toast .dum-toast-title {
+  font-weight: 900 !important;
+  font-size: 14px;
+  letter-spacing: -0.01em;
+  color: #000;
+}
+[data-sonner-toast].dum-toast .dum-toast-desc {
+  font-size: 12px;
+  color: rgba(0,0,0,0.62);
+  font-weight: 500;
+}
+[data-sonner-toast].dum-toast .dum-toast-action {
+  background: #000 !important;
+  color: #fff !important;
+  border-radius: 8px !important;
+  padding: 4px 10px !important;
+  font-weight: 800 !important;
+  font-size: 11px !important;
+  margin-left: auto;
+  border: 1.5px solid #000 !important;
+  transition: transform 0.1s ease;
+}
+[data-sonner-toast].dum-toast .dum-toast-action:hover {
+  transform: translate(1px, 1px);
+}
+[data-sonner-toast].dum-toast .dum-toast-close {
+  border: 1.5px solid #000 !important;
+  background: #fff !important;
+  color: #000 !important;
+}
+/* type-tinted left edge */
+[data-sonner-toast].dum-toast[data-type="success"] { background: #ECFDF5 !important; }
+[data-sonner-toast].dum-toast[data-type="error"]   { background: #FEF2F2 !important; }
+[data-sonner-toast].dum-toast[data-type="loading"] { background: #FFFBEB !important; }
+[data-sonner-toast].dum-toast[data-type="info"]    { background: #EFF6FF !important; }
+
+/* points celebration variant */
+[data-sonner-toast].dum-toast.dum-toast-points {
+  background: linear-gradient(135deg, #FEF3C7 0%, #FDE68A 100%) !important;
+  border-color: #000 !important;
+}
+[data-sonner-toast].dum-toast.dum-toast-points .dum-toast-title {
+  color: #92400E;
+}
+[data-sonner-toast].dum-toast.dum-toast-points .dum-toast-title::before {
+  content: "✨ ";
+}
+

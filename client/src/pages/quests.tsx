@@ -12,6 +12,7 @@ import {
   CalendarCheck, Sparkles, ExternalLink, ChevronRight, ArrowRight
 } from "lucide-react";
 import { toast } from "sonner";
+import { questClaimed } from "@/lib/notify";
 
 interface QuestDef {
   action: string;
@@ -145,7 +146,7 @@ export default function QuestsPage() {
     },
     onSuccess: (data) => {
       if (data.awarded) {
-        toast.success(`+${data.points} pts claimed!`);
+        questClaimed(data.points, data.questLabel || "Quest reward");
         queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
       } else {
         toast.info("Already claimed or not eligible");
@@ -170,7 +171,7 @@ export default function QuestsPage() {
       const data = await res.json();
       if (data.awarded) {
         setClaimed(true);
-        toast.success(`+${data.points} pts! ${data.streak} day streak 🔥`);
+        questClaimed(data.points, "Daily check-in", data.streak);
         queryClient.invalidateQueries({ queryKey: ["points", connectedWallet] });
       } else {
         toast.info("Already checked in today!");

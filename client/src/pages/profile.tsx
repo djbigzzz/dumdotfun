@@ -11,6 +11,7 @@ import { ExternalLink, Copy, Check, Wallet, Calendar, Gift, Share2, Trophy, Star
 import { Connection, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { toast } from "sonner";
+import { txToast, friendlyError } from "@/lib/notify";
 
 interface UserWithReferrals {
   id: string;
@@ -230,6 +231,7 @@ export default function Profile() {
   const handleSell = async () => {
     if (!sellToken || !connectedWallet) return;
     setIsSelling(true);
+    const tx = txToast("sell", `${sellPct}% of ${sellToken.symbol || sellToken.name}`);
     try {
       const tokenAmount = (sellToken.balance * sellPct) / 100;
       await ensureSession();
@@ -240,8 +242,10 @@ export default function Profile() {
       const { transaction: txBase64 } = await res.json();
       const txBytes = Buffer.from(txBase64, "base64");
       const transaction = Transaction.from(txBytes);
+      tx.signing();
       const signedTx = await signTransaction(transaction);
 
+      tx.submitting();
       const connection = new Connection(SOLANA_RPC, "confirmed");
       let sig: string;
       try {
@@ -256,25 +260,14 @@ export default function Profile() {
         } else { throw err; }
       }
 
-      toast.success(`Sold ${sellPct}% of ${sellToken.name} — SOL returned to wallet`);
+      tx.success({
+        signature: sig,
+        description: `Sold ${sellPct}% of ${sellToken.symbol || sellToken.name} - SOL returned to wallet`,
+      });
       setSellToken(null);
       queryClient.invalidateQueries({ queryKey: ["my-holdings", connectedWallet] });
     } catch (err: any) {
-      const msg = err?.message || String(err) || "";
-      if (msg.includes("subtract with overflow") || msg.includes("panicked")) {
-        toast.error(
-          `Curve doesn't have enough liquidity for ${sellPct}% sell. Try a smaller amount (e.g. 25%).`,
-          { duration: 6000 },
-        );
-      } else if (msg.includes("InsufficientLiquidity")) {
-        toast.error("Bonding curve is low on SOL. Try selling a smaller amount.");
-      } else if (msg.includes("SlippageExceeded")) {
-        toast.error("Price moved too much. Try again.");
-      } else if (msg.includes("User rejected") || msg.includes("rejected")) {
-        toast.error("Transaction cancelled.");
-      } else {
-        toast.error(msg.length > 140 ? "Sell failed. Try a smaller amount." : msg);
-      }
+      tx.error(friendlyError(err));
     } finally {
       setIsSelling(false);
     }

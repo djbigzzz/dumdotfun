@@ -88,7 +88,23 @@ function App() {
           <WalletProvider>
             <Router />
             <Toaster />
-            <SonnerToaster position="top-right" theme="dark" />
+            <SonnerToaster
+              position="top-right"
+              theme="light"
+              richColors
+              closeButton
+              expand={false}
+              duration={4500}
+              toastOptions={{
+                classNames: {
+                  toast: "dum-toast",
+                  title: "dum-toast-title",
+                  description: "dum-toast-desc",
+                  actionButton: "dum-toast-action",
+                  closeButton: "dum-toast-close",
+                },
+              }}
+            />
           </WalletProvider>
         </PrivacyProvider>
       </TooltipProvider>
