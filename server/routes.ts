@@ -8,7 +8,7 @@ import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction 
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
@@ -127,7 +127,7 @@ export async function registerRoutes(
   // SEO: Dynamic sitemap
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const tokens = await db.select().from(tokensTable).limit(500);
+      const tokens = await db.select().from(tokensTable).orderBy(desc(tokensTable.createdAt)).limit(500);
       const markets = await storage.getMarkets(200);
       const baseUrl = "https://dum.fun";
       const now = new Date().toISOString().split('T')[0];
@@ -229,7 +229,14 @@ export async function registerRoutes(
 
   app.get("/api/tokens", async (req, res) => {
     try {
-      const dbTokens = await db.select().from(tokensTable).limit(24);
+      const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "100"), 10) || 100, 1), 500);
+      const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
+      const dbTokens = await db
+        .select()
+        .from(tokensTable)
+        .orderBy(desc(tokensTable.createdAt))
+        .limit(limit)
+        .offset(offset);
       
       const tokensWithPredictions = await Promise.all(
         dbTokens.map(async (token: typeof tokensTable.$inferSelect) => {
