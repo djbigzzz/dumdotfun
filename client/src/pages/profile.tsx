@@ -133,7 +133,41 @@ const CATEGORY_LABELS: Record<string, { label: string; color: string }> = {
   special: { label: "Special", color: "#A855F7" },
 };
 
-type TabType = "overview" | "quests" | "leaderboard" | "coins" | "holdings";
+type TabType = "overview" | "quests" | "leaderboard" | "coins" | "holdings" | "bets";
+
+interface BetPosition {
+  id: string;
+  marketId: string;
+  side: "yes" | "no";
+  amount: number;
+  shares: number;
+  isConfidential: boolean;
+  createdAt: string;
+  market: {
+    id: string;
+    question: string;
+    imageUri: string | null;
+    tokenMint: string | null;
+    survivalCriteria?: string;
+    resolutionDate: string;
+    status: string;
+    outcome: string | null;
+    yesOdds: number;
+    noOdds: number;
+    yesPool: number;
+    noPool: number;
+  };
+  payout: number | null;
+  won: boolean | null;
+  isExpired: boolean;
+}
+
+interface BetsResponse {
+  active: BetPosition[];
+  resolved: BetPosition[];
+  totalStaked: number;
+  totalWon: number;
+}
 type QuestFilter = "all" | "in_progress" | "completed";
 
 export default function Profile() {
@@ -316,6 +350,29 @@ export default function Profile() {
       return res.json();
     },
     enabled: !!connectedWallet && activeTab === "holdings",
+  });
+
+  const { data: betsData, isLoading: betsLoading } = useQuery<BetsResponse>({
+    queryKey: ["my-bets", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/positions/wallet/${connectedWallet}/with-markets`);
+      if (!res.ok) throw new Error("Failed to fetch bets");
+      return res.json();
+    },
+    enabled: !!connectedWallet && activeTab === "bets",
+    refetchInterval: 30000,
+  });
+
+  // Always fetch a lightweight count so the tab badge stays accurate
+  const { data: betsBadge } = useQuery<BetsResponse>({
+    queryKey: ["my-bets-badge", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/positions/wallet/${connectedWallet}/with-markets`);
+      if (!res.ok) throw new Error("Failed to fetch bets");
+      return res.json();
+    },
+    enabled: !!connectedWallet,
+    staleTime: 60000,
   });
 
   const { data: solPrice } = useQuery<{ price: number; currency: string }>({
@@ -585,6 +642,17 @@ export default function Profile() {
                   {(myCoinsData?.tokensCreated?.length ?? 0) > 0 && (
                     <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeTab === "coins" ? (privateMode ? "bg-black text-[#4ADE80]" : "bg-white text-black") : (privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-200 text-gray-600")}`}>
                       {myCoinsData!.tokensCreated.length}
+                    </span>
+                  )}
+                </span>
+              </button>
+              <button onClick={() => setActiveTab("bets")} className={tabStyle("bets")} data-testid="tab-bets">
+                <span className="flex items-center gap-1.5">
+                  <Target className="w-4 h-4" />
+                  {privateMode ? "MY_BETS" : "My Bets"}
+                  {((betsBadge?.active.length ?? 0) + (betsBadge?.resolved.length ?? 0)) > 0 && (
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold ${activeTab === "bets" ? (privateMode ? "bg-black text-[#4ADE80]" : "bg-white text-black") : (privateMode ? "bg-[#4ADE80]/20 text-[#4ADE80]" : "bg-gray-200 text-gray-600")}`}>
+                      {(betsBadge?.active.length ?? 0) + (betsBadge?.resolved.length ?? 0)}
                     </span>
                   )}
                 </span>
@@ -1117,6 +1185,126 @@ export default function Profile() {
                       </div>
                     )}
                   </div>
+                </motion.div>
+              )}
+
+              {activeTab === "bets" && (
+                <motion.div
+                  key="bets"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                  data-testid="bets-tab-content"
+                >
+                  {betsLoading ? (
+                    <div className={`${cardStyle} p-12 text-center`}>
+                      <Loader2 className="w-8 h-8 mx-auto animate-spin text-gray-400" />
+                      <p className="mt-3 text-sm text-gray-500">Loading your bets...</p>
+                    </div>
+                  ) : !betsData || (betsData.active.length === 0 && betsData.resolved.length === 0) ? (
+                    <div className={`${cardStyle} p-12 text-center`}>
+                      <Target className="w-10 h-10 mx-auto text-gray-300 mb-3" />
+                      <h3 className="font-black text-lg mb-1">No bets yet</h3>
+                      <p className="text-sm text-gray-500 mb-4">Predict whether tokens survive or rug, win SOL when you're right.</p>
+                      <Link href="/markets" className="inline-block px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg text-sm" data-testid="link-browse-markets">
+                        Browse markets
+                      </Link>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className={`${cardStyle} p-3 text-center`}>
+                          <div className="text-[10px] uppercase font-bold text-gray-500">Active</div>
+                          <div className="text-2xl font-black mt-1" data-testid="text-bets-active-count">{betsData.active.length}</div>
+                        </div>
+                        <div className={`${cardStyle} p-3 text-center`}>
+                          <div className="text-[10px] uppercase font-bold text-gray-500">Staked</div>
+                          <div className="text-2xl font-black mt-1" data-testid="text-bets-staked">{betsData.totalStaked.toFixed(2)}</div>
+                          <div className="text-[10px] text-gray-500">SOL</div>
+                        </div>
+                        <div className={`${cardStyle} p-3 text-center`}>
+                          <div className="text-[10px] uppercase font-bold text-gray-500">Won</div>
+                          <div className="text-2xl font-black mt-1 text-green-600" data-testid="text-bets-won">{betsData.totalWon.toFixed(2)}</div>
+                          <div className="text-[10px] text-gray-500">SOL</div>
+                        </div>
+                      </div>
+
+                      {betsData.active.length > 0 && (
+                        <div>
+                          <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+                            Active Predictions ({betsData.active.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {betsData.active.map((p) => (
+                              <Link key={p.id} href={`/market/${p.marketId}`} className={`${cardStyle} p-3 flex items-center gap-3 hover:border-red-500 transition-colors block`} data-testid={`bet-active-${p.id}`}>
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                                  {p.market.imageUri ? (
+                                    <img src={p.market.imageUri} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Target className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold text-sm truncate">{p.market.question}</div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5">
+                                    Resolves {new Date(p.market.resolutionDate).toLocaleDateString()}
+                                    {p.isExpired && <span className="ml-1 text-amber-600 font-bold">- pending</span>}
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  <span className={`text-[10px] px-2 py-0.5 rounded font-black ${p.side === "yes" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                    {p.side.toUpperCase()}
+                                  </span>
+                                  <div className="text-xs font-mono font-bold mt-1">{p.amount.toFixed(3)} SOL</div>
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {betsData.resolved.length > 0 && (
+                        <div>
+                          <h3 className={`text-xs font-bold uppercase tracking-wider mb-2 ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>
+                            Resolved ({betsData.resolved.length})
+                          </h3>
+                          <div className="space-y-2">
+                            {betsData.resolved.map((p) => (
+                              <Link key={p.id} href={`/market/${p.marketId}`} className={`${cardStyle} p-3 flex items-center gap-3 hover:border-red-500 transition-colors block opacity-90`} data-testid={`bet-resolved-${p.id}`}>
+                                <div className="w-10 h-10 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                                  {p.market.imageUri ? (
+                                    <img src={p.market.imageUri} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Target className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="font-bold text-sm truncate">{p.market.question}</div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5">
+                                    Resolved {p.market.outcome?.toUpperCase()}
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  {p.won ? (
+                                    <>
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-black bg-green-100 text-green-700">WON</span>
+                                      <div className="text-xs font-mono font-bold mt-1 text-green-600">+{(p.payout || 0).toFixed(3)} SOL</div>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <span className="text-[10px] px-2 py-0.5 rounded font-black bg-gray-200 text-gray-600">LOST</span>
+                                      <div className="text-xs font-mono font-bold mt-1 text-gray-500">-{p.amount.toFixed(3)} SOL</div>
+                                    </>
+                                  )}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

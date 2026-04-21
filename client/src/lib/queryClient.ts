@@ -30,7 +30,18 @@ function authHeaders(extra?: Record<string, string>): Record<string, string> {
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
+    let message = text;
+    try {
+      const parsed = JSON.parse(text);
+      if (parsed && typeof parsed === "object") {
+        message = parsed.error || parsed.message || text;
+      }
+    } catch {
+      // not JSON, fall back to raw text
+    }
+    const err = new Error(message);
+    (err as any).status = res.status;
+    throw err;
   }
 }
 

@@ -278,8 +278,12 @@ export default function MarketDetail() {
 
   const isResolved = market.status === "resolved";
   const isExpired = countdown.total <= 0 && !isResolved;
-  const canBet = !isResolved && !isExpired;
   const criteria = (market as any).survivalCriteria || "token_exists";
+  const isOwnDevMarket =
+    !!publicKey &&
+    market?.creatorAddress === publicKey &&
+    (criteria === "dev_holds" || criteria === "dev_sells");
+  const canBet = !isResolved && !isExpired && !isOwnDevMarket;
   const isAutoResolve = (market as any).autoResolve !== false;
 
   return (
@@ -560,10 +564,24 @@ export default function MarketDetail() {
               )}
 
               {!canBet && (
-                <div className="bg-zinc-800/50 rounded-lg p-4 text-center text-sm text-gray-400">
-                  {isResolved
-                    ? `This market resolved ${market.outcome?.toUpperCase()}`
-                    : "Market closed — pending resolution"}
+                <div
+                  className={`rounded-lg p-4 text-center text-sm ${
+                    isOwnDevMarket
+                      ? "bg-yellow-500/10 border border-yellow-500/40 text-yellow-300"
+                      : "bg-zinc-800/50 text-gray-400"
+                  }`}
+                  data-testid={isOwnDevMarket ? "banner-creator-cannot-bet" : "banner-market-closed"}
+                >
+                  {isOwnDevMarket ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Shield className="w-4 h-4 flex-shrink-0" />
+                      Creators can't bet on their own dev-behavior market - the outcome would be self-determined.
+                    </span>
+                  ) : isResolved ? (
+                    `This market resolved ${market.outcome?.toUpperCase()}`
+                  ) : (
+                    "Market closed - pending resolution"
+                  )}
                 </div>
               )}
             </div>

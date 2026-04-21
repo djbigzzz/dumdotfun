@@ -2593,6 +2593,89 @@ export async function registerRoutes(
     }
   });
 
+  // Get positions for a wallet enriched with market info, grouped by status
+  app.get("/api/positions/wallet/:address/with-markets", async (req, res) => {
+    try {
+      const positions = await storage.getPositionsByWallet(req.params.address);
+      if (positions.length === 0) {
+        return res.json({ active: [], resolved: [], totalStaked: 0, totalWon: 0 });
+      }
+
+      const marketIds = Array.from(new Set(positions.map((p) => p.marketId)));
+      const markets = await Promise.all(marketIds.map((id) => storage.getMarket(id).catch(() => null)));
+      const marketMap = new Map(markets.filter(Boolean).map((m) => [m!.id, m!]));
+
+      const now = new Date();
+      const active: any[] = [];
+      const resolved: any[] = [];
+      let totalStaked = 0;
+      let totalWon = 0;
+
+      for (const p of positions) {
+        const m = marketMap.get(p.marketId);
+        if (!m) continue;
+        const amount = Number(p.amount) || 0;
+        const shares = Number(p.shares) || 0;
+        totalStaked += amount;
+
+        const isResolved = m.status === "resolved" && m.outcome;
+        const isExpired = !isResolved && new Date(m.resolutionDate) <= now;
+
+        let payout: number | null = null;
+        let won: boolean | null = null;
+        if (isResolved) {
+          won = p.side === m.outcome;
+          if (won) {
+            const winningPool = m.outcome === "yes" ? Number(m.yesPool) : Number(m.noPool);
+            const totalPool = Number(m.yesPool) + Number(m.noPool);
+            payout = winningPool > 0 ? (amount / winningPool) * totalPool : 0;
+            totalWon += payout;
+          } else {
+            payout = 0;
+          }
+        }
+
+        const enriched = {
+          id: p.id,
+          marketId: p.marketId,
+          side: p.side,
+          amount,
+          shares,
+          isConfidential: p.isConfidential,
+          createdAt: p.createdAt,
+          market: {
+            id: m.id,
+            question: m.question,
+            imageUri: m.imageUri,
+            tokenMint: m.tokenMint,
+            survivalCriteria: (m as any).survivalCriteria,
+            resolutionDate: m.resolutionDate,
+            status: m.status,
+            outcome: m.outcome,
+            yesOdds: m.yesOdds,
+            noOdds: m.noOdds,
+            yesPool: Number(m.yesPool),
+            noPool: Number(m.noPool),
+          },
+          payout,
+          won,
+          isExpired,
+        };
+
+        if (isResolved) resolved.push(enriched);
+        else active.push(enriched);
+      }
+
+      active.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      resolved.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      return res.json({ active, resolved, totalStaked, totalWon });
+    } catch (error: any) {
+      console.error("Error fetching positions with markets:", error);
+      return res.status(500).json({ error: "Failed to fetch positions" });
+    }
+  });
+
   // Get recent activity feed
   app.get("/api/activity", async (req, res) => {
     try {
