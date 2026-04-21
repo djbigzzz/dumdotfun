@@ -4,7 +4,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
 import { Plus, Loader2, AlertCircle, Rocket, Search, Grid3X3, List, Flame, Zap, Clock, TrendingUp, ChevronLeft, ChevronRight, Sparkles, Trophy, X, Diamond } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { toast } from "sonner";
 
 import { useWallet } from "@/lib/wallet-context";
@@ -249,13 +249,20 @@ export default function TokensPage() {
   const trendingRef = useRef<HTMLDivElement>(null);
 
   const { data: tokens, isLoading, error } = useQuery<Token[]>({
-    queryKey: ["tokens"],
+    queryKey: ["tokens", "all"],
     queryFn: async () => {
-      const res = await fetch("/api/tokens");
+      const res = await fetch("/api/tokens?limit=500");
       if (!res.ok) throw new Error("Failed to fetch tokens");
       return res.json();
     },
   });
+
+  const PAGE_SIZE = 50;
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilter]);
 
   const { data: solPrice } = useQuery<SolPrice>({
     queryKey: ["sol-price"],
@@ -303,6 +310,28 @@ export default function TokensPage() {
   const trendingTokens = [...filteredTokens]
     .sort((a, b) => b.marketCapSol - a.marketCapSol)
     .slice(0, 8);
+
+  const totalPages = Math.max(1, Math.ceil(sortedTokens.length / PAGE_SIZE));
+  const safePage = Math.min(currentPage, totalPages);
+  const pageStart = (safePage - 1) * PAGE_SIZE;
+  const pagedTokens = sortedTokens.slice(pageStart, pageStart + PAGE_SIZE);
+
+  const pageNumbers = useMemo(() => {
+    const max = 5;
+    if (totalPages <= max) return Array.from({ length: totalPages }, (_, i) => i + 1);
+    const half = Math.floor(max / 2);
+    let start = Math.max(1, safePage - half);
+    let end = Math.min(totalPages, start + max - 1);
+    if (end - start + 1 < max) start = Math.max(1, end - max + 1);
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  }, [safePage, totalPages]);
+
+  const goToPage = (p: number) => {
+    setCurrentPage(Math.min(Math.max(1, p), totalPages));
+    if (typeof window !== "undefined") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
 
   const cardStyle = privateMode 
     ? "bg-black border-2 border-[#4ADE80]" 
@@ -529,7 +558,7 @@ export default function TokensPage() {
           </div>
         ) : viewMode === "grid" ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sortedTokens.map((token) => (
+            {pagedTokens.map((token) => (
               <TokenCard key={token.mint} token={token} solPrice={solPrice?.price || null} />
             ))}
           </div>
@@ -547,7 +576,7 @@ export default function TokensPage() {
                   <div className="text-right py-3 px-4 w-24">CREATOR</div>
                 </div>
                 <div>
-                  {sortedTokens.map((token, index) => (
+                  {pagedTokens.map((token, index) => (
                     <Link key={token.mint} href={`/token/${token.mint}`}>
                       <div 
                         className={`flex items-center cursor-pointer border-b transition-all ${
@@ -558,7 +587,7 @@ export default function TokensPage() {
                         data-testid={`table-row-${token.mint}`}
                       >
                         <div className={`py-3 px-4 w-12 font-mono text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
-                          #{index + 1}
+                          #{pageStart + index + 1}
                         </div>
                         <div className="py-3 px-4 flex-1">
                           <div className="flex items-center gap-3">
@@ -612,6 +641,78 @@ export default function TokensPage() {
                   ))}
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!isLoading && !error && sortedTokens.length > PAGE_SIZE && (
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-2" data-testid="pagination-controls">
+            <div className="text-xs font-bold text-gray-500">
+              Showing <span className="text-black">{pageStart + 1}</span>
+              {" – "}
+              <span className="text-black">{Math.min(pageStart + PAGE_SIZE, sortedTokens.length)}</span>
+              {" of "}
+              <span className="text-black">{sortedTokens.length}</span>
+              {" tokens"}
+            </div>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => goToPage(safePage - 1)}
+                disabled={safePage === 1}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-2 border-black bg-white rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                data-testid="button-page-prev"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+                Prev
+              </button>
+              {pageNumbers[0] > 1 && (
+                <>
+                  <button
+                    onClick={() => goToPage(1)}
+                    className="w-8 h-8 text-xs font-bold border-2 border-black bg-white rounded-lg hover:bg-gray-100 transition-colors"
+                    data-testid="button-page-1"
+                  >
+                    1
+                  </button>
+                  {pageNumbers[0] > 2 && <span className="px-1 text-gray-400">...</span>}
+                </>
+              )}
+              {pageNumbers.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => goToPage(p)}
+                  className={`w-8 h-8 text-xs font-bold border-2 border-black rounded-lg transition-colors ${
+                    p === safePage
+                      ? "bg-red-500 text-white shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                      : "bg-white hover:bg-gray-100"
+                  }`}
+                  data-testid={`button-page-${p}`}
+                >
+                  {p}
+                </button>
+              ))}
+              {pageNumbers[pageNumbers.length - 1] < totalPages && (
+                <>
+                  {pageNumbers[pageNumbers.length - 1] < totalPages - 1 && <span className="px-1 text-gray-400">...</span>}
+                  <button
+                    onClick={() => goToPage(totalPages)}
+                    className="w-8 h-8 text-xs font-bold border-2 border-black bg-white rounded-lg hover:bg-gray-100 transition-colors"
+                    data-testid={`button-page-${totalPages}`}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => goToPage(safePage + 1)}
+                disabled={safePage === totalPages}
+                className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold border-2 border-black bg-white rounded-lg shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[1px_1px_0px_0px_rgba(0,0,0,1)] transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                data-testid="button-page-next"
+              >
+                Next
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
