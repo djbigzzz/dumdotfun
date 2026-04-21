@@ -817,7 +817,28 @@ export default function TokenPage() {
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>
-                              {formatMarketCap(amount, solPrice?.price || null)}
+                              {isBuy ? (
+                                <span>
+                                  <span className="font-semibold">{amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                                  <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>SOL</span>
+                                  {solPrice?.price ? (
+                                    <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                                      (${(amount * solPrice.price).toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                                    </span>
+                                  ) : null}
+                                </span>
+                              ) : (
+                                <span>
+                                  <span className="font-semibold">
+                                    {amount >= 1_000_000
+                                      ? `${(amount / 1_000_000).toFixed(2)}M`
+                                      : amount >= 1_000
+                                        ? `${(amount / 1_000).toFixed(2)}K`
+                                        : amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                  </span>
+                                  <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>{token.symbol}</span>
+                                </span>
+                              )}
                             </td>
                             <td className={`py-2 text-right ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
                             <td className="py-2 text-right">
