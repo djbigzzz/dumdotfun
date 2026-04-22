@@ -263,10 +263,9 @@ export default function Profile() {
     setSavingName(true);
     try {
       await ensureSession();
-      const res = await fetch(`/api/users/${connectedWallet}/display-name`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ walletAddress: connectedWallet, displayName: nameDraft }),
+      const res = await apiRequest("PATCH", `/api/users/${connectedWallet}/display-name`, {
+        walletAddress: connectedWallet,
+        displayName: nameDraft,
       });
       const data = await res.json();
       if (!res.ok) {
