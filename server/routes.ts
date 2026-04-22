@@ -341,6 +341,8 @@ export async function registerRoutes(
           status: market.status,
           resolutionDate: market.resolutionDate,
           createdAt: market.createdAt,
+          survivalCriteria: (market as any).survivalCriteria || "token_exists",
+          creatorAddress: market.creatorAddress,
         };
       });
 
@@ -2237,6 +2239,11 @@ export async function registerRoutes(
 
       if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
         return res.status(400).json({ error: "Amount must be a positive number" });
+      }
+
+      const MIN_BET_SOL = 0.1;
+      if (Number(amount) < MIN_BET_SOL) {
+        return res.status(400).json({ error: `Minimum bet is ${MIN_BET_SOL} SOL` });
       }
 
       const market = await storage.getMarket(id);

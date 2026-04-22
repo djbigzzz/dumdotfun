@@ -37,7 +37,12 @@ interface TokenPrediction {
   status: string;
   resolutionDate: string;
   createdAt: string;
+  survivalCriteria?: string;
+  creatorAddress?: string;
 }
+
+const DEV_BEHAVIOR_CRITERIA = ["dev_holds", "dev_sells"];
+const MIN_BET_SOL = 0.1;
 
 interface TokenDetail {
   mint: string;
@@ -1003,6 +1008,11 @@ export default function TokenPage() {
                     <>
                       {openMarkets.map((prediction) => {
                         const isBettingActive = activeBet?.predictionId === prediction.id;
+                        const isCreatorBlocked =
+                          !!connectedWallet &&
+                          connectedWallet === token.creatorAddress &&
+                          !!prediction.survivalCriteria &&
+                          DEV_BEHAVIOR_CRITERIA.includes(prediction.survivalCriteria);
                         return (
                           <div key={prediction.id} className={`p-3 mb-2 border-2 ${privateMode ? "bg-black border-green-500/40" : "bg-green-50 border-green-400 rounded"}`} data-testid={`prediction-${prediction.id}`}>
                             <div className="flex items-start justify-between mb-2 gap-2">
@@ -1019,11 +1029,11 @@ export default function TokenPage() {
                               </a>
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
+                              <button onClick={(e) => handleBetClick(prediction.id, "yes", e)} disabled={isCreatorBlocked} title={isCreatorBlocked ? "Devs can't bet on their own dev-behavior market" : undefined} className={`py-2 font-bold border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isBettingActive && activeBet?.side === "yes" ? "bg-green-500 text-white border-green-500" : privateMode ? "bg-black border-green-500/50 text-green-400" : "bg-green-100 border-green-500 text-green-700"}`} data-testid={`button-bet-yes-${prediction.id}`}>
                                 <span className="block font-bold">{predictionHasConsensus(prediction) ? `${prediction.yesOdds}%` : "—"}</span>
                                 <span className="text-xs">YES</span>
                               </button>
-                              <button onClick={(e) => handleBetClick(prediction.id, "no", e)} className={`py-2 font-bold border-2 transition-all ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
+                              <button onClick={(e) => handleBetClick(prediction.id, "no", e)} disabled={isCreatorBlocked} title={isCreatorBlocked ? "Devs can't bet on their own dev-behavior market" : undefined} className={`py-2 font-bold border-2 transition-all disabled:opacity-40 disabled:cursor-not-allowed ${isBettingActive && activeBet?.side === "no" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black border-red-500/50 text-red-400" : "bg-red-100 border-red-500 text-red-700"}`} data-testid={`button-bet-no-${prediction.id}`}>
                                 <span className="block font-bold">{predictionHasConsensus(prediction) ? `${prediction.noOdds}%` : "—"}</span>
                                 <span className="text-xs">NO</span>
                               </button>
@@ -1034,17 +1044,27 @@ export default function TokenPage() {
                               </span>
                               <span>{formatTimeLeft(prediction.resolutionDate)}</span>
                             </div>
-                            {!predictionHasConsensus(prediction) && (
+                            {isCreatorBlocked && (
+                              <p className={`mt-1 text-[10px] font-bold ${privateMode ? "text-amber-400/80" : "text-amber-700"}`} data-testid={`hint-dev-blocked-${prediction.id}`}>
+                                Devs can't bet on their own dev-behavior market
+                              </p>
+                            )}
+                            {!isCreatorBlocked && !predictionHasConsensus(prediction) && (
                               <p className={`mt-1 text-[10px] font-bold ${privateMode ? "text-yellow-400/80" : "text-yellow-600"}`}>
                                 No consensus yet — be first to set the line
                               </p>
                             )}
                             {isBettingActive && (
-                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 flex gap-2">
-                                <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder="SOL amount" className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
-                                <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending} className={`px-4 py-2 font-bold text-sm border-2 ${privateMode ? "bg-[#4ADE80] border-[#4ADE80]" : activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white flex items-center gap-1`} data-testid={`button-confirm-bet-${prediction.id}`}>
-                                  {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : privateMode ? <><Lock className="w-3 h-3" /> PRIVATE</> : "BET"}
-                                </button>
+                              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="mt-2 space-y-1">
+                                <div className="flex gap-2">
+                                  <input type="number" value={betAmount} onChange={(e) => setBetAmount(e.target.value)} placeholder={`Min ${MIN_BET_SOL} SOL`} step="0.01" min={MIN_BET_SOL} className={`flex-1 px-3 py-2 text-sm ${inputStyle}`} onClick={(e) => e.stopPropagation()} data-testid={`input-bet-amount-${prediction.id}`} />
+                                  <button onClick={handlePlaceBet} disabled={placeBetMutation.isPending || !betAmount || parseFloat(betAmount) < MIN_BET_SOL} className={`px-4 py-2 font-bold text-sm border-2 disabled:opacity-50 disabled:cursor-not-allowed ${privateMode ? "bg-[#4ADE80] border-[#4ADE80]" : activeBet?.side === "yes" ? "bg-green-500 border-green-600" : "bg-red-500 border-red-600"} text-white flex items-center gap-1`} data-testid={`button-confirm-bet-${prediction.id}`}>
+                                    {placeBetMutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : privateMode ? <><Lock className="w-3 h-3" /> PRIVATE</> : "BET"}
+                                  </button>
+                                </div>
+                                <p className={`text-[10px] ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                                  Minimum bet: {MIN_BET_SOL} SOL
+                                </p>
                               </motion.div>
                             )}
                           </div>

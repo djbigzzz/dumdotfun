@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye } from "lucide-react";
+import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye, Twitter } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -560,6 +560,22 @@ export default function CreateToken() {
                 <p className="text-2xl font-black">{solPrice ? `$${(30 * solPrice).toFixed(2)}` : "$0.00"}</p>
                 <p className="text-xs opacity-50 font-mono mt-1">Initial bonding curve market cap (30 SOL)</p>
               </div>
+              <motion.a
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just launched $${createdToken.symbol} (${createdToken.name}) on @dumdotfun - bet whether I'll rug it. Devnet only.`)}&url=${encodeURIComponent(`${typeof window !== "undefined" && window.location.origin?.startsWith("http") ? window.location.origin : "https://dum.fun"}/token/${createdToken.mint}`)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                whileHover={{ y: -2, x: -2 }}
+                whileTap={{ y: 0, x: 0 }}
+                className={`px-6 py-3 font-bold rounded-lg border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-all flex items-center gap-2 ${
+                  privateMode
+                    ? "bg-black border-[#4ADE80] text-[#4ADE80] font-mono"
+                    : "bg-black text-white"
+                }`}
+                data-testid="button-share-launch"
+              >
+                <Twitter className="w-4 h-4" />
+                {privateMode ? "BROADCAST" : "Share on X"}
+              </motion.a>
               <Link href={`/token/${createdToken.mint}`}>
                 <motion.button
                   whileHover={{ y: -2, x: -2 }}

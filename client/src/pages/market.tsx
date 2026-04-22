@@ -479,9 +479,9 @@ export default function MarketDetail() {
                       type="number"
                       value={betAmount}
                       onChange={(e) => setBetAmount(e.target.value)}
-                      placeholder="0.10"
+                      placeholder="Min 0.1 SOL"
                       step="0.01"
-                      min="0.01"
+                      min="0.1"
                       className="flex-1 bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-2.5 text-white placeholder-gray-600 focus:outline-none focus:border-yellow-500"
                       data-testid="input-bet-amount"
                     />
@@ -496,7 +496,7 @@ export default function MarketDetail() {
                     ) : (
                       <button
                         onClick={handlePlaceBet}
-                        disabled={placeBetMutation.isPending || !selectedSide}
+                        disabled={placeBetMutation.isPending || !selectedSide || !betAmount || parseFloat(betAmount) < 0.1}
                         className={`font-bold px-5 py-2.5 rounded-lg whitespace-nowrap flex items-center gap-1.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
                           selectedSide === "yes"
                             ? "bg-green-500 hover:bg-green-600 text-white"
