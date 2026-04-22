@@ -7,7 +7,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, X, Pencil, ChevronRight, Sparkles, LogOut } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, X, Pencil, ChevronRight, Sparkles, LogOut, Twitter } from "lucide-react";
 import { Connection, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { toast } from "sonner";
@@ -1037,6 +1037,18 @@ export default function Profile() {
                       {copiedReferral ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                     </button>
                   </div>
+                  <button
+                    onClick={() => {
+                      if (!user.referralCode) return;
+                      const url = `https://dum.fun?ref=${user.referralCode}`;
+                      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent("Launch tokens, bet on devs, climb the leaderboard. Join me on Dum.fun for bonus points")}&url=${encodeURIComponent(url)}`, "_blank", "noopener,noreferrer");
+                    }}
+                    disabled={!user.referralCode}
+                    className="w-full flex items-center justify-center gap-2 px-3 py-2 font-bold rounded border-2 border-black bg-black text-white text-xs disabled:opacity-50"
+                    data-testid="button-share-referral"
+                  >
+                    <Twitter className="w-3.5 h-3.5" /> Share on X
+                  </button>
                   <p className="text-[11px] text-gray-500">
                     Earn 10% of your referrals' points. <span className="font-black text-black" data-testid="text-referral-count">{user.referralCount} referred</span>
                   </p>

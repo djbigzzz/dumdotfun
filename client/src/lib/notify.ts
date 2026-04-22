@@ -97,20 +97,35 @@ export function betPlaced(opts: {
   potentialPayoutSol?: number;
   marketHref?: string;
   signature?: string;
+  shareText?: string;
+  shareUrl?: string;
 }) {
-  const { side, amountSol, potentialPayoutSol, marketHref, signature } = opts;
+  const { side, amountSol, potentialPayoutSol, marketHref, signature, shareText, shareUrl } = opts;
   const sideLabel = side.toUpperCase();
   const payoutText = potentialPayoutSol && potentialPayoutSol > amountSol
     ? `Stake ${amountSol.toFixed(3)} SOL - max payout ~${potentialPayoutSol.toFixed(3)} SOL`
     : `Stake ${amountSol.toFixed(3)} SOL on ${sideLabel}`;
+
+  let action: { label: string; onClick: () => void } | undefined;
+  if (shareText && shareUrl && typeof window !== "undefined") {
+    action = {
+      label: "Brag on X",
+      onClick: () => window.open(
+        `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`,
+        "_blank",
+        "noopener,noreferrer"
+      ),
+    };
+  } else if (signature) {
+    action = { label: "View tx", onClick: () => openTx(signature) };
+  } else if (marketHref && typeof window !== "undefined") {
+    action = { label: "View market", onClick: () => { window.location.href = marketHref; } };
+  }
+
   toast.success(`${sideLabel} bet placed`, {
     description: payoutText,
     duration: 6000,
-    action: signature
-      ? { label: "View tx", onClick: () => openTx(signature) }
-      : marketHref && typeof window !== "undefined"
-      ? { label: "View market", onClick: () => { window.location.href = marketHref; } }
-      : undefined,
+    action,
   });
 }
 

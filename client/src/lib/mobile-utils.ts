@@ -116,6 +116,24 @@ export const shareContent = async (data: {
   return false;
 };
 
+export const getShareUrl = (path: string = ""): string => {
+  const origin =
+    typeof window !== 'undefined' && window.location.origin?.startsWith('http')
+      ? window.location.origin
+      : 'https://dum.fun';
+  return `${origin}${path.startsWith('/') ? path : `/${path}`}`;
+};
+
+export const buildTwitterIntent = (text: string, url: string): string => {
+  return `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`;
+};
+
+export const openTwitterIntent = (text: string, url: string): void => {
+  if (typeof window === 'undefined') return;
+  hapticFeedback('light');
+  window.open(buildTwitterIntent(text, url), '_blank', 'noopener,noreferrer');
+};
+
 export const getMobileWalletDeepLink = (action: 'connect' | 'sign', data?: string): string => {
   const baseUrl = 'phantom://';
   

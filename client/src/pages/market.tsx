@@ -4,9 +4,10 @@ import { useParams } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState } from "react";
 import { usePageTitle } from "@/hooks/use-page-title";
-import { Target, Clock, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, Info, ChevronDown } from "lucide-react";
+import { Target, Clock, ArrowLeft, Loader2, CheckCircle, AlertCircle, TrendingUp, TrendingDown, Lock, Shield, Eye, Info, ChevronDown, Twitter } from "lucide-react";
 import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
+import { openTwitterIntent, getShareUrl } from "@/lib/mobile-utils";
 import { apiRequest } from "@/lib/queryClient";
 import { Transaction, Connection } from "@solana/web3.js";
 import bs58 from "bs58";
@@ -331,6 +332,14 @@ export default function MarketDetail() {
                   </div>
                   <h1 className="text-xl md:text-2xl font-black text-white leading-tight">{market.question}</h1>
                 </div>
+                <button
+                  onClick={() => openTwitterIntent(`"${market.question}" - what do you think? Bet on Dum.fun`, getShareUrl(`/market/${market.id}`))}
+                  className="flex-shrink-0 p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-gray-300 hover:text-white border border-zinc-700 transition-colors"
+                  title="Share on X"
+                  data-testid="button-share-market"
+                >
+                  <Twitter className="w-4 h-4" />
+                </button>
               </div>
 
               {/* one-line stats strip */}
@@ -459,8 +468,18 @@ export default function MarketDetail() {
                           : "bg-green-500/15 text-green-400 border border-green-500/40"
                       }`}
                     >
-                      <CheckCircle className="w-4 h-4" />
-                      Bet placed!
+                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                      <span className="flex-1">Bet placed!</span>
+                      <button
+                        onClick={() => openTwitterIntent(
+                          `Just bet ${selectedSide === "yes" ? "YES" : "NO"} on "${market.question}" - join me on Dum.fun`,
+                          getShareUrl(`/market/${market.id}`)
+                        )}
+                        className="flex items-center gap-1 px-2 py-1 rounded bg-black/30 hover:bg-black/50 text-xs font-bold transition-colors"
+                        data-testid="button-share-bet"
+                      >
+                        <Twitter className="w-3 h-3" /> Brag
+                      </button>
                     </motion.div>
                   )}
                   {error && (

@@ -408,12 +408,19 @@ export default function TokenPage() {
     onSuccess: (data, variables) => {
       const stake = parseFloat(variables.amount) || 0;
       const payout = data?.potentialPayout ? Number(data.potentialPayout) : undefined;
+      const sideLbl = variables.side === "yes" ? "YES" : "NO";
+      const pred = token?.predictions?.find(p => p.id === variables.marketId);
+      const baseUrl = window.location.origin?.startsWith("http") ? window.location.origin : "https://dum.fun";
       betPlaced({
         side: variables.side as "yes" | "no",
         amountSol: stake,
         potentialPayoutSol: payout,
         signature: data?.signature,
         marketHref: undefined,
+        shareText: pred
+          ? `Just bet ${stake.toFixed(2)} SOL ${sideLbl} on "${pred.question}" - join me on Dum.fun`
+          : `Just bet ${stake.toFixed(2)} SOL ${sideLbl} on $${token?.symbol ?? "this token"} - Dum.fun`,
+        shareUrl: `${baseUrl}/token/${mint}`,
       });
       setActiveBet(null);
       setBetAmount("");
