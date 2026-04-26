@@ -1799,7 +1799,7 @@ export async function registerRoutes(
     }
   });
 
-  app.post("/api/tokens/:mint/retry-graduation", async (req, res) => {
+  app.post("/api/tokens/:mint/retry-graduation", requireAdmin, sensitiveLimiter, async (req, res) => {
     try {
       const { mint } = req.params;
       const { retryFailedGraduation } = await import("./services/graduation");

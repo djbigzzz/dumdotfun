@@ -125,23 +125,12 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
     return { success: false, error: eligibility.reason, tokenMint: mintAddress };
   }
 
-  const authorityKeypair = getAuthorityKeypair();
-  if (!authorityKeypair) {
-    await db.update(tokens)
-      .set({ graduationStatus: "failed", updatedAt: new Date() })
-      .where(eq(tokens.mint, mintAddress));
-    return {
-      success: false,
-      error: "Platform authority keypair not configured. Set PLATFORM_AUTHORITY_SECRET_KEY.",
-      tokenMint: mintAddress,
-    };
-  }
-
-  const poolAuthority = getPoolAuthorityKeypair();
-
   // Atomic claim: only the caller that flips status from a non-terminal state
   // to "migrating" proceeds. This prevents two concurrent triggers (background
   // scan + opportunistic GET + post-trade hook) from running migration twice.
+  // We claim BEFORE checking auth so that state transitions only happen for
+  // the worker that owns this attempt - no other caller can mutate it to
+  // "failed" without first holding the claim.
   const claimed = await db.update(tokens)
     .set({ graduationStatus: "migrating", updatedAt: new Date() })
     .where(and(
@@ -158,6 +147,20 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
       tokenMint: mintAddress,
     };
   }
+
+  const authorityKeypair = getAuthorityKeypair();
+  if (!authorityKeypair) {
+    await db.update(tokens)
+      .set({ graduationStatus: "failed", updatedAt: new Date() })
+      .where(eq(tokens.mint, mintAddress));
+    return {
+      success: false,
+      error: "Platform authority keypair not configured. Set PLATFORM_AUTHORITY_SECRET_KEY.",
+      tokenMint: mintAddress,
+    };
+  }
+
+  const poolAuthority = getPoolAuthorityKeypair();
 
   try {
     const connection = getConnection();
