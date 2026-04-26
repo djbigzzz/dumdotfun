@@ -374,12 +374,13 @@ export async function registerRoutes(
           isGraduated = rawCurveData.isGraduated;
 
           // Opportunistic auto-graduation: if the on-chain curve flipped to
-          // graduated but our DB row hasn't been migrated, kick off the
-          // Raydium migration in the background (non-blocking).
+          // graduated but our DB row is still "pending", kick off the Raydium
+          // migration in the background (non-blocking). We deliberately skip
+          // "failed" rows here so a broken setup doesn't spam the same error
+          // on every page view; an admin must call retryFailedGraduation.
           if (
             rawCurveData.isGraduated &&
-            token.graduationStatus !== "completed" &&
-            token.graduationStatus !== "migrating"
+            (token.graduationStatus === "pending" || token.graduationStatus == null)
           ) {
             import("./services/graduation")
               .then(({ checkAndGraduateToken }) => checkAndGraduateToken(mint))
@@ -720,6 +721,33 @@ export async function registerRoutes(
       }
       
       if (!result.success) {
+        // If the bonding curve is locked because the token graduated on-chain,
+        // surface the real DB migration status (and Raydium pool link if it
+        // actually completed) so the UI can tell the user the truth.
+        const graduatedMsg = (result.error || "").toLowerCase().includes("graduated");
+        if (graduatedMsg) {
+          const [tokenRow] = await db.select().from(tokensTable).where(eq(tokensTable.mint, tokenMint)).limit(1);
+          if (tokenRow?.graduationStatus === "completed" && tokenRow.raydiumPoolId) {
+            return res.status(400).json({
+              error: "This token has graduated. Trading on the bonding curve is closed - swap on Raydium instead.",
+              graduated: true,
+              raydiumPoolId: tokenRow.raydiumPoolId,
+              graduationStatus: "completed",
+            });
+          }
+          if (tokenRow?.graduationStatus === "migrating") {
+            return res.status(400).json({
+              error: "This token is migrating to Raydium. Trading is paused until migration completes.",
+              graduated: true,
+              graduationStatus: "migrating",
+            });
+          }
+          return res.status(400).json({
+            error: "Bonding curve is closed but Raydium migration is still pending. The team has been notified.",
+            graduated: true,
+            graduationStatus: tokenRow?.graduationStatus || "pending",
+          });
+        }
         return res.status(400).json({ error: result.error || "Failed to build transaction" });
       }
       

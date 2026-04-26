@@ -549,7 +549,25 @@ export default function TokenPage() {
       }
 
       if (!buildResult?.success || !buildResult?.transaction) {
-        tx.error(buildResult?.error || "Failed to build transaction");
+        // If the bonding curve is closed because the token graduated and we
+        // have a Raydium pool, give the user a one-click escape hatch.
+        if (buildResult?.graduated && buildResult?.raydiumPoolId) {
+          tx.error(buildResult.error || "Trade on Raydium instead");
+          toast(
+            "This token migrated to Raydium. Open the pool to keep trading.",
+            {
+              action: {
+                label: "Open Raydium",
+                onClick: () => window.open(
+                  `https://explorer.solana.com/address/${buildResult.raydiumPoolId}?cluster=devnet`,
+                  "_blank",
+                ),
+              },
+            },
+          );
+        } else {
+          tx.error(buildResult?.error || "Failed to build transaction");
+        }
         return;
       }
 
