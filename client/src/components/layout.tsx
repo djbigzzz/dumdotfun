@@ -248,8 +248,8 @@ const DevnetBanner = () => {
           </span>
           <span className={`text-xs hidden sm:inline ${noteColor}`}>
             {status === "ready"
-              ? "— Your wallet has Devnet SOL. You're good to trade."
-              : "— Make sure your wallet is set to Devnet to trade."}
+              ? "- Your wallet has Devnet SOL. You're good to trade."
+              : "- Make sure your wallet is set to Devnet to trade."}
           </span>
         </div>
         <button
@@ -336,7 +336,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       <div className="hidden md:block">
         <Marquee />
       </div>
-      <header className="p-3 md:p-4 border-b-2 flex justify-between items-center bg-white border-black relative z-20">
+      <header className="p-3 md:p-4 border-b-2 flex justify-between items-center bg-white border-black relative z-30">
         <div className="flex items-center gap-4 lg:gap-6">
           <Link href="/">
             <div className="flex items-center gap-2 cursor-pointer hover:scale-105 transition-transform flex-shrink-0">
