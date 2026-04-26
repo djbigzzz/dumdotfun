@@ -67,7 +67,7 @@ export function NotificationBell() {
               initial={{ opacity: 0, y: -10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -10, scale: 0.95 }}
-              className="absolute right-0 top-full mt-2 w-80 max-h-96 overflow-y-auto rounded-xl border-2 shadow-xl z-50 bg-white border-black"
+              className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] max-h-96 overflow-y-auto rounded-xl border-2 shadow-xl z-50 bg-white border-black"
               data-testid="dropdown-notifications"
             >
               <div className="p-3 border-b border-gray-200">
@@ -113,7 +113,7 @@ export function NotificationBell() {
                               <p className={`text-xs font-bold ${notif.won ? "text-green-400" : "text-red-400"}`}>
                                 {notif.won ? "You won!" : "Market resolved"}
                               </p>
-                              <p className="text-xs truncate mt-0.5 text-gray-700">
+                              <p className="text-xs mt-0.5 text-gray-700 line-clamp-2 break-words">
                                 {notif.question}
                               </p>
                               <div className="flex items-center gap-2 mt-1">
@@ -147,7 +147,7 @@ export function NotificationBell() {
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-bold text-yellow-400">Expiring soon</p>
-                              <p className="text-xs truncate mt-0.5 text-gray-700">
+                              <p className="text-xs mt-0.5 text-gray-700 line-clamp-2 break-words">
                                 {notif.question}
                               </p>
                               <p className="text-[10px] text-yellow-400/70 mt-1">
