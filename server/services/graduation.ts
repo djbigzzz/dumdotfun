@@ -6,7 +6,7 @@ import { getConnection } from "../helius-rpc";
 import { fetchBondingCurveData, sendWithdrawLiquidity } from "../bonding-curve-client";
 import { db } from "../db";
 import { tokens } from "@shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, and, notInArray } from "drizzle-orm";
 
 const WRAPPED_SOL_MINT = new PublicKey("So11111111111111111111111111111111111111112");
 
@@ -139,9 +139,25 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
 
   const poolAuthority = getPoolAuthorityKeypair();
 
-  await db.update(tokens)
+  // Atomic claim: only the caller that flips status from a non-terminal state
+  // to "migrating" proceeds. This prevents two concurrent triggers (background
+  // scan + opportunistic GET + post-trade hook) from running migration twice.
+  const claimed = await db.update(tokens)
     .set({ graduationStatus: "migrating", updatedAt: new Date() })
-    .where(eq(tokens.mint, mintAddress));
+    .where(and(
+      eq(tokens.mint, mintAddress),
+      notInArray(tokens.graduationStatus, ["migrating", "completed"]),
+    ))
+    .returning({ mint: tokens.mint });
+
+  if (claimed.length === 0) {
+    console.log(`[Graduation] Skipping ${mintAddress}: another worker is migrating or it is already completed`);
+    return {
+      success: false,
+      error: "Token migration already in progress or completed",
+      tokenMint: mintAddress,
+    };
+  }
 
   try {
     const connection = getConnection();
@@ -396,4 +412,37 @@ export async function checkAndGraduateToken(mintAddress: string): Promise<Gradua
 
 export function getDevnetRaydiumUrl(poolId: string): string {
   return `https://explorer.solana.com/address/${poolId}?cluster=devnet`;
+}
+
+export async function scanAndGraduatePendingTokens(): Promise<{
+  scanned: number;
+  graduated: string[];
+  failed: { mint: string; error: string }[];
+}> {
+  const graduated: string[] = [];
+  const failed: { mint: string; error: string }[] = [];
+
+  const candidates = await db
+    .select()
+    .from(tokens)
+    .where(eq(tokens.graduationStatus, "pending"));
+
+  let scanned = 0;
+  for (const token of candidates) {
+    if (token.graduationStatus === "completed" || token.graduationStatus === "migrating") continue;
+    scanned++;
+    try {
+      const result = await checkAndGraduateToken(token.mint);
+      if (result?.success) {
+        graduated.push(token.mint);
+        console.log(`[GraduationScan] Migrated ${token.mint} -> pool ${result.poolId}`);
+      } else if (result && !result.success) {
+        failed.push({ mint: token.mint, error: result.error || "unknown" });
+      }
+    } catch (err: any) {
+      failed.push({ mint: token.mint, error: err?.message || "scan error" });
+    }
+  }
+
+  return { scanned, graduated, failed };
 }

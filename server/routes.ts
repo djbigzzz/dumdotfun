@@ -372,6 +372,20 @@ export async function registerRoutes(
           const graduationThreshold = 85 * LAMPORTS_PER_SOL;
           bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThreshold) * 100);
           isGraduated = rawCurveData.isGraduated;
+
+          // Opportunistic auto-graduation: if the on-chain curve flipped to
+          // graduated but our DB row hasn't been migrated, kick off the
+          // Raydium migration in the background (non-blocking).
+          if (
+            rawCurveData.isGraduated &&
+            token.graduationStatus !== "completed" &&
+            token.graduationStatus !== "migrating"
+          ) {
+            import("./services/graduation")
+              .then(({ checkAndGraduateToken }) => checkAndGraduateToken(mint))
+              .catch((err) => console.error("[Graduation] Opportunistic check failed:", err));
+          }
+
           serializedCurveData = {
             virtualTokenReserves: virtualTokenReservesNum,
             virtualSolReserves: virtualSolReservesNum,

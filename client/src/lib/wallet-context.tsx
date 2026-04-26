@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useMemo, ReactNode, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Connection, clusterApiUrl, Transaction } from "@solana/web3.js";
+import bs58 from "bs58";
 import { setSessionToken, getSessionToken } from "./queryClient";
 import { WalletAdapterNetwork } from "@solana/wallet-adapter-base";
 
@@ -310,6 +311,19 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     // devnet programs. Sign locally, then broadcast to devnet ourselves.
     const connection = new Connection(clusterApiUrl(SOLANA_NETWORK), "confirmed");
     const signedTx = await signTransaction(transaction);
+
+    // Derive the expected signature from the signed tx so we can recover if
+    // the RPC call throws but the transaction actually lands on-chain.
+    let expectedSignature: string | null = null;
+    try {
+      const sigBytes = signedTx?.signatures?.[0]?.signature;
+      if (sigBytes) {
+        expectedSignature = bs58.encode(sigBytes);
+      }
+    } catch {
+      expectedSignature = null;
+    }
+
     try {
       const raw = signedTx.serialize();
       const signature = await connection.sendRawTransaction(raw, {
@@ -317,7 +331,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         preflightCommitment: "confirmed",
       });
       return signature;
-    } catch (err) {
+    } catch (err: any) {
+      // The RPC may reject with "already processed", "blockhash expired", or
+      // a network blip even though the transaction was successfully accepted
+      // by the cluster. If we know the expected signature, give the chain a
+      // few seconds to confirm before declaring failure.
+      if (expectedSignature) {
+        try {
+          for (let attempt = 0; attempt < 6; attempt++) {
+            await new Promise((r) => setTimeout(r, 1500));
+            const status = await connection.getSignatureStatus(expectedSignature, {
+              searchTransactionHistory: true,
+            });
+            const value = status?.value;
+            if (value && value.err == null) {
+              const conf = value.confirmationStatus;
+              if (conf === "confirmed" || conf === "finalized" || (value.confirmations ?? 0) > 0) {
+                console.warn("[wallet] sendRawTransaction errored but tx landed on-chain:", expectedSignature);
+                return expectedSignature;
+              }
+            }
+            if (value?.err) break;
+          }
+        } catch (pollErr) {
+          console.error("[wallet] Signature poll failed after RPC error:", pollErr);
+        }
+      }
       console.error("Failed to broadcast signed transaction:", err);
       throw err;
     }

@@ -148,6 +148,28 @@ app.use((req, res, next) => {
   }, AUTO_RESOLVE_INTERVAL);
   log(`[AutoResolver] Scheduled every ${AUTO_RESOLVE_INTERVAL / 1000}s`, "startup");
 
+  // Scheduled graduation reconciliation: catch tokens that crossed 85 SOL
+  // but never had `/api/trade/record` called (e.g. trade tx landed on-chain
+  // but the client UI errored before recording). Runs every 2 minutes.
+  const GRADUATION_SCAN_INTERVAL = 2 * 60 * 1000;
+  const runGraduationScan = async () => {
+    try {
+      const { scanAndGraduatePendingTokens } = await import("./services/graduation");
+      const result = await scanAndGraduatePendingTokens();
+      if (result.graduated.length > 0 || result.failed.length > 0) {
+        log(
+          `[GraduationScan] scanned=${result.scanned} graduated=${result.graduated.length} failed=${result.failed.length}`,
+          "graduation",
+        );
+      }
+    } catch (error) {
+      console.error("[GraduationScan] Scheduled scan error:", error);
+    }
+  };
+  setTimeout(runGraduationScan, 5000);
+  setInterval(runGraduationScan, GRADUATION_SCAN_INTERVAL);
+  log(`[GraduationScan] Scheduled every ${GRADUATION_SCAN_INTERVAL / 1000}s`, "startup");
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
