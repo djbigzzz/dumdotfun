@@ -62,6 +62,18 @@ interface TokenDetail {
   virtualSolReserves: number;
   virtualTokenReserves: number;
   totalSupply: number;
+  // Live on-chain curve data (lamports / token base units). Optional in case
+  // the token row exists in the DB but the on-chain account hasn't been
+  // hydrated yet for some reason.
+  curveData?: {
+    virtualSolReserves: number;
+    virtualTokenReserves: number;
+    realSolReserves: number;
+    realTokenReserves: number;
+    tokenTotalSupply: number;
+    isGraduated: boolean;
+    creator?: string;
+  } | null;
   predictions?: TokenPrediction[];
 }
 
@@ -1474,7 +1486,7 @@ export default function TokenPage() {
                 <div className={`h-full transition-all ${privateMode ? "bg-[#4ADE80]" : (token?.bondingCurveProgress || 0) > 80 ? "bg-green-500" : (token?.bondingCurveProgress || 0) > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token?.bondingCurveProgress || 0, 100)}%` }} />
               </div>
               <div className={`flex justify-between text-xs mt-2 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                <span>{token?.virtualSolReserves ? (token.virtualSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
+                <span>{token?.curveData?.realSolReserves ? (token.curveData.realSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
                 <span>85 SOL to graduate</span>
               </div>
             </div>
