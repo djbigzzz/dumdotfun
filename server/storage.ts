@@ -102,14 +102,16 @@ export class DatabaseStorage implements IStorage {
   async createUserWithReferral(walletAddress: string, referredByCode?: string): Promise<User> {
     const referralCode = this.generateReferralCode(walletAddress);
     let referredBy: string | null = null;
-    
+
     if (referredByCode) {
       const referrer = await this.getUserByReferralCode(referredByCode);
-      if (referrer) {
+      // Self-referral guard: a user must not be able to paste their own ref
+      // link into the same browser and farm bonuses against themselves.
+      if (referrer && referrer.walletAddress !== walletAddress) {
         referredBy = referrer.walletAddress;
       }
     }
-    
+
     const [user] = await db.insert(users).values({
       walletAddress,
       referralCode,

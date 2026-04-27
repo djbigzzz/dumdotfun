@@ -92,6 +92,19 @@ async function awardPointsInternal(walletAddress: string, action: string, basePo
     }
   }
 
+  // Cascade a 10% bonus to the referrer for *every* points-earning action,
+  // not just daily logins. This covers trades, bets, token/market creation,
+  // streak bonuses, the connect-wallet quest, OG card, and any future quest.
+  // We skip the "referral_bonus" action itself to prevent infinite chains
+  // (referrer A → referrer B → referrer C ...).
+  if (action !== "referral_bonus") {
+    try {
+      await awardReferralBonus(walletAddress, finalPoints);
+    } catch (err) {
+      console.error("[points] referral bonus cascade failed for", walletAddress, err);
+    }
+  }
+
   return { basePoints, bonusPoints, finalPoints };
 }
 
@@ -121,6 +134,11 @@ async function awardReferralBonus(walletAddress: string, pointsEarned: number) {
   if (!user?.referredBy) return;
 
   const referrerWallet = user.referredBy;
+  // Defense-in-depth self-referral guard. The signup path already blocks this,
+  // but any legacy row where referredBy === walletAddress (e.g. seeded data)
+  // would otherwise let a user farm bonuses against themselves on every action.
+  if (referrerWallet === walletAddress) return;
+
   await getOrCreateUserPoints(referrerWallet);
   const bonusPoints = Math.floor(pointsEarned * 0.1);
   if (bonusPoints <= 0) return;
@@ -204,9 +222,53 @@ export async function awardDailyLogin(walletAddress: string): Promise<{ awarded:
     }
   }
 
-  await awardReferralBonus(walletAddress, dailyResult.finalPoints + streakBonus);
+  // Referral bonus is now cascaded automatically inside awardPointsInternal,
+  // so no manual call is needed here.
 
   return { awarded: true, points: dailyResult.finalPoints, streak: newStreak, streakBonus: streakBonus || undefined };
+}
+
+// One-time bonus paid to the referrer the moment a friend signs up via their
+// link. Without this the referrer sees nothing for hours/days until the friend
+// starts logging in daily, which is bad UX and was the original complaint.
+const SIGNUP_REFERRAL_BONUS = 100;
+
+export async function awardSignupReferralBonus(newUserWallet: string, referrerWallet: string): Promise<void> {
+  if (referrerWallet === newUserWallet) return; // self-referral guard
+  await getOrCreateUserPoints(referrerWallet);
+
+  // Idempotent: only ever pay once per (referrer, new user) pair.
+  const [existing] = await db.select().from(pointsHistory)
+    .where(and(
+      eq(pointsHistory.walletAddress, referrerWallet),
+      eq(pointsHistory.action, "referral_signup"),
+      eq(pointsHistory.referralSource, newUserWallet),
+    ))
+    .limit(1);
+  if (existing) return;
+
+  await db.insert(pointsHistory).values({
+    walletAddress: referrerWallet,
+    action: "referral_signup",
+    points: SIGNUP_REFERRAL_BONUS,
+    basePoints: SIGNUP_REFERRAL_BONUS,
+    referralSource: newUserWallet,
+  });
+
+  const updated = await db.update(userPoints)
+    .set({
+      totalPoints: sql`${userPoints.totalPoints} + ${SIGNUP_REFERRAL_BONUS}`,
+      updatedAt: new Date(),
+    })
+    .where(eq(userPoints.walletAddress, referrerWallet))
+    .returning();
+
+  if (updated.length > 0) {
+    const newTier = calculateTier(updated[0].totalPoints);
+    if (newTier !== updated[0].tier) {
+      await db.update(userPoints).set({ tier: newTier }).where(eq(userPoints.walletAddress, referrerWallet));
+    }
+  }
 }
 
 function canAutoComplete(action: string, _walletAddress: string, up: any): boolean {

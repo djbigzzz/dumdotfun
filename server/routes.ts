@@ -471,10 +471,17 @@ export async function registerRoutes(
       const newUser = await storage.createUserWithReferral(walletAddress, sanitizedReferral);
       let pointsAwarded: { action: string; points: number }[] = [];
       try {
-        const { awardQuest } = await import("./services/points");
+        const { awardQuest, awardSignupReferralBonus } = await import("./services/points");
         const r = await awardQuest(walletAddress, "connect_wallet");
         if (r.awarded) pointsAwarded.push({ action: "connect_wallet", points: r.points });
-      } catch (e) { console.error("[points] connect_wallet award failed:", e); }
+
+        // Pay the referrer a one-time signup bonus the moment a friend joins
+        // via their link. This gives immediate feedback instead of making the
+        // referrer wait for the friend's first daily check-in.
+        if (newUser.referredBy) {
+          await awardSignupReferralBonus(walletAddress, newUser.referredBy);
+        }
+      } catch (e) { console.error("[points] connect_wallet/referral signup award failed:", e); }
       return res.json({ ...newUser, referralCount: 0, pointsAwarded });
     } catch (error: any) {
       console.error("Error connecting wallet:", error);
