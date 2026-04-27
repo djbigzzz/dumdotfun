@@ -49,6 +49,9 @@ export interface IStorage {
   // Signature replay protection
   hasSignatureBeenUsed(signature: string): Promise<boolean>;
   markSignatureAsUsed(signature: string): Promise<void>;
+  // Atomic claim - returns true on first claim, false if already used.
+  // Use this instead of check-then-mark to avoid races between concurrent retries.
+  claimSignature(signature: string): Promise<boolean>;
 
   // Transactional operations
   placeBetTransaction(
@@ -414,6 +417,17 @@ export class DatabaseStorage implements IStorage {
       .insert(usedSignatures)
       .values({ signature })
       .onConflictDoNothing();
+  }
+
+  async claimSignature(signature: string): Promise<boolean> {
+    // Atomic insert; if the signature was already claimed (unique constraint
+    // collides), `returning()` yields an empty array and we report false.
+    const rows = await db
+      .insert(usedSignatures)
+      .values({ signature })
+      .onConflictDoNothing()
+      .returning({ signature: usedSignatures.signature });
+    return rows.length > 0;
   }
 }
 

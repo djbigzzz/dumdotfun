@@ -592,22 +592,52 @@ export default function TokenPage() {
           : `Sold ${tradeAmount} ${token.symbol}`,
       });
 
+      // The on-chain trade already succeeded above (SOL has left the wallet).
+      // Recording is idempotent server-side (deduped on signature), so we retry
+      // with exponential backoff to make sure the trade shows up in the feed.
+      const recordWithRetry = async (): Promise<any> => {
+        const delays = [0, 800, 2000, 4500];
+        let lastErr: any;
+        for (let i = 0; i < delays.length; i++) {
+          if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+          try {
+            const r = await apiRequest("POST", "/api/trade/record", {
+              walletAddress: connectedWallet,
+              tokenMint: token.mint,
+              amount: tradeAmount,
+              side: isBuy ? "buy" : "sell",
+              signature,
+            });
+            return await r.json();
+          } catch (err) {
+            lastErr = err;
+            console.warn(`[Token] trade/record attempt ${i + 1} failed:`, err);
+          }
+        }
+        throw lastErr;
+      };
+
       try {
-        const recordRes = await apiRequest("POST", "/api/trade/record", {
-          walletAddress: connectedWallet,
-          tokenMint: token.mint,
-          amount: tradeAmount,
-          side: isBuy ? "buy" : "sell",
-          signature,
-        });
-        const recordData = await recordRes.json();
+        const recordData = await recordWithRetry();
         if (recordData.pointsAwarded && Array.isArray(recordData.pointsAwarded)) {
           for (const p of recordData.pointsAwarded) {
             pointsAwarded(p.points, p.reason || "First trade");
           }
         }
       } catch (err) {
-        console.warn("[Token] Failed to record trade points:", err);
+        console.error("[Token] Failed to record trade after retries:", err);
+        // The on-chain trade succeeded but our server failed to log it.
+        // Tell the user explicitly so they know the SOL movement is real.
+        toast.warning("Trade landed on chain but feed update failed", {
+          description: "Refresh the page in a moment - your balance is correct.",
+          action: signature
+            ? {
+                label: "View tx",
+                onClick: () =>
+                  window.open(`https://explorer.solana.com/tx/${signature}?cluster=devnet`, "_blank"),
+              }
+            : undefined,
+        });
       }
 
       queryClient.invalidateQueries({ queryKey: ["token", mint] });

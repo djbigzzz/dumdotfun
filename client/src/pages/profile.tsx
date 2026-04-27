@@ -226,8 +226,41 @@ export default function Profile() {
         signature: sig,
         description: `Sold ${sellPct}% of ${sellToken.symbol || sellToken.name} - SOL returned to wallet`,
       });
+
+      // Record the sell so it appears in the token's Recent Trades feed.
+      // Server is idempotent on signature, so retry on transient failure.
+      const tokenAmountStr = ((sellToken.balance * sellPct) / 100).toString();
+      const recordSell = async () => {
+        const delays = [0, 800, 2000, 4500];
+        let lastErr: any;
+        for (let i = 0; i < delays.length; i++) {
+          if (delays[i] > 0) await new Promise((r) => setTimeout(r, delays[i]));
+          try {
+            await apiRequest("POST", "/api/trade/record", {
+              walletAddress: connectedWallet,
+              tokenMint: sellToken.mint,
+              amount: tokenAmountStr,
+              side: "sell",
+              signature: sig,
+            });
+            return;
+          } catch (e) {
+            lastErr = e;
+            console.warn(`[Profile] sell record attempt ${i + 1} failed:`, e);
+          }
+        }
+        throw lastErr;
+      };
+      recordSell().catch((err) => {
+        console.error("[Profile] Failed to record sell after retries:", err);
+        toast.warning("Sell landed on chain but feed update failed", {
+          description: "Refresh in a moment - your balance is correct.",
+        });
+      });
+
       setSellToken(null);
       queryClient.invalidateQueries({ queryKey: ["my-holdings", connectedWallet] });
+      queryClient.invalidateQueries({ queryKey: ["tokenActivity", sellToken.mint] });
     } catch (err: any) {
       tx.error(friendlyError(err));
     } finally {

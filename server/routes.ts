@@ -800,7 +800,25 @@ export async function registerRoutes(
       if (!walletAddress || !tokenMint || !amount || !side) {
         return res.status(400).json({ error: "Missing required fields" });
       }
-      
+
+      // Atomic idempotency: try to claim the signature. If the claim fails
+      // (someone else already recorded this trade), short-circuit with success
+      // so concurrent client retries are safe no-ops. If the claim itself
+      // errors out (DB blip etc.), fail closed so the client can retry rather
+      // than risk a duplicate activity row on the next attempt.
+      if (signature && typeof signature === "string") {
+        let claimed = false;
+        try {
+          claimed = await storage.claimSignature(signature);
+        } catch (claimErr) {
+          console.error("[trade/record] signature claim threw - failing closed:", claimErr);
+          return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+        }
+        if (!claimed) {
+          return res.json({ success: true, alreadyRecorded: true, pointsAwarded: [] });
+        }
+      }
+
       await storage.addActivity({
         activityType: side,
         walletAddress,
@@ -1401,6 +1419,23 @@ export async function registerRoutes(
       
       if (!walletAddress || !tokenMint || !side || !amount) {
         return res.status(400).json({ error: "Missing required fields" });
+      }
+
+      // Atomic idempotency: claim the signature first; if claim fails the
+      // trade was already recorded by an earlier (possibly retried) request.
+      // Fail closed if the claim itself errors so a retry can do the right
+      // thing rather than producing a duplicate activity row.
+      if (signature && typeof signature === "string") {
+        let claimed = false;
+        try {
+          claimed = await storage.claimSignature(signature);
+        } catch (claimErr) {
+          console.error("[bonding-curve/confirm-trade] signature claim threw - failing closed:", claimErr);
+          return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+        }
+        if (!claimed) {
+          return res.json({ success: true, alreadyRecorded: true });
+        }
       }
 
       await storage.addActivity({
