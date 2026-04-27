@@ -209,7 +209,10 @@ export default function Profile() {
       let sig: string;
       try {
         sig = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
-        await connection.confirmTransaction(sig, "confirmed");
+        const conf = await connection.confirmTransaction(sig, "confirmed");
+        if (conf.value?.err) {
+          throw new Error(`Sell failed on chain: ${JSON.stringify(conf.value.err)}`);
+        }
       } catch (err: any) {
         if (err.message?.includes("already been processed")) {
           const sigBytes = signedTx.signatures[0]?.signature;

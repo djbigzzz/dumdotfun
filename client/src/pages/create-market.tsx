@@ -169,7 +169,10 @@ export default function CreateMarket() {
       let signature: string;
       try {
         signature = await connection.sendRawTransaction(signedTx.serialize(), { skipPreflight: true });
-        await connection.confirmTransaction(signature, "confirmed");
+        const conf = await connection.confirmTransaction(signature, "confirmed");
+        if (conf.value?.err) {
+          throw new Error(`Market creation failed on chain: ${JSON.stringify(conf.value.err)}`);
+        }
       } catch (sendErr: any) {
         const msg = sendErr?.message || "";
         if ((msg.includes("already been processed") || msg.includes("already processed")) && precomputedSig) {

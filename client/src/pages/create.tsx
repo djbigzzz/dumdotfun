@@ -169,7 +169,10 @@ export default function CreateToken() {
           const sig = await connection.sendRawTransaction(tx.serialize(), {
             skipPreflight: true,
           });
-          await connection.confirmTransaction(sig, "confirmed");
+          const conf = await connection.confirmTransaction(sig, "confirmed");
+          if (conf.value?.err) {
+            throw new Error(`Transaction failed on chain: ${JSON.stringify(conf.value.err)}`);
+          }
           return sig;
         } catch (err: any) {
           if (err.message?.includes("already been processed")) {

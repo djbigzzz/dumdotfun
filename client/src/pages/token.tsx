@@ -391,7 +391,10 @@ export default function TokenPage() {
           skipPreflight: true,
           preflightCommitment: "confirmed",
         });
-        await connection.confirmTransaction(signature, "confirmed");
+        const conf = await connection.confirmTransaction(signature, "confirmed");
+        if (conf.value?.err) {
+          throw new Error(`Bet failed on chain: ${JSON.stringify(conf.value.err)}`);
+        }
       } catch (sendErr: any) {
         const msg = sendErr?.message || "";
         if ((msg.includes("already been processed") || msg.includes("already processed")) && precomputedSig) {

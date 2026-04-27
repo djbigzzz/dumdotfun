@@ -180,9 +180,12 @@ export async function signAndSendTransaction(
   const signedTransaction = await phantom.signTransaction(transaction);
   
   const signature = await connection.sendRawTransaction(signedTransaction.serialize());
-  
-  await connection.confirmTransaction(signature, "confirmed");
-  
+
+  const conf = await connection.confirmTransaction(signature, "confirmed");
+  if (conf.value?.err) {
+    throw new Error(`Transaction failed on chain: ${JSON.stringify(conf.value.err)}`);
+  }
+
   return signature;
 }
 

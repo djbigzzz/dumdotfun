@@ -120,7 +120,10 @@ export default function AdminPage() {
         preflightCommitment: "confirmed",
       });
 
-      await connection.confirmTransaction(signature, "confirmed");
+      const conf = await connection.confirmTransaction(signature, "confirmed");
+      if (conf.value?.err) {
+        throw new Error(`Transaction failed on chain: ${JSON.stringify(conf.value.err)}`);
+      }
 
       return { signature };
     },
