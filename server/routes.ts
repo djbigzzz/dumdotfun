@@ -659,23 +659,39 @@ export async function registerRoutes(
       const tokensWithMarketCap = await Promise.all(
         tokensCreated.map(async (t) => {
           let marketCapSol: number = Number(t.marketCapSol) || 0;
-          let virtualSolReserves: number = Number(t.virtualSolReserves) || 30;
-          
+          let priceInSol: number = Number(t.priceInSol) || 0.000001;
+
           try {
             const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(t.mint));
-            if (curveData && curveData.virtualSolReserves) {
-              virtualSolReserves = Number(curveData.virtualSolReserves) / 1e9;
-              marketCapSol = virtualSolReserves;
+            if (curveData) {
+              const bnToNum = (val: any) => {
+                if (val == null) return 0;
+                return typeof val === "object" && val.toNumber ? val.toNumber() : Number(val);
+              };
+              priceInSol = bondingCurve.calculatePrice(
+                curveData.virtualSolReserves,
+                curveData.virtualTokenReserves,
+              );
+              // Fully-diluted market cap (price × total supply) to match the
+              // pump.fun / Raydium / DEX Screener convention used everywhere
+              // else in the app.
+              const totalSupplyRaw = curveData.tokenTotalSupply != null
+                ? bnToNum(curveData.tokenTotalSupply)
+                : 1_000_000_000_000_000;
+              const totalSupply = totalSupplyRaw / 1_000_000;
+              marketCapSol = isNaN(totalSupply) ? marketCapSol : priceInSol * totalSupply;
             }
-          } catch (e) { console.warn(`[curve] failed to fetch curve data for ${t.mint}:`, (e as Error).message); }
-          
+          } catch (e) {
+            console.warn(`[curve] failed to fetch curve data for ${t.mint}:`, (e as Error).message);
+          }
+
           return {
             mint: t.mint,
             name: t.name,
             symbol: t.symbol,
             imageUri: t.imageUri,
-            marketCapSol: marketCapSol > 0 ? marketCapSol : virtualSolReserves,
-            priceInSol: Number(t.priceInSol) || 0.000001,
+            marketCapSol,
+            priceInSol,
           };
         })
       );
