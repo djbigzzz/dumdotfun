@@ -110,6 +110,13 @@ export async function checkGraduationEligibility(mintAddress: string): Promise<{
     if (token?.graduationStatus === "migrating") {
       return { eligible: false, reason: "Token migration is already in progress", curveData };
     }
+    if (token?.graduationStatus === "broken") {
+      return {
+        eligible: false,
+        reason: "Token is marked broken (manual investigation required) and cannot be auto-graduated",
+        curveData,
+      };
+    }
 
     return { eligible: true, reason: "Token is eligible for graduation", curveData };
   } catch (error: any) {
@@ -132,19 +139,23 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
   // We claim BEFORE checking auth so that state transitions only happen for
   // the worker that owns this attempt - no other caller can mutate it to
   // "failed" without first holding the claim.
+  // "broken" is a terminal state set manually after fund-loss or unrecoverable
+  // on-chain state. It must never be auto-claimed. "failed" is also excluded
+  // here so that recovery only happens through the explicit retryFailedGraduation
+  // path which flips status back to "pending" first under operator control.
   const claimed = await db.update(tokens)
     .set({ graduationStatus: "migrating", updatedAt: new Date() })
     .where(and(
       eq(tokens.mint, mintAddress),
-      notInArray(tokens.graduationStatus, ["migrating", "completed"]),
+      notInArray(tokens.graduationStatus, ["migrating", "completed", "broken", "failed"]),
     ))
     .returning({ mint: tokens.mint });
 
   if (claimed.length === 0) {
-    console.log(`[Graduation] Skipping ${mintAddress}: another worker is migrating or it is already completed`);
+    console.log(`[Graduation] Skipping ${mintAddress}: another worker is migrating, already completed, broken, or failed`);
     return {
       success: false,
-      error: "Token migration already in progress or completed",
+      error: "Token graduation already in progress, completed, or in a terminal failed/broken state",
       tokenMint: mintAddress,
     };
   }
@@ -352,16 +363,40 @@ async function createRaydiumPool(
     // We must verify the tx actually landed AND succeeded, otherwise we will
     // mark a token as "graduated" while the funds are stranded in the owner
     // wallet and no pool exists. This was the PING ME bug.
+    //
+    // We do NOT use connection.confirmTransaction with a freshly fetched
+    // blockhash, because that ties the timeout to a window that has nothing
+    // to do with the tx itself. Instead we poll getSignatureStatuses bound to
+    // the actual signature for up to ~90 seconds, which is the correct way to
+    // wait on a tx whose blockhash we did not control.
     if (txSignature && txSignature !== "pending") {
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
-      const confirmation = await connection.confirmTransaction(
-        { signature: txSignature, blockhash, lastValidBlockHeight },
-        "confirmed",
-      );
-      if (confirmation.value.err) {
-        const errStr = JSON.stringify(confirmation.value.err);
-        console.error(`[Graduation] Pool creation tx failed on-chain: ${errStr}`);
-        throw new Error(`Pool creation transaction failed on-chain: ${errStr}. Funds remain in owner wallet ${owner.publicKey.toBase58()} and can be retried.`);
+      const POLL_TIMEOUT_MS = 90_000;
+      const POLL_INTERVAL_MS = 2_000;
+      const start = Date.now();
+      let landedStatus: any = null;
+      while (Date.now() - start < POLL_TIMEOUT_MS) {
+        const { value } = await connection.getSignatureStatuses([txSignature], {
+          searchTransactionHistory: true,
+        });
+        const s = value[0];
+        if (s) {
+          if (s.err) {
+            const errStr = JSON.stringify(s.err);
+            console.error(`[Graduation] Pool creation tx failed on-chain: ${errStr}`);
+            throw new Error(`Pool creation transaction ${txSignature} failed on-chain: ${errStr}. Funds remain in owner wallet ${owner.publicKey.toBase58()} and can be retried.`);
+          }
+          if (
+            s.confirmationStatus === "confirmed" ||
+            s.confirmationStatus === "finalized"
+          ) {
+            landedStatus = s;
+            break;
+          }
+        }
+        await new Promise((r) => setTimeout(r, POLL_INTERVAL_MS));
+      }
+      if (!landedStatus) {
+        throw new Error(`Pool creation tx ${txSignature} did not confirm within ${POLL_TIMEOUT_MS}ms. Refusing to mark token completed. Verify pool ${poolId} on-chain before retrying.`);
       }
     }
 
@@ -438,7 +473,12 @@ export async function checkAndGraduateToken(mintAddress: string): Promise<Gradua
     }
 
     const [token] = await db.select().from(tokens).where(eq(tokens.mint, mintAddress)).limit(1);
-    if (token?.graduationStatus === "completed" || token?.graduationStatus === "migrating") {
+    if (
+      token?.graduationStatus === "completed" ||
+      token?.graduationStatus === "migrating" ||
+      token?.graduationStatus === "broken" ||
+      token?.graduationStatus === "failed"
+    ) {
       return null;
     }
 

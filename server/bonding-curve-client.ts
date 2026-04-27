@@ -426,6 +426,10 @@ export async function sendWithdrawLiquidity(
     destinationKeypair.publicKey,
   );
 
+  // Refresh blockhash right before signing to maximize valid window.
+  const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+  transaction.recentBlockhash = blockhash;
+  transaction.lastValidBlockHeight = lastValidBlockHeight;
   transaction.sign(authorityKeypair);
 
   const txSignature = await connection.sendRawTransaction(transaction.serialize(), {
@@ -433,7 +437,32 @@ export async function sendWithdrawLiquidity(
     preflightCommitment: "confirmed",
   });
 
-  await connection.confirmTransaction(txSignature, "confirmed");
+  // CRITICAL: must verify the tx actually succeeded on-chain.
+  // confirmTransaction returns even when the tx landed but reverted, so we
+  // must inspect value.err. Fund-loss bug class: if we treat a reverted
+  // withdraw as success, downstream pool creation will use stale snapshot
+  // amounts and may misreport state.
+  const confirmation = await connection.confirmTransaction(
+    { signature: txSignature, blockhash, lastValidBlockHeight },
+    "confirmed",
+  );
+  if (confirmation.value.err) {
+    const errStr = JSON.stringify(confirmation.value.err);
+    throw new Error(`withdraw_liquidity tx ${txSignature} reverted on-chain: ${errStr}`);
+  }
+
+  // Verify post-state: bonding curve real reserves should now be zero.
+  const postCurve = await fetchBondingCurveData(mint);
+  if (!postCurve) {
+    throw new Error(`Could not re-fetch bonding curve after withdraw tx ${txSignature}`);
+  }
+  if (postCurve.realSolReserves !== 0 || postCurve.realTokenReserves !== 0) {
+    throw new Error(
+      `withdraw_liquidity tx ${txSignature} confirmed but curve reserves are non-zero: ` +
+      `${postCurve.realSolReserves} lamports SOL, ${postCurve.realTokenReserves} token units. ` +
+      `Refusing to proceed with stale state.`,
+    );
+  }
 
   console.log(`[WithdrawLiquidity] Success! TX: ${txSignature}`);
   console.log(`[WithdrawLiquidity] SOL: ${solToWithdraw}, Tokens: ${tokensToWithdraw}`);
