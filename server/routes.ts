@@ -2,7 +2,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { analyzeWallet, isValidSolanaAddress } from "./solana";
-import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, insertMarketSchema, tokens as tokensTable } from "@shared/schema";
+import { insertWaitlistSchema, insertUserSchema, insertTokenSchema, insertMarketSchema, tokens as tokensTable, predictionMarkets } from "@shared/schema";
 import { sendWaitlistConfirmation } from "./email";
 import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction as buildSellTx, buildCreateTokenTransaction as buildCustomCreateTx, TRADING_CONFIG, isTradingEnabled } from "./trading";
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
@@ -1898,16 +1898,27 @@ export async function registerRoutes(
     try {
       const { wallet } = req.params;
       const positions = await storage.getPositionsByWallet(wallet);
-      
+
       if (positions.length === 0) {
         return res.json({ notifications: [] });
       }
 
       const marketIds = Array.from(new Set(positions.map(p => p.marketId)));
-      const notifications = [];
+
+      // Bulk-fetch all markets in one round-trip instead of N queries.
+      // For users with many positions the previous N+1 loop could blow past
+      // the 30s poll budget and make the bell appear "broken".
+      const { inArray } = await import("drizzle-orm");
+      const { db } = await import("./db");
+      const marketRows = marketIds.length > 0
+        ? await db.select().from(predictionMarkets).where(inArray(predictionMarkets.id, marketIds))
+        : [];
+      const marketsById = new Map(marketRows.map(m => [m.id, m]));
+
+      const notifications: any[] = [];
 
       for (const marketId of marketIds) {
-        const market = await storage.getMarket(marketId);
+        const market = marketsById.get(marketId);
         if (!market) continue;
 
         if (market.status === "resolved" && market.outcome) {
@@ -1918,7 +1929,12 @@ export async function registerRoutes(
           const won = winningAmount > 0;
           const totalPool = Number(market.yesPool) + Number(market.noPool);
           const winningPool = market.outcome === "yes" ? Number(market.yesPool) : Number(market.noPool);
-          const payout = won && winningPool > 0 ? (winningAmount / winningPool) * totalPool : 0;
+          const grossPayout = won && winningPool > 0 ? (winningAmount / winningPool) * totalPool : 0;
+          // Net profit = gross payout minus the user's total stake on this
+          // market (across all their positions). The UI shows this as
+          // "+X SOL", so we must report the actual gain - reporting gross
+          // makes a 10-SOL bet that returned 8 SOL look like a "+8 SOL win".
+          const netProfit = grossPayout - totalBet;
 
           notifications.push({
             id: `resolved-${marketId}`,
@@ -1926,9 +1942,10 @@ export async function registerRoutes(
             marketId,
             question: market.question,
             outcome: market.outcome,
-            won,
+            won: netProfit > 0,
             betAmount: totalBet,
-            payout: won ? payout : 0,
+            payout: netProfit > 0 ? netProfit : 0,
+            grossPayout: won ? grossPayout : 0,
             resolvedAt: market.resolvedAt,
             read: false,
           });
@@ -1942,14 +1959,19 @@ export async function registerRoutes(
             marketId,
             question: market.question,
             minutesLeft: Math.ceil(timeToResolution / (1000 * 60)),
+            // Use the resolution date as a stable sort key so expiring-soon
+            // notifications don't shuffle on every poll.
+            resolvedAt: market.resolutionDate,
             read: false,
           });
         }
       }
 
+      // Stable sort: deterministic fallback (epoch 0) when a timestamp is
+      // missing, so the same-position list never re-orders during polling.
       notifications.sort((a: any, b: any) => {
-        const dateA = a.resolvedAt ? new Date(a.resolvedAt).getTime() : Date.now();
-        const dateB = b.resolvedAt ? new Date(b.resolvedAt).getTime() : Date.now();
+        const dateA = a.resolvedAt ? new Date(a.resolvedAt).getTime() : 0;
+        const dateB = b.resolvedAt ? new Date(b.resolvedAt).getTime() : 0;
         return dateB - dateA;
       });
 

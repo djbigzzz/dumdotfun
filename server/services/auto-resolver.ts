@@ -47,7 +47,34 @@ export async function autoResolveExpiredMarkets(): Promise<ResolutionResult[]> {
         const totalPool = Number(market.yesPool) + Number(market.noPool);
         
         await storage.resolveMarket(market.id, outcome);
-        
+
+        // Award the "first_win" quest to every wallet that bet on the
+        // winning side. awardQuest is idempotent (it checks for an existing
+        // first_win row before granting), so re-running on the same wallet
+        // across many markets is safe.
+        try {
+          const { awardQuest } = await import("./points");
+          const winningWallets = Array.from(new Set(
+            winningPositions
+              .map(p => p.walletAddress)
+              .filter((w): w is string => !!w)
+          ));
+          // Sequential, not Promise.all: awardQuest dedups via read-then-insert
+          // and has no DB unique constraint, so concurrent calls for the same
+          // wallet (rare but possible if a user wins multiple markets in the
+          // same resolution cycle) could race past the dedup check and
+          // double-grant points. Sequential awarding closes that window.
+          for (const w of winningWallets) {
+            try {
+              await awardQuest(w, "first_win");
+            } catch (err) {
+              console.error(`[AutoResolver] first_win award failed for ${w}:`, err);
+            }
+          }
+        } catch (err) {
+          console.error("[AutoResolver] Failed to award first_win quests:", err);
+        }
+
         await storage.addActivity({
           activityType: "market_auto_resolved",
           tokenMint: market.tokenMint,

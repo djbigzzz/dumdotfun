@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, CheckCircle, XCircle, Clock, Trophy, X } from "lucide-react";
+import { Bell, XCircle, Clock, Trophy, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 
@@ -18,11 +18,53 @@ interface Notification {
   minutesLeft?: number;
 }
 
+// Persist dismissed notification IDs per wallet so "mark as read" survives a
+// page refresh. Without this, every refresh re-shows the same items and the
+// red dot never goes away - which is exactly the "messed up" symptom users
+// report.
+const dismissedKey = (wallet: string) => `notifications:dismissed:${wallet}`;
+
+function loadDismissed(wallet: string | null): Set<string> {
+  if (!wallet || typeof window === "undefined") return new Set();
+  try {
+    const raw = window.localStorage.getItem(dismissedKey(wallet));
+    if (!raw) return new Set();
+    const arr = JSON.parse(raw);
+    return new Set(Array.isArray(arr) ? arr : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveDismissed(wallet: string | null, ids: Set<string>) {
+  if (!wallet || typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(dismissedKey(wallet), JSON.stringify(Array.from(ids)));
+  } catch {
+    // localStorage quota or disabled - silently degrade to in-memory only.
+  }
+}
+
 export function NotificationBell() {
   const { connectedWallet } = useWallet();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
+  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed(connectedWallet));
+
+  // Re-hydrate the dismissed set when the active wallet changes (account
+  // switch in Phantom, or fresh mount). Each wallet gets its own list.
+  useEffect(() => {
+    setDismissed(loadDismissed(connectedWallet));
+  }, [connectedWallet]);
+
+  const dismissOne = useCallback((id: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(id);
+      saveDismissed(connectedWallet, next);
+      return next;
+    });
+  }, [connectedWallet]);
 
   const { data } = useQuery<{ notifications: Notification[] }>({
     queryKey: ["notifications", connectedWallet],
@@ -71,13 +113,31 @@ export function NotificationBell() {
               data-testid="dropdown-notifications"
             >
               <div className="p-3 border-b border-gray-200">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-sm text-gray-900">
                     Notifications
                   </h3>
-                  <button onClick={() => setOpen(false)} className="p-1 rounded text-gray-400 hover:text-gray-600">
-                    <X className="w-4 h-4" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {notifications.length > 0 && (
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          const all = new Set(dismissed);
+                          notifications.forEach(n => all.add(n.id));
+                          setDismissed(all);
+                          saveDismissed(connectedWallet, all);
+                        }}
+                        className="text-[10px] font-bold uppercase tracking-wide text-gray-500 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-100"
+                        data-testid="button-clear-notifications"
+                      >
+                        Clear all
+                      </button>
+                    )}
+                    <button onClick={() => setOpen(false)} className="p-1 rounded text-gray-400 hover:text-gray-600">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -113,6 +173,11 @@ export function NotificationBell() {
                               <p className={`text-xs font-bold ${notif.won ? "text-green-400" : "text-red-400"}`}>
                                 {notif.won ? "You won!" : "Market resolved"}
                               </p>
+                              {notif.resolvedAt && (
+                                <p className="text-[10px] text-gray-400 mt-0.5">
+                                  {new Date(notif.resolvedAt).toLocaleDateString()}
+                                </p>
+                              )}
                               <p className="text-xs mt-0.5 text-gray-700 line-clamp-2 break-words">
                                 {notif.question}
                               </p>
@@ -133,9 +198,10 @@ export function NotificationBell() {
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                setDismissed(prev => { const next = new Set(prev); next.add(notif.id); return next; });
+                                dismissOne(notif.id);
                               }}
                               className="p-1 rounded self-start text-gray-300 hover:text-gray-500"
+                              data-testid={`button-dismiss-${notif.id}`}
                             >
                               <X className="w-3 h-3" />
                             </button>
