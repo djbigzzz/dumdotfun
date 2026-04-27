@@ -51,24 +51,25 @@ function getAuthorityKeypair(): Keypair | null {
   }
 }
 
-function getPoolAuthorityKeypair(): Keypair {
+function getPoolAuthorityKeypair(): Keypair | null {
   const secretKey = process.env.POOL_AUTHORITY_SECRET_KEY;
-  if (secretKey) {
-    try {
-      const bytes = secretKey.includes(",")
-        ? new Uint8Array(secretKey.split(",").map(Number))
-        : new Uint8Array(Buffer.from(secretKey, "base64"));
-      if (bytes.length === 64) {
-        return Keypair.fromSecretKey(bytes);
-      }
-    } catch (error) {
-      console.error("[Graduation] Failed to parse POOL_AUTHORITY_SECRET_KEY, generating new one:", error);
-    }
+  if (!secretKey) {
+    console.error("[Graduation] No POOL_AUTHORITY_SECRET_KEY set - refusing to generate ephemeral keypair (would strand funds)");
+    return null;
   }
-  const keypair = Keypair.generate();
-  console.log(`[Graduation] Generated ephemeral pool authority: ${keypair.publicKey.toBase58()}`);
-  console.warn(`[Graduation] No POOL_AUTHORITY_SECRET_KEY set. Generated ephemeral keypair - set the env var to persist.`);
-  return keypair;
+  try {
+    const bytes = secretKey.includes(",")
+      ? new Uint8Array(secretKey.split(",").map(Number))
+      : new Uint8Array(Buffer.from(secretKey, "base64"));
+    if (bytes.length === 64) {
+      return Keypair.fromSecretKey(bytes);
+    }
+    console.error(`[Graduation] POOL_AUTHORITY_SECRET_KEY has wrong length: ${bytes.length}, expected 64`);
+    return null;
+  } catch (error) {
+    console.error("[Graduation] Failed to parse POOL_AUTHORITY_SECRET_KEY:", error);
+    return null;
+  }
 }
 
 async function initRaydium(connection: Connection, owner?: Keypair): Promise<Raydium> {
@@ -161,6 +162,16 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
   }
 
   const poolAuthority = getPoolAuthorityKeypair();
+  if (!poolAuthority) {
+    await db.update(tokens)
+      .set({ graduationStatus: "failed", updatedAt: new Date() })
+      .where(eq(tokens.mint, mintAddress));
+    return {
+      success: false,
+      error: "Pool authority keypair not configured. Set POOL_AUTHORITY_SECRET_KEY (a 64-byte Solana keypair, comma-separated). Without this, withdrawn liquidity would be sent to an ephemeral wallet and lost forever.",
+      tokenMint: mintAddress,
+    };
+  }
 
   try {
     const connection = getConnection();
@@ -331,10 +342,36 @@ async function createRaydiumPool(
     const poolId = extInfo?.address?.poolId?.toString();
 
     if (!poolId) {
-      throw new Error("Pool creation succeeded but returned no pool ID");
+      throw new Error("Pool creation returned no pool ID from SDK");
     }
 
-    console.log(`[Graduation] Pool created: ${poolId}, TX: ${txSignature}`);
+    console.log(`[Graduation] Pool tx submitted: ${txSignature}, expected pool: ${poolId}`);
+    console.log(`[Graduation] Confirming transaction on-chain...`);
+
+    // CRITICAL: the Raydium SDK's execute() does not always wait for confirmation.
+    // We must verify the tx actually landed AND succeeded, otherwise we will
+    // mark a token as "graduated" while the funds are stranded in the owner
+    // wallet and no pool exists. This was the PING ME bug.
+    if (txSignature && txSignature !== "pending") {
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+      const confirmation = await connection.confirmTransaction(
+        { signature: txSignature, blockhash, lastValidBlockHeight },
+        "confirmed",
+      );
+      if (confirmation.value.err) {
+        const errStr = JSON.stringify(confirmation.value.err);
+        console.error(`[Graduation] Pool creation tx failed on-chain: ${errStr}`);
+        throw new Error(`Pool creation transaction failed on-chain: ${errStr}. Funds remain in owner wallet ${owner.publicKey.toBase58()} and can be retried.`);
+      }
+    }
+
+    // Belt-and-braces: verify the pool account actually exists on-chain.
+    const poolAccount = await connection.getAccountInfo(new PublicKey(poolId));
+    if (!poolAccount) {
+      throw new Error(`Pool creation tx confirmed but pool account ${poolId} does not exist on-chain. Funds remain in owner wallet ${owner.publicKey.toBase58()} and can be retried.`);
+    }
+
+    console.log(`[Graduation] Pool verified on-chain: ${poolId}, TX: ${txSignature}`);
     return { poolId, txSignature };
   } catch (error: any) {
     console.error(`[Graduation] Raydium pool creation error:`, error);
