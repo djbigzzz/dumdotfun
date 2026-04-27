@@ -44,7 +44,8 @@ export function verifyAndCreateSession(
 ): { token: string; expiresAt: number } | { error: string } {
   const entry = nonces.get(walletAddress);
   if (!entry || entry.expiresAt < Date.now()) {
-    return { error: "Nonce expired or missing. Request a new one." };
+    console.warn(`[auth] verify rejected: no/expired nonce for ${walletAddress}`);
+    return { error: "Sign-in expired. Please reconnect your wallet." };
   }
   const message = buildSiwsMessage(walletAddress, entry.nonce);
   const messageBytes = new TextEncoder().encode(message);
@@ -62,11 +63,27 @@ export function verifyAndCreateSession(
   } catch {
     return { error: "Invalid wallet address" };
   }
-  if (publicKeyBytes.length !== 32) return { error: "Invalid public key length" };
-  if (signatureBytes.length !== 64) return { error: "Invalid signature length" };
+  if (publicKeyBytes.length !== 32) {
+    console.warn(`[auth] verify rejected: pubkey length ${publicKeyBytes.length} for ${walletAddress}`);
+    return { error: "Invalid public key length" };
+  }
+  if (signatureBytes.length !== 64) {
+    console.warn(`[auth] verify rejected: signature length ${signatureBytes.length} for ${walletAddress} (b64 chars: ${signatureBase64.length})`);
+    return { error: "Invalid signature length" };
+  }
 
   const ok = nacl.sign.detached.verify(messageBytes, signatureBytes, publicKeyBytes);
-  if (!ok) return { error: "Signature verification failed" };
+  if (!ok) {
+    // Diagnostics: log nonce, message length, and signature prefix so we can
+    // tell whether the client signed a stale message (race), a different
+    // message altogether, or the right one with a bad pubkey.
+    const sigHex = Buffer.from(signatureBytes).toString("hex").slice(0, 16);
+    const msgPreview = message.replace(/\n/g, " | ");
+    console.warn(
+      `[auth] verify rejected: ed25519 mismatch for ${walletAddress} | nonce=${entry.nonce} | sigPrefix=${sigHex} | msgLen=${messageBytes.length} | msg="${msgPreview}"`,
+    );
+    return { error: "Signature verification failed. Reconnect your wallet and try again." };
+  }
 
   // One-time-use nonce
   nonces.delete(walletAddress);

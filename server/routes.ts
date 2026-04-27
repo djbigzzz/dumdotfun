@@ -742,6 +742,13 @@ export async function registerRoutes(
               graduationStatus: "migrating",
             });
           }
+          if (tokenRow?.graduationStatus === "broken") {
+            return res.status(400).json({
+              error: "This token's migration to Raydium did not complete and the on-chain liquidity is no longer recoverable. Trading is permanently closed for this token.",
+              graduated: true,
+              graduationStatus: "broken",
+            });
+          }
           return res.status(400).json({
             error: "Bonding curve is closed but Raydium migration is still pending. The team has been notified.",
             graduated: true,

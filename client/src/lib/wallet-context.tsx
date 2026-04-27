@@ -111,6 +111,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  // Single-flight: if multiple components call ensureSession concurrently we
+  // must NOT fire two /api/auth/nonce requests, because the second overwrites
+  // the first server-side and the user can only sign one popup. Without this,
+  // the user signs nonce N1 but the server reconstructs the message with N2,
+  // producing "Signature verification failed".
+  const inflightSession = useMemo<{ p: Promise<string> | null; wallet: string | null }>(
+    () => ({ p: null, wallet: null }),
+    [],
+  );
+
   const ensureValidSession = useCallback(
     async (walletAddress: string, signer: (msg: Uint8Array) => Promise<Uint8Array>) => {
       const existing = getSessionToken();
@@ -125,9 +135,23 @@ export function WalletProvider({ children }: { children: ReactNode }) {
           /* fall through to re-auth */
         }
       }
-      return signInWithSolana(walletAddress, signer);
+      // Coalesce concurrent sign-in attempts for the same wallet.
+      if (inflightSession.p && inflightSession.wallet === walletAddress) {
+        return inflightSession.p;
+      }
+      const p = (async () => {
+        try {
+          return await signInWithSolana(walletAddress, signer);
+        } finally {
+          inflightSession.p = null;
+          inflightSession.wallet = null;
+        }
+      })();
+      inflightSession.p = p;
+      inflightSession.wallet = walletAddress;
+      return p;
     },
-    [signInWithSolana],
+    [signInWithSolana, inflightSession],
   );
 
   useEffect(() => {
@@ -406,13 +430,43 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     }
     const signer = async (msg: Uint8Array): Promise<Uint8Array> => {
       if (isMobileWallet && mobileAdapter) {
-        return await mobileAdapter.signMessage(msg);
+        const out: any = await mobileAdapter.signMessage(msg);
+        return out instanceof Uint8Array ? out : new Uint8Array(out?.signature ?? out);
       }
       if (!window.solana?.isPhantom) {
         throw new Error("Phantom wallet not available");
       }
-      const r = await window.solana.signMessage(msg);
-      return r.signature;
+      // Defend against the user switching the active Phantom account between
+      // connect and sign. If the wallet's current pubkey does not match the
+      // address we are trying to authenticate, the server-side ed25519 verify
+      // will fail with "Signature verification failed" and the user will get
+      // a confusing error. Catch it here with a clear message.
+      const livePubkey = window.solana.publicKey?.toString();
+      if (livePubkey && livePubkey !== connectedWallet) {
+        throw new Error(
+          `Wallet account changed in Phantom (now ${livePubkey.slice(0, 4)}…${livePubkey.slice(-4)}). ` +
+          `Reconnect your wallet to continue.`,
+        );
+      }
+      const r: any = await window.solana.signMessage(msg);
+      // Phantom returns { signature: Uint8Array }, but be defensive: some
+      // wallet shims return the raw Uint8Array directly, or wrap it inside
+      // a plain object/array.
+      const raw =
+        r instanceof Uint8Array
+          ? r
+          : r?.signature instanceof Uint8Array
+          ? r.signature
+          : r?.signature
+          ? new Uint8Array(Object.values(r.signature) as number[])
+          : null;
+      if (!raw || raw.length !== 64) {
+        throw new Error(
+          `Wallet returned an invalid signature (length ${raw?.length ?? "unknown"}). ` +
+          `Update Phantom and try again.`,
+        );
+      }
+      return raw;
     };
     return ensureValidSession(connectedWallet, signer);
   }, [connectedWallet, isMobileWallet, mobileAdapter, ensureValidSession]);
