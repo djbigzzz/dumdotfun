@@ -273,9 +273,11 @@ export async function registerRoutes(
               const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
               const tokensInCurveRaw = bnToNum(curveData.realTokenReserves);
               const totalSupply = totalSupplyRaw / 1_000_000;
-              const tokensInCurve = tokensInCurveRaw / 1_000_000;
-              const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
-              marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
+              // Market cap follows the standard fully-diluted convention used by
+              // pump.fun / Raydium / DEX Screener / Birdeye: price × total supply.
+              // Tokens still sitting in the bonding curve are counted because the
+              // curve will release them at deterministic prices.
+              marketCapSol = isNaN(totalSupply) ? 0 : priceInSol * totalSupply;
               // Progress = real SOL deposited / 85 SOL graduation target
               const realSolReservesNum = bnToNum(curveData.realSolReserves);
               const graduationThresholdLamports = 85 * LAMPORTS_PER_SOL;
@@ -366,9 +368,9 @@ export async function registerRoutes(
           const virtualSolReservesNum = bnToNum(rawCurveData.virtualSolReserves);
           const virtualTokenReservesNum = bnToNum(rawCurveData.virtualTokenReserves);
           const totalSupply = totalSupplyRaw / 1_000_000;
-          const tokensInCurve = tokensInCurveRaw / 1_000_000;
-          const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
-          marketCapSol = isNaN(circulatingSupply) ? 0 : priceInSol * circulatingSupply;
+          // Fully-diluted market cap (price × total supply), matching pump.fun /
+          // Raydium / DEX Screener convention. Tokens still in the curve count.
+          marketCapSol = isNaN(totalSupply) ? 0 : priceInSol * totalSupply;
           const graduationThreshold = 85 * LAMPORTS_PER_SOL;
           bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThreshold) * 100);
           isGraduated = rawCurveData.isGraduated;
@@ -609,11 +611,10 @@ export async function registerRoutes(
                 return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
               };
               const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
-              const tokensInCurveRaw = bnToNum(curveData.realTokenReserves);
               const totalSupply = totalSupplyRaw / 1_000_000;
-              const tokensInCurve = tokensInCurveRaw / 1_000_000;
-              const circulatingSupply = Math.max(0, totalSupply - tokensInCurve);
-              marketCapSol = priceInSol !== null && !isNaN(circulatingSupply) ? priceInSol * circulatingSupply : null;
+              // Fully-diluted market cap (price × total supply), matching the
+              // pump.fun / Raydium / DEX Screener convention used elsewhere.
+              marketCapSol = priceInSol !== null && !isNaN(totalSupply) ? priceInSol * totalSupply : null;
             }
           } catch {
             // curve fetch failed — priceInSol stays null, shown as "no price"
