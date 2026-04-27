@@ -121,6 +121,10 @@ interface DuneTransaction {
 interface DuneTokenData {
   mint: string;
   source: string;
+  // When false, the API key is missing or Dune is rate-limiting us. The UI
+  // should render a calm empty state, not a scary error.
+  available: boolean;
+  reason?: "not_configured" | "upstream_error";
   transactions: DuneTransaction[];
   total: number;
 }
@@ -185,6 +189,11 @@ export default function TokenPage() {
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
   const [tradeQuote, setTradeQuote] = useState<{ amountOut: string; priceImpact: number } | null>(null);
   const [isQuoting, setIsQuoting] = useState(false);
+  // Guard against double-click on the trade button. If the user clicks twice
+  // before Phantom finishes signing, we'd build and broadcast the *same* tx
+  // twice and Solana returns "transaction already processed" on the second
+  // attempt - which surfaces as a scary red error. This ref blocks reentry.
+  const [isTrading, setIsTrading] = useState(false);
 
   // Fetch quote when amount or type changes
   useQuery({
@@ -359,7 +368,9 @@ export default function TokenPage() {
       }
     },
     enabled: !!mint,
-    refetchInterval: 30000,
+    // Don't poll when Dune isn't configured - no point hammering an endpoint
+    // that will keep returning {available:false}.
+    refetchInterval: (q) => (q.state.data?.available === false ? false : 30000),
     retry: false,
   });
 
@@ -520,17 +531,19 @@ export default function TokenPage() {
   }, [connectedWallet, token, umbraRecipient, umbraAmount]);
 
   const handleTrade = async () => {
+    if (isTrading) return;
     if (!connectedWallet || !tradeAmount || !token) {
       toast.error("Please connect wallet and enter amount");
       return;
     }
-    
+
     const amount = parseFloat(tradeAmount);
     if (isNaN(amount) || amount <= 0) {
       toast.error("Please enter a valid amount");
       return;
     }
-    
+
+    setIsTrading(true);
     const isBuy = tradeType === "buy";
     const tx = txToast(isBuy ? "buy" : "sell", isBuy
       ? `${tradeAmount} SOL worth of ${token.symbol}`
@@ -661,6 +674,8 @@ export default function TokenPage() {
     } catch (error: any) {
       console.error("Trade error:", error);
       tx.error(friendlyError(error));
+    } finally {
+      setIsTrading(false);
     }
   };
 
@@ -1034,8 +1049,10 @@ export default function TokenPage() {
                 </>
               ) : (
                 <div className={`text-center py-6 text-sm ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} data-testid="dune-no-data">
-                  {duneData === null
-                    ? "On-chain data unavailable — Dune API not configured"
+                  {duneData?.available === false
+                    ? duneData.reason === "not_configured"
+                      ? "On-chain data unavailable - Dune API not configured"
+                      : "On-chain data temporarily unavailable"
                     : "No on-chain transactions found for this token"}
                 </div>
               )}
@@ -1343,8 +1360,8 @@ export default function TokenPage() {
                   Connect Wallet
                 </motion.button>
               ) : (
-                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0 || isQuoting} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 ${tradeType === "buy" ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
-                  {isQuoting ? "Quoting..." : `${tradeType === "buy" ? "Buy" : "Sell"} ${token.symbol}`}
+                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0 || isQuoting || isTrading} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === "buy" ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
+                  {isTrading ? "Confirming..." : isQuoting ? "Quoting..." : `${tradeType === "buy" ? "Buy" : "Sell"} ${token.symbol}`}
                 </motion.button>
               )}
             </div>

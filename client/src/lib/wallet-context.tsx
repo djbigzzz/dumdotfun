@@ -13,6 +13,7 @@ import {
   createDefaultWalletNotFoundHandler
 } from "@solana-mobile/wallet-adapter-mobile";
 import { isMobileDevice, isMobile, openExternalLink } from "./mobile-utils";
+import { getPhantom, hasPhantom as detectPhantom, getPhantomPublicKey } from "./wallet-detect";
 
 const _viteNetwork = import.meta.env.VITE_SOLANA_NETWORK;
 const SOLANA_NETWORK: WalletAdapterNetwork =
@@ -156,11 +157,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const checkPhantom = async () => {
-      if (window.solana?.isPhantom) {
+      // Read through getPhantom() so a wallet collision on window.solana
+      // (Backpack/Solflare/etc fighting Phantom for the global) doesn't
+      // throw "Cannot redefine property: solana" on every page load.
+      if (detectPhantom()) {
         setHasPhantom(true);
-        // Auto-reconnect if Phantom already has a trusted session
-        if (window.solana.publicKey) {
-          const walletAddress = window.solana.publicKey.toString();
+        // Auto-reconnect if Phantom already has a trusted session.
+        const walletAddress = getPhantomPublicKey();
+        if (walletAddress) {
           // Don't force a re-sign on page load — wait until the user takes
           // an action that needs auth, or until they explicitly reconnect.
           setConnectedWallet(walletAddress);
@@ -211,14 +215,15 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const connectWallet = async (referralCode?: string) => {
     // Priority 1: injected Phantom wallet (desktop extension OR Phantom mobile browser)
-    if (window.solana?.isPhantom) {
+    const phantom = getPhantom();
+    if (phantom) {
       try {
-        const response = await window.solana.connect({ onlyIfTrusted: false });
+        const response = await phantom.connect({ onlyIfTrusted: false });
         const walletAddress = response.publicKey.toString();
         // SIWS: sign nonce -> get session token -> then sync user
         try {
           await ensureValidSession(walletAddress, async (msg) => {
-            const r = await window.solana!.signMessage(msg);
+            const r = await phantom.signMessage(msg);
             return r.signature;
           });
         } catch (e: any) {
@@ -288,13 +293,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       }
     }
 
-    if (!window.solana?.isPhantom || !connectedWallet) {
+    const phantom = getPhantom();
+    if (!phantom || !connectedWallet) {
       throw new Error("Phantom not available or wallet not connected");
     }
 
     try {
-      const response = await window.solana.signMessage(messageBuffer);
-      const signatureArray = Array.from(response.signature);
+      const response = await phantom.signMessage(messageBuffer);
+      const signatureArray = Array.from(response.signature as Uint8Array);
       const binaryString = String.fromCharCode(...signatureArray);
       return btoa(binaryString);
     } catch (err) {
@@ -316,7 +322,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         throw err;
       }
     }
-    const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+    const phantom = getPhantom();
     if (!phantom || !connectedWallet) {
       throw new Error("Wallet not available or not connected");
     }
@@ -390,7 +396,7 @@ export function WalletProvider({ children }: { children: ReactNode }) {
     if (isMobileWallet && mobileAdapter) {
       return mobileAdapter.publicKey;
     }
-    return window.solana?.publicKey;
+    return getPhantom()?.publicKey;
   };
 
   const disconnectWallet = async () => {
@@ -400,11 +406,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       } catch (err) {
         console.error("Mobile wallet disconnect error:", err);
       }
-    } else if (window.solana?.isPhantom) {
-      try {
-        await window.solana.disconnect();
-      } catch (err) {
-        console.error("Error disconnecting:", err);
+    } else {
+      const phantom = getPhantom();
+      if (phantom) {
+        try {
+          await phantom.disconnect();
+        } catch (err) {
+          console.error("Error disconnecting:", err);
+        }
       }
     }
     // Clear SIWS session
@@ -433,7 +442,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         const out: any = await mobileAdapter.signMessage(msg);
         return out instanceof Uint8Array ? out : new Uint8Array(out?.signature ?? out);
       }
-      if (!window.solana?.isPhantom) {
+      const phantom = getPhantom();
+      if (!phantom) {
         throw new Error("Phantom wallet not available");
       }
       // Defend against the user switching the active Phantom account between
@@ -441,14 +451,14 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       // address we are trying to authenticate, the server-side ed25519 verify
       // will fail with "Signature verification failed" and the user will get
       // a confusing error. Catch it here with a clear message.
-      const livePubkey = window.solana.publicKey?.toString();
+      const livePubkey = getPhantomPublicKey();
       if (livePubkey && livePubkey !== connectedWallet) {
         throw new Error(
-          `Wallet account changed in Phantom (now ${livePubkey.slice(0, 4)}…${livePubkey.slice(-4)}). ` +
+          `Wallet account changed in Phantom (now ${livePubkey.slice(0, 4)}...${livePubkey.slice(-4)}). ` +
           `Reconnect your wallet to continue.`,
         );
       }
-      const r: any = await window.solana.signMessage(msg);
+      const r: any = await phantom.signMessage(msg);
       // Phantom returns { signature: Uint8Array }, but be defensive: some
       // wallet shims return the raw Uint8Array directly, or wrap it inside
       // a plain object/array.

@@ -3538,24 +3538,48 @@ export async function registerRoutes(
 
   // ─── Dune SIM Analytics Routes ─────────────────────────────────────────────
 
+  // Dune endpoints intentionally return 200 with `available: false` rather
+  // than 5xx when the API key is missing or Dune is rate-limiting us.
+  // Reasons:
+  //   1. Dune is a *supplementary* on-chain overlay - it never blocks the
+  //      core trade/bet flow, so it should never produce red errors in the
+  //      browser console or trigger React Query's error/retry behavior.
+  //   2. A 503 from our own server feels like the app is broken; a 200 with
+  //      a structured "unavailable" response lets the client render a clean
+  //      empty-state instead of a void.
   app.get("/api/dune/token/:mint", async (req: Request, res: Response) => {
     const { mint } = req.params;
     if (!mint || mint.length < 32) {
       return res.status(400).json({ error: "Invalid mint address" });
     }
     if (!isDuneConfigured()) {
-      return res.status(503).json({ error: "Dune API not configured", configured: false });
+      return res.json({
+        mint,
+        source: "dune-sim",
+        available: false,
+        reason: "not_configured",
+        transactions: [],
+        total: 0,
+      });
     }
     try {
       const activity = await getDuneTokenActivity(mint, 50);
       return res.json({
         mint,
         source: "dune-sim",
+        available: true,
         ...activity,
       });
     } catch (err: any) {
-      console.error("Dune token activity error:", err?.response?.data || err.message);
-      return res.status(502).json({ error: "Failed to fetch Dune token data", details: err.message });
+      console.warn("[Dune] token activity unavailable:", err?.response?.status || err.message);
+      return res.json({
+        mint,
+        source: "dune-sim",
+        available: false,
+        reason: "upstream_error",
+        transactions: [],
+        total: 0,
+      });
     }
   });
 
@@ -3565,17 +3589,34 @@ export async function registerRoutes(
       return res.status(400).json({ error: "Invalid wallet address" });
     }
     if (!isDuneConfigured()) {
-      return res.status(503).json({ error: "Dune API not configured", configured: false });
+      return res.json({
+        source: "dune-sim",
+        available: false,
+        reason: "not_configured",
+        walletAddress: address,
+        solBalance: "0",
+        tokens: [],
+        totalValueUsd: null,
+      });
     }
     try {
       const portfolio = await getDuneWalletPortfolio(address);
       return res.json({
         source: "dune-sim",
+        available: true,
         ...portfolio,
       });
     } catch (err: any) {
-      console.error("Dune wallet portfolio error:", err?.response?.data || err.message);
-      return res.status(502).json({ error: "Failed to fetch Dune wallet data", details: err.message });
+      console.warn("[Dune] wallet portfolio unavailable:", err?.response?.status || err.message);
+      return res.json({
+        source: "dune-sim",
+        available: false,
+        reason: "upstream_error",
+        walletAddress: address,
+        solBalance: "0",
+        tokens: [],
+        totalValueUsd: null,
+      });
     }
   });
 

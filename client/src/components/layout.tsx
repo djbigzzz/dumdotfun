@@ -4,6 +4,7 @@ import { useWallet } from "@/lib/wallet-context";
 import { motion } from "framer-motion";
 import { X, Wifi, HelpCircle, CheckCircle2, AlertTriangle } from "lucide-react";
 import { isMobileDevice } from "@/lib/mobile-utils";
+import { getPhantom } from "@/lib/wallet-detect";
 import { toast } from "sonner";
 
 import pillLogo from "@assets/Gemini_Generated_Image_ya5y9zya5y9zya5y_1764326352852.png";
@@ -201,8 +202,8 @@ const DevnetBanner = () => {
   }, [connectedWallet, checked]);
 
   const switchToDevnet = async () => {
-    const phantom = (window as any).phantom?.solana ?? (window as any).solana;
-    if (!phantom?.isPhantom) {
+    const phantom = getPhantom();
+    if (!phantom) {
       // Mobile (MWA) or no injected Phantom: show instructions.
       setHelpOpen(true);
       return;

@@ -89,7 +89,8 @@ export default function AdminPage() {
         throw new Error("Connect wallet first");
       }
 
-      const phantom = (window as any).phantom?.solana ?? (window.solana?.isPhantom ? window.solana : null);
+      const { getPhantom } = await import("@/lib/wallet-detect");
+      const phantom = getPhantom();
       if (!phantom) {
         throw new Error("Phantom wallet required");
       }
