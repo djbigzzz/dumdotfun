@@ -2355,7 +2355,31 @@ export async function registerRoutes(
       }
       const feeRecipient = getFeeRecipientWallet();
       const betLamports = Math.floor(amountNum * LAMPORTS_PER_SOL);
-      
+
+      // Preflight: ensure the wallet has enough SOL for the bet plus a tx-fee buffer.
+      // This catches the common "Transaction failed on chain" case before the user signs.
+      const TX_FEE_BUFFER_LAMPORTS = 10_000; // ~0.00001 SOL safety margin for the network fee
+      try {
+        let bal = 0;
+        try {
+          const c = getHeliusConnection();
+          bal = await c.getBalance(new PublicKey(walletAddress), "confirmed");
+        } catch {
+          const { getPublicConnection } = await import("./helius-rpc");
+          bal = await getPublicConnection().getBalance(new PublicKey(walletAddress), "confirmed");
+        }
+        if (bal < betLamports + TX_FEE_BUFFER_LAMPORTS) {
+          const haveSol = (bal / LAMPORTS_PER_SOL).toFixed(4);
+          const needSol = ((betLamports + TX_FEE_BUFFER_LAMPORTS) / LAMPORTS_PER_SOL).toFixed(4);
+          console.warn(`[Betting] Insufficient funds: wallet=${walletAddress} have=${haveSol} need=${needSol}`);
+          return res.status(400).json({
+            error: `Insufficient SOL. You have ${haveSol} SOL but need at least ${needSol} SOL (bet + network fee).`,
+          });
+        }
+      } catch (balErr) {
+        console.warn("[Betting] Balance preflight failed (non-fatal):", balErr);
+      }
+
       const betTx = new Transaction();
       betTx.add(SystemProgram.transfer({
         fromPubkey: new PublicKey(walletAddress),
@@ -2450,7 +2474,21 @@ export async function registerRoutes(
       }
 
       if (txInfo.meta?.err) {
-        return res.status(400).json({ error: "Transaction failed on chain" });
+        const errStr = JSON.stringify(txInfo.meta.err);
+        const logs = txInfo.meta.logMessages || [];
+        console.error(`[Betting] Bet tx failed on chain: sig=${signature} err=${errStr}`);
+        if (logs.length) console.error(`[Betting] Program logs:`, logs.slice(-10).join("\n"));
+
+        // Translate common SystemProgram errors into user-friendly text.
+        let friendly = "Transaction failed on chain";
+        if (errStr.includes("InsufficientFundsForRent") || errStr.includes("AccountNotFound") || errStr.includes('"Custom":1')) {
+          friendly = "Insufficient SOL to complete this bet (account would drop below rent-exempt minimum or has no funds).";
+        } else if (errStr.includes("BlockhashNotFound")) {
+          friendly = "Transaction expired before landing. Please try again.";
+        } else if (logs.some(l => l.toLowerCase().includes("insufficient"))) {
+          friendly = "Insufficient SOL to complete this bet.";
+        }
+        return res.status(400).json({ error: friendly, signature, onChainError: errStr });
       }
 
       const txMessage = txInfo.transaction?.message;
