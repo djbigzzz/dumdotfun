@@ -52,7 +52,7 @@ The PostgreSQL database includes tables for `users` (wallet addresses, profiles)
 -   **PostgreSQL:** Relational database for data persistence.
 -   **SendGrid:** Utilized for sending waitlist emails.
 -   **DFlow API:** (Optional) For tokenized prediction markets (Kalshi on Solana).
--   **Dune SIM API:** (Optional) Real-time Solana blockchain analytics. Powers the "On-Chain Activity" section on token detail pages. Requires `DUNE_API_KEY` secret. Endpoints: `GET /api/dune/token/:mint` and `GET /api/dune/wallet/:address`. Module: `server/dune.ts`. Gracefully falls back when API key not configured.
+-   **Dune SIM API:** (Optional) Real-time Solana mainnet analytics. Powers (a) the "On-Chain Activity" section on token detail pages and (b) the in-app `/wallet/:address` page (`client/src/pages/wallet.tsx`) showing any wallet's mainnet portfolio + recent transactions, reachable via the "On-chain" badge button next to wallet addresses in token activity feeds. Requires `DUNE_API_KEY` secret (Sim API key from sim.dune.com, NOT the Dune Analytics key). Endpoints: `GET /api/dune/token/:mint`, `GET /api/dune/wallet/:address` (portfolio), `GET /api/dune/wallet/:address/activity` (transactions). Base URL: `https://api.sim.dune.com/beta/svm`. Module: `server/dune.ts`. Gracefully falls back when API key not configured.
 -   **@solana-mobile/wallet-adapter-mobile:** For mobile wallet support.
 -   **@lightweight-charts/react-wrapper:** For interactive trading charts.
 -   **Raydium SDK V2:** For creating CPMM pools on Raydium.

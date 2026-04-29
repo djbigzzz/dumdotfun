@@ -3612,6 +3612,41 @@ export async function registerRoutes(
     }
   });
 
+  // Wallet on-chain activity (mainnet) - powered by Dune Sim
+  // Reuses the Sim transactions endpoint which is keyed by address (works for wallets too).
+  app.get("/api/dune/wallet/:address/activity", async (req: Request, res: Response) => {
+    const { address } = req.params;
+    if (!address || address.length < 32) {
+      return res.status(400).json({ error: "Invalid wallet address" });
+    }
+    if (!isDuneConfigured()) {
+      return res.json({
+        source: "dune-sim",
+        available: false,
+        reason: "not_configured",
+        transactions: [],
+        total: 0,
+      });
+    }
+    try {
+      const activity = await getDuneTokenActivity(address, 50);
+      return res.json({
+        source: "dune-sim",
+        available: true,
+        ...activity,
+      });
+    } catch (err: any) {
+      console.warn("[Dune] wallet activity unavailable:", err?.response?.status || err.message);
+      return res.json({
+        source: "dune-sim",
+        available: false,
+        reason: "upstream_error",
+        transactions: [],
+        total: 0,
+      });
+    }
+  });
+
   app.get("/api/dune/wallet/:address", async (req: Request, res: Response) => {
     const { address } = req.params;
     if (!address || address.length < 32) {

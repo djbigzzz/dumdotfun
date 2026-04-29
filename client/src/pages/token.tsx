@@ -894,16 +894,34 @@ export default function TokenPage() {
                         return (
                           <tr key={activity.id} className={`border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-100"}`}>
                             <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
-                              <a
-                                href={`https://solscan.io/account/${activity.walletAddress}?cluster=devnet`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                              >
-                                <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                                  <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
-                                  <span className="hover:underline">{activity.walletAddress?.slice(0, 6)}...</span>
-                                </div>
-                              </a>
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`https://solscan.io/account/${activity.walletAddress}?cluster=devnet`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  data-testid={`link-trader-solscan-${activity.id}`}
+                                >
+                                  <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                                    <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
+                                    <span className="hover:underline">{activity.walletAddress?.slice(0, 6)}...</span>
+                                  </div>
+                                </a>
+                                {activity.walletAddress ? (
+                                  <Link href={`/wallet/${activity.walletAddress}`}>
+                                    <button
+                                      title="View on-chain activity (mainnet, powered by Dune Sim)"
+                                      className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                                        privateMode
+                                          ? "border-[#4ADE80]/40 text-[#4ADE80] hover:bg-[#4ADE80]/10"
+                                          : "border-gray-300 text-gray-500 hover:bg-black hover:text-white hover:border-black"
+                                      }`}
+                                      data-testid={`button-onchain-${activity.id}`}
+                                    >
+                                      On-chain
+                                    </button>
+                                  </Link>
+                                ) : null}
+                              </div>
                             </td>
                             <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
                             <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>

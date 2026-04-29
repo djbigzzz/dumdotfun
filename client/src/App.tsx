@@ -24,6 +24,7 @@ const TrendingPage = lazy(() => import("@/pages/trending"));
 const SearchPage = lazy(() => import("@/pages/search"));
 const Leaderboard = lazy(() => import("@/pages/leaderboard"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
+const WalletPage = lazy(() => import("@/pages/wallet"));
 
 const LazyLegal = lazy(() =>
   import("@/pages/legal").then((m) => ({
@@ -67,6 +68,7 @@ function Router() {
         <Route path="/search" component={SearchPage} />
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/quests" component={QuestsPage} />
+        <Route path="/wallet/:address" component={WalletPage} />
         <Route path="/legal/privacy" component={LazyLegal} />
         <Route path="/legal/eula" component={LazyEULA} />
         <Route path="/legal/copyright" component={LazyCopyright} />
