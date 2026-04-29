@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const DUNE_SIM_BASE = "https://api.sim.dune.com/api/v1";
+// Dune Sim API (https://sim.dune.com) - separate product from Dune Analytics.
+// Base URL and header name are specific to Sim - if you accidentally use a
+// Dune Analytics key here you will get HTTP 401 "invalid API Key".
+const DUNE_SIM_BASE = "https://api.sim.dune.com/beta/svm";
 
 function duneHeaders() {
   const apiKey = process.env.DUNE_API_KEY;
@@ -8,7 +11,7 @@ function duneHeaders() {
     throw new Error("DUNE_API_KEY is not configured");
   }
   return {
-    "X-Dune-Api-Key": apiKey,
+    "X-Sim-Api-Key": apiKey,
     "Content-Type": "application/json",
   };
 }
@@ -62,92 +65,101 @@ export interface DuneHolderInfo {
   top10HoldersPercent: number | null;
 }
 
+// Sim's transactions endpoint is keyed by wallet address, not by token mint.
+// Calling it with a mint returns an empty array. We keep this function for
+// backward compatibility but it will just return an empty list when called
+// with a token mint - higher layers should fall back to Helius/on-chain
+// indexing for per-token trade history.
 export async function getTokenActivity(mint: string, limit = 20): Promise<DuneTokenActivity> {
   const headers = duneHeaders();
 
-  const url = `${DUNE_SIM_BASE}/solana/transactions/by_token`;
+  const url = `${DUNE_SIM_BASE}/transactions/${mint}`;
   const response = await axios.get(url, {
     headers,
-    params: {
-      token: mint,
-      limit,
-    },
+    params: { limit },
     timeout: 10000,
   });
 
   const data = response.data;
 
-  const transactions: DuneTokenTransaction[] = (data.transactions || data.data || []).map(
+  const transactions: DuneTokenTransaction[] = (data.transactions || []).map(
     (tx: any) => {
-      const transfers: DuneTransfer[] = (tx.transfers || tx.token_transfers || []).map(
-        (t: any) => ({
-          from: t.from_address || t.from || "",
-          to: t.to_address || t.to || "",
-          amount: String(t.amount || t.raw_amount || "0"),
-          tokenMint: t.token_address || t.mint || mint,
-          decimals: t.decimals || 0,
-          symbol: t.symbol || "",
-        })
-      );
+      const raw = tx.raw_transaction?.transaction?.message;
+      const accountKeys: string[] = raw?.accountKeys || [];
+      const numSigs: number = raw?.header?.numRequiredSignatures || 0;
+      const signers = accountKeys.slice(0, numSigs);
+
+      // Sim returns block_time in microseconds since epoch.
+      const blockTimeSec = tx.block_time
+        ? Math.floor(tx.block_time / 1_000_000)
+        : 0;
 
       return {
-        txHash: tx.hash || tx.signature || tx.tx_hash || "",
-        blockTime: tx.block_time ? new Date(tx.block_time).getTime() / 1000 : (tx.block_timestamp || 0),
-        blockSlot: tx.block_number || tx.slot || 0,
-        signers: tx.signers || (tx.signer ? [tx.signer] : []),
-        fee: tx.fee || 0,
-        type: tx.transaction_type || tx.type || "transfer",
-        transfers,
+        txHash: tx.raw_transaction?.transaction?.signatures?.[0] || "",
+        blockTime: blockTimeSec,
+        blockSlot: tx.block_slot || 0,
+        signers,
+        fee: tx.raw_transaction?.meta?.fee || 0,
+        type: "transfer",
+        transfers: [],
       };
     }
   );
 
   return {
     transactions,
-    total: data.total || transactions.length,
+    total: transactions.length,
   };
 }
 
 export async function getWalletPortfolio(address: string): Promise<DuneWalletPortfolio> {
   const headers = duneHeaders();
 
-  const url = `${DUNE_SIM_BASE}/solana/balances/${address}`;
+  // Cap at 100 balances - the dropdown UI only shows top holdings anyway and
+  // Sim's largest wallets can return thousands of dust positions otherwise.
+  const url = `${DUNE_SIM_BASE}/balances/${address}`;
   const response = await axios.get(url, {
     headers,
+    params: { limit: 100 },
     timeout: 10000,
   });
 
   const data = response.data;
-  const balances = data.balances || data.tokens || data.data || [];
+  const balances: any[] = data.balances || [];
 
   let solBalance = "0";
   const tokens: DuneWalletBalance[] = [];
   let totalValueUsd: number | null = null;
 
+  const NATIVE_SOL_MINT = "So11111111111111111111111111111111111111112";
+
   for (const item of balances) {
-    const mint = item.token_address || item.mint || item.address || "";
+    const mint: string = item.address || "";
     const isNative =
-      mint === "So11111111111111111111111111111111111111112" ||
+      mint === NATIVE_SOL_MINT ||
       mint === "native" ||
-      item.is_native === true ||
       (item.symbol || "").toUpperCase() === "SOL";
 
+    // Sim returns both `amount` (raw) and `balance` (decimal-adjusted as a
+    // string). We expose the human-readable balance for UI purposes.
+    const humanAmount = String(item.balance ?? item.amount ?? "0");
+    const valUsd: number | null = typeof item.value_usd === "number" ? item.value_usd : null;
+
     if (isNative) {
-      solBalance = String(item.amount || item.balance || "0");
+      solBalance = humanAmount;
     } else {
       tokens.push({
         mint,
         symbol: item.symbol || "",
         name: item.name || item.symbol || "",
-        amount: String(item.amount || item.balance || "0"),
-        decimals: item.decimals || 0,
-        valueUsd: item.value_usd || item.value || null,
+        amount: humanAmount,
+        decimals: typeof item.decimals === "number" ? item.decimals : 0,
+        valueUsd: valUsd,
       });
     }
 
-    const val = item.value_usd || item.value || null;
-    if (val !== null) {
-      totalValueUsd = (totalValueUsd || 0) + val;
+    if (valUsd !== null) {
+      totalValueUsd = (totalValueUsd ?? 0) + valUsd;
     }
   }
 
