@@ -841,18 +841,20 @@ export async function registerRoutes(
   // Raydium swap quote (no auth required)
   app.get("/api/raydium/swap/quote", async (req, res) => {
     try {
-      const { mint, amount, isBuy } = req.query;
+      const { mint, amount, isBuy, slippageBps } = req.query;
       if (!mint || !amount) {
         return res.status(400).json({ error: "mint and amount are required" });
       }
       if (!(await isValidSolanaAddress(mint as string))) {
         return res.status(400).json({ error: "Invalid mint address" });
       }
+      const slip = slippageBps ? Math.max(1, Math.min(5000, parseInt(slippageBps as string, 10))) : 500;
       const { getSwapQuote } = await import("./services/raydium-swap");
       const quote = await getSwapQuote({
         mintAddress: mint as string,
         amountIn: amount as string,
         isBuy: isBuy === "true",
+        slippageBps: slip,
       });
       if (!quote) {
         return res.status(404).json({ error: "Token has not graduated to Raydium" });

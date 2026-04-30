@@ -85,6 +85,32 @@ export function RaydiumSwapPanel({
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [amount, setAmount] = useState("");
   const [isSwapping, setIsSwapping] = useState(false);
+  const [slippageBps, setSlippageBps] = useState<number>(1000);
+
+  function translateOnChainError(raw: string): string {
+    // Raydium CPMM common failure codes that users actually hit.
+    // The "Custom" code lives at meta.err = { InstructionError: [ix, { Custom: N }] }
+    const customMatch = raw.match(/"Custom"\s*:\s*(\d+)/);
+    if (customMatch) {
+      const code = parseInt(customMatch[1], 10);
+      const map: Record<number, string> = {
+        0: "Price moved past your slippage tolerance. Try a higher slippage or a smaller amount.",
+        1: "Pool input too small to produce any output. Try a larger amount.",
+        6000: "Slippage exceeded - the price moved while your swap was pending. Try again with higher slippage.",
+        6001: "Pool is paused or has zero liquidity right now.",
+        6002: "Amount too small for this pool.",
+      };
+      if (map[code]) return map[code];
+      return `Raydium rejected the swap (code ${code}). Try a higher slippage or smaller amount.`;
+    }
+    if (raw.includes("BlockhashNotFound") || raw.includes("blockhash")) {
+      return "Transaction expired before landing. Please try again.";
+    }
+    if (raw.includes("InsufficientFundsForRent") || raw.includes("insufficient")) {
+      return "Not enough SOL to cover the swap and fees.";
+    }
+    return "Swap failed on chain. Try a higher slippage or smaller amount.";
+  }
 
   const { data: poolData, isLoading: poolLoading, refetch: refetchPool } = useQuery<PoolResponse>({
     queryKey: ["raydiumPool", mint],
@@ -108,9 +134,9 @@ export function RaydiumSwapPanel({
   }, [amount, side, tokenDecimals, isValidAmount, amountNum]);
 
   const { data: quoteData, isFetching: isQuoting } = useQuery<QuoteResponse>({
-    queryKey: ["raydiumQuote", mint, amountInBaseUnits, side],
+    queryKey: ["raydiumQuote", mint, amountInBaseUnits, side, slippageBps],
     queryFn: async () => {
-      const res = await fetch(`/api/raydium/swap/quote?mint=${mint}&amount=${amountInBaseUnits}&isBuy=${side === "buy"}`);
+      const res = await fetch(`/api/raydium/swap/quote?mint=${mint}&amount=${amountInBaseUnits}&isBuy=${side === "buy"}&slippageBps=${slippageBps}`);
       if (!res.ok) throw new Error("Failed to fetch quote");
       return res.json();
     },
@@ -162,7 +188,7 @@ export function RaydiumSwapPanel({
         mint,
         amount: amountInBaseUnits,
         isBuy: side === "buy",
-        slippageBps: 500,
+        slippageBps,
       });
       const buildData = await buildRes.json();
 
@@ -255,7 +281,11 @@ export function RaydiumSwapPanel({
       setAmount("");
     } catch (err: any) {
       console.error("[RaydiumSwap] swap error:", err);
-      txn.error(friendlyError(err));
+      const raw = err?.message || String(err);
+      const friendly = raw.includes("InstructionError") || raw.includes("Custom") || raw.includes("Swap failed on chain")
+        ? translateOnChainError(raw)
+        : friendlyError(err);
+      txn.error(friendly);
     } finally {
       setIsSwapping(false);
     }
@@ -333,6 +363,33 @@ export function RaydiumSwapPanel({
         >
           Sell
         </button>
+      </div>
+
+      {/* Slippage selector */}
+      <div className="flex items-center justify-between gap-2">
+        <span className={`text-xs font-bold uppercase ${privateMode ? "text-[#4ADE80]/70 font-mono" : "text-gray-500"}`}>
+          Slippage
+        </span>
+        <div className="flex gap-1">
+          {[100, 500, 1000, 2500].map((bps) => (
+            <button
+              key={bps}
+              onClick={() => setSlippageBps(bps)}
+              className={`text-[10px] font-bold px-2 py-1 border transition-all ${
+                slippageBps === bps
+                  ? privateMode
+                    ? "bg-[#4ADE80] text-black border-[#4ADE80]"
+                    : "bg-black text-white border-black"
+                  : privateMode
+                    ? "bg-black text-[#4ADE80]/60 border-[#4ADE80]/30 hover:border-[#4ADE80]"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-black"
+              }`}
+              data-testid={`button-slippage-${bps}`}
+            >
+              {bps / 100}%
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Balance display */}
@@ -421,7 +478,7 @@ export function RaydiumSwapPanel({
               </span>
             </div>
             <div className="flex justify-between">
-              <span className={privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}>Min received (5% slip):</span>
+              <span className={privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}>Min received ({slippageBps / 100}% slip):</span>
               <span className={privateMode ? "text-[#4ADE80]/80" : "text-gray-700"}>
                 {(minOutDisplay ?? 0).toLocaleString(undefined, { maximumFractionDigits: side === "buy" ? 2 : 6 })} {outputUnit}
               </span>

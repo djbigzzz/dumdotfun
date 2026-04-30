@@ -192,6 +192,7 @@ export async function getSwapQuote(params: {
   mintAddress: string;
   amountIn: string;
   isBuy: boolean;
+  slippageBps?: number;
 }): Promise<SwapQuote | null> {
   const resolved = await resolvePool(params.mintAddress);
   if (!resolved) return null;
@@ -222,7 +223,7 @@ export async function getSwapQuote(params: {
     false,
   );
 
-  const slippageBps = 500;
+  const slippageBps = params.slippageBps ?? 500;
   const minOut = swapResult.outputAmount.muln(10000 - slippageBps).divn(10000);
 
   const inputReserveBn = baseIn ? rpcData.baseReserve : rpcData.quoteReserve;
