@@ -48,16 +48,20 @@ declare module "http" {
   }
 }
 
+// Bumped from 2mb to 6mb. Token creation embeds the image as a base64 data URI
+// in the JSON body, which inflates by ~33%. A 2MB image becomes ~2.7MB on the
+// wire, plus other fields - so 2mb caused 413 "request entity too large" errors
+// for users uploading anything close to the client-side 2MB limit.
 app.use(
   express.json({
-    limit: '2mb',
+    limit: '6mb',
     verify: (req, _res, buf) => {
       req.rawBody = buf;
     },
   }),
 );
 
-app.use(express.urlencoded({ extended: false, limit: '2mb' }));
+app.use(express.urlencoded({ extended: false, limit: '6mb' }));
 
 export function log(message: string, source = "express") {
   const formattedTime = new Date().toLocaleTimeString("en-US", {
