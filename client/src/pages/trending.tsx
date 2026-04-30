@@ -72,6 +72,7 @@ export default function TrendingPage() {
     .slice(0, 10);
 
   const topByProgress = [...(tokens || [])]
+    .filter(t => !t.isGraduated)
     .sort((a, b) => b.bondingCurveProgress - a.bondingCurveProgress)
     .slice(0, 10);
 

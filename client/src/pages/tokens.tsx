@@ -620,13 +620,13 @@ export default function TokensPage() {
                                 className={`h-full ${
                                   privateMode 
                                     ? "bg-[#4ADE80]" 
-                                    : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"
+                                    : token.isGraduated ? "bg-green-500" : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"
                                 }`}
-                                style={{ width: `${Math.min(token.bondingCurveProgress, 100)}%` }}
+                                style={{ width: `${token.isGraduated ? 100 : Math.min(token.bondingCurveProgress, 100)}%` }}
                               />
                             </div>
                             <span className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]" : "text-gray-600"}`}>
-                              {token.bondingCurveProgress.toFixed(0)}%
+                              {token.isGraduated ? "GRAD" : `${token.bondingCurveProgress.toFixed(0)}%`}
                             </span>
                           </div>
                         </div>

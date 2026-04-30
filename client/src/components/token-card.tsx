@@ -132,14 +132,14 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
                 <span className={`font-bold ${
                   privateMode 
                     ? "text-white" 
-                    : token.bondingCurveProgress > 80 ? "text-green-600" : token.bondingCurveProgress > 50 ? "text-yellow-600" : "text-red-500"
+                    : token.isGraduated ? "text-green-600" : token.bondingCurveProgress > 80 ? "text-green-600" : token.bondingCurveProgress > 50 ? "text-yellow-600" : "text-red-500"
                 }`}>
-                  {token.bondingCurveProgress.toFixed(0)}%
+                  {token.isGraduated ? "On Raydium" : `${token.bondingCurveProgress.toFixed(0)}%`}
                 </span>
               </div>
             </div>
 
-            {/* Bonding curve progress bar */}
+            {/* Bonding curve progress bar (full once graduated) */}
             <div className={`h-1.5 rounded-full overflow-hidden mb-3 border ${
               privateMode ? "bg-black border-[#4ADE80]/20" : "bg-gray-200 border-gray-300"
             }`}>
@@ -147,9 +147,9 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
                 className={`h-full transition-all ${
                   privateMode 
                     ? "bg-[#4ADE80] shadow-[0_0_10px_rgba(57,255,20,0.5)]" 
-                    : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"
+                    : token.isGraduated ? "bg-green-500" : token.bondingCurveProgress > 80 ? "bg-green-500" : token.bondingCurveProgress > 50 ? "bg-yellow-500" : "bg-red-500"
                 }`}
-                style={{ width: `${token.bondingCurveProgress}%` }}
+                style={{ width: `${token.isGraduated ? 100 : token.bondingCurveProgress}%` }}
               />
             </div>
           </div>

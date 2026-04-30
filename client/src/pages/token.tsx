@@ -793,7 +793,7 @@ export default function TokenPage() {
                     {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
                   </div>
                   <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
-                    {token.bondingCurveProgress.toFixed(1)}% bonded
+                    {token.isGraduated ? "Graduated" : `${token.bondingCurveProgress.toFixed(1)}% bonded`}
                   </div>
                 </div>
               </div>
@@ -1104,7 +1104,7 @@ export default function TokenPage() {
                 {graduationStatus.graduationStatus === "completed" && graduationStatus.raydiumPoolId ? (
                   <div className="space-y-2">
                     <p className={`text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`}>
-                      This token has been migrated to Raydium. Trade on the DEX for full liquidity.
+                      This token has been migrated to a Raydium CPMM pool. View the on-chain pool below.
                     </p>
                     <a
                       href={`https://explorer.solana.com/address/${graduationStatus.raydiumPoolId}?cluster=devnet`}
@@ -1118,7 +1118,7 @@ export default function TokenPage() {
                       data-testid="link-raydium-pool"
                     >
                       <ExternalLink className="w-4 h-4" />
-                      View on Raydium (Devnet)
+                      View Raydium Pool
                     </a>
                     {graduationStatus.graduationTx && (
                       <a
@@ -1380,20 +1380,22 @@ export default function TokenPage() {
               </AnimatePresence>
             </div>
 
-            {/* Bonding Curve Progress */}
-            <div className={`${cardStyle} p-4`}>
-              <div className="flex items-center justify-between mb-2">
-                <span className={`text-sm ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>Bonding Curve</span>
-                <span className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{token?.bondingCurveProgress ? token.bondingCurveProgress.toFixed(1) : "0.0"}%</span>
+            {/* Bonding Curve Progress (hidden once graduated; Token Graduated card above shows the Raydium link) */}
+            {!token.isGraduated && (
+              <div className={`${cardStyle} p-4`}>
+                <div className="flex items-center justify-between mb-2">
+                  <span className={`text-sm ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>Bonding Curve</span>
+                  <span className={`font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>{token?.bondingCurveProgress ? token.bondingCurveProgress.toFixed(1) : "0.0"}%</span>
+                </div>
+                <div className={`h-3 rounded-full overflow-hidden border ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-gray-200 border-gray-300"}`}>
+                  <div className={`h-full transition-all ${privateMode ? "bg-[#4ADE80]" : (token?.bondingCurveProgress || 0) > 80 ? "bg-green-500" : (token?.bondingCurveProgress || 0) > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token?.bondingCurveProgress || 0, 100)}%` }} />
+                </div>
+                <div className={`flex justify-between text-xs mt-2 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
+                  <span>{token?.curveData?.realSolReserves ? (token.curveData.realSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
+                  <span>85 SOL to graduate</span>
+                </div>
               </div>
-              <div className={`h-3 rounded-full overflow-hidden border ${privateMode ? "bg-black border-[#4ADE80]/30" : "bg-gray-200 border-gray-300"}`}>
-                <div className={`h-full transition-all ${privateMode ? "bg-[#4ADE80]" : (token?.bondingCurveProgress || 0) > 80 ? "bg-green-500" : (token?.bondingCurveProgress || 0) > 50 ? "bg-yellow-500" : "bg-red-500"}`} style={{ width: `${Math.min(token?.bondingCurveProgress || 0, 100)}%` }} />
-              </div>
-              <div className={`flex justify-between text-xs mt-2 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>
-                <span>{token?.curveData?.realSolReserves ? (token.curveData.realSolReserves / 1e9).toFixed(2) : "0.00"} SOL</span>
-                <span>85 SOL to graduate</span>
-              </div>
-            </div>
+            )}
 
             {/* Description */}
             {token.description && (

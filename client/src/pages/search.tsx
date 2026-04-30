@@ -221,8 +221,15 @@ export default function SearchPage() {
                         ${token.symbol}
                       </div>
                     </div>
-                    <div className={`text-sm font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>
-                      {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+                    <div className="flex flex-col items-end gap-0.5">
+                      <div className={`text-sm font-bold ${privateMode ? "text-white" : "text-gray-900"}`}>
+                        {formatMarketCap(token.marketCapSol, solPrice?.price || null)}
+                      </div>
+                      {token.isGraduated && (
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 border ${privateMode ? "bg-black text-[#4ADE80] border-[#4ADE80]" : "bg-green-500 text-white border-black"}`} data-testid={`badge-graduated-${token.mint}`}>
+                          GRAD
+                        </span>
+                      )}
                     </div>
                   </motion.div>
                 </Link>
