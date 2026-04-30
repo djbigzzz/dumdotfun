@@ -72,14 +72,6 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
         }`}
         data-testid={`token-card-${token.mint}`}
       >
-        {token.isGraduated && (
-          <div className={`absolute -top-1 -right-1 font-bold px-2 py-0.5 text-[10px] rotate-12 z-20 border ${
-            privateMode ? "bg-black text-[#4ADE80] border-[#4ADE80]" : "bg-green-500 text-white border-black"
-          }`}>
-            {privateMode ? "[ GRADUATED ]" : "GRADUATED"}
-          </div>
-        )}
-
         <div className="flex items-start gap-3">
           <div className="relative flex-shrink-0">
             <div className={`w-16 h-16 rounded-lg overflow-hidden border-2 ${
@@ -118,6 +110,15 @@ export function TokenCard({ token, solPrice = null }: TokenCardProps) {
               }`}>
                 ${token.symbol}
               </span>
+              {token.isGraduated && (
+                <span className={`text-[10px] font-black uppercase px-1.5 py-0.5 rounded border tracking-wide ${
+                  privateMode
+                    ? "bg-[#4ADE80]/10 text-[#4ADE80] border-[#4ADE80] font-mono"
+                    : "bg-green-500 text-white border-black"
+                }`}>
+                  {privateMode ? "[GRAD]" : "GRADUATED"}
+                </span>
+              )}
             </div>
             
             <div className="grid grid-cols-2 gap-2 text-xs font-mono mb-2">
