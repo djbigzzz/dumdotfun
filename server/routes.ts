@@ -816,6 +816,218 @@ export async function registerRoutes(
     }
   });
 
+  // Raydium pool stats for graduated tokens
+  app.get("/api/raydium/pool/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      if (!(await isValidSolanaAddress(mint))) {
+        return res.status(400).json({ error: "Invalid mint address" });
+      }
+      const { getPoolStats, getRecentSwaps } = await import("./services/raydium-swap");
+      const [stats, swaps] = await Promise.all([
+        getPoolStats(mint),
+        getRecentSwaps(mint, 15),
+      ]);
+      if (!stats) {
+        return res.status(404).json({ error: "Token has not graduated to Raydium" });
+      }
+      return res.json({ success: true, pool: stats, recentSwaps: swaps });
+    } catch (err: any) {
+      console.error("[/api/raydium/pool] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to fetch pool stats" });
+    }
+  });
+
+  // Raydium swap quote (no auth required)
+  app.get("/api/raydium/swap/quote", async (req, res) => {
+    try {
+      const { mint, amount, isBuy } = req.query;
+      if (!mint || !amount) {
+        return res.status(400).json({ error: "mint and amount are required" });
+      }
+      if (!(await isValidSolanaAddress(mint as string))) {
+        return res.status(400).json({ error: "Invalid mint address" });
+      }
+      const { getSwapQuote } = await import("./services/raydium-swap");
+      const quote = await getSwapQuote({
+        mintAddress: mint as string,
+        amountIn: amount as string,
+        isBuy: isBuy === "true",
+      });
+      if (!quote) {
+        return res.status(404).json({ error: "Token has not graduated to Raydium" });
+      }
+      return res.json({ success: true, quote });
+    } catch (err: any) {
+      console.error("[/api/raydium/swap/quote] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to get quote" });
+    }
+  });
+
+  // Build Raydium swap transaction (server-side, returns base64 unsigned tx)
+  app.post("/api/raydium/swap/build", sensitiveLimiter, requireAuthWithMatchingWallet("userWallet"), async (req, res) => {
+    try {
+      const { userWallet, mint, amount, isBuy, slippageBps } = req.body;
+      if (!userWallet || !mint || !amount) {
+        return res.status(400).json({ error: "userWallet, mint, and amount are required" });
+      }
+      if (!(await isValidSolanaAddress(userWallet)) || !(await isValidSolanaAddress(mint))) {
+        return res.status(400).json({ error: "Invalid wallet or mint address" });
+      }
+      const { buildSwapTransaction } = await import("./services/raydium-swap");
+      const result = await buildSwapTransaction({
+        userWallet,
+        mintAddress: mint,
+        amountIn: amount.toString(),
+        isBuy: isBuy !== false,
+        slippageBps: slippageBps || 500,
+      });
+      if (!result.success) {
+        return res.status(400).json({ error: result.error || "Failed to build swap" });
+      }
+      return res.json({ success: true, transaction: result.transaction, quote: result.quote });
+    } catch (err: any) {
+      console.error("[/api/raydium/swap/build] error:", err);
+      return res.status(500).json({ error: err?.message || "Failed to build swap" });
+    }
+  });
+
+  // Record a Raydium swap after on-chain confirmation. Unlike the generic
+  // /api/trade/record endpoint, this verifies the signature on-chain and
+  // derives the side/amount from the actual transaction so the activity feed
+  // and points cannot be poisoned with fabricated payloads.
+  app.post("/api/raydium/swap/record", sensitiveLimiter, requireAuthWithMatchingWallet("userWallet"), async (req, res) => {
+    try {
+      const { userWallet, mint, signature } = req.body;
+      if (!userWallet || !mint || !signature || typeof signature !== "string") {
+        return res.status(400).json({ error: "userWallet, mint, and signature are required" });
+      }
+      if (!(await isValidSolanaAddress(userWallet)) || !(await isValidSolanaAddress(mint))) {
+        return res.status(400).json({ error: "Invalid wallet or mint address" });
+      }
+
+      // Idempotency claim. If another request already recorded this signature,
+      // return success so retries are safe no-ops.
+      let claimed = false;
+      try {
+        claimed = await storage.claimSignature(signature);
+      } catch (claimErr) {
+        console.error("[raydium/swap/record] signature claim failed:", claimErr);
+        return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+      }
+      if (!claimed) {
+        return res.json({ success: true, alreadyRecorded: true, pointsAwarded: [] });
+      }
+
+      // On-chain verification: fetch the parsed transaction, ensure it
+      // succeeded, was signed by the claimed wallet, and actually moved this
+      // mint. Side and amount are derived from pre/post balance deltas.
+      const { getConnection } = await import("./bonding-curve-client");
+      const connection = getConnection();
+      let tx: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          tx = await connection.getParsedTransaction(signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: "confirmed",
+          });
+          if (tx) break;
+        } catch (e) {
+          // retry
+        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!tx) {
+        return res.status(400).json({ error: "Transaction not found on chain" });
+      }
+      if (tx.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      const accountKeys: string[] = (tx.transaction?.message?.accountKeys || []).map((k: any) =>
+        typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+      );
+      const signerIdx = accountKeys.indexOf(userWallet);
+      if (signerIdx < 0) {
+        return res.status(400).json({ error: "Wallet not in transaction" });
+      }
+
+      // Raydium-specific evidence: the token's known CPMM pool account must
+      // appear in the transaction's account keys. Without this check, a plain
+      // token transfer could be misrecorded as a swap.
+      const { getPoolStats } = await import("./services/raydium-swap");
+      const expectedPool = await getPoolStats(mint);
+      if (!expectedPool) {
+        return res.status(400).json({ error: "Token has no Raydium pool" });
+      }
+      if (!accountKeys.includes(expectedPool.poolId)) {
+        return res.status(400).json({ error: "Transaction does not interact with the Raydium pool" });
+      }
+
+      const preTokenBalances: any[] = tx.meta?.preTokenBalances || [];
+      const postTokenBalances: any[] = tx.meta?.postTokenBalances || [];
+      const findUserTokenBal = (arr: any[]) =>
+        arr.find((b) => b.mint === mint && b.owner === userWallet);
+      const preTok = findUserTokenBal(preTokenBalances);
+      const postTok = findUserTokenBal(postTokenBalances);
+      const preTokAmt = Number(preTok?.uiTokenAmount?.uiAmount ?? 0);
+      const postTokAmt = Number(postTok?.uiTokenAmount?.uiAmount ?? 0);
+      const tokenDelta = postTokAmt - preTokAmt;
+
+      // SOL delta for the wallet (account 0 is the fee payer, but signer may
+      // not be at index 0 for v0 txs - use the signerIdx we found)
+      const preLamports = (tx.meta?.preBalances || [])[signerIdx] ?? 0;
+      const postLamports = (tx.meta?.postBalances || [])[signerIdx] ?? 0;
+      const fee = tx.meta?.fee ?? 0;
+      const solDeltaLamports = postLamports - preLamports + fee;
+      const solDelta = solDeltaLamports / 1_000_000_000;
+
+      // Decide side: user gained tokens => buy, user lost tokens => sell.
+      // Require a meaningful balance change to filter out unrelated txs.
+      let side: "buy" | "sell";
+      let amount: number;
+      if (tokenDelta > 0.000001) {
+        side = "buy";
+        amount = Math.abs(solDelta);
+      } else if (tokenDelta < -0.000001) {
+        side = "sell";
+        amount = tokenDelta * -1;
+      } else {
+        return res.status(400).json({ error: "Transaction did not move this token for the wallet" });
+      }
+
+      await storage.addActivity({
+        activityType: side,
+        walletAddress: userWallet,
+        tokenMint: mint,
+        amount: amount.toString(),
+        side,
+        metadata: JSON.stringify({
+          signature,
+          real: true,
+          source: "raydium",
+          blockTime: tx.blockTime ?? Math.floor(Date.now() / 1000),
+          tokenDelta,
+          solDelta,
+        }),
+      });
+
+      let pointsAwarded: { action: string; points: number; reason?: string }[] = [];
+      try {
+        const { awardQuest } = await import("./services/points");
+        const r = await awardQuest(userWallet, "first_trade");
+        if (r.awarded) pointsAwarded.push({ action: "first_trade", points: r.points, reason: "First trade" });
+      } catch (e) {
+        console.error("[raydium/swap/record] points award failed:", e);
+      }
+
+      return res.json({ success: true, side, amount, pointsAwarded });
+    } catch (error: any) {
+      console.error("[raydium/swap/record] error:", error);
+      return res.status(500).json({ error: error?.message || "Failed to record swap" });
+    }
+  });
+
   // Record trade after successful on-chain confirmation
   app.post("/api/trade/record", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
