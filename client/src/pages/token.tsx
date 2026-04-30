@@ -1151,7 +1151,36 @@ export default function TokenPage() {
               </div>
             )}
 
-            {/* Buy/Sell Panel */}
+            {/* Buy/Sell Panel - Graduated tokens trade on Raydium, not the bonding curve */}
+            {token.isGraduated ? (
+              <div className={`${cardStyle} p-4 sticky top-4`} data-testid="panel-trading-closed">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🎓</span>
+                  <span className={`font-bold text-sm ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>
+                    Trading on Raydium
+                  </span>
+                </div>
+                <p className={`text-xs mb-3 ${privateMode ? "text-[#4ADE80]/60" : "text-gray-600"}`}>
+                  This token graduated to a Raydium CPMM pool. The bonding curve is closed - swaps now happen on the DEX.
+                </p>
+                {graduationStatus?.raydiumPoolId && (
+                  <a
+                    href={`https://explorer.solana.com/address/${graduationStatus.raydiumPoolId}?cluster=devnet`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`flex items-center gap-2 w-full justify-center py-2 font-bold border-2 text-sm transition-all ${
+                      privateMode
+                        ? "bg-[#4ADE80] text-black border-[#4ADE80] hover:bg-[#4ADE80]/80"
+                        : "bg-purple-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"
+                    }`}
+                    data-testid="link-raydium-pool-trade"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                    View Raydium Pool
+                  </a>
+                )}
+              </div>
+            ) : (
             <div className={`${cardStyle} p-4 sticky top-4`}>
               {/* Buy/Sell Toggle */}
               <div className="flex gap-2 mb-4">
@@ -1252,6 +1281,7 @@ export default function TokenPage() {
                 </motion.button>
               )}
             </div>
+            )}
 
             {/* Umbra Private Transfer Panel */}
             <div
