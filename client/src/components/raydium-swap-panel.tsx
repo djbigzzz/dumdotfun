@@ -5,6 +5,7 @@ import { ExternalLink, ArrowDown, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { txToast, friendlyError, pointsAwarded as notifyPoints } from "@/lib/notify";
+import { translateSolanaError } from "@/lib/solana-errors";
 
 interface PoolStats {
   poolId: string;
@@ -87,30 +88,6 @@ export function RaydiumSwapPanel({
   const [isSwapping, setIsSwapping] = useState(false);
   const [slippageBps, setSlippageBps] = useState<number>(1000);
 
-  function translateOnChainError(raw: string): string {
-    // Raydium CPMM common failure codes that users actually hit.
-    // The "Custom" code lives at meta.err = { InstructionError: [ix, { Custom: N }] }
-    const customMatch = raw.match(/"Custom"\s*:\s*(\d+)/);
-    if (customMatch) {
-      const code = parseInt(customMatch[1], 10);
-      const map: Record<number, string> = {
-        0: "Price moved past your slippage tolerance. Try a higher slippage or a smaller amount.",
-        1: "Pool input too small to produce any output. Try a larger amount.",
-        6000: "Slippage exceeded - the price moved while your swap was pending. Try again with higher slippage.",
-        6001: "Pool is paused or has zero liquidity right now.",
-        6002: "Amount too small for this pool.",
-      };
-      if (map[code]) return map[code];
-      return `Raydium rejected the swap (code ${code}). Try a higher slippage or smaller amount.`;
-    }
-    if (raw.includes("BlockhashNotFound") || raw.includes("blockhash")) {
-      return "Transaction expired before landing. Please try again.";
-    }
-    if (raw.includes("InsufficientFundsForRent") || raw.includes("insufficient")) {
-      return "Not enough SOL to cover the swap and fees.";
-    }
-    return "Swap failed on chain. Try a higher slippage or smaller amount.";
-  }
 
   const { data: poolData, isLoading: poolLoading, refetch: refetchPool } = useQuery<PoolResponse>({
     queryKey: ["raydiumPool", mint],
@@ -283,7 +260,7 @@ export function RaydiumSwapPanel({
       console.error("[RaydiumSwap] swap error:", err);
       const raw = err?.message || String(err);
       const friendly = raw.includes("InstructionError") || raw.includes("Custom") || raw.includes("Swap failed on chain")
-        ? translateOnChainError(raw)
+        ? translateSolanaError(raw, "raydium")
         : friendlyError(err);
       txn.error(friendly);
     } finally {

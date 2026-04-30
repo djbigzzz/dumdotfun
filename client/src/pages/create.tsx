@@ -12,6 +12,7 @@ import { Buffer } from "buffer";
 import { usePageTitle } from "@/hooks/use-page-title";
 import { Connection, Transaction } from "@solana/web3.js";
 import bs58 from "bs58";
+import { translateSolanaError } from "@/lib/solana-errors";
 
 if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
@@ -171,7 +172,7 @@ export default function CreateToken() {
           });
           const conf = await connection.confirmTransaction(sig, "confirmed");
           if (conf.value?.err) {
-            throw new Error(`Transaction failed on chain: ${JSON.stringify(conf.value.err)}`);
+            throw new Error(translateSolanaError(JSON.stringify(conf.value.err), "create"));
           }
           return sig;
         } catch (err: any) {

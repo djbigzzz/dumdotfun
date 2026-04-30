@@ -1,5 +1,6 @@
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Connection, Transaction, Keypair, PublicKey } from "@solana/web3.js";
+import { translateSolanaError } from "./solana-errors";
 
 interface TradeQuote {
   inputAmount: string;
@@ -183,7 +184,7 @@ export async function signAndSendTransaction(
 
   const conf = await connection.confirmTransaction(signature, "confirmed");
   if (conf.value?.err) {
-    throw new Error(`Transaction failed on chain: ${JSON.stringify(conf.value.err)}`);
+    throw new Error(translateSolanaError(JSON.stringify(conf.value.err), "trade"));
   }
 
   return signature;
