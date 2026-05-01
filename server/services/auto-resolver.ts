@@ -75,6 +75,18 @@ export async function autoResolveExpiredMarkets(): Promise<ResolutionResult[]> {
           console.error("[AutoResolver] Failed to award first_win quests:", err);
         }
 
+        // SOL payout to winners. Hooked here so a market's resolution and
+        // its payouts are atomic from the user's perspective. Idempotent:
+        // payoutMarket inserts on UNIQUE position_id and skips already-paid
+        // positions, so retries on flaky RPC are safe.
+        let payoutSummary = { inserted: 0, sent: 0, failed: 0, totalPoolSol: totalPool };
+        try {
+          const { payoutMarket } = await import("./market-payouts");
+          payoutSummary = await payoutMarket(market.id);
+        } catch (err) {
+          console.error(`[AutoResolver] Payout failed for ${market.id}:`, err);
+        }
+
         await storage.addActivity({
           activityType: "market_auto_resolved",
           tokenMint: market.tokenMint,
@@ -89,6 +101,7 @@ export async function autoResolveExpiredMarkets(): Promise<ResolutionResult[]> {
             survivalScore: health.survivalScore,
             winnerCount: winningPositions.length,
             loserCount: losingPositions.length,
+            payouts: payoutSummary,
           }),
         });
         

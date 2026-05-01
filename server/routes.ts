@@ -2934,6 +2934,16 @@ export async function registerRoutes(
       // Resolve the market in database
       const resolvedMarket = await storage.resolveMarket(id, outcome);
 
+      // SOL payout to winners. Idempotent (UNIQUE position_id), so calling
+      // /resolve twice on the same market won't double-pay.
+      let payoutSummary = { inserted: 0, sent: 0, failed: 0, totalPoolSol: totalPool };
+      try {
+        const { payoutMarket } = await import("./services/market-payouts");
+        payoutSummary = await payoutMarket(id);
+      } catch (err) {
+        console.error(`[Resolution] Payout failed for ${id}:`, err);
+      }
+
       // Log activity
       await storage.addActivity({
         activityType: "market_resolved",
@@ -2947,10 +2957,11 @@ export async function registerRoutes(
           totalPool,
           winnerCount: winningPositions.length,
           loserCount: losingPositions.length,
+          payouts: payoutSummary,
         }),
       });
 
-      console.log(`[Resolution] Market ${id} resolved: ${outcome.toUpperCase()} wins | Pool: ${totalPool} SOL | Winners: ${winningPositions.length} | Losers: ${losingPositions.length}`);
+      console.log(`[Resolution] Market ${id} resolved: ${outcome.toUpperCase()} wins | Pool: ${totalPool} SOL | Winners: ${winningPositions.length} | Losers: ${losingPositions.length} | Sent: ${payoutSummary.sent}, Failed: ${payoutSummary.failed}`);
 
       return res.json({
         success: true,

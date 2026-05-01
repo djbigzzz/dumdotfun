@@ -364,6 +364,25 @@ export const usedSignatures = pgTable("used_signatures", {
   usedAt: timestamp("used_at").notNull().defaultNow(),
 });
 
+// Tracks SOL payouts to prediction-market winners. One row per winning
+// position. The UNIQUE constraint on position_id is the entire idempotency
+// guarantee: even if backfill runs twice, the auto-resolver retries, and a
+// manual /resolve call lands at the same time, no winner can be paid twice.
+// status flow: pending -> sent (signature populated) | failed (error populated)
+export const marketPayouts = pgTable("market_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  positionId: varchar("position_id").notNull().unique(),
+  marketId: varchar("market_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  amountLamports: numeric("amount_lamports", { precision: 20, scale: 0 }).notNull(),
+  signature: text("signature"),
+  status: text("status").notNull().default("pending"),
+  error: text("error"),
+  attempts: integer("attempts").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
 // Pre-generated vanity mint keypairs (addresses ending in dum/DUM/Dum). The
 // vanity grinder worker pushes new candidates here; the create-token endpoint
 // atomically claims one via UPDATE ... RETURNING. Lives in the DB so the pool
