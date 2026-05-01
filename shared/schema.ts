@@ -364,6 +364,24 @@ export const usedSignatures = pgTable("used_signatures", {
   usedAt: timestamp("used_at").notNull().defaultNow(),
 });
 
+// Pre-generated vanity mint keypairs (addresses ending in dum/DUM/Dum). The
+// vanity grinder worker pushes new candidates here; the create-token endpoint
+// atomically claims one via UPDATE ... RETURNING. Lives in the DB so the pool
+// is shared across replicas, survives reboots, and never double-issues.
+export const vanityKeypairs = pgTable("vanity_keypairs", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  pubkey: text("pubkey").notNull().unique(),
+  // Ed25519 64-byte secret key serialized as a JSON array of bytes (matches
+  // the shape Keypair.secretKey expects via Uint8Array.from).
+  secret: text("secret").notNull(),
+  suffix: text("suffix").notNull(),
+  // 'available' | 'issued' | 'invalid'. 'invalid' records candidates we tried
+  // to issue but found already used on chain, so we never re-probe them.
+  status: text("status").notNull().default("available"),
+  issuedAt: timestamp("issued_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
 export type UserPoints = typeof userPoints.$inferSelect;
 export type QuestProgress = typeof questProgress.$inferSelect;
 export type PointsHistoryEntry = typeof pointsHistory.$inferSelect;
