@@ -5,30 +5,61 @@ import { createServer } from "http";
 import { setupWebSocket } from "./websocket";
 
 function isNeonConnectionError(err: any): boolean {
-  return (
-    err?.code === "57P01" ||
-    (typeof err?.message === "string" &&
-      (err.message.includes("terminating connection") ||
-        err.message.includes("Connection terminated") ||
-        err.message.includes("Unhandled error")))
-  );
+  if (err?.code === "57P01") return true;
+
+  const msg = typeof err?.message === "string" ? err.message : "";
+  const stack = typeof err?.stack === "string" ? err.stack : "";
+
+  if (
+    msg.includes("terminating connection") ||
+    msg.includes("Connection terminated") ||
+    msg.includes("Unhandled error")
+  ) {
+    return true;
+  }
+
+  // node-postgres bug: when a connection error fires, pg tries to mutate
+  // err.message on an Error subclass where `message` is a getter-only property,
+  // throwing `TypeError: Cannot set property message of #<X> which has only a getter`.
+  // The originating call is always pg's connection error handler, so we match on stack.
+  if (
+    err?.name === "TypeError" &&
+    msg.includes("Cannot set property message") &&
+    (stack.includes("_handleErrorWhileConnecting") ||
+      stack.includes("_handleErrorEvent") ||
+      stack.includes("reportStreamError"))
+  ) {
+    return true;
+  }
+
+  return false;
 }
 
 process.on("uncaughtException", (err: any) => {
   if (isNeonConnectionError(err)) {
-    console.warn("[server] Caught Neon connection termination (uncaughtException) — continuing:", err.message);
+    console.warn(
+      "[server] Caught Neon/pg connection error (uncaughtException) - continuing:",
+      err?.name,
+      err?.message,
+      err?.code ?? "",
+    );
     return;
   }
-  console.error("[server] Uncaught exception — exiting:", err);
+  console.error("[server] Uncaught exception - exiting:", err);
   process.exit(1);
 });
 
 process.on("unhandledRejection", (reason: any) => {
   if (isNeonConnectionError(reason)) {
-    console.warn("[server] Caught Neon connection termination (unhandledRejection) — continuing:", reason?.message);
+    console.warn(
+      "[server] Caught Neon/pg connection error (unhandledRejection) - continuing:",
+      reason?.name,
+      reason?.message,
+      reason?.code ?? "",
+    );
     return;
   }
-  console.error("[server] Unhandled rejection — exiting:", reason);
+  console.error("[server] Unhandled rejection - exiting:", reason);
   process.exit(1);
 });
 
