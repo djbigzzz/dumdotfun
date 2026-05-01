@@ -26,6 +26,14 @@ const Leaderboard = lazy(() => import("@/pages/leaderboard"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
 
+function PitchRedirect() {
+  useEffect(() => {
+    const { search, hash } = window.location;
+    window.location.replace(`/pitch/index.html${search}${hash}`);
+  }, []);
+  return <PageLoader />;
+}
+
 const LazyLegal = lazy(() =>
   import("@/pages/legal").then((m) => ({
     default: m.PrivacyPolicy,
@@ -69,6 +77,7 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/quests" component={QuestsPage} />
         <Route path="/wallet/:address" component={WalletPage} />
+        <Route path="/pitch" component={PitchRedirect} />
         <Route path="/legal/privacy" component={LazyLegal} />
         <Route path="/legal/eula" component={LazyEULA} />
         <Route path="/legal/copyright" component={LazyCopyright} />
