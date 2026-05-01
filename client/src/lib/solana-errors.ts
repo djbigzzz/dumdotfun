@@ -45,7 +45,7 @@ const RAYDIUM_ERRORS: Record<number, string> = {
 
 // Common system program Custom codes seen during account creation.
 const SYSTEM_PROGRAM_ERRORS: Record<number, string> = {
-  0: "An account with that address already exists. Try again with a fresh attempt.",
+  0: "Token address conflict (another token just claimed it). Click Create again to grab a new address.",
   1: "Not enough SOL to create this account.",
   2: "Invalid program account.",
   3: "Invalid argument.",

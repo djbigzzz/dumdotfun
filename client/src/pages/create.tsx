@@ -127,41 +127,13 @@ export default function CreateToken() {
         throw new Error(e?.message || "Wallet sign-in required to deploy");
       }
 
-      setCreationStep("Uploading image & building transaction...");
-
-      let buildRes: Response;
-      try {
-        buildRes = await apiRequest("POST", "/api/bonding-curve/create-token", {
-          creator: connectedWallet,
-          name: formData.name,
-          symbol: formData.symbol,
-          description: formData.description || "",
-          uri: imagePreview || "",
-        });
-      } catch (err: any) {
-        const msg = err?.message || "Failed to build transaction";
-        if (msg.includes("needsInit")) {
-          throw new Error("Platform not initialized. Contact platform admin to initialize the bonding curve.");
-        }
-        throw new Error(msg);
-      }
-
-      const { transaction: txBase64, mint } = await buildRes.json();
-      
-      setCreationStep("Sign to create token...");
-      
-      const txBytes = Buffer.from(txBase64, "base64");
-      const transaction = Transaction.from(txBytes);
-      
-      const signedTx = await signTransaction(transaction);
-      
-      setCreationStep("Creating token on-chain...");
-      
       const connection = new Connection(SOLANA_RPC, "confirmed");
 
       // sendAndConfirm helper: skips preflight to avoid "already been processed"
       // errors when a previous attempt landed on-chain but confirmation timed out.
-      const sendAndConfirm = async (tx: Transaction): Promise<string> => {
+      // Returns both the signature and the raw on-chain error (if any) so the
+      // caller can decide whether to retry vs. surface to the user.
+      const sendAndConfirm = async (tx: Transaction): Promise<{ signature: string; rawErr: any }> => {
         // Pre-compute the signature from the signed tx (fee payer = slot 0)
         const sigBytes = tx.signatures[0]?.signature;
         const txSig = sigBytes ? bs58.encode(sigBytes) : null;
@@ -171,21 +143,94 @@ export default function CreateToken() {
             skipPreflight: true,
           });
           const conf = await connection.confirmTransaction(sig, "confirmed");
-          if (conf.value?.err) {
-            throw new Error(translateSolanaError(JSON.stringify(conf.value.err), "create"));
-          }
-          return sig;
+          return { signature: sig, rawErr: conf.value?.err ?? null };
         } catch (err: any) {
           if (err.message?.includes("already been processed")) {
-            // Transaction was already on-chain — use the pre-computed signature
+            // The tx was already in flight from a prior attempt. Look up its
+            // actual on-chain status instead of optimistically returning
+            // success - the prior submission may itself have failed (e.g. mint
+            // collision) and we'd otherwise march straight into the dev buy
+            // for a token that doesn't exist.
             if (!txSig) throw new Error("Transaction was already processed but could not extract signature");
-            return txSig;
+            try {
+              const status = await connection.getSignatureStatus(txSig, { searchTransactionHistory: true });
+              return { signature: txSig, rawErr: status.value?.err ?? null };
+            } catch {
+              return { signature: txSig, rawErr: null };
+            }
           }
           throw err;
         }
       };
 
-      const signature = await sendAndConfirm(signedTx);
+      // True iff the on-chain failure was system_program::AccountAlreadyInUse
+      // at the create_token instruction (ix 0, Custom code 0). In that case the
+      // mint pubkey we were handed is already taken on chain - retrying with a
+      // fresh build will get us a new mint and almost always succeeds.
+      const isMintCollision = (rawErr: any): boolean => {
+        // Structural check first - rawErr is normally a plain object from
+        // confirmTransaction / getSignatureStatus.
+        const ix = (rawErr as any)?.InstructionError;
+        if (Array.isArray(ix) && ix[0] === 0) {
+          const inner = ix[1];
+          if (inner && typeof inner === "object" && (inner as any).Custom === 0) return true;
+        }
+        // Regex fallback for stringified or alternative formats.
+        try {
+          const s = typeof rawErr === "string" ? rawErr : JSON.stringify(rawErr ?? "");
+          return /"?InstructionError"?\s*[:,]\s*\[\s*0\s*,\s*\{\s*"?Custom"?\s*:\s*0\s*\}/.test(s);
+        } catch {
+          return false;
+        }
+      };
+
+      // Build → sign → send the create-token tx. Retries once with a fresh
+      // server-issued mint if we hit a vanity-pool collision (rare after the
+      // server-side on-chain validation, but cheap insurance for the user).
+      const buildAndSendCreate = async (attempt: number): Promise<{ mint: string; signature: string }> => {
+        setCreationStep(
+          attempt === 0
+            ? "Uploading image & building transaction..."
+            : "Address conflict - getting a fresh address..."
+        );
+
+        let buildRes: Response;
+        try {
+          buildRes = await apiRequest("POST", "/api/bonding-curve/create-token", {
+            creator: connectedWallet,
+            name: formData.name,
+            symbol: formData.symbol,
+            description: formData.description || "",
+            uri: imagePreview || "",
+          });
+        } catch (err: any) {
+          const msg = err?.message || "Failed to build transaction";
+          if (msg.includes("needsInit")) {
+            throw new Error("Platform not initialized. Contact platform admin to initialize the bonding curve.");
+          }
+          throw new Error(msg);
+        }
+
+        const { transaction: txBase64, mint } = await buildRes.json();
+
+        setCreationStep(attempt === 0 ? "Sign to create token..." : "Sign again with the new address...");
+        const txBytes = Buffer.from(txBase64, "base64");
+        const transaction = Transaction.from(txBytes);
+        const signedTx = await signTransaction(transaction);
+
+        setCreationStep("Creating token on-chain...");
+        const { signature, rawErr } = await sendAndConfirm(signedTx);
+        if (rawErr) {
+          if (attempt === 0 && isMintCollision(rawErr)) {
+            console.warn("[create] mint collision on attempt 0, retrying with a fresh address", rawErr);
+            return buildAndSendCreate(1);
+          }
+          throw new Error(translateSolanaError(JSON.stringify(rawErr), "create"));
+        }
+        return { mint, signature };
+      };
+
+      const { mint, signature } = await buildAndSendCreate(0);
       
       setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
       
@@ -206,8 +251,11 @@ export default function CreateToken() {
       const signedBuyTx = await signTransaction(buyTransaction);
       
       setCreationStep("Executing dev buy...");
-      
-      const buySignature = await sendAndConfirm(signedBuyTx);
+
+      const { signature: buySignature, rawErr: buyErr } = await sendAndConfirm(signedBuyTx);
+      if (buyErr) {
+        throw new Error(translateSolanaError(JSON.stringify(buyErr), "trade"));
+      }
       
       setCreationStep("Saving token to database...");
       

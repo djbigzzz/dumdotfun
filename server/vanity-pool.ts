@@ -1,10 +1,13 @@
-import { Keypair } from "@solana/web3.js";
+import { Connection, Keypair, PublicKey } from "@solana/web3.js";
 import { Worker } from "worker_threads";
 import fs from "fs";
 import path from "path";
 
 const POOL_TARGET = 8;
 const POOL_FILE = path.join(process.cwd(), ".local", "state", "vanity-pool.json");
+// Cap the on-chain "is this address taken?" probe so a degenerate pool full of
+// previously-consumed keypairs can't stall the request indefinitely.
+const MAX_VALIDATION_TRIES = 4;
 
 let pool: { secret: number[]; pubkey: string; suffix: string }[] = [];
 let started = false;
@@ -89,17 +92,44 @@ export function startVanityGrinder() {
   }
 }
 
-export function getVanityMintKeypair(): { keypair: Keypair; vanity: boolean; suffix: string | null } {
-  if (pool.length > 0) {
+async function isAddressUnusedOnChain(connection: Connection, pubkey: PublicKey): Promise<boolean> {
+  try {
+    const info = await connection.getAccountInfo(pubkey, "confirmed");
+    return info === null;
+  } catch (err) {
+    // If the RPC probe itself fails we cannot prove the address is unused, so
+    // be conservative and skip this candidate. The caller will fall back to a
+    // freshly generated keypair (collision probability ~ 0).
+    console.warn("[vanity] on-chain probe failed for", pubkey.toBase58(), err);
+    return false;
+  }
+}
+
+export async function getVanityMintKeypair(
+  connection: Connection,
+): Promise<{ keypair: Keypair; vanity: boolean; suffix: string | null }> {
+  // Try up to N pool entries. Any entry whose pubkey already has data on chain
+  // (e.g. handed out by a sibling replica that won the race, or carried over
+  // from a previous deploy that consumed it) is silently dropped so we never
+  // ship the user a transaction that the system program will reject with
+  // AccountAlreadyInUse.
+  for (let i = 0; i < MAX_VALIDATION_TRIES && pool.length > 0; i++) {
     const entry = pool.shift()!;
     savePool();
+    let kp: Keypair;
     try {
-      const kp = Keypair.fromSecretKey(Uint8Array.from(entry.secret));
-      return { keypair: kp, vanity: true, suffix: entry.suffix };
+      kp = Keypair.fromSecretKey(Uint8Array.from(entry.secret));
     } catch {
-      // fall through
+      continue;
     }
+    const unused = await isAddressUnusedOnChain(connection, kp.publicKey);
+    if (unused) {
+      return { keypair: kp, vanity: true, suffix: entry.suffix };
+    }
+    console.warn(`[vanity] dropping stale pool entry ${entry.pubkey} (already on-chain)`);
   }
+  // Fresh random keypair: 256 bits of entropy, collision is astronomically
+  // unlikely so we don't bother probing.
   return { keypair: Keypair.generate(), vanity: false, suffix: null };
 }
 

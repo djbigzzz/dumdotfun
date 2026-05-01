@@ -105,7 +105,7 @@ export async function buildCreateTokenTransaction(
 ): Promise<{ transaction: string; mint: string; mintKeypair: Keypair }> {
   const connection = getConnection();
   const { getVanityMintKeypair } = await import("./vanity-pool");
-  const { keypair: mintKeypair, vanity, suffix } = getVanityMintKeypair();
+  const { keypair: mintKeypair, vanity, suffix } = await getVanityMintKeypair(connection);
   const mint = mintKeypair.publicKey;
   if (vanity) {
     console.log(`[create-token] using vanity mint ${mint.toBase58()} (suffix: ${suffix})`);
