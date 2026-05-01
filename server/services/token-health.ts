@@ -240,11 +240,27 @@ export function evaluateSurvival(
 
   switch (criteria) {
     case "dev_sells": {
-      const eff = health.creatorEffectivePercent;
-      if (eff === null) {
+      // Graduation short-circuit: a token that migrated to Raydium drains its
+      // bonding-curve PDA into the LP pool, which makes creatorEffectivePercent
+      // collapse to whatever is left in the creator's personal wallet (usually
+      // < 20%). Without this guard, a successful graduation looks identical to
+      // a 90% dev dump and falsely resolves "rug = YES". Graduation is the
+      // opposite of a rug, so we explicitly flag it as not rugged.
+      if (health.isGraduated) {
         return {
           survived: false,
-          reason: "Could not verify creator's token balance — treated as rugged",
+          reason: "Token graduated to Raydium - liquidity migrated, not rugged",
+        };
+      }
+      const eff = health.creatorEffectivePercent;
+      if (eff === null) {
+        // Can't verify - safer default is "not rugged" so we don't punish
+        // creators for transient RPC failures. Was previously labeled
+        // "treated as rugged" but the value was already not-rugged; aligning
+        // text + value here.
+        return {
+          survived: false,
+          reason: "Could not verify creator's token balance - defaulted to not rugged",
         };
       }
       const sold = 100 - eff;
@@ -252,12 +268,21 @@ export function evaluateSurvival(
       return {
         survived: rugged,
         reason: rugged
-          ? `Dev rugged — ${sold}% of supply sold/moved (threshold ${RUG_THRESHOLD}%)`
-          : `Dev still controls ${eff}% of supply${health.curveHoldsCreatorTokens ? " (incl. bonding curve)" : ""} — not rugged`,
+          ? `Dev rugged - ${sold}% of supply sold/moved (threshold ${RUG_THRESHOLD}%)`
+          : `Dev still controls ${eff}% of supply${health.curveHoldsCreatorTokens ? " (incl. bonding curve)" : ""} - not rugged`,
       };
     }
 
     case "dev_holds": {
+      // Graduation short-circuit: same reasoning as dev_sells. A graduated
+      // token has by definition survived the bonding curve, so it should
+      // count as "alive" regardless of how much the creator personally holds.
+      if (health.isGraduated) {
+        return {
+          survived: true,
+          reason: "Token graduated to Raydium - survived the bonding curve",
+        };
+      }
       const eff = health.creatorEffectivePercent;
       if (eff === null) {
         const fallback = health.criteria.has_liquidity && health.criteria.recent_activity;
@@ -272,8 +297,8 @@ export function evaluateSurvival(
       return {
         survived,
         reason: survived
-          ? `Dev still controls ${eff}% of supply${health.curveHoldsCreatorTokens ? " (incl. bonding curve)" : ""} — token survived`
-          : `Dev moved tokens — only ${eff}% remaining (needs ${DEV_HOLD_MIN}%+)`,
+          ? `Dev still controls ${eff}% of supply${health.curveHoldsCreatorTokens ? " (incl. bonding curve)" : ""} - token survived`
+          : `Dev moved tokens - only ${eff}% remaining (needs ${DEV_HOLD_MIN}%+)`,
       };
     }
 
@@ -302,6 +327,16 @@ export function evaluateSurvival(
       };
 
     case "high_survival": {
+      // Graduation override: same root cause as dev_sells/dev_holds. After
+      // migration the dev_holds component of the score collapses, dragging
+      // the total below 75 even for legitimate graduates. Treat graduation
+      // as the strongest possible "high survival" signal.
+      if (health.isGraduated) {
+        return {
+          survived: true,
+          reason: `Token graduated to Raydium - highest possible survival signal`,
+        };
+      }
       const highSurvival = health.survivalScore >= 75;
       return {
         survived: highSurvival,
@@ -313,11 +348,20 @@ export function evaluateSurvival(
 
     case "token_exists":
     default:
+      // Graduation override: dev_holds collapses post-migration (see dev_sells
+      // comment), so without this guard a graduated token would fail the
+      // default "alive" check. Graduation is by definition "alive".
+      if (health.isGraduated) {
+        return {
+          survived: true,
+          reason: "Token graduated to Raydium - alive on a real DEX",
+        };
+      }
       return {
         survived: health.criteria.has_liquidity && health.criteria.dev_holds,
         reason: (health.criteria.has_liquidity && health.criteria.dev_holds)
-          ? `Token is alive — has liquidity and dev controls ${health.creatorEffectivePercent ?? '?'}% of supply`
-          : `Token is not healthy — ${!health.criteria.has_liquidity ? 'insufficient liquidity' : `dev only holds ${health.creatorEffectivePercent ?? 0}%`}`,
+          ? `Token is alive - has liquidity and dev controls ${health.creatorEffectivePercent ?? '?'}% of supply`
+          : `Token is not healthy - ${!health.criteria.has_liquidity ? 'insufficient liquidity' : `dev only holds ${health.creatorEffectivePercent ?? 0}%`}`,
       };
   }
 }
@@ -338,28 +382,30 @@ export function getResolutionRules(criteria: string): ResolutionRules {
       return {
         criteria,
         title: "Dev Rug Check",
-        yesCondition: `YES wins if the creator has sold/moved ${RUG_THRESHOLD}%+ of their effective stake (wallet + bonding curve) by resolution.`,
-        noCondition: `NO wins if the creator still controls more than ${100 - RUG_THRESHOLD}% of supply at resolution time.`,
+        yesCondition: `YES wins if the creator has sold/moved ${RUG_THRESHOLD}%+ of their effective stake (wallet + bonding curve) by resolution. Graduation to Raydium is NOT a rug.`,
+        noCondition: `NO wins if the creator still controls more than ${100 - RUG_THRESHOLD}% of supply at resolution, OR if the token has graduated to Raydium.`,
         verificationSource: "Solana RPC: creator wallet ATA + bonding-curve PDA balance vs. mint total supply.",
         thresholds: [
           { label: "Rug threshold", value: `${RUG_THRESHOLD}%+ of supply moved` },
           { label: "Safe threshold", value: `>${100 - RUG_THRESHOLD}% still controlled` },
+          { label: "Graduation override", value: "Graduated tokens are never rugged" },
         ],
-        methodology: "We sum the creator wallet's token balance plus tokens still locked in the bonding curve PDA (until graduation), divide by the mint's true total supply, and check whether the proportion outside that combined stake exceeds the rug threshold.",
+        methodology: "We sum the creator wallet's token balance plus tokens still locked in the bonding curve PDA, divide by the mint's true total supply, and check whether the proportion outside that combined stake exceeds the rug threshold. Graduated tokens skip this calculation: liquidity has migrated to a real DEX, which is the opposite of a rug.",
       };
 
     case "dev_holds":
       return {
         criteria,
         title: "Dev Holdings Check",
-        yesCondition: `YES wins if the creator's effective stake (wallet + bonding curve) is ${DEV_HOLD_MIN}%+ of supply AND the token has active liquidity.`,
-        noCondition: `NO wins if the creator's effective stake drops below ${DEV_HOLD_MIN}% of supply OR liquidity dries up.`,
+        yesCondition: `YES wins if the creator's effective stake (wallet + bonding curve) is ${DEV_HOLD_MIN}%+ of supply AND the token has active liquidity, OR if the token has graduated to Raydium.`,
+        noCondition: `NO wins if the creator's effective stake drops below ${DEV_HOLD_MIN}% of supply OR liquidity dries up (and the token has not graduated).`,
         verificationSource: "Solana RPC: creator wallet ATA + bonding-curve PDA balance vs. mint total supply.",
         thresholds: [
           { label: "Min effective stake", value: `${DEV_HOLD_MIN}% of total supply` },
           { label: "Min liquidity", value: `${MIN_HOLDERS_LIQUIDITY}+ holders AND ${MIN_LIQUIDITY_SOL} SOL in curve, OR graduated` },
+          { label: "Graduation override", value: "Graduated tokens automatically count as alive" },
         ],
-        methodology: "Effective stake counts both the creator wallet and tokens still locked in the bonding curve, so freshly-launched tokens aren't auto-classified as rugged.",
+        methodology: "Effective stake counts both the creator wallet and tokens still locked in the bonding curve. Freshly-launched tokens aren't auto-classified as rugged because most supply still sits in the curve. Graduated tokens automatically pass: graduation means the token cleared 85 SOL on the curve and migrated to a real Raydium pool.",
       };
 
     case "has_liquidity":
