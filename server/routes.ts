@@ -8,7 +8,7 @@ import { getTradeQuote, buildBuyTransaction as buildBuyTx, buildSellTransaction 
 import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { db } from "./db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, ne, or, isNull, and } from "drizzle-orm";
 import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
@@ -127,7 +127,17 @@ export async function registerRoutes(
   // SEO: Dynamic sitemap
   app.get("/sitemap.xml", async (_req, res) => {
     try {
-      const tokens = await db.select().from(tokensTable).orderBy(desc(tokensTable.createdAt)).limit(500);
+      const tokens = await db
+        .select()
+        .from(tokensTable)
+        .where(
+          or(
+            isNull(tokensTable.graduationStatus),
+            ne(tokensTable.graduationStatus, "broken"),
+          ),
+        )
+        .orderBy(desc(tokensTable.createdAt))
+        .limit(500);
       const markets = await storage.getMarkets(200);
       const baseUrl = "https://dum.fun";
       const now = new Date().toISOString().split('T')[0];
@@ -234,6 +244,12 @@ export async function registerRoutes(
       const dbTokens = await db
         .select()
         .from(tokensTable)
+        .where(
+          or(
+            isNull(tokensTable.graduationStatus),
+            ne(tokensTable.graduationStatus, "broken"),
+          ),
+        )
         .orderBy(desc(tokensTable.createdAt))
         .limit(limit)
         .offset(offset);

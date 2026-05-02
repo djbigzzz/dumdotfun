@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, type Market, type InsertMarket, type Position, type InsertPosition, type Activity, type InsertActivity, users, tokens, walletAnalysis, waitlist, predictionMarkets, positions, activityFeed, usedSignatures } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, lt, and } from "drizzle-orm";
+import { eq, desc, sql, lt, and, or, ne, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -183,7 +183,18 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getTokensByCreator(creatorAddress: string): Promise<Token[]> {
-    return db.select().from(tokens).where(eq(tokens.creatorAddress, creatorAddress));
+    return db
+      .select()
+      .from(tokens)
+      .where(
+        and(
+          eq(tokens.creatorAddress, creatorAddress),
+          or(
+            isNull(tokens.graduationStatus),
+            ne(tokens.graduationStatus, "broken"),
+          ),
+        ),
+      );
   }
 
   async createMarket(insertMarket: InsertMarket): Promise<Market> {
