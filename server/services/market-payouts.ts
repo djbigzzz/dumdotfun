@@ -25,18 +25,49 @@ export interface PayoutRow {
   amountLamports: bigint;
 }
 
-function getAuthorityKeypair(): Keypair {
-  const raw = process.env.PLATFORM_AUTHORITY_SECRET_KEY;
-  if (!raw) throw new Error("PLATFORM_AUTHORITY_SECRET_KEY not set - payouts disabled");
+function parseSecretKey(raw: string, name: string): Keypair {
   const t = raw.trim();
   let bytes: Uint8Array;
   if (t.startsWith("[")) bytes = Uint8Array.from(JSON.parse(t));
   else if (t.includes(",")) bytes = new Uint8Array(t.split(",").map(Number));
   else bytes = new Uint8Array(Buffer.from(t, "base64"));
   if (bytes.length !== 64) {
-    throw new Error(`PLATFORM_AUTHORITY_SECRET_KEY has wrong length: ${bytes.length}, expected 64`);
+    throw new Error(`${name} has wrong length: ${bytes.length}, expected 64`);
   }
   return Keypair.fromSecretKey(bytes);
+}
+
+// Cache parsed keypairs by their public address so we can quickly find the
+// right signer for a given market.poolWallet.
+const keypairCacheByAddress = new Map<string, Keypair>();
+
+function loadKeypairsFromEnv(): void {
+  if (keypairCacheByAddress.size > 0) return;
+  const platform = process.env.PLATFORM_AUTHORITY_SECRET_KEY;
+  if (platform) {
+    try {
+      const kp = parseSecretKey(platform, "PLATFORM_AUTHORITY_SECRET_KEY");
+      keypairCacheByAddress.set(kp.publicKey.toBase58(), kp);
+    } catch (e) { console.error("[Payouts] Failed to load PLATFORM_AUTHORITY_SECRET_KEY:", e); }
+  }
+  const pool = process.env.BETTING_POOL_AUTHORITY_SECRET_KEY;
+  if (pool) {
+    try {
+      const kp = parseSecretKey(pool, "BETTING_POOL_AUTHORITY_SECRET_KEY");
+      keypairCacheByAddress.set(kp.publicKey.toBase58(), kp);
+    } catch (e) { console.error("[Payouts] Failed to load BETTING_POOL_AUTHORITY_SECRET_KEY:", e); }
+  }
+}
+
+function getKeypairFor(walletAddress: string): Keypair {
+  loadKeypairsFromEnv();
+  const kp = keypairCacheByAddress.get(walletAddress);
+  if (!kp) {
+    const available: string[] = [];
+    keypairCacheByAddress.forEach((_v, k) => available.push(k));
+    throw new Error(`No secret key configured for pool wallet ${walletAddress}. Available: ${available.join(", ")}`);
+  }
+  return kp;
 }
 
 function getConn(): Connection {
@@ -76,7 +107,7 @@ export async function computePayoutsForMarket(marketId: string, dryRun = false):
     const payoutSol = ratio * totalPool;
     // Round to lamports, never pay more than the position would owe.
     const lamports = BigInt(Math.floor(payoutSol * LAMPORTS_PER_SOL));
-    if (lamports <= 0n) continue;
+    if (lamports <= BigInt(0)) continue;
     rows.push({
       positionId: p.id,
       marketId,
@@ -142,10 +173,12 @@ async function sendOnePayout(
   }
 }
 
-// Atomically claim one pending payout for processing across replicas.
-// FOR UPDATE SKIP LOCKED ensures two replicas can't grab the same row.
+// Atomically claim a batch of pending payouts for processing across replicas.
+// FOR UPDATE SKIP LOCKED ensures two replicas can't grab the same row. We
+// also pull the source pool wallet (joined from prediction_markets) so the
+// caller knows which keypair to sign with.
 async function claimPendingPayouts(limit: number): Promise<Array<{
-  id: string; walletAddress: string; amountLamports: string; attempts: number;
+  id: string; walletAddress: string; amountLamports: string; attempts: number; poolWallet: string;
 }>> {
   const result: any = await db.execute(sql`
     WITH claimed AS (
@@ -159,7 +192,12 @@ async function claimPendingPayouts(limit: number): Promise<Array<{
     SET attempts = mp.attempts + 1, updated_at = now()
     FROM claimed
     WHERE mp.id = claimed.id
-    RETURNING mp.id, mp.wallet_address AS "walletAddress", mp.amount_lamports::text AS "amountLamports", mp.attempts
+    RETURNING
+      mp.id,
+      mp.wallet_address AS "walletAddress",
+      mp.amount_lamports::text AS "amountLamports",
+      mp.attempts,
+      (SELECT pool_wallet FROM prediction_markets WHERE id = mp.market_id) AS "poolWallet"
   `);
   return result.rows as any[];
 }
@@ -170,13 +208,25 @@ async function claimPendingPayouts(limit: number): Promise<Array<{
 export async function processPendingPayouts(maxBatch = 50): Promise<{
   attempted: number; sent: number; failed: number; details: Array<{ id: string; ok: boolean; signature?: string; error?: string; }>;
 }> {
-  const authority = getAuthorityKeypair();
   const conn = getConn();
   const claimed = await claimPendingPayouts(maxBatch);
   let sent = 0, failed = 0;
   const details: Array<any> = [];
   for (const row of claimed) {
     const amt = BigInt(row.amountLamports);
+    let authority: Keypair;
+    try {
+      authority = getKeypairFor(row.poolWallet);
+    } catch (e: any) {
+      // No key for this pool wallet - mark failed and move on.
+      await db.update(marketPayouts)
+        .set({ status: row.attempts + 1 >= MAX_ATTEMPTS ? "failed" : "pending", error: e.message, updatedAt: new Date() })
+        .where(eq(marketPayouts.id, row.id));
+      failed++;
+      details.push({ id: row.id, ok: false, error: e.message });
+      console.error(`[Payouts] No signing key for pool wallet ${row.poolWallet}: ${e.message}`);
+      continue;
+    }
     const result = await sendOnePayout(conn, authority, row.id, row.walletAddress, amt);
     if (result.ok) {
       await db.update(marketPayouts)
@@ -208,7 +258,9 @@ export async function payoutMarket(marketId: string): Promise<{
   const computed = await computePayoutsForMarket(marketId);
   if (!computed) return { inserted: 0, sent: 0, failed: 0, totalPoolSol: 0 };
   const inserted = await insertPendingPayouts(computed.rows);
-  const result = await processPendingPayouts(computed.rows.length || 1);
+  // Process payouts grouped by pool wallet so each batch uses the correct
+  // signing keypair (legacy markets vs new betting-pool markets).
+  const result = await processPendingPayouts(500);
   return {
     inserted,
     sent: result.sent,

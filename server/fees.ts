@@ -16,6 +16,18 @@ export function getFeeRecipientWallet(): PublicKey {
   return new PublicKey(wallet);
 }
 
+// Wallet that receives bet money. Kept SEPARATE from the platform fee
+// recipient so bet pool funds can never be commingled with operational SOL
+// (token mint rent, graduation costs, etc). Falls back to the legacy
+// FEE_RECIPIENT_WALLET if BETTING_POOL_WALLET is not configured, which
+// preserves prior behavior during the rollout.
+export function getBettingPoolWallet(): PublicKey {
+  const wallet = process.env.BETTING_POOL_WALLET;
+  if (wallet) return new PublicKey(wallet);
+  // Fallback for environments that haven't configured the new pool yet.
+  return getFeeRecipientWallet();
+}
+
 export function createFeeTransferInstruction(
   fromPubkey: PublicKey,
   feeSol: number

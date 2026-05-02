@@ -2298,17 +2298,40 @@ export async function registerRoutes(
       }
       
       const feeRecipient = getFeeRecipientWallet();
-      const totalLamports = Math.floor(totalCost * LAMPORTS_PER_SOL);
-      
+      const { getBettingPoolWallet } = await import("./fees");
+      const bettingPool = getBettingPoolWallet();
+      const creationFeeLamports = Math.floor(CREATION_FEE * LAMPORTS_PER_SOL);
+      const initialBetLamports = Math.floor(betAmount * LAMPORTS_PER_SOL);
+
+      // Two transfers in one tx: creation fee -> platform fee recipient,
+      // initial bet -> betting pool wallet. Splitting at the source means
+      // pool funds and operational SOL are NEVER commingled, so winners can
+      // always be paid from the pool without dipping into operational funds.
       const tx = new Transaction();
       tx.add(SystemProgram.transfer({
         fromPubkey: new PublicKey(creatorAddress),
         toPubkey: feeRecipient,
-        lamports: totalLamports,
+        lamports: creationFeeLamports,
       }));
+      // Skip the second instruction if both wallets are the same (legacy
+      // env config). Otherwise the on-chain validator will fold it into one
+      // transfer anyway, but this keeps the verification logic clean.
+      if (!bettingPool.equals(feeRecipient)) {
+        tx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(creatorAddress),
+          toPubkey: bettingPool,
+          lamports: initialBetLamports,
+        }));
+      } else {
+        tx.add(SystemProgram.transfer({
+          fromPubkey: new PublicKey(creatorAddress),
+          toPubkey: feeRecipient,
+          lamports: initialBetLamports,
+        }));
+      }
       tx.recentBlockhash = blockhash;
       tx.feePayer = new PublicKey(creatorAddress);
-      
+
       const transaction = tx.serialize({ requireAllSignatures: false }).toString("base64");
 
       // Generate unique pending market ID
@@ -2397,49 +2420,61 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Transaction failed on chain" });
       }
 
-      // Validate the transaction: check sender, recipient, and amount
+      // Validate the transaction: check sender, recipients, and amounts.
+      // The tx now contains TWO transfers (fee -> fee recipient, bet ->
+      // betting pool wallet) so we verify each leg independently. If both
+      // wallets are configured to the same address, the legs collapse into
+      // a single combined transfer and we accept the total instead.
       const feeRecipient = getFeeRecipientWallet();
-      const expectedLamports = Math.floor(pendingMarket.totalCost * LAMPORTS_PER_SOL);
-      
-      // Get account keys from the transaction
+      const { getBettingPoolWallet } = await import("./fees");
+      const bettingPool = getBettingPoolWallet();
+      const expectedFeeLamports = Math.floor(PLATFORM_FEES.MARKET_CREATION * LAMPORTS_PER_SOL);
+      const expectedBetLamports = Math.floor(pendingMarket.initialBetAmount * LAMPORTS_PER_SOL);
+      const expectedTotalLamports = expectedFeeLamports + expectedBetLamports;
+
       const accountKeys = txInfo.transaction.message.getAccountKeys();
       const staticKeys = accountKeys.staticAccountKeys || accountKeys.keySegments?.()[0] || [];
-      
-      // First account is typically the fee payer (sender)
+
       const senderKey = staticKeys[0]?.toBase58();
       if (senderKey !== pendingMarket.creatorAddress) {
         console.log(`[Market Creation] REJECTED: Sender ${senderKey} doesn't match expected ${pendingMarket.creatorAddress}`);
         return res.status(400).json({ error: "Transaction sender does not match expected creator" });
       }
-      
-      // Verify amount transferred by checking balance changes
+
       const preBalances = txInfo.meta?.preBalances || [];
       const postBalances = txInfo.meta?.postBalances || [];
-      
-      // Find the fee recipient's account index
-      let recipientIndex = -1;
-      for (let i = 0; i < staticKeys.length; i++) {
-        if (staticKeys[i]?.toBase58() === feeRecipient.toBase58()) {
-          recipientIndex = i;
-          break;
+      const findIndex = (addr: string) => staticKeys.findIndex((k: any) => k?.toBase58() === addr);
+      const feeIdx = findIndex(feeRecipient.toBase58());
+      if (feeIdx === -1) {
+        return res.status(400).json({ error: "Transaction does not pay to platform fee wallet" });
+      }
+      const feeReceived = (postBalances[feeIdx] || 0) - (preBalances[feeIdx] || 0);
+
+      let totalReceived: number;
+      if (bettingPool.equals(feeRecipient)) {
+        // Legacy mode: single recipient receives the combined amount.
+        totalReceived = feeReceived;
+      } else {
+        const poolIdx = findIndex(bettingPool.toBase58());
+        if (poolIdx === -1) {
+          return res.status(400).json({ error: "Transaction does not pay to betting pool wallet" });
+        }
+        const poolReceived = (postBalances[poolIdx] || 0) - (preBalances[poolIdx] || 0);
+        totalReceived = feeReceived + poolReceived;
+        // Per-leg sanity check (1% tolerance for rounding).
+        const tol = (expectedFeeLamports + expectedBetLamports) * 0.01;
+        if (poolReceived < expectedBetLamports - tol) {
+          return res.status(400).json({ error: `Insufficient bet portion: expected ${pendingMarket.initialBetAmount} SOL to pool` });
+        }
+        if (feeReceived < expectedFeeLamports - tol) {
+          return res.status(400).json({ error: `Insufficient creation fee: expected ${PLATFORM_FEES.MARKET_CREATION} SOL` });
         }
       }
-      
-      if (recipientIndex === -1) {
-        console.log(`[Market Creation] REJECTED: Fee recipient ${feeRecipient.toBase58()} not found in transaction`);
-        return res.status(400).json({ error: "Transaction does not pay to platform wallet" });
-      }
-      
-      // Check the amount received by the fee recipient
-      const amountReceived = (postBalances[recipientIndex] || 0) - (preBalances[recipientIndex] || 0);
-      
-      // Allow some tolerance for rounding (0.1% tolerance)
-      const tolerance = expectedLamports * 0.001;
-      if (amountReceived < expectedLamports - tolerance) {
-        console.log(`[Market Creation] REJECTED: Amount ${amountReceived} lamports < expected ${expectedLamports} lamports`);
+      const tolerance = expectedTotalLamports * 0.001;
+      if (totalReceived < expectedTotalLamports - tolerance) {
         return res.status(400).json({ error: `Insufficient payment: expected ${pendingMarket.totalCost} SOL` });
       }
-      console.log(`[Market Creation] Verified: ${senderKey} paid ${amountReceived / LAMPORTS_PER_SOL} SOL to platform`);
+      console.log(`[Market Creation] Verified: ${senderKey} paid ${totalReceived / LAMPORTS_PER_SOL} SOL (fee ${feeReceived / LAMPORTS_PER_SOL} -> ${feeRecipient.toBase58()}, bet -> ${bettingPool.toBase58()})`);
 
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
@@ -2648,7 +2683,13 @@ export async function registerRoutes(
         const result = await publicConnection.getLatestBlockhash();
         blockhash = result.blockhash;
       }
-      const feeRecipient = getFeeRecipientWallet();
+      // Bets go to the dedicated betting pool wallet (NOT the fee recipient),
+      // so pool funds are never commingled with operational SOL. The 2% fee
+      // accrues inside the pool and can be swept by ops later.
+      const { getBettingPoolWallet } = await import("./fees");
+      const betRecipient = market.poolWallet
+        ? new PublicKey(market.poolWallet)
+        : getBettingPoolWallet();
       const betLamports = Math.floor(amountNum * LAMPORTS_PER_SOL);
 
       // Preflight: ensure the wallet has enough SOL for the bet plus a tx-fee buffer.
@@ -2678,7 +2719,7 @@ export async function registerRoutes(
       const betTx = new Transaction();
       betTx.add(SystemProgram.transfer({
         fromPubkey: new PublicKey(walletAddress),
-        toPubkey: feeRecipient,
+        toPubkey: betRecipient,
         lamports: betLamports,
       }));
       betTx.recentBlockhash = blockhash;
@@ -2799,12 +2840,34 @@ export async function registerRoutes(
         }
       }
 
+      // Verify both that the right amount left the bettor AND that it
+      // landed in the market's recorded pool wallet (no recipient swap).
       if (txInfo.meta?.preBalances && txInfo.meta?.postBalances) {
         const lamportsSent = txInfo.meta.preBalances[0] - txInfo.meta.postBalances[0] - (txInfo.meta.fee || 0);
         const expectedLamports = pendingBet.amount * LAMPORTS_PER_SOL;
         const tolerance = expectedLamports * 0.05;
         if (lamportsSent < expectedLamports - tolerance) {
           return res.status(400).json({ error: "Transaction amount does not match expected bet amount" });
+        }
+
+        // Recipient must be the market's pool wallet. Without this check, a
+        // user could send SOL to themselves (or any address) and we'd accept
+        // it as a bet purely on the sender-balance delta.
+        const market = await storage.getMarket(id);
+        if (!market) return res.status(404).json({ error: "Market not found" });
+        const expectedRecipient = market.poolWallet;
+        if (expectedRecipient && txMessage) {
+          const keys = ('getAccountKeys' in txMessage)
+            ? txMessage.getAccountKeys().staticAccountKeys
+            : (txMessage as any).accountKeys;
+          const recipIdx = keys.findIndex((k: any) => k?.toBase58?.() === expectedRecipient || k?.toString?.() === expectedRecipient);
+          if (recipIdx === -1) {
+            return res.status(400).json({ error: "Bet not paid to the market's pool wallet" });
+          }
+          const received = (txInfo.meta.postBalances[recipIdx] || 0) - (txInfo.meta.preBalances[recipIdx] || 0);
+          if (received < expectedLamports - tolerance) {
+            return res.status(400).json({ error: "Pool wallet did not receive the bet amount" });
+          }
         }
       }
 

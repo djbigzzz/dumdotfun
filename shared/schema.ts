@@ -81,6 +81,11 @@ export const predictionMarkets = pgTable("prediction_markets", {
   survivalCriteria: text("survival_criteria").default("token_exists"),
   resolutionSource: text("resolution_source"),
   autoResolve: boolean("auto_resolve").notNull().default(true),
+  // Wallet that holds this market's bet pool. Determines which authority
+  // signs payouts. Legacy markets default to the platform authority; new
+  // markets are created with the dedicated betting pool wallet so bet money
+  // can never be commingled with operational SOL again.
+  poolWallet: text("pool_wallet").notNull().default("G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM"),
 });
 
 export const positions = pgTable("positions", {

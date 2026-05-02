@@ -366,6 +366,13 @@ export class DatabaseStorage implements IStorage {
       const yesPool = initialBetSide === "yes" ? initialBetAmount : "0";
       const noPool = initialBetSide === "no" ? initialBetAmount : "0";
 
+      // Capture the active betting pool wallet at creation time so payouts
+      // for this market always know which keypair to sign with, even if the
+      // env var is rotated later.
+      const poolWallet = process.env.BETTING_POOL_WALLET
+        || process.env.FEE_RECIPIENT_WALLET
+        || "G6Miqs4m2maHwj91YBCboEwY5NoasLVwL3woVXh2gXjM";
+
       const [market] = await tx.insert(predictionMarkets).values({
         ...marketData,
         description: marketData.description ?? null,
@@ -375,6 +382,7 @@ export class DatabaseStorage implements IStorage {
         yesPool,
         noPool,
         totalVolume: initialBetAmount,
+        poolWallet,
       }).returning();
 
       const [position] = await tx.insert(positions).values({
