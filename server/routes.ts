@@ -1459,25 +1459,59 @@ export async function registerRoutes(
   app.get("/api/devnet/token-balance/:wallet/:mint", async (req, res) => {
     try {
       const { wallet, mint } = req.params;
-      const { TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync } = await import("@solana/spl-token");
+      const { TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } = await import("@solana/spl-token");
       const connection = getHeliusConnection();
-      
+
       const walletPubkey = new PublicKey(wallet);
       const mintPubkey = new PublicKey(mint);
-      
+
+      // Detect which token program owns the mint (legacy SPL or Token-2022).
+      // Without this the ATA derivation defaults to the legacy program and
+      // returns 0 for any Token-2022 mint - breaking percent-buttons in the
+      // sell panel for graduated tokens that use Token-2022.
+      let tokenProgramId = TOKEN_PROGRAM_ID;
       try {
-        const ata = getAssociatedTokenAddressSync(mintPubkey, walletPubkey);
+        const mintAccount = await connection.getAccountInfo(mintPubkey, "confirmed");
+        if (mintAccount?.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+          tokenProgramId = TOKEN_2022_PROGRAM_ID;
+        }
+      } catch {}
+
+      try {
+        const ata = getAssociatedTokenAddressSync(mintPubkey, walletPubkey, false, tokenProgramId);
         const accountInfo = await connection.getTokenAccountBalance(ata);
         const balance = parseFloat(accountInfo.value.amount) / Math.pow(10, accountInfo.value.decimals);
-        return res.json({ 
-          wallet, 
-          mint, 
+        return res.json({
+          wallet,
+          mint,
           balance,
           rawBalance: accountInfo.value.amount,
           decimals: accountInfo.value.decimals,
-          network: "devnet" 
+          network: "devnet",
         });
       } catch (e) {
+        // ATA may not exist or wrong program - fall back to scanning all
+        // token accounts owned by this wallet for this mint, across both
+        // programs. This covers off-curve PDAs and any non-standard setup.
+        for (const programId of [tokenProgramId, TOKEN_PROGRAM_ID, TOKEN_2022_PROGRAM_ID]) {
+          try {
+            const resp = await connection.getParsedTokenAccountsByOwner(walletPubkey, { mint: mintPubkey, programId });
+            const acct = resp?.value?.[0];
+            if (acct) {
+              const info: any = acct.account.data.parsed?.info;
+              const amount = info?.tokenAmount?.amount ?? "0";
+              const decimals = info?.tokenAmount?.decimals ?? 6;
+              return res.json({
+                wallet,
+                mint,
+                balance: parseFloat(amount) / Math.pow(10, decimals),
+                rawBalance: amount,
+                decimals,
+                network: "devnet",
+              });
+            }
+          } catch {}
+        }
         return res.json({ wallet, mint, balance: 0, rawBalance: "0", decimals: 6, network: "devnet" });
       }
     } catch (error: any) {
