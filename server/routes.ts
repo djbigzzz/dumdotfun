@@ -2382,7 +2382,9 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Pending market ID and signature are required" });
       }
 
-      // Check for signature replay attack (DB-persisted — survives restarts)
+      // Fast-path replay check (cheap and gives a clear error before we
+      // bother fetching the tx from chain). The authoritative check is the
+      // atomic claimSignature() call right before we mutate DB state below.
       if (await storage.hasSignatureBeenUsed(signature)) {
         console.log(`[Market Creation] REJECTED: Signature ${signature.slice(0, 20)}... already used (replay attack)`);
         return res.status(400).json({ error: "This transaction signature has already been used" });
@@ -2476,6 +2478,15 @@ export async function registerRoutes(
       }
       console.log(`[Market Creation] Verified: ${senderKey} paid ${totalReceived / LAMPORTS_PER_SOL} SOL (fee ${feeReceived / LAMPORTS_PER_SOL} -> ${feeRecipient.toBase58()}, bet -> ${bettingPool.toBase58()})`);
 
+      // ATOMIC: claim the signature BEFORE creating the market. If a
+      // concurrent confirm-create with the same sig got here first, our
+      // claim returns false and we abort without double-creating the market.
+      const claimedSig = await storage.claimSignature(signature);
+      if (!claimedSig) {
+        console.log(`[Market Creation] REJECTED on final claim: signature ${signature.slice(0, 20)}... already used`);
+        return res.status(400).json({ error: "This transaction signature has already been used" });
+      }
+
       // Create market with initial bet atomically
       const { market, position } = await storage.createMarketWithInitialBet(
         {
@@ -2492,9 +2503,6 @@ export async function registerRoutes(
         pendingMarket.initialBetAmount.toString(),
         PLATFORM_FEES.MARKET_CREATION
       );
-
-      // Mark signature as used to prevent replay attacks (DB-persisted)
-      await storage.markSignatureAsUsed(signature);
       
       // Remove from pending
       pendingMarkets.delete(pendingMarketId);
@@ -2775,6 +2783,8 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Bet ID and signature are required" });
       }
 
+      // Fast-path replay check (the authoritative atomic claim happens
+      // right before placeBetTransaction below).
       if (await storage.hasSignatureBeenUsed(signature)) {
         return res.status(400).json({ error: "Transaction signature already used" });
       }
@@ -2871,8 +2881,12 @@ export async function registerRoutes(
         }
       }
 
-      // Mark signature as used to prevent replay attacks (DB-persisted)
-      await storage.markSignatureAsUsed(signature);
+      // ATOMIC: claim the signature before recording the bet. Concurrent
+      // confirm-bet calls with the same sig can't both win this race.
+      const claimedBetSig = await storage.claimSignature(signature);
+      if (!claimedBetSig) {
+        return res.status(400).json({ error: "Transaction signature already used" });
+      }
 
       // Record the bet in database
       const isConfidentialBet = isConfidential || pendingBet.isConfidential;

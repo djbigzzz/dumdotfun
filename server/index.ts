@@ -183,6 +183,51 @@ app.use((req, res, next) => {
   }, AUTO_RESOLVE_INTERVAL);
   log(`[AutoResolver] Scheduled every ${AUTO_RESOLVE_INTERVAL / 1000}s`, "startup");
 
+  // Reap any payouts left in 'processing' from a prior crash so they can
+  // be retried. The on-chain double-pay guard in sendOnePayout uses the
+  // persisted signature to avoid duplicate broadcasts.
+  setTimeout(async () => {
+    try {
+      const { reapStuckProcessingPayouts } = await import("./services/market-payouts");
+      await reapStuckProcessingPayouts(120);
+    } catch (e) {
+      console.error("[Payouts] Startup reap failed:", e);
+    }
+  }, 3000);
+  setInterval(async () => {
+    try {
+      const { reapStuckProcessingPayouts } = await import("./services/market-payouts");
+      await reapStuckProcessingPayouts(120);
+    } catch (e) {
+      console.error("[Payouts] Periodic reap failed:", e);
+    }
+  }, 60 * 1000);
+  log(`[Payouts] Stuck-processing reaper scheduled every 60s`, "startup");
+
+  // Periodic pending drainer: ensures payouts reaped from 'processing' (or
+  // ones whose markets resolved without immediately calling payoutMarket)
+  // get sent automatically without waiting for the next market resolution.
+  // Idempotent: drains nothing when the queue is empty.
+  setTimeout(async () => {
+    try {
+      const { processPendingPayouts } = await import("./services/market-payouts");
+      const r = await processPendingPayouts(20);
+      if (r.attempted > 0) log(`[Payouts] Drained ${r.attempted}: sent=${r.sent} failed=${r.failed}`, "startup");
+    } catch (e) {
+      console.error("[Payouts] Startup drain failed:", e);
+    }
+  }, 5000);
+  setInterval(async () => {
+    try {
+      const { processPendingPayouts } = await import("./services/market-payouts");
+      const r = await processPendingPayouts(20);
+      if (r.attempted > 0) log(`[Payouts] Drained ${r.attempted}: sent=${r.sent} failed=${r.failed}`, "payouts");
+    } catch (e) {
+      console.error("[Payouts] Periodic drain failed:", e);
+    }
+  }, 60 * 1000);
+  log(`[Payouts] Pending drainer scheduled every 60s`, "startup");
+
   // Scheduled graduation reconciliation: catch tokens that crossed 85 SOL
   // but never had `/api/trade/record` called (e.g. trade tx landed on-chain
   // but the client UI errored before recording). Runs every 2 minutes.
