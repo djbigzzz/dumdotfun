@@ -1,10 +1,11 @@
-import { Connection, PublicKey, Transaction } from "@solana/web3.js";
+import { Connection, PublicKey, Transaction, SystemProgram } from "@solana/web3.js";
 import { Raydium, TxVersion, CurveCalculator } from "@raydium-io/raydium-sdk-v2";
 import BN from "bn.js";
 import { db } from "../db";
 import { tokens as tokensTable } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { getConnection } from "../bonding-curve-client";
+import { getFeeRecipientWallet, PLATFORM_FEES } from "../fees";
 
 const getRpcConnection = getConnection;
 
@@ -35,6 +36,8 @@ interface SwapQuote {
   minOutputAmount: string;
   priceImpactPct: number;
   feeAmount: string;
+  platformFeeLamports: string;
+  platformFeeBps: number;
   baseIn: boolean;
 }
 
@@ -205,7 +208,19 @@ export async function getSwapQuote(params: {
   const inputMint = params.isBuy ? WSOL_MINT : params.mintAddress;
   const baseIn = poolInfo.mintA.address === inputMint;
 
-  const inputAmountBn = new BN(params.amountIn);
+  const grossInputBn = new BN(params.amountIn);
+
+  // Platform fee is taken in SOL on both sides:
+  //  - BUY (SOL in):    fee comes off the SOL input, swap uses (gross - fee).
+  //  - SELL (token in): full token amount is swapped; fee is taken from the
+  //                     SOL the user receives.
+  const platformFeeBps = PLATFORM_FEES.RAYDIUM_SWAP_BPS;
+  const buyPlatformFeeLamports = params.isBuy
+    ? grossInputBn.muln(platformFeeBps).divn(10000)
+    : new BN(0);
+  const swapInputBn = params.isBuy ? grossInputBn.sub(buyPlatformFeeLamports) : grossInputBn;
+
+  if (swapInputBn.lten(0)) return null;
 
   const tradeFeeRate = rpcData.configInfo?.tradeFeeRate || new BN(2500);
   const protocolFeeRate = rpcData.configInfo?.protocolFeeRate || new BN(0);
@@ -213,7 +228,7 @@ export async function getSwapQuote(params: {
   const creatorFeeRate = rpcData.configInfo?.creatorFeeRate || new BN(0);
 
   const swapResult = CurveCalculator.swapBaseInput(
-    inputAmountBn,
+    swapInputBn,
     baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
     baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
     tradeFeeRate,
@@ -224,7 +239,22 @@ export async function getSwapQuote(params: {
   );
 
   const slippageBps = params.slippageBps ?? 500;
-  const minOut = swapResult.outputAmount.muln(10000 - slippageBps).divn(10000);
+  const rawMinOut = swapResult.outputAmount.muln(10000 - slippageBps).divn(10000);
+
+  // For sell the platform fee comes off the SOL output. We display it relative
+  // to the quoted output; the actual on-chain transfer (added in build) is
+  // sized off minOut to guarantee the user always has enough SOL to cover it.
+  const sellPlatformFeeLamports = !params.isBuy
+    ? swapResult.outputAmount.muln(platformFeeBps).divn(10000)
+    : new BN(0);
+  const platformFeeLamports = params.isBuy ? buyPlatformFeeLamports : sellPlatformFeeLamports;
+
+  const netOutput = !params.isBuy
+    ? swapResult.outputAmount.sub(sellPlatformFeeLamports)
+    : swapResult.outputAmount;
+  const netMinOut = !params.isBuy
+    ? rawMinOut.sub(rawMinOut.muln(platformFeeBps).divn(10000))
+    : rawMinOut;
 
   const inputReserveBn = baseIn ? rpcData.baseReserve : rpcData.quoteReserve;
   const outputReserveBn = baseIn ? rpcData.quoteReserve : rpcData.baseReserve;
@@ -233,17 +263,19 @@ export async function getSwapQuote(params: {
 
   const spotPrice = (Number(outputReserveBn.toString()) / 10 ** outputDec) /
                     (Number(inputReserveBn.toString()) / 10 ** inputDec);
-  const execIn = Number(inputAmountBn.toString()) / 10 ** inputDec;
+  const execIn = Number(swapInputBn.toString()) / 10 ** inputDec;
   const execOut = Number(swapResult.outputAmount.toString()) / 10 ** outputDec;
   const execPrice = execIn > 0 ? execOut / execIn : 0;
   const priceImpactPct = spotPrice > 0 ? Math.max(0, (1 - execPrice / spotPrice) * 100) : 0;
 
   return {
-    inputAmount: swapResult.inputAmount.toString(),
-    outputAmount: swapResult.outputAmount.toString(),
-    minOutputAmount: minOut.toString(),
+    inputAmount: grossInputBn.toString(),
+    outputAmount: netOutput.toString(),
+    minOutputAmount: netMinOut.toString(),
     priceImpactPct,
     feeAmount: swapResult.tradeFee.toString(),
+    platformFeeLamports: platformFeeLamports.toString(),
+    platformFeeBps,
     baseIn,
   };
 }
@@ -270,9 +302,22 @@ export async function buildSwapTransaction(params: {
     const inputMint = params.isBuy ? WSOL_MINT : params.mintAddress;
     const baseIn = poolInfo.mintA.address === inputMint;
 
-    const inputAmountBn = new BN(params.amountIn);
-    if (inputAmountBn.lten(0)) {
+    const grossInputBn = new BN(params.amountIn);
+    if (grossInputBn.lten(0)) {
       return { success: false, error: "Invalid input amount" };
+    }
+
+    // Platform fee math (matches getSwapQuote):
+    //  - BUY:  fee comes off the SOL input. Swap actually uses (gross - fee).
+    //  - SELL: full token amount swapped; fee deducted from SOL output via
+    //          a SystemProgram.transfer appended after the swap.
+    const platformFeeBps = PLATFORM_FEES.RAYDIUM_SWAP_BPS;
+    const buyPlatformFeeLamports = params.isBuy
+      ? grossInputBn.muln(platformFeeBps).divn(10000)
+      : new BN(0);
+    const swapInputBn = params.isBuy ? grossInputBn.sub(buyPlatformFeeLamports) : grossInputBn;
+    if (swapInputBn.lten(0)) {
+      return { success: false, error: "Amount too small after platform fee" };
     }
 
     const tradeFeeRate = rpcData.configInfo?.tradeFeeRate || new BN(2500);
@@ -281,7 +326,7 @@ export async function buildSwapTransaction(params: {
     const creatorFeeRate = rpcData.configInfo?.creatorFeeRate || new BN(0);
 
     const swapResult = CurveCalculator.swapBaseInput(
-      inputAmountBn,
+      swapInputBn,
       baseIn ? rpcData.baseReserve : rpcData.quoteReserve,
       baseIn ? rpcData.quoteReserve : rpcData.baseReserve,
       tradeFeeRate,
@@ -301,7 +346,7 @@ export async function buildSwapTransaction(params: {
     const built = await raydium.cpmm.swap({
       poolInfo,
       poolKeys,
-      inputAmount: inputAmountBn,
+      inputAmount: swapInputBn,
       swapResult,
       slippage: slippageDecimal,
       baseIn,
@@ -320,6 +365,35 @@ export async function buildSwapTransaction(params: {
       tx.recentBlockhash = blockhash;
     }
 
+    // Inject platform fee transfer.
+    //  - BUY: prepend (charge fee BEFORE the swap consumes user SOL).
+    //  - SELL: append (the SOL output materialises after Raydium's
+    //          closeAccount unwraps wSOL back to native SOL on the user's
+    //          account, then we transfer a slice to the fee recipient).
+    // For SELL we size the on-chain transfer off minOut so the tx never
+    // under-funds even at worst-case slippage.
+    const rawMinOut = swapResult.outputAmount.muln(10000 - slippageBps).divn(10000);
+    const sellPlatformFeeLamportsForTx = !params.isBuy
+      ? rawMinOut.muln(platformFeeBps).divn(10000)
+      : new BN(0);
+    const feeRecipient = getFeeRecipientWallet();
+
+    if (params.isBuy && buyPlatformFeeLamports.gtn(0)) {
+      const feeIx = SystemProgram.transfer({
+        fromPubkey: userPubkey,
+        toPubkey: feeRecipient,
+        lamports: BigInt(buyPlatformFeeLamports.toString()),
+      });
+      tx.instructions = [feeIx, ...tx.instructions];
+    } else if (!params.isBuy && sellPlatformFeeLamportsForTx.gtn(0)) {
+      const feeIx = SystemProgram.transfer({
+        fromPubkey: userPubkey,
+        toPubkey: feeRecipient,
+        lamports: BigInt(sellPlatformFeeLamportsForTx.toString()),
+      });
+      tx.add(feeIx);
+    }
+
     const serialized = tx.serialize({ requireAllSignatures: false, verifySignatures: false });
     const base64Tx = serialized.toString("base64");
 
@@ -330,22 +404,35 @@ export async function buildSwapTransaction(params: {
 
     const spotPrice = (Number(outputReserveBn.toString()) / 10 ** outputDec) /
                       (Number(inputReserveBn.toString()) / 10 ** inputDec);
-    const execIn = Number(inputAmountBn.toString()) / 10 ** inputDec;
+    const execIn = Number(swapInputBn.toString()) / 10 ** inputDec;
     const execOut = Number(swapResult.outputAmount.toString()) / 10 ** outputDec;
     const execPrice = execIn > 0 ? execOut / execIn : 0;
     const priceImpactPct = spotPrice > 0 ? Math.max(0, (1 - execPrice / spotPrice) * 100) : 0;
 
-    const minOut = swapResult.outputAmount.muln(10000 - slippageBps).divn(10000);
+    // Quote returned to client reflects the user-visible input/output
+    // (gross SOL in for BUY, post-fee SOL out for SELL).
+    const sellPlatformFeeLamportsForQuote = !params.isBuy
+      ? swapResult.outputAmount.muln(platformFeeBps).divn(10000)
+      : new BN(0);
+    const platformFeeLamports = params.isBuy ? buyPlatformFeeLamports : sellPlatformFeeLamportsForQuote;
+    const netOutput = !params.isBuy
+      ? swapResult.outputAmount.sub(sellPlatformFeeLamportsForQuote)
+      : swapResult.outputAmount;
+    const netMinOut = !params.isBuy
+      ? rawMinOut.sub(sellPlatformFeeLamportsForTx)
+      : rawMinOut;
 
     return {
       success: true,
       transaction: base64Tx,
       quote: {
-        inputAmount: swapResult.inputAmount.toString(),
-        outputAmount: swapResult.outputAmount.toString(),
-        minOutputAmount: minOut.toString(),
+        inputAmount: grossInputBn.toString(),
+        outputAmount: netOutput.toString(),
+        minOutputAmount: netMinOut.toString(),
         priceImpactPct,
         feeAmount: swapResult.tradeFee.toString(),
+        platformFeeLamports: platformFeeLamports.toString(),
+        platformFeeBps,
         baseIn,
       },
     };

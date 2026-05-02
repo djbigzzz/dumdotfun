@@ -48,6 +48,8 @@ interface QuoteResponse {
     minOutputAmount: string;
     priceImpactPct: number;
     feeAmount: string;
+    platformFeeLamports: string;
+    platformFeeBps: number;
     baseIn: boolean;
   };
 }
@@ -470,6 +472,14 @@ export function RaydiumSwapPanel({
               <span className={privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}>Pool fee:</span>
               <span className={privateMode ? "text-[#4ADE80]/80" : "text-gray-700"}>
                 {pool ? `${(pool.feeRateBps / 100).toFixed(2)}%` : "—"}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className={privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}>
+                Platform fee ({(quote.platformFeeBps / 100).toFixed(2)}%):
+              </span>
+              <span className={privateMode ? "text-[#4ADE80]/80" : "text-gray-700"} data-testid="text-platform-fee">
+                {(Number(quote.platformFeeLamports) / 1e9).toFixed(6)} SOL
               </span>
             </div>
           </motion.div>

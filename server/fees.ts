@@ -6,6 +6,7 @@ export const PLATFORM_FEES = {
   MARKET_CREATION: 0.05,
   BETTING_FEE_PERCENT: 2,
   TRADING_FEE_PERCENT: 1,
+  RAYDIUM_SWAP_BPS: 100,
 } as const;
 
 export function getFeeRecipientWallet(): PublicKey {
