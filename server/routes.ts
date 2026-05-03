@@ -38,6 +38,12 @@ const sensitiveLimiter = rateLimit({
   message: { error: "Rate limit exceeded on sensitive endpoint" },
 });
 
+function toImageUrl(mint: string, imageUri: string | null | undefined): string | null {
+  if (!imageUri) return null;
+  if (imageUri.startsWith("data:")) return `/api/token-image/${mint}`;
+  return imageUri;
+}
+
 function requireAdmin(req: Request, res: Response, next: NextFunction) {
   const adminKey = process.env.ADMIN_KEY;
   if (!adminKey) {
@@ -237,6 +243,59 @@ export async function registerRoutes(
   });
 
 
+  const ALLOWED_IMAGE_MIMES = new Set([
+    "image/png",
+    "image/jpeg",
+    "image/jpg",
+    "image/webp",
+    "image/gif",
+  ]);
+
+  app.get("/api/token-image/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const token = await db.query.tokens.findFirst({
+        where: (t) => eq(t.mint, mint),
+        columns: { imageUri: true },
+      });
+      const uri = token?.imageUri;
+      if (!uri || !uri.startsWith("data:")) {
+        return res.status(404).end();
+      }
+      // data:[<mediatype>[;param]*][;base64],<data>
+      const headerEnd = uri.indexOf(",");
+      if (headerEnd < 0) return res.status(404).end();
+      const header = uri.slice(5, headerEnd);
+      const payload = uri.slice(headerEnd + 1);
+      const parts = header.split(";");
+      const rawMime = (parts[0] || "").trim().toLowerCase();
+      const isBase64 = parts.some(p => p.trim().toLowerCase() === "base64");
+      const mime = ALLOWED_IMAGE_MIMES.has(rawMime)
+        ? (rawMime === "image/jpg" ? "image/jpeg" : rawMime)
+        : null;
+      if (!mime) {
+        // Refuse to serve non-image MIMEs (stored XSS guard)
+        return res.status(415).end();
+      }
+      let buf: Buffer;
+      try {
+        buf = isBase64
+          ? Buffer.from(payload, "base64")
+          : Buffer.from(decodeURIComponent(payload), "utf8");
+      } catch {
+        return res.status(400).end();
+      }
+      res.setHeader("Content-Type", mime);
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      res.setHeader("Content-Security-Policy", "default-src 'none'; img-src 'self' data:; sandbox");
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.setHeader("Content-Length", buf.length);
+      return res.end(buf);
+    } catch (e) {
+      return res.status(500).end();
+    }
+  });
+
   app.get("/api/tokens", async (req, res) => {
     try {
       const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "100"), 10) || 100, 1), 500);
@@ -286,7 +345,7 @@ export async function registerRoutes(
             mint: token.mint,
             name: token.name,
             symbol: token.symbol,
-            imageUri: token.imageUri,
+            imageUri: toImageUrl(token.mint, token.imageUri),
             bondingCurveProgress,
             marketCapSol,
             priceInSol,
@@ -407,7 +466,7 @@ export async function registerRoutes(
         name: token.name,
         symbol: token.symbol,
         description: token.description || "",
-        imageUri: token.imageUri,
+        imageUri: toImageUrl(token.mint, token.imageUri),
         bondingCurveProgress,
         marketCapSol,
         priceInSol,
@@ -630,7 +689,7 @@ export async function registerRoutes(
             mint: t.mint,
             name: t.name,
             symbol: t.symbol,
-            imageUri: t.imageUri,
+            imageUri: toImageUrl(t.mint, t.imageUri),
             balance,
             priceInSol,
             valueInSol: priceInSol !== null ? balance * priceInSol : null,
@@ -695,7 +754,7 @@ export async function registerRoutes(
             mint: t.mint,
             name: t.name,
             symbol: t.symbol,
-            imageUri: t.imageUri,
+            imageUri: toImageUrl(t.mint, t.imageUri),
             marketCapSol,
             priceInSol,
           };
