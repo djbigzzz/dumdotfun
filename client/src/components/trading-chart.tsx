@@ -327,12 +327,19 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
             ? `${(b.sumSol / 1000).toFixed(1)}K`
             : b.sumSol >= 10 ? b.sumSol.toFixed(0)
             : b.sumSol.toFixed(2);
+          // pump.fun marker palette: muted purple for creator/dev,
+          // cool teal for regular buys, soft red for sells.
+          // Avoids the harsh orange we had before.
           return {
             time: b.time as any,
             position: b.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-            color: b.hasDev ? "#f59e0b" : (b.type === "buy" ? "#26a69a" : "#ef5350"),
+            color: b.hasDev
+              ? "#a855f7"
+              : b.type === "buy"
+              ? "#2dd4bf"
+              : "#f87171",
             shape: "circle" as const,
-            size: b.hasDev ? 2 : 1,
+            size: b.hasDev ? 1.4 : 0.9,
             text: `${prefix} ${solStr}`,
           };
         })
@@ -343,9 +350,9 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
         .map(t => ({
           time: t.time as any,
           position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-          color: "#f59e0b",
+          color: "#a855f7",
           shape: "circle" as const,
-          size: 2,
+          size: 1.4,
           text: t.type === "buy" ? `C ${t.solAmount.toFixed(2)}` : `C -${t.solAmount.toFixed(2)}`,
         }))
         .sort((a, b) => (a.time as number) - (b.time as number));
