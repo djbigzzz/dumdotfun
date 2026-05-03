@@ -18,7 +18,7 @@ interface TradingChartProps {
   totalSupply?: number;
 }
 
-const INTERVALS = ["1m", "5m", "15m", "1h", "4h", "1D"] as const;
+const INTERVALS = ["1s", "15s", "30s", "1m", "5m", "15m", "30m", "1h", "4h", "1D"] as const;
 
 function formatMcap(val: number): string {
   if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
@@ -54,7 +54,11 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   const chartRef = useRef<IChartApi | null>(null);
   const candleSeriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const volumeSeriesRef = useRef<ISeriesApi<"Histogram"> | null>(null);
-  const [interval, setInterval] = useState<string>("5m");
+  // Default to 1-second candles (pump.fun's default) so a brand-new
+  // token shows ~60 candles after 1 minute instead of one fat 5m candle.
+  // Auto-upgrades via the tooManyCandles handler if the bucket count
+  // would exceed the server cap on older tokens.
+  const [interval, setInterval] = useState<string>("1s");
   const [viewMode, setViewMode] = useState<"mcap" | "price">("mcap");
   const [currency, setCurrency] = useState<"usd" | "sol">("usd");
   const [showBubbles, setShowBubbles] = useState(true);
@@ -261,7 +265,8 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       // bucket collapse into a single marker (matches pump.fun's "DB" /
       // "C" badges - one per bucket, not one per fill).
       const intervalSecMap: Record<string, number> = {
-        "1m": 60, "5m": 300, "15m": 900,
+        "1s": 1, "15s": 15, "30s": 30,
+        "1m": 60, "5m": 300, "15m": 900, "30m": 1800,
         "1h": 3600, "4h": 14400, "1D": 86400,
       };
       const bucketSec = intervalSecMap[interval] || 300;
@@ -354,7 +359,12 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     }
 
     if (candleData.length > 0) {
-      chartRef.current?.timeScale().fitContent();
+      // Don't fitContent (which stretches a few candles to fill the entire
+      // chart width). Instead scroll to the latest candle and let bars
+      // render at their natural barSpacing - matches pump.fun where a
+      // young chart shows real-width candles on the right with empty
+      // canvas to the left.
+      chartRef.current?.timeScale().scrollToRealTime();
     }
   }, [ohlcData, getMultiplier, showBubbles, getFormatter, interval]);
 

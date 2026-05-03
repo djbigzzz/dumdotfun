@@ -3844,7 +3844,8 @@ export async function registerRoutes(
       }
 
       const intervalMs: Record<string, number> = {
-        "1m": 60000, "5m": 300000, "15m": 900000,
+        "1s": 1000, "15s": 15000, "30s": 30000,
+        "1m": 60000, "5m": 300000, "15m": 900000, "30m": 1800000,
         "1h": 3600000, "4h": 14400000, "1D": 86400000,
       };
       const bucketMs = intervalMs[interval] || 300000;
