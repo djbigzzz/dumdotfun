@@ -58,6 +58,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   const [viewMode, setViewMode] = useState<"mcap" | "price">("mcap");
   const [currency, setCurrency] = useState<"usd" | "sol">("usd");
   const [showBubbles, setShowBubbles] = useState(true);
+  const [logScale, setLogScale] = useState<boolean>(false);
   const priceLineRef = useRef<any>(null);
   const athLineRef = useRef<any>(null);
   const [crosshairData, setCrosshairData] = useState<{
@@ -138,9 +139,11 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       },
       rightPriceScale: {
         borderColor: "rgba(42, 46, 57, 0.6)",
-        scaleMargins: { top: 0.05, bottom: 0.15 },
+        // Leave 24% at the bottom for the volume histogram pane.
+        scaleMargins: { top: 0.05, bottom: 0.24 },
         entireTextOnly: true,
         autoScale: true,
+        mode: logScale ? 1 : 0, // 0 = Normal, 1 = Logarithmic
       },
       timeScale: {
         borderColor: "rgba(42, 46, 57, 0.6)",
@@ -176,9 +179,12 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       priceScaleId: "vol",
     });
 
+    // Volume pane at the bottom - now visible with a thin scale, like pump.fun's
+    // clearly-readable histogram at the bottom of the chart.
     chart.priceScale("vol").applyOptions({
-      scaleMargins: { top: 0.78, bottom: 0 },
-      visible: false,
+      scaleMargins: { top: 0.82, bottom: 0 },
+      visible: true,
+      borderColor: "rgba(42, 46, 57, 0.6)",
     });
 
     chart.subscribeCrosshairMove((param) => {
@@ -210,7 +216,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [privateMode, getFormatter]);
+  }, [privateMode, getFormatter, logScale]);
 
   useEffect(() => {
     const cleanup = initChart();
@@ -247,22 +253,53 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
 
-    // Trade markers: pump.fun-style badges on every trade with the
-    // displayed value (mcap or price, in selected currency). Dev trades
-    // are gold-circled to stand out.
+    // Trade markers: pump.fun-style. To avoid overlap clutter we group
+    // markers per-bucket - one marker per (bucket, side) summarising the
+    // total SOL traded in that bucket. Dev trades always get a gold "C".
     if (showBubbles && ohlcData.allTrades && ohlcData.allTrades.length > 0) {
-      const markers = ohlcData.allTrades
-        .map(t => {
-          const displayVal = t.price * mult;
-          const valStr = fmt(displayVal).replace(/^\$/, "$");
-          const prefix = t.isDev ? "C" : (t.type === "buy" ? "B" : "S");
+      // Bucket trades by candle time + side so multiple trades in one
+      // bucket collapse into a single marker (matches pump.fun's "DB" /
+      // "C" badges - one per bucket, not one per fill).
+      const intervalSecMap: Record<string, number> = {
+        "1m": 60, "5m": 300, "15m": 900,
+        "1h": 3600, "4h": 14400, "1D": 86400,
+      };
+      const bucketSec = intervalSecMap[interval] || 300;
+      type Bucket = { time: number; type: string; sumSol: number; lastPrice: number; hasDev: boolean };
+      const grouped = new Map<string, Bucket>();
+      for (const t of ohlcData.allTrades) {
+        const bucketTime = Math.floor(t.time / bucketSec) * bucketSec;
+        // Group by bucket + side only - one marker per (bucket, side).
+        // If any trade in the group is from the creator the whole bucket
+        // gets the gold "C" treatment.
+        const key = `${bucketTime}-${t.type}`;
+        const ex = grouped.get(key);
+        if (ex) {
+          ex.sumSol += t.solAmount;
+          ex.lastPrice = t.price;
+          if (t.isDev) ex.hasDev = true;
+        } else {
+          grouped.set(key, { time: bucketTime, type: t.type, sumSol: t.solAmount, lastPrice: t.price, hasDev: t.isDev });
+        }
+      }
+      const markers = Array.from(grouped.values())
+        .map(b => {
+          const prefix = b.hasDev ? "C" : (b.type === "buy" ? "B" : "S");
+          // Compact SOL label. K only at 1k+, M only at 1M+, otherwise
+          // plain rounded SOL. Keeps badges short to avoid overlap.
+          const solStr = b.sumSol >= 1_000_000
+            ? `${(b.sumSol / 1_000_000).toFixed(1)}M`
+            : b.sumSol >= 1000
+            ? `${(b.sumSol / 1000).toFixed(1)}K`
+            : b.sumSol >= 10 ? b.sumSol.toFixed(0)
+            : b.sumSol.toFixed(2);
           return {
-            time: t.time as any,
-            position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-            color: t.isDev ? "#f59e0b" : (t.type === "buy" ? "#26a69a" : "#ef5350"),
+            time: b.time as any,
+            position: b.type === "buy" ? "belowBar" as const : "aboveBar" as const,
+            color: b.hasDev ? "#f59e0b" : (b.type === "buy" ? "#26a69a" : "#ef5350"),
             shape: "circle" as const,
-            size: t.isDev ? 2 : 1,
-            text: `${prefix} ${valStr}`,
+            size: b.hasDev ? 2 : 1,
+            text: `${prefix} ${solStr}`,
           };
         })
         .sort((a, b) => (a.time as number) - (b.time as number));
@@ -319,7 +356,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     if (candleData.length > 0) {
       chartRef.current?.timeScale().fitContent();
     }
-  }, [ohlcData, getMultiplier, showBubbles, getFormatter]);
+  }, [ohlcData, getMultiplier, showBubbles, getFormatter, interval]);
 
   const hasCandles = ohlcData && ohlcData.candles.length > 0;
   const lastCandle = hasCandles ? ohlcData.candles[ohlcData.candles.length - 1] : null;
@@ -379,8 +416,19 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
               showBubbles ? "text-white bg-[#2a2e39]" : "text-[#787b86] hover:text-[#d1d4dc]"
             }`}
             data-testid="button-toggle-bubbles"
+            title={showBubbles ? "Hide all trade bubbles" : "Show trade bubbles"}
           >
-            DB/DS
+            {showBubbles ? "Hide bubbles" : "Show bubbles"}
+          </button>
+          <button
+            onClick={() => setLogScale(!logScale)}
+            className={`px-2 py-0.5 text-[11px] rounded transition-colors ${
+              logScale ? "text-white bg-[#2a2e39]" : "text-[#787b86] hover:text-[#d1d4dc]"
+            }`}
+            data-testid="button-toggle-logscale"
+            title={logScale ? "Switch to linear scale" : "Switch to log scale"}
+          >
+            {logScale ? "log" : "auto"}
           </button>
         </div>
         <div className="flex items-center gap-1">
