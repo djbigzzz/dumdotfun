@@ -272,40 +272,15 @@ export async function registerRoutes(
             };
           });
           
-          let priceInSol = Number(token.priceInSol) || 0.000001;
-          let marketCapSol = Number(token.marketCapSol) || 0;
-          let bondingCurveProgress = Number(token.bondingCurveProgress) || 0;
-          
-          try {
-            const mintPubkey = new PublicKey(token.mint);
-            const curveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
-            if (curveData) {
-              priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
-              const bnToNum = (val: any) => {
-                if (val == null) return 0;
-                return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
-              };
-              // Market cap = price × circulating supply (tokens already bought out of curve)
-              const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
-              const tokensInCurveRaw = bnToNum(curveData.realTokenReserves);
-              const totalSupply = totalSupplyRaw / 1_000_000;
-              // Market cap follows the standard fully-diluted convention used by
-              // pump.fun / Raydium / DEX Screener / Birdeye: price × total supply.
-              // Tokens still sitting in the bonding curve are counted because the
-              // curve will release them at deterministic prices.
-              marketCapSol = isNaN(totalSupply) ? 0 : priceInSol * totalSupply;
-              // Progress = real SOL deposited / 85 SOL graduation target
-              const realSolReservesNum = bnToNum(curveData.realSolReserves);
-              const graduationThresholdLamports = 85 * LAMPORTS_PER_SOL;
-              bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThresholdLamports) * 100);
-            }
-          } catch {
-            if (marketCapSol === 0) {
-              marketCapSol = 0;
-              priceInSol = 0.000001;
-              bondingCurveProgress = 0;
-            }
-          }
+          // Use cached price/mcap/progress from DB. The TokenReconciler
+          // background job (every 60s) keeps these fresh from the chain.
+          // Hitting Helius for every row here turned the list into a
+          // 10-second wait under rate limits - users would bounce before
+          // the page even rendered. The token detail page still fetches
+          // live curve data on open.
+          const priceInSol = Number(token.priceInSol) || 0.000001;
+          const marketCapSol = Number(token.marketCapSol) || 0;
+          const bondingCurveProgress = Number(token.bondingCurveProgress) || 0;
           
           return {
             mint: token.mint,
