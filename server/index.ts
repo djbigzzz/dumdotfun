@@ -255,21 +255,34 @@ app.use((req, res, next) => {
   // a mint account. Backfills the rare cases where the create tx never landed
   // (user rejected wallet, tx dropped, etc.) and prevents zombie listings.
   const RECONCILE_INTERVAL = 60 * 1000;
+  // Re-entrancy guard: if a previous cycle is still running (a 50-token
+  // refresh batch hitting Helius can occasionally exceed 60s), skip this
+  // tick instead of stacking RPC pressure on top of itself.
+  let reconcilerRunning = false;
   const runReconciler = async () => {
+    if (reconcilerRunning) {
+      log("[TokenReconciler] previous cycle still running, skipping tick", "reconciler");
+      return;
+    }
+    reconcilerRunning = true;
     try {
       const { reconcilePendingTokens } = await import("./services/token-reconciler");
       const r = await reconcilePendingTokens();
-      if (r.deployed.length > 0 || r.broken.length > 0) {
+      if (r.deployed.length > 0 || r.broken.length > 0 || r.refreshed > 0) {
         log(
-          `[TokenReconciler] scanned=${r.scanned} deployed=${r.deployed.length} broken=${r.broken.length} stillPending=${r.stillPending.length}`,
+          `[TokenReconciler] scanned=${r.scanned} deployed=${r.deployed.length} broken=${r.broken.length} stillPending=${r.stillPending.length} refreshed=${r.refreshed}`,
           "reconciler",
         );
       }
     } catch (e) {
       console.error("[TokenReconciler] Periodic scan failed:", e);
+    } finally {
+      reconcilerRunning = false;
     }
   };
-  setTimeout(runReconciler, 8000);
+  // Run once shortly after boot so cached price/mcap/progress get filled
+  // before the homepage's first read (otherwise everything shows $0).
+  setTimeout(runReconciler, 1500);
   setInterval(runReconciler, RECONCILE_INTERVAL);
   log(`[TokenReconciler] Scheduled every ${RECONCILE_INTERVAL / 1000}s`, "startup");
 

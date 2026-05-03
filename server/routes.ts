@@ -366,6 +366,14 @@ export async function registerRoutes(
           bondingCurveProgress = Math.min(100, (realSolReservesNum / graduationThreshold) * 100);
           isGraduated = rawCurveData.isGraduated;
 
+          // Opportunistic cache fill: any time someone opens a token detail
+          // page we get fresh on-chain data for free, write it back so the
+          // homepage list reflects it immediately.
+          import("./services/token-reconciler")
+            .then(({ writeBackTokenStats }) =>
+              writeBackTokenStats(mint, priceInSol, marketCapSol, bondingCurveProgress, !!isGraduated))
+            .catch(() => {});
+
           // Opportunistic auto-graduation: if the on-chain curve flipped to
           // graduated but our DB row is still "pending", kick off the Raydium
           // migration in the background (non-blocking). We deliberately skip
