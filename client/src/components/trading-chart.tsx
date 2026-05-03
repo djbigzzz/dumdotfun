@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 interface OHLCData {
   candles: { time: number; open: number; high: number; low: number; close: number; volume: number }[];
   devTrades: { time: number; type: string; solAmount: number; price: number }[];
+  allTrades?: { time: number; type: string; solAmount: number; price: number; isDev: boolean }[];
   creatorAddress?: string;
   tooManyCandles?: boolean;
 }
@@ -56,7 +57,9 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   const [interval, setInterval] = useState<string>("5m");
   const [viewMode, setViewMode] = useState<"mcap" | "price">("mcap");
   const [currency, setCurrency] = useState<"usd" | "sol">("usd");
-  const [showBubbles, setShowBubbles] = useState(false);
+  const [showBubbles, setShowBubbles] = useState(true);
+  const priceLineRef = useRef<any>(null);
+  const athLineRef = useRef<any>(null);
   const [crosshairData, setCrosshairData] = useState<{
     open: number; high: number; low: number; close: number; volume: number;
   } | null>(null);
@@ -143,14 +146,14 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
         borderColor: "rgba(42, 46, 57, 0.6)",
         timeVisible: true,
         secondsVisible: false,
-        rightOffset: 5,
-        barSpacing: 6,
-        minBarSpacing: 2,
+        rightOffset: 8,
+        barSpacing: 9,
+        minBarSpacing: 3,
         fixLeftEdge: true,
         fixRightEdge: true,
       },
       width: chartContainerRef.current.clientWidth,
-      height: 350,
+      height: 460,
     });
 
     const candleSeries = chart.addCandlestickSeries({
@@ -174,7 +177,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     });
 
     chart.priceScale("vol").applyOptions({
-      scaleMargins: { top: 0.85, bottom: 0 },
+      scaleMargins: { top: 0.78, bottom: 0 },
       visible: false,
     });
 
@@ -237,22 +240,42 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       time: c.time as any,
       value: c.volume,
       color: c.close >= c.open
-        ? "rgba(38, 166, 154, 0.35)"
-        : "rgba(239, 83, 80, 0.35)",
+        ? "rgba(38, 166, 154, 0.65)"
+        : "rgba(239, 83, 80, 0.65)",
     }));
 
     candleSeriesRef.current.setData(candleData);
     volumeSeriesRef.current.setData(volumeData);
 
-    if (showBubbles && ohlcData.devTrades.length > 0) {
+    // Trade markers: pump.fun-style badges on every trade with the
+    // displayed value (mcap or price, in selected currency). Dev trades
+    // are gold-circled to stand out.
+    if (showBubbles && ohlcData.allTrades && ohlcData.allTrades.length > 0) {
+      const markers = ohlcData.allTrades
+        .map(t => {
+          const displayVal = t.price * mult;
+          const valStr = fmt(displayVal).replace(/^\$/, "$");
+          const prefix = t.isDev ? "C" : (t.type === "buy" ? "B" : "S");
+          return {
+            time: t.time as any,
+            position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
+            color: t.isDev ? "#f59e0b" : (t.type === "buy" ? "#26a69a" : "#ef5350"),
+            shape: "circle" as const,
+            size: t.isDev ? 2 : 1,
+            text: `${prefix} ${valStr}`,
+          };
+        })
+        .sort((a, b) => (a.time as number) - (b.time as number));
+      candleSeriesRef.current.setMarkers(markers);
+    } else if (showBubbles && ohlcData.devTrades.length > 0) {
       const markers = ohlcData.devTrades
         .map(t => ({
           time: t.time as any,
           position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-          color: t.type === "buy" ? "#26a69a" : "#ef5350",
+          color: "#f59e0b",
           shape: "circle" as const,
           size: 2,
-          text: t.type === "buy" ? `DB ${t.solAmount.toFixed(1)}` : `DS ${t.solAmount.toFixed(1)}`,
+          text: t.type === "buy" ? `C ${t.solAmount.toFixed(2)}` : `C -${t.solAmount.toFixed(2)}`,
         }))
         .sort((a, b) => (a.time as number) - (b.time as number));
       candleSeriesRef.current.setMarkers(markers);
@@ -260,10 +283,43 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       candleSeriesRef.current.setMarkers([]);
     }
 
+    // Current price horizontal line + ATH line - the dotted reference
+    // lines pump.fun shows. Replaced on each data update.
+    if (priceLineRef.current) {
+      candleSeriesRef.current.removePriceLine(priceLineRef.current);
+      priceLineRef.current = null;
+    }
+    if (athLineRef.current) {
+      candleSeriesRef.current.removePriceLine(athLineRef.current);
+      athLineRef.current = null;
+    }
+    if (candleData.length > 0) {
+      const last = candleData[candleData.length - 1];
+      const ath = candleData.reduce((m, c) => Math.max(m, c.high), 0);
+      priceLineRef.current = candleSeriesRef.current.createPriceLine({
+        price: last.close,
+        color: last.close >= last.open ? "#26a69a" : "#ef5350",
+        lineWidth: 1,
+        lineStyle: 2,
+        axisLabelVisible: true,
+        title: "",
+      });
+      if (ath > last.close * 1.01) {
+        athLineRef.current = candleSeriesRef.current.createPriceLine({
+          price: ath,
+          color: "rgba(245, 158, 11, 0.7)",
+          lineWidth: 1,
+          lineStyle: 2,
+          axisLabelVisible: true,
+          title: "ATH",
+        });
+      }
+    }
+
     if (candleData.length > 0) {
       chartRef.current?.timeScale().fitContent();
     }
-  }, [ohlcData, getMultiplier, showBubbles]);
+  }, [ohlcData, getMultiplier, showBubbles, getFormatter]);
 
   const hasCandles = ohlcData && ohlcData.candles.length > 0;
   const lastCandle = hasCandles ? ohlcData.candles[ohlcData.candles.length - 1] : null;

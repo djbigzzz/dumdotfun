@@ -3920,7 +3920,18 @@ export async function registerRoutes(
             }))
         : [];
 
-      return res.json({ candles, devTrades, creatorAddress });
+      // All trades - used by the chart to render markers on every candle
+      // (pump.fun-style "C" badges with $ amounts). Dev trades are still
+      // returned separately so they can be visually distinguished.
+      const allTrades = tradePoints.map(t => ({
+        time: Math.floor(t.time / 1000),
+        type: t.type,
+        solAmount: t.volume,
+        price: t.price,
+        isDev: !!creatorAddress && t.wallet === creatorAddress,
+      }));
+
+      return res.json({ candles, devTrades, allTrades, creatorAddress });
     } catch (error: any) {
       console.error("Error fetching OHLC:", error);
       return res.status(500).json({ error: "Failed to fetch OHLC data" });
