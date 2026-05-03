@@ -363,17 +363,13 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     }
 
     if (candleData.length > 0 && didAnchorRef.current !== interval) {
-      // pump.fun-style anchoring: candles fill the right ~60% of the chart
-      // with empty pre-history canvas on the left. We show a fixed
-      // viewport of the most-recent ~80 bars plus ~55 empty bars before
-      // the first visible bar (regardless of total data length).
-      // Only fires once per interval change so 10s data refreshes don't
-      // snap users back when they've panned to look at history.
+      // Show the full token history from first trade to now, with a few
+      // bars of breathing room on the right edge. Only fires once per
+      // (interval, token) change so 10s data refreshes don't snap users
+      // back when they've panned/zoomed to inspect a region.
       const dataLen = candleData.length;
-      const visibleData = Math.min(dataLen, 80);
-      const emptyLeft = Math.round(visibleData * 0.7);
       chartRef.current?.timeScale().setVisibleLogicalRange({
-        from: dataLen - 1 - visibleData - emptyLeft,
+        from: -2,
         to: dataLen - 1 + 3,
       });
       didAnchorRef.current = interval;
