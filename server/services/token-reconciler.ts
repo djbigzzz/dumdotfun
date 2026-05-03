@@ -10,7 +10,7 @@ const MARK_BROKEN_AFTER_MS = 30 * 60 * 1000;
 // How many active tokens to refresh price/mcap/progress for per cycle, and
 // how many concurrent RPC calls to make. Helius gets aggressive about 429s
 // past ~5 in-flight, so keep this small.
-const ACTIVE_REFRESH_LIMIT = 60;
+const ACTIVE_REFRESH_LIMIT = 20;
 const REFRESH_CONCURRENCY = 3;
 
 export interface ReconcileResult {
@@ -158,7 +158,10 @@ export async function reconcilePendingTokens(): Promise<ReconcileResult> {
 
         result.stillPending.push(token.mint);
       } catch (err) {
-        console.error(`[TokenReconciler] Error checking mint ${token.mint}:`, err);
+        const msg = err instanceof Error ? err.message : String(err);
+        if (!msg.includes("429") && !msg.includes("Too Many Requests")) {
+          console.error(`[TokenReconciler] Error checking mint ${token.mint}:`, err);
+        }
       }
     }
   }
