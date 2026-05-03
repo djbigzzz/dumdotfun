@@ -73,6 +73,15 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     open: number; high: number; low: number; close: number; volume: number;
   } | null>(null);
 
+  // Tracks whether the user has manually chosen an interval. Once they
+  // do, we stop auto-upgrading for density (only the server-side
+  // tooManyCandles cap will still bump them). Reset when mint changes
+  // so navigating to a new token gets fresh density auto-upgrade.
+  const userPickedIntervalRef = useRef(false);
+  useEffect(() => {
+    userPickedIntervalRef.current = false;
+  }, [mint]);
+
   const { data: ohlcData } = useQuery<OHLCData>({
     queryKey: ["ohlc", mint, interval],
     queryFn: async () => {
@@ -85,6 +94,20 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
           setInterval(INTERVALS[idx + 1]);
         }
         return { candles: [], devTrades: [] };
+      }
+      // Density-based auto-upgrade: if we got more than 150 candles and
+      // the user hasn't manually picked an interval, bump up so candles
+      // render distinct (pump.fun's default density). Without this, an
+      // old token at 1s gives thousands of sub-pixel bars.
+      if (
+        !userPickedIntervalRef.current &&
+        Array.isArray(data?.candles) &&
+        data.candles.length > 150
+      ) {
+        const idx = INTERVALS.indexOf(interval as any);
+        if (idx < INTERVALS.length - 1) {
+          setInterval(INTERVALS[idx + 1]);
+        }
       }
       return data;
     },
@@ -158,10 +181,12 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
         timeVisible: true,
         secondsVisible: false,
         rightOffset: 8,
-        barSpacing: 9,
-        minBarSpacing: 3,
-        fixLeftEdge: true,
-        fixRightEdge: true,
+        barSpacing: 6,
+        minBarSpacing: 0.5,
+        // Allow scrolling/zooming past the data edges so we can have
+        // the pump.fun-style empty canvas to the left of the first bar.
+        fixLeftEdge: false,
+        fixRightEdge: false,
       },
       width: chartContainerRef.current.clientWidth,
       height: 460,
@@ -365,27 +390,18 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     if (candleData.length > 0 && didAnchorRef.current !== interval) {
       // pump.fun-style anchor: ALL candles visible AND squeezed into the
       // right ~60% of the chart, leaving ~40% empty pre-history canvas
-      // on the left. We do this by computing a barSpacing that makes
-      // (dataLen + rightOffset) bars span ~60% of the actual container
-      // width, then scrolling the latest bar to the right edge.
+      // on the left. Now that fixLeftEdge/fixRightEdge are off, the
+      // chart actually respects setVisibleLogicalRange.
       // Only fires once per (interval, token) change so 10s data refreshes
       // don't snap users back when they've panned to inspect a region.
       const dataLen = candleData.length;
-      const containerWidth = chartContainerRef.current?.clientWidth || 700;
-      const rightOffset = 3;
-      // Reserve 60px on the right for the price scale.
-      const usableWidth = Math.max(200, containerWidth - 60);
-      const targetDataWidth = usableWidth * 0.6;
-      // Clamp barSpacing between 1px (super-dense) and 12px (super-sparse).
-      const barSpacing = Math.max(
-        1,
-        Math.min(12, targetDataWidth / (dataLen + rightOffset)),
-      );
-      chartRef.current?.timeScale().applyOptions({
-        barSpacing,
-        rightOffset,
+      // Empty left space = ~67% of dataLen, so data ends up filling the
+      // right 60% (dataLen / (dataLen + 0.67*dataLen) = 60%).
+      const emptyLeft = Math.max(Math.round(dataLen * 0.67), 5);
+      chartRef.current?.timeScale().setVisibleLogicalRange({
+        from: -emptyLeft,
+        to: dataLen - 1 + 3,
       });
-      chartRef.current?.timeScale().scrollToRealTime();
       didAnchorRef.current = interval;
     }
   }, [ohlcData, getMultiplier, showBubbles, getFormatter, interval]);
@@ -436,7 +452,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
           {INTERVALS.map(i => (
             <button
               key={i}
-              onClick={() => setInterval(i)}
+              onClick={() => { userPickedIntervalRef.current = true; setInterval(i); }}
               className={`px-2 py-0.5 text-[11px] font-medium rounded transition-colors ${
                 interval === i
                   ? "text-white bg-[#2a2e39]"
