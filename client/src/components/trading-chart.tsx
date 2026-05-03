@@ -65,6 +65,10 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   const [logScale, setLogScale] = useState<boolean>(false);
   const priceLineRef = useRef<any>(null);
   const athLineRef = useRef<any>(null);
+  // Tracks whether we've already applied the initial pump.fun-style
+  // anchor for the current interval. Resets when interval changes so
+  // periodic 10s data refreshes don't snap users back if they've panned.
+  const didAnchorRef = useRef<string | null>(null);
   const [crosshairData, setCrosshairData] = useState<{
     open: number; high: number; low: number; close: number; volume: number;
   } | null>(null);
@@ -358,15 +362,29 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       }
     }
 
-    if (candleData.length > 0) {
-      // Don't fitContent (which stretches a few candles to fill the entire
-      // chart width). Instead scroll to the latest candle and let bars
-      // render at their natural barSpacing - matches pump.fun where a
-      // young chart shows real-width candles on the right with empty
-      // canvas to the left.
-      chartRef.current?.timeScale().scrollToRealTime();
+    if (candleData.length > 0 && didAnchorRef.current !== interval) {
+      // pump.fun-style anchoring: candles fill the right ~60% of the chart
+      // with empty pre-history canvas on the left. We show a fixed
+      // viewport of the most-recent ~80 bars plus ~55 empty bars before
+      // the first visible bar (regardless of total data length).
+      // Only fires once per interval change so 10s data refreshes don't
+      // snap users back when they've panned to look at history.
+      const dataLen = candleData.length;
+      const visibleData = Math.min(dataLen, 80);
+      const emptyLeft = Math.round(visibleData * 0.7);
+      chartRef.current?.timeScale().setVisibleLogicalRange({
+        from: dataLen - 1 - visibleData - emptyLeft,
+        to: dataLen - 1 + 3,
+      });
+      didAnchorRef.current = interval;
     }
   }, [ohlcData, getMultiplier, showBubbles, getFormatter, interval]);
+
+  // Reset the anchor flag when interval changes so the new interval gets
+  // its initial anchor applied on next data load.
+  useEffect(() => {
+    didAnchorRef.current = null;
+  }, [interval, mint]);
 
   const hasCandles = ohlcData && ohlcData.candles.length > 0;
   const lastCandle = hasCandles ? ohlcData.candles[ohlcData.candles.length - 1] : null;
