@@ -1,6 +1,7 @@
 import { Layout } from "@/components/layout";
 import { useWallet } from "@/lib/wallet-context";
 import { apiRequest } from "@/lib/queryClient";
+import { CloakShieldButton } from "@/components/cloak-shield-button";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { usePageTitle } from "@/hooks/use-page-title";
 
@@ -989,16 +990,23 @@ export default function Profile() {
                                     Resolved {p.market.outcome?.toUpperCase()}
                                   </div>
                                 </div>
-                                <div className="text-right flex-shrink-0">
+                                <div className="text-right flex-shrink-0 flex flex-col items-end gap-1">
                                   {p.won ? (
                                     <>
                                       <span className="text-[10px] px-2 py-0.5 rounded font-black bg-green-100 text-green-700">WON</span>
-                                      <div className="text-xs font-mono font-bold mt-1 text-green-600">+{(p.payout || 0).toFixed(3)} SOL</div>
+                                      <div className="text-xs font-mono font-bold text-green-600">+{(p.payout || 0).toFixed(3)} SOL</div>
+                                      {connectedWallet && (p.payout || 0) > 0 && (
+                                        <CloakShieldButton
+                                          marketId={p.marketId}
+                                          recipientWallet={connectedWallet}
+                                          amountSol={Number((p.payout || 0).toFixed(6))}
+                                        />
+                                      )}
                                     </>
                                   ) : (
                                     <>
                                       <span className="text-[10px] px-2 py-0.5 rounded font-black bg-gray-200 text-gray-600">LOST</span>
-                                      <div className="text-xs font-mono font-bold mt-1 text-gray-500">-{p.amount.toFixed(3)} SOL</div>
+                                      <div className="text-xs font-mono font-bold text-gray-500">-{p.amount.toFixed(3)} SOL</div>
                                     </>
                                   )}
                                 </div>
