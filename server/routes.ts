@@ -783,7 +783,7 @@ export async function registerRoutes(
         return res.status(400).json({ error: "userWallet, tokenMint, and amount are required" });
       }
       
-      if (!isValidSolanaAddress(userWallet) || !isValidSolanaAddress(tokenMint)) {
+      if (!(await isValidSolanaAddress(userWallet)) || !(await isValidSolanaAddress(tokenMint))) {
         return res.status(400).json({ error: "Invalid wallet or token address" });
       }
       
@@ -4152,8 +4152,8 @@ export async function registerRoutes(
       if (!senderWallet || !recipientWallet || !tokenMint || !amount) {
         return res.status(400).json({ error: "Missing required fields: senderWallet, recipientWallet, tokenMint, amount" });
       }
-      if (!isValidSolanaAddress(senderWallet) || !isValidSolanaAddress(recipientWallet)) {
-        return res.status(400).json({ error: "Invalid Solana wallet address" });
+      if (!(await isValidSolanaAddress(senderWallet)) || !(await isValidSolanaAddress(recipientWallet)) || !(await isValidSolanaAddress(tokenMint))) {
+        return res.status(400).json({ error: "Invalid Solana wallet or token address" });
       }
       const amountNum = parseFloat(amount);
       if (isNaN(amountNum) || amountNum <= 0) {

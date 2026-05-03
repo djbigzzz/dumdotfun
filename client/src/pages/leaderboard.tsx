@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link } from "wouter";
 import { useState } from "react";
 import { Trophy, Crown, Star, Diamond, Shield, Flame, TrendingUp, Sparkles, Timer, ChevronUp, ArrowUpDown } from "lucide-react";
+import { WalletName } from "@/components/wallet-name";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 interface LeaderboardEntry {
@@ -109,7 +110,7 @@ function LeaderboardRow({ entry, rank, isYou }: {
         <span className={`text-sm font-bold cursor-pointer hover:underline block truncate ${
           entry.displayName ? "" : "font-mono"
         } ${isYou ? "text-red-500" : "text-black"}`}>
-          {entry.displayName || `${entry.walletAddress.slice(0, 4)}...${entry.walletAddress.slice(-4)}`}
+          {entry.displayName || (<WalletName address={entry.walletAddress} truncate={4} showBadge={false} monoFallback={false} />)}
           {isYou && <span className="ml-1.5 text-[10px] opacity-60">(you)</span>}
         </span>
       </a>

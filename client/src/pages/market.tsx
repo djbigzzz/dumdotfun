@@ -9,6 +9,7 @@ import { Link } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 import { openTwitterIntent, getShareUrl } from "@/lib/mobile-utils";
 import { apiRequest } from "@/lib/queryClient";
+import { WalletName } from "@/components/wallet-name";
 import { Transaction, Connection } from "@solana/web3.js";
 import bs58 from "bs58";
 import { useEffect } from "react";
@@ -681,7 +682,7 @@ export default function MarketDetail() {
                       </div>
 
                       <div className="text-[11px] text-gray-500">
-                        Payout = (your bet ÷ winning pool) × total pool · Created by <span className="font-mono">{market.creatorAddress.slice(0,6)}…{market.creatorAddress.slice(-4)}</span>
+                        Payout = (your bet ÷ winning pool) × total pool · Created by <WalletName address={market.creatorAddress} truncate={6} showBadge={false} />
                       </div>
 
                       <div className="flex flex-wrap gap-2 pt-1">

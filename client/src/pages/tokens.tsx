@@ -1,5 +1,6 @@
 import { Layout } from "@/components/layout";
 import { TokenCard } from "@/components/token-card";
+import { WalletName } from "@/components/wallet-name";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Link } from "wouter";
@@ -634,7 +635,7 @@ export default function TokensPage() {
                           {getTimeAgo(new Date(token.createdAt))}
                         </div>
                         <div className={`py-3 px-4 w-24 text-right text-sm font-mono ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>
-                          {token.creatorAddress.slice(0, 6)}...
+                          <WalletName address={token.creatorAddress} truncate={6} showBadge={false} monoFallback={false} />
                         </div>
                       </div>
                     </Link>

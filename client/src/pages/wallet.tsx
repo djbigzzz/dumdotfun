@@ -4,6 +4,7 @@ import { useRoute, Link } from "wouter";
 import { useState } from "react";
 import { Copy, Check, ExternalLink, ArrowLeft, Wallet as WalletIcon, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import { WalletName } from "@/components/wallet-name";
 
 interface DuneToken {
   mint: string;
@@ -141,8 +142,8 @@ export default function WalletPage() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs uppercase font-bold text-gray-500 tracking-wider">Wallet</p>
-                <p className="font-mono text-lg md:text-xl font-bold text-black truncate" data-testid="text-wallet-address">
-                  {shortAddr(address)}
+                <p className="text-lg md:text-xl font-bold text-black truncate" data-testid="text-wallet-address">
+                  <WalletName address={address} truncate={6} />
                 </p>
               </div>
             </div>
