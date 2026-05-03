@@ -388,6 +388,34 @@ export const marketPayouts = pgTable("market_payouts", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
+// Cloak shielded payouts ledger. One row per (positionId) - the UNIQUE
+// constraint is the load-bearing idempotency guarantee that prevents a
+// winner from draining the platform payer with repeated shield-payout
+// calls. Also persists the ephemeral UTXO owner secret BEFORE the deposit
+// is broadcast so a deposit-succeeded/withdraw-failed crash is recoverable
+// instead of silently locking funds inside the shielded pool.
+// status flow: pending -> deposited -> withdrawn | failed
+export const cloakPayouts = pgTable("cloak_payouts", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  positionId: varchar("position_id").notNull().unique(),
+  marketId: varchar("market_id").notNull(),
+  walletAddress: text("wallet_address").notNull(),
+  amountLamports: numeric("amount_lamports", { precision: 20, scale: 0 }).notNull(),
+  // JSON-serialized 32-byte UTXO owner private key, persisted BEFORE the
+  // deposit transaction is broadcast. If withdraw fails, a recovery worker
+  // can reconstruct the UTXO from this seed and retry fullWithdraw.
+  utxoOwnerSecret: text("utxo_owner_secret"),
+  depositSignature: text("deposit_signature"),
+  withdrawSignature: text("withdraw_signature"),
+  status: text("status").notNull().default("pending"),
+  error: text("error"),
+  durationMs: integer("duration_ms"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export type CloakPayout = typeof cloakPayouts.$inferSelect;
+
 // Pre-generated vanity mint keypairs (addresses ending in dum/DUM/Dum). The
 // vanity grinder worker pushes new candidates here; the create-token endpoint
 // atomically claims one via UPDATE ... RETURNING. Lives in the DB so the pool

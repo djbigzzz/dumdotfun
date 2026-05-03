@@ -3749,12 +3749,132 @@ export async function registerRoutes(
           });
         }
 
-        const { getCloakPayoutQuote } = await import("./cloak");
-        const quote = await getCloakPayoutQuote({ marketId, recipientWallet, amountSol: amt });
-        return res.json({ success: true, quote });
+        // Idempotency: claim a row in cloak_payouts keyed by the UNIQUE
+        // positionId. If a row already exists for this position the winner
+        // already shielded (or is in the middle of shielding), so reject -
+        // this prevents draining the platform payer with repeat calls.
+        const { db } = await import("./db");
+        const { cloakPayouts, marketPayouts } = await import("../shared/schema");
+        const { eq } = await import("drizzle-orm");
+
+        const existingRegular = await db
+          .select({ status: marketPayouts.status })
+          .from(marketPayouts)
+          .where(eq(marketPayouts.positionId, winningPosition.id))
+          .limit(1);
+        if (existingRegular.length > 0 && existingRegular[0].status === "sent") {
+          return res.status(409).json({
+            error: "this winning position was already paid via the standard rail",
+          });
+        }
+
+        const lamports = BigInt(Math.floor(amt * 1_000_000_000));
+        // Atomic claim: insert pending row OR re-claim a previously-failed
+        // row by flipping it back to pending (no row may flip from
+        // deposited/withdrawn back to pending - that would orphan funds).
+        // The combination of UNIQUE(position_id) + WHERE status='failed'
+        // gives us idempotency against payer-draining while still allowing
+        // retry of transient failures.
+        const claim = await db
+          .insert(cloakPayouts)
+          .values({
+            positionId: winningPosition.id,
+            marketId,
+            walletAddress: recipientWallet,
+            amountLamports: lamports.toString(),
+            status: "pending",
+          })
+          .onConflictDoUpdate({
+            target: cloakPayouts.positionId,
+            set: {
+              status: "pending",
+              amountLamports: lamports.toString(),
+              error: null,
+              updatedAt: new Date(),
+            },
+            setWhere: eq(cloakPayouts.status, "failed"),
+          })
+          .returning();
+        if (claim.length === 0) {
+          const prior = await db
+            .select()
+            .from(cloakPayouts)
+            .where(eq(cloakPayouts.positionId, winningPosition.id))
+            .limit(1);
+          const row = prior[0];
+          if (row?.status === "withdrawn" && row.depositSignature && row.withdrawSignature) {
+            return res.json({
+              success: true,
+              alreadyShielded: true,
+              payout: {
+                depositSignature: row.depositSignature,
+                withdrawSignature: row.withdrawSignature,
+                shieldedAmountLamports: row.amountLamports,
+                recipient: row.walletAddress,
+                marketId: row.marketId,
+                programId: "Zc1kHfp4rajSMeASFDwFFgkHRjv7dFQuLheJoQus27h",
+                network: "devnet",
+                explorerDeposit: `https://explorer.solana.com/tx/${row.depositSignature}?cluster=devnet`,
+                explorerWithdraw: `https://explorer.solana.com/tx/${row.withdrawSignature}?cluster=devnet`,
+                durationMs: row.durationMs ?? 0,
+              },
+            });
+          }
+          return res.status(409).json({
+            error: `shielded payout already in progress or completed for this position (status=${row?.status ?? "unknown"})`,
+          });
+        }
+        const claimId = claim[0].id;
+
+        const { executeShieldedPayout } = await import("./cloak");
+        try {
+          // Real Cloak deposit + fullWithdraw on devnet. Groth16 proof
+          // generation can take 30s-2min on first call (circuits warmup).
+          const result = await executeShieldedPayout({
+            marketId,
+            recipientWallet,
+            amountSol: amt,
+            onUtxoOwnerGenerated: async (priv) => {
+              await db
+                .update(cloakPayouts)
+                .set({ utxoOwnerSecret: priv, updatedAt: new Date() })
+                .where(eq(cloakPayouts.id, claimId));
+            },
+            onDepositConfirmed: async (sig) => {
+              await db
+                .update(cloakPayouts)
+                .set({ depositSignature: sig, status: "deposited", updatedAt: new Date() })
+                .where(eq(cloakPayouts.id, claimId));
+            },
+          });
+          await db
+            .update(cloakPayouts)
+            .set({
+              withdrawSignature: result.withdrawSignature,
+              status: "withdrawn",
+              durationMs: result.durationMs,
+              updatedAt: new Date(),
+            })
+            .where(eq(cloakPayouts.id, claimId));
+          return res.json({ success: true, payout: result });
+        } catch (innerErr: any) {
+          const msg = innerErr?.message || String(innerErr);
+          await db
+            .update(cloakPayouts)
+            .set({ status: "failed", error: msg.slice(0, 500), updatedAt: new Date() })
+            .where(eq(cloakPayouts.id, claimId));
+          throw innerErr;
+        }
       } catch (err: any) {
-        console.error("[Cloak] shield-payout failed:", err);
-        return res.status(500).json({ error: "shield payout quote failed" });
+        const msg = err?.message || String(err);
+        console.error("[Cloak] shield-payout failed:", msg);
+        // 503: server payer not configured (operator fault, not user fault)
+        // 400: input/policy violations (amount below min, non-positive, etc)
+        // 500: anything else (relay/proof/RPC failure - transient, retriable)
+        let status = 500;
+        if (/not configured/i.test(msg)) status = 503;
+        else if (/minimum|positive/i.test(msg)) status = 400;
+        return res.status(status).json({ error: `cloak shield payout failed: ${msg}` });
       }
     }
   );

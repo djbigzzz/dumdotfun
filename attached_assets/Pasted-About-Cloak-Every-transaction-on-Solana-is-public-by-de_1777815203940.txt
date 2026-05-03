@@ -1,0 +1,117 @@
+About Cloak
+Every transaction on Solana is public by default. Amounts, senders, recipients, and timestamps are permanently readable on any block explorer. For individuals this is inconvenient; for organizations it is an operational risk. Payroll amounts get indexed and searched. Treasury movements telegraph strategy before execution completes. Counterparty flows are parsed by competitors in real time. What looks like a technical detail of the chain is, in practice, a structural limit on what kinds of businesses can run on Solana.
+
+Cloak is the private execution layer that closes that gap. Businesses use Cloak to move USDC, USDT, and SOL between parties without exposing amounts or addresses on-chain. Payroll runs, vendor payments, treasury rebalances, and cross-border settlement go through the same interface — the economic guarantees of stablecoins, without the public trail. Selective disclosure via viewing keys means a finance team, auditor, or regulator can still see exactly what they need, while the public ledger shows nothing.
+
+Under the hood: a UTXO shielded pool on Solana, Groth16 proofs generated client-side in seconds, and a relay that submits transactions without ever touching custody. The SDK is TypeScript, and the integration surface is straightforward — deposit, transfer, swap, and compliance-friendly history — without you needing to run provers, sync Merkle trees, or ship circuit builds. Cloak is live on mainnet today.
+
+Mission
+The track exists to close a concrete gap on Solana: products where privacy isn’t a feature you add, but a precondition for the product to function. If your users would walk away the moment their amounts and counterparties went public, privacy is load-bearing — that’s the kind of product we want to fund. Use the Cloak SDK to build one of them.
+
+What You Can Build
+Five directions where Cloak’s capabilities line up with a real user and a real pain.
+
+Private payroll and contractor payments
+An organization paying ten people in USDC shouldn’t have every salary permanently readable on any block explorer. Cloak’s batch disbursement fans a single shielded transaction out to many recipients — amounts hidden, addresses hidden, auditable only by whoever holds the viewing key. A natural product is a payroll interface that connects to a treasury wallet, lets an admin configure recipients and amounts, and runs the full disbursement as one shielded batch. Invoicing tools where a contractor shares a stealth claim link fit here too.
+
+Private B2B payments and treasury flows
+A protocol treasury moving funds between operational accounts, paying vendors, or running a buyback doesn’t want public on-chain signals telegraphing strategy before execution completes. The public ledger becomes a live intelligence feed for competitors and anyone else watching. Products here include treasury management interfaces with shielded execution, B2B settlement tools where both counterparties want amounts off-chain, and grant disbursement for DAOs with internal reporting for governance.
+
+Cross-border stablecoin payments
+USDC and USDT moving globally between counterparties, with amounts and identities staying private, is a real product requirement — for freelancers, for businesses transacting across jurisdictions, for anyone whose financial activity shouldn’t be permanently indexed. A fit is a payment interface designed specifically for cross-border flows, with QR-based or link-based claiming so the recipient doesn’t need prior Cloak familiarity.
+
+Compliance and audit tooling
+The viewing key system is underexplored. An organization using Cloak can issue scoped keys — a full audit key for internal finance, a narrower one for an external auditor that shows amounts but not full history, a regulatory key generated on demand with time-limited validity. Products here include compliance dashboards that manage active viewing keys and generate structured reports, tools where a third-party auditor inputs a key and gets a formatted history without touching the ZK mechanics, or tax reporting that decrypts only the transactions in a specific period.
+
+SDK integrations in existing wallets and DeFi
+If you’re building a wallet, DeFi protocol, or any Solana product handling user funds, a private send option is a feature your users would reach for. An integration that embeds Cloak’s shielded transfer into an existing product — so users pick between standard and private without leaving your UI — qualifies. Developer tooling that makes Cloak easier to integrate for the next builder, such as wrapper libraries, testing utilities, CLI tools, and well-documented integration templates, also counts.
+
+Integration Requirements
+Your project should use one or more of these Cloak SDK capabilities as the mechanism that delivers user value:
+
+
+• Private transfers of USDC, USDT, and SOL between shielded accounts
+
+• Batch disbursement that fans out to many recipients in a single shielded transaction
+
+• Stealth addresses that let a sender reach a recipient without exposing a destination
+
+• Viewing keys for selective audit trails — full or scoped visibility for specific parties
+
+• Private swaps via Orca for routing between tokens without revealing the path
+
+
+Going deep on one capability beats using all of them shallowly. A payroll interface that executes batch disbursement through the SDK and exposes a viewing key to the admin is a complete, valid integration — it uses two capabilities, both meaningfully. A product that wires deposit and withdrawal into an existing app and calls itself “private” without using the core transfer flow doesn’t clear the bar.
+
+Submission Requirements
+
+Working demo or live deployment: the product needs to run. A live URL is preferred. A local setup with clear instructions is acceptable. Judges will test it.
+
+
+Public GitHub repository: include all project code.
+
+
+README.md must cover:
+
+• The problem being solved and who it’s for
+
+• How the Cloak SDK is used and why it’s central to the product
+
+• Setup and run instructions
+
+• Any deployed program IDs or frontend links
+
+
+Demo video, under 5 minutes: show the product working end to end. Walk through the actual private payment flow. Explain the decisions you made, not just what the product does.
+
+
+Projects must also be submitted to the Colosseum Frontier Hackathon portal at arena.colosseum.org to be eligible.
+
+Judging Criteria
+Integration depth (40%)
+Is Cloak doing the actual work here, or is it incidental? Judges will look at whether private payments are genuinely central to what the product does, and whether the integration reflects a real understanding of the SDK’s capabilities.
+
+Product (30%)
+Code quality, reliability, UX, and clarity. Does the product run cleanly in realistic conditions? How easy is it for a user to understand what’s happening and complete a private payment flow? Error states, loading behavior, and recovery from failures matter as much as the happy path.
+
+Real-world use (30%)
+Is there a clear person or organization that would use this, and does the product meaningfully address their pain? The most compelling submissions will be ones where the target user is obvious and the privacy guarantee is load-bearing to why they’d adopt it.
+
+
+Resources
+
+Cloak website: https://cloak.ag
+
+Documentation: https://docs.cloak.ag/sdk/introduction
+
+SDK quickstart: https://docs.cloak.ag/sdk/quickstart
+
+API reference: https://docs.cloak.ag/sdk/api-reference
+
+GitHub: https://github.com/cloak-ag/
+
+Install SDK: npm i @cloak.dev/sdk
+
+
+Claude Code skills:
+
+npx @cloak.dev/claude-skills
+
+
+This installs four slash commands into your Claude Code environment:
+
+• /cloak-shield — move tokens into the shielded pool
+
+• /cloak-send — private transfer
+
+• /cloak-pay — pay out of a shielded balance
+
+• /cloak-swap — private swap via Orca
+
+
+Each command encodes the full SDK call pattern for that flow, so you can prototype a working private payment path in a fresh repo without reading the API reference first. The skill also loads structured context about the SDK surface so Claude can answer integration questions inline.
+
+
+Research the landscape:
+
+npx skills add ColosseumOrg/colosseum-copilot

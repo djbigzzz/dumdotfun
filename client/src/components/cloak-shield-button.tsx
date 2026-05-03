@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Lock, Loader2, CheckCircle2, AlertCircle, Copy } from "lucide-react";
+import { Lock, Loader2, CheckCircle2, AlertCircle, Copy, ExternalLink } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useWallet } from "@/lib/wallet-context";
 
@@ -10,12 +10,17 @@ interface CloakShieldButtonProps {
   className?: string;
 }
 
-interface CloakQuote {
-  cloakRef: string;
-  encryptedAmount: string;
-  proofHash: string;
-  estimatedFee: string;
-  expiresAt: number;
+interface ShieldedPayout {
+  depositSignature: string;
+  withdrawSignature: string;
+  shieldedAmountLamports: string;
+  recipient: string;
+  marketId: string;
+  programId: string;
+  network: "devnet";
+  explorerDeposit: string;
+  explorerWithdraw: string;
+  durationMs: number;
 }
 
 export function CloakShieldButton({
@@ -26,9 +31,9 @@ export function CloakShieldButton({
 }: CloakShieldButtonProps) {
   const { ensureSession } = useWallet();
   const [loading, setLoading] = useState(false);
-  const [quote, setQuote] = useState<CloakQuote | null>(null);
+  const [payout, setPayout] = useState<ShieldedPayout | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"deposit" | "withdraw" | null>(null);
 
   const handleClick = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -47,8 +52,8 @@ export function CloakShieldButton({
         amountSol,
       });
       const body = await res.json();
-      if (!body.quote) throw new Error(body.error || "no quote returned");
-      setQuote(body.quote);
+      if (!body.payout) throw new Error(body.error || "no payout returned");
+      setPayout(body.payout);
     } catch (err: any) {
       setError(err?.message || "shield payout failed");
     } finally {
@@ -56,36 +61,72 @@ export function CloakShieldButton({
     }
   };
 
-  const copyRef = (e: React.MouseEvent) => {
+  const copySig = (sig: string, which: "deposit" | "withdraw") => (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!quote) return;
-    navigator.clipboard.writeText(quote.cloakRef).catch(() => {});
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    navigator.clipboard.writeText(sig).catch(() => {});
+    setCopied(which);
+    setTimeout(() => setCopied(null), 2000);
   };
 
-  if (quote) {
+  if (payout) {
     return (
       <div
         className={`inline-flex flex-col gap-1 px-2 py-1 border-2 border-black bg-green-100 ${className}`}
-        data-testid={`cloak-quote-${marketId}`}
+        data-testid={`cloak-payout-${marketId}`}
       >
         <div className="flex items-center gap-1 text-[10px] font-black uppercase">
           <CheckCircle2 className="w-3 h-3" />
-          shielded
-          <button
-            onClick={copyRef}
-            className="ml-1 hover:underline font-mono normal-case"
-            data-testid={`button-copy-cloak-ref-${marketId}`}
-            aria-label="copy cloak ref"
-          >
-            {quote.cloakRef.slice(0, 14)}...
-            <Copy className="w-2.5 h-2.5 inline ml-0.5" />
-          </button>
+          shielded on devnet
         </div>
-        <div className="text-[9px] font-mono opacity-70">
-          fee ~{quote.estimatedFee} SOL {copied && <span className="text-green-700 font-bold">copied</span>}
+        <div className="flex flex-col gap-0.5 text-[9px] font-mono">
+          <div className="flex items-center gap-1">
+            <span className="font-bold uppercase">deposit:</span>
+            <a
+              href={payout.explorerDeposit}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:underline"
+              onClick={(e) => e.stopPropagation()}
+              data-testid={`link-cloak-deposit-${marketId}`}
+            >
+              {payout.depositSignature.slice(0, 10)}...
+              <ExternalLink className="w-2.5 h-2.5 inline ml-0.5" />
+            </a>
+            <button
+              onClick={copySig(payout.depositSignature, "deposit")}
+              className="hover:opacity-70"
+              data-testid={`button-copy-cloak-deposit-${marketId}`}
+              aria-label="copy deposit signature"
+            >
+              <Copy className="w-2.5 h-2.5" />
+            </button>
+            {copied === "deposit" && <span className="text-green-700 font-bold">copied</span>}
+          </div>
+          <div className="flex items-center gap-1">
+            <span className="font-bold uppercase">withdraw:</span>
+            <a
+              href={payout.explorerWithdraw}
+              target="_blank"
+              rel="noreferrer"
+              className="hover:underline"
+              onClick={(e) => e.stopPropagation()}
+              data-testid={`link-cloak-withdraw-${marketId}`}
+            >
+              {payout.withdrawSignature.slice(0, 10)}...
+              <ExternalLink className="w-2.5 h-2.5 inline ml-0.5" />
+            </a>
+            <button
+              onClick={copySig(payout.withdrawSignature, "withdraw")}
+              className="hover:opacity-70"
+              data-testid={`button-copy-cloak-withdraw-${marketId}`}
+              aria-label="copy withdraw signature"
+            >
+              <Copy className="w-2.5 h-2.5" />
+            </button>
+            {copied === "withdraw" && <span className="text-green-700 font-bold">copied</span>}
+          </div>
+          <div className="opacity-60">{(payout.durationMs / 1000).toFixed(1)}s end-to-end</div>
         </div>
       </div>
     );
@@ -98,18 +139,23 @@ export function CloakShieldButton({
         disabled={loading}
         className="inline-flex items-center gap-1 text-[10px] font-black uppercase border-2 border-black px-2 py-1 bg-purple-300 hover:bg-purple-400 disabled:opacity-50"
         data-testid={`button-cloak-shield-${marketId}`}
-        title="Generate a confidential payout quote via Cloak"
+        title="Route this payout privately through Cloak's shielded pool on devnet"
       >
         {loading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Lock className="w-3 h-3" />}
-        shield with cloak
+        {loading ? "proving + submitting..." : "shield with cloak"}
       </button>
+      {loading && (
+        <div className="text-[9px] font-mono opacity-70" data-testid={`cloak-loading-hint-${marketId}`}>
+          Groth16 proof can take 30-90s on first run
+        </div>
+      )}
       {error && (
         <div
-          className="inline-flex items-center gap-1 text-[9px] font-bold text-red-700"
+          className="inline-flex items-center gap-1 text-[9px] font-bold text-red-700 max-w-[280px]"
           data-testid={`cloak-error-${marketId}`}
         >
-          <AlertCircle className="w-3 h-3" />
-          {error}
+          <AlertCircle className="w-3 h-3 flex-shrink-0" />
+          <span className="break-words">{error}</span>
         </div>
       )}
     </div>
