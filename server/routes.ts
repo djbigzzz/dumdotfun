@@ -1416,7 +1416,9 @@ export async function registerRoutes(
 
       console.log(`[DEVNET] Confirming token: ${name} (${symbol}), mint: ${mint}, sig: ${signature}`);
 
-      // Save token to database
+      // Save token to database. Mark deployment as deployed immediately since
+      // this endpoint is only called after the create tx has confirmed on-chain
+      // (the client posts the signature here). Avoids zombie 'pending' rows.
       const token = await storage.createToken({
         mint,
         name: name.trim(),
@@ -1425,6 +1427,14 @@ export async function registerRoutes(
         imageUri: imageUri || null,
         creatorAddress,
       });
+      try {
+        await db
+          .update(tokensTable)
+          .set({ deploymentStatus: "deployed" })
+          .where(eq(tokensTable.mint, mint));
+      } catch (statusErr) {
+        console.error("[DEVNET] Failed to set deployment_status=deployed:", statusErr);
+      }
 
       // Auto-create a default "Will it rug?" prediction market (3 day resolution)
       try {

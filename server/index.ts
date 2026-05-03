@@ -250,6 +250,29 @@ app.use((req, res, next) => {
   setInterval(runGraduationScan, GRADUATION_SCAN_INTERVAL);
   log(`[GraduationScan] Scheduled every ${GRADUATION_SCAN_INTERVAL / 1000}s`, "startup");
 
+  // Token reconciler: cross-checks DB pending tokens against on-chain state.
+  // Marks them deployed if the mint exists, broken if 30+ min elapsed without
+  // a mint account. Backfills the rare cases where the create tx never landed
+  // (user rejected wallet, tx dropped, etc.) and prevents zombie listings.
+  const RECONCILE_INTERVAL = 60 * 1000;
+  const runReconciler = async () => {
+    try {
+      const { reconcilePendingTokens } = await import("./services/token-reconciler");
+      const r = await reconcilePendingTokens();
+      if (r.deployed.length > 0 || r.broken.length > 0) {
+        log(
+          `[TokenReconciler] scanned=${r.scanned} deployed=${r.deployed.length} broken=${r.broken.length} stillPending=${r.stillPending.length}`,
+          "reconciler",
+        );
+      }
+    } catch (e) {
+      console.error("[TokenReconciler] Periodic scan failed:", e);
+    }
+  };
+  setTimeout(runReconciler, 8000);
+  setInterval(runReconciler, RECONCILE_INTERVAL);
+  log(`[TokenReconciler] Scheduled every ${RECONCILE_INTERVAL / 1000}s`, "startup");
+
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";

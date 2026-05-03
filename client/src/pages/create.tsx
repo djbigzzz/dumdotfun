@@ -4,7 +4,7 @@ import { apiRequest } from "@/lib/queryClient";
 
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye, Twitter } from "lucide-react";
+import { Upload, Zap, Loader2, CheckCircle, ExternalLink, Wallet, RefreshCw, Shield, Lock, Eye, Twitter, CheckCircle2, Circle, XCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -28,6 +28,18 @@ interface CreatedToken {
   signature?: string;
 }
 
+type StepStatus = "idle" | "active" | "done" | "error";
+interface FlowStep {
+  key: "sign_in" | "create" | "buy" | "save";
+  label: string;
+  status: StepStatus;
+  hint?: string;
+}
+
+// Conservative buffer for tx fees + ATA rent. Empirically a create + buy pair
+// on devnet costs <0.005 SOL. 0.02 leaves safe margin for retries.
+const FEE_BUFFER_SOL = 0.02;
+
 export default function CreateToken() {
   usePageTitle("/create");
   const privateMode = false;
@@ -50,6 +62,27 @@ export default function CreateToken() {
   const [isLoadingBalance, setIsLoadingBalance] = useState(false);
   const [showDevBuyStep, setShowDevBuyStep] = useState(false);
   const [devBuyAmount, setDevBuyAmount] = useState<string>("0.2");
+  const [flowSteps, setFlowSteps] = useState<FlowStep[]>([]);
+  const [flowError, setFlowError] = useState<string | null>(null);
+  // If the create tx lands but the dev buy fails, hold the mint so the user
+  // can retry the buy without re-deploying a fresh token.
+  const [pendingDevBuy, setPendingDevBuy] = useState<{
+    mint: string;
+    name: string;
+    symbol: string;
+    description: string | null;
+    imageUri: string | null;
+  } | null>(null);
+
+  const setStepStatus = (key: FlowStep["key"], status: StepStatus, hint?: string) => {
+    setFlowSteps(prev => prev.map(s => s.key === key ? { ...s, status, hint } : s));
+  };
+  const initSteps = (devBuySol: number, symbol: string): FlowStep[] => ([
+    { key: "sign_in", label: "Sign in to wallet", status: "idle" },
+    { key: "create", label: "Create token on-chain", status: "idle" },
+    { key: "buy", label: `Buy ${devBuySol} SOL of ${symbol || "token"}`, status: "idle" },
+    { key: "save", label: "Save & launch", status: "idle" },
+  ]);
 
   const { data: solPriceData } = useQuery({
     queryKey: ["sol-price"],
@@ -110,7 +143,7 @@ export default function CreateToken() {
   };
 
   const createTokenMutation = useMutation({
-    mutationFn: async () => {
+    mutationFn: async (opts?: { resumeFromMint?: string }) => {
       if (!connectedWallet) {
         throw new Error("Connect wallet to deploy on devnet");
       }
@@ -120,11 +153,28 @@ export default function CreateToken() {
         throw new Error("Minimum dev buy is 0.2 SOL");
       }
 
-      setCreationStep("Signing in with wallet...");
-      try {
-        await ensureSession();
-      } catch (e: any) {
-        throw new Error(e?.message || "Wallet sign-in required to deploy");
+      // Pre-flight balance check: must cover dev buy + fee buffer.
+      if (walletBalance !== null && walletBalance < devBuySol + FEE_BUFFER_SOL) {
+        throw new Error(`Need at least ${(devBuySol + FEE_BUFFER_SOL).toFixed(3)} SOL (${devBuySol} buy + ${FEE_BUFFER_SOL} fees). You have ${walletBalance.toFixed(4)}.`);
+      }
+
+      setFlowError(null);
+      const resuming = !!opts?.resumeFromMint;
+      setFlowSteps(initSteps(devBuySol, formData.symbol).map(s => {
+        if (resuming && (s.key === "sign_in" || s.key === "create")) return { ...s, status: "done" };
+        return s;
+      }));
+
+      if (!resuming) {
+        setStepStatus("sign_in", "active");
+        setCreationStep("Signing in with wallet...");
+        try {
+          await ensureSession();
+          setStepStatus("sign_in", "done");
+        } catch (e: any) {
+          setStepStatus("sign_in", "error", e?.message || "Sign-in cancelled");
+          throw new Error(e?.message || "Wallet sign-in required to deploy");
+        }
       }
 
       const connection = new Connection(SOLANA_RPC, "confirmed");
@@ -230,68 +280,136 @@ export default function CreateToken() {
         return { mint, signature };
       };
 
-      const { mint, signature } = await buildAndSendCreate(0);
-      
-      setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
-      
-      const buyRes = await apiRequest("POST", "/api/bonding-curve/buy", {
-        buyer: connectedWallet,
-        mint: mint,
-        solAmount: devBuySol.toString(),
-        minTokensOut: "0",
-      });
+      // Either deploy now, or resume with the mint from a prior partial run.
+      // On resume, use the original metadata snapshot - not the current form
+      // state, which may have been edited between attempts.
+      let mint: string;
+      let signature: string;
+      let tokenName: string;
+      let tokenSymbol: string;
+      if (resuming && opts?.resumeFromMint && pendingDevBuy) {
+        mint = opts.resumeFromMint;
+        signature = "";
+        tokenName = pendingDevBuy.name;
+        tokenSymbol = pendingDevBuy.symbol;
+      } else {
+        tokenName = formData.name;
+        tokenSymbol = formData.symbol;
+        setStepStatus("create", "active");
+        try {
+          const r = await buildAndSendCreate(0);
+          mint = r.mint;
+          signature = r.signature;
+          setStepStatus("create", "done");
+        } catch (e: any) {
+          setStepStatus("create", "error", e?.message);
+          throw e;
+        }
 
-      const { transaction: buyTxBase64 } = await buyRes.json();
-      
-      setCreationStep(`Sign to buy ${devBuySol} SOL worth of tokens...`);
-      
-      const buyTxBytes = Buffer.from(buyTxBase64, "base64");
-      const buyTransaction = Transaction.from(buyTxBytes);
-      
-      const signedBuyTx = await signTransaction(buyTransaction);
-      
-      setCreationStep("Executing dev buy...");
-
-      const { signature: buySignature, rawErr: buyErr } = await sendAndConfirm(signedBuyTx);
-      if (buyErr) {
-        throw new Error(translateSolanaError(JSON.stringify(buyErr), "trade"));
+        // Save to DB IMMEDIATELY after the create tx confirms - before attempting
+        // the dev buy. If the buy fails (rejected, RPC drop, insufficient SOL),
+        // the token still exists on-chain AND in the DB. The user gets a "retry
+        // dev buy" prompt instead of a zombie row + lost mint.
+        setCreationStep("Saving token...");
+        try {
+          await apiRequest("POST", "/api/tokens/devnet-confirm", {
+            mint,
+            name: formData.name,
+            symbol: formData.symbol,
+            description: formData.description || null,
+            imageUri: imagePreview || null,
+            creatorAddress: connectedWallet,
+            signature,
+          });
+        } catch (saveErr: any) {
+          console.warn("[create] devnet-confirm failed (token still on-chain):", saveErr?.message);
+          // Don't throw - the reconciler will pick it up. Continue to dev buy.
+        }
+        // Snapshot the metadata used on-chain. Used on retry so a mid-flow
+        // form edit doesn't mislabel the success screen / activity record.
+        setPendingDevBuy({
+          mint,
+          name: formData.name,
+          symbol: formData.symbol,
+          description: formData.description || null,
+          imageUri: imagePreview || null,
+        });
       }
-      
-      setCreationStep("Saving token to database...");
-      
-      const confirmRes = await apiRequest("POST", "/api/tokens/devnet-confirm", {
+
+      // Dev buy phase. If this fails after the create succeeded, we surface a
+      // resumable error so the user can retry without losing the mint.
+      setStepStatus("buy", "active");
+      let buySignature: string;
+      try {
+        setCreationStep(`Building dev buy (${devBuySol} SOL)...`);
+        const buyRes = await apiRequest("POST", "/api/bonding-curve/buy", {
+          buyer: connectedWallet,
+          mint,
+          solAmount: devBuySol.toString(),
+          minTokensOut: "0",
+        });
+        const { transaction: buyTxBase64 } = await buyRes.json();
+
+        setCreationStep(`Sign to buy ${devBuySol} SOL worth of tokens...`);
+        const buyTxBytes = Buffer.from(buyTxBase64, "base64");
+        const buyTransaction = Transaction.from(buyTxBytes);
+        const signedBuyTx = await signTransaction(buyTransaction);
+
+        setCreationStep("Executing dev buy...");
+        const { signature: buySig, rawErr: buyErr } = await sendAndConfirm(signedBuyTx);
+        if (buyErr) {
+          throw new Error(translateSolanaError(JSON.stringify(buyErr), "trade"));
+        }
+        buySignature = buySig;
+        setStepStatus("buy", "done");
+      } catch (buyError: any) {
+        const msg = buyError?.message || "Dev buy failed";
+        setStepStatus("buy", "error", msg);
+        // pendingDevBuy was already set right after the create tx confirmed.
+        throw new Error(`Token created on-chain, but dev buy failed: ${msg}. You can retry without re-deploying.`);
+      }
+
+      setStepStatus("save", "active");
+      setCreationStep("Recording trade...");
+      try {
+        await apiRequest("POST", "/api/bonding-curve/confirm-trade", {
+          walletAddress: connectedWallet,
+          tokenMint: mint,
+          side: "buy",
+          amount: devBuySol,
+          signature: buySignature,
+        });
+      } catch (recErr) {
+        // Non-fatal - the trade is on-chain regardless.
+        console.warn("[create] confirm-trade failed:", recErr);
+      }
+      setStepStatus("save", "done");
+      setCreationStep("Token launched!");
+
+      // Use the snapshotted name/symbol so a mid-flow form edit can't mislabel
+      // the success screen (the on-chain token uses tokenName/tokenSymbol).
+      const token = {
+        id: mint,
         mint,
-        name: formData.name,
-        symbol: formData.symbol,
-        description: formData.description || null,
-        imageUri: imagePreview || null,
-        creatorAddress: connectedWallet,
-        signature,
-      });
-
-      const { token } = await confirmRes.json();
-
-      await apiRequest("POST", "/api/bonding-curve/confirm-trade", {
-        walletAddress: connectedWallet,
-        tokenMint: mint,
-        side: "buy",
-        amount: devBuySol,
-        signature: buySignature,
-      });
-      
-      setCreationStep("Token launched with dev buy!");
-      
+        name: tokenName,
+        symbol: tokenSymbol,
+      };
       return { token, signature, buySignature, devBuyAmount: devBuySol };
     },
     onSuccess: (data) => {
       toast.success(`Token ${data.token.name} launched with ${data.devBuyAmount} SOL dev buy!`);
       setCreatedToken({ ...data.token, signature: data.signature });
       setCreationStep("");
+      setShowDevBuyStep(false);
+      setPendingDevBuy(null);
+      setFlowError(null);
       fetchBalance();
     },
     onError: (error: Error) => {
-      toast.error(error.message);
+      setFlowError(error.message);
       setCreationStep("");
+      // Don't auto-close the modal - user needs to see the error and decide
+      // whether to retry or abandon.
     },
   });
 
@@ -333,19 +451,36 @@ export default function CreateToken() {
     setShowDevBuyStep(true);
   };
 
+  const devBuySolNum = parseFloat(devBuyAmount);
+  const requiredSol = (isNaN(devBuySolNum) ? 0 : devBuySolNum) + FEE_BUFFER_SOL;
+  const insufficientBalance = walletBalance !== null && walletBalance < requiredSol;
+
   const handleCreateWithDevBuy = () => {
     const amount = parseFloat(devBuyAmount);
     if (isNaN(amount) || amount < 0.2) {
       toast.error("Minimum dev buy is 0.2 SOL");
       return;
     }
-    createTokenMutation.mutate();
-    setShowDevBuyStep(false);
+    if (insufficientBalance) {
+      toast.error(`Need ${requiredSol.toFixed(3)} SOL. You have ${walletBalance?.toFixed(4)}.`);
+      return;
+    }
+    createTokenMutation.mutate(undefined);
+    // Modal stays open - it now shows the stepper.
+  };
+
+  const handleRetryDevBuy = () => {
+    if (!pendingDevBuy) return;
+    createTokenMutation.mutate({ resumeFromMint: pendingDevBuy.mint });
   };
 
   const handleBackToForm = () => {
+    if (createTokenMutation.isPending) return;
     setShowDevBuyStep(false);
     setDevBuyAmount("0.2");
+    setFlowSteps([]);
+    setFlowError(null);
+    setPendingDevBuy(null);
   };
 
   const resetForm = () => {
@@ -384,81 +519,178 @@ export default function CreateToken() {
             animate={{ opacity: 1, scale: 1 }}
             className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
           >
-            <div className={`${privateMode ? "bg-zinc-900 border-[#4ADE80]" : "bg-zinc-900 border-zinc-700"} border-2 rounded-2xl p-6 max-w-md w-full shadow-2xl`}>
+            <div className={`${privateMode ? "bg-zinc-900 border-[#4ADE80]" : "bg-zinc-900 border-zinc-700"} border-2 rounded-2xl p-6 max-w-md w-full shadow-2xl max-h-[90vh] overflow-y-auto`}>
               <h2 className="text-white text-xl font-bold text-center mb-2">
-                Choose how many [{formData.symbol || 'tokens'}] you want to buy
+                {flowSteps.length === 0
+                  ? `Choose how many [${formData.symbol || 'tokens'}] you want to buy`
+                  : `Launching ${formData.symbol || 'token'}...`}
               </h2>
-              
-              <p className="text-zinc-400 text-sm text-center mb-6">
-                As the creator, you must buy at least 0.2 SOL worth to protect your coin from snipers
-              </p>
 
-              <div className="mb-6">
-                <div className="flex items-center justify-end mb-2">
-                  <span className="text-zinc-500 text-sm">Switch to {formData.symbol || 'token'}</span>
-                </div>
-                
-                <div className={`${privateMode ? "bg-zinc-800 border-[#4ADE80]/30" : "bg-zinc-800 border-zinc-600"} border rounded-xl p-4 flex items-center justify-between ${parseFloat(devBuyAmount) < 0.2 ? "border-red-500" : ""}`}>
-                  <input
-                    type="number"
-                    value={devBuyAmount}
-                    onChange={(e) => setDevBuyAmount(e.target.value)}
-                    min="0.2"
-                    step="0.1"
-                    className="bg-transparent text-white text-2xl font-bold w-full outline-none"
-                    placeholder="0.2"
-                    data-testid="input-dev-buy-amount"
-                  />
-                  <div className="flex items-center gap-2 ml-4">
-                    <span className="text-white font-bold">SOL</span>
-                    <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
-                      <span className="text-white text-xs font-bold">◎</span>
+              {flowSteps.length === 0 && (
+                <p className="text-zinc-400 text-sm text-center mb-6">
+                  As the creator, you must buy at least 0.2 SOL worth to protect your coin from snipers
+                </p>
+              )}
+
+              {/* Amount input - only shown before flow starts */}
+              {flowSteps.length === 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-end mb-2">
+                    <span className="text-zinc-500 text-sm">Buy in SOL</span>
+                  </div>
+
+                  <div className={`bg-zinc-800 border rounded-xl p-4 flex items-center justify-between ${
+                    parseFloat(devBuyAmount) < 0.2 || insufficientBalance ? "border-red-500" : "border-zinc-600"
+                  }`}>
+                    <input
+                      type="number"
+                      value={devBuyAmount}
+                      onChange={(e) => setDevBuyAmount(e.target.value)}
+                      min="0.2"
+                      step="0.1"
+                      className="bg-transparent text-white text-2xl font-bold w-full outline-none"
+                      placeholder="0.2"
+                      data-testid="input-dev-buy-amount"
+                    />
+                    <div className="flex items-center gap-2 ml-4">
+                      <span className="text-white font-bold">SOL</span>
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-purple-500 to-blue-500 flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">◎</span>
+                      </div>
                     </div>
                   </div>
-                </div>
-                
-                {walletBalance !== null && (
-                  <p className="text-zinc-500 text-xs mt-2 text-right">
-                    Balance: {walletBalance.toFixed(4)} SOL
-                  </p>
-                )}
-                
-                {parseFloat(devBuyAmount) >= 0.2 && (
-                  <div className={`mt-4 p-3 rounded-lg ${privateMode ? "bg-[#4ADE80]/10 border border-[#4ADE80]/30" : "bg-zinc-700/50"}`}>
-                    <p className="text-zinc-400 text-xs">You will receive approximately:</p>
-                    <p className={`text-lg font-bold ${privateMode ? "text-[#4ADE80]" : "text-white"}`}>
-                      {((parseFloat(devBuyAmount) / 30) * 800000000).toLocaleString(undefined, {maximumFractionDigits: 0})} {formData.symbol || 'tokens'}
-                    </p>
-                    <p className="text-zinc-500 text-xs mt-1">
-                      {(((parseFloat(devBuyAmount) / 30) * 800000000) / 1000000000 * 100).toFixed(2)}% of total 1B supply
-                    </p>
-                  </div>
-                )}
-              </div>
 
-              <button
-                onClick={handleCreateWithDevBuy}
-                disabled={createTokenMutation.isPending || parseFloat(devBuyAmount) < 0.2}
-                className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
-                  privateMode 
-                    ? "bg-[#4ADE80] hover:bg-[#4ADE80]/90 text-black" 
-                    : "bg-green-400 hover:bg-green-500 text-black"
-                } disabled:opacity-50 disabled:cursor-not-allowed`}
-                data-testid="button-create-with-dev-buy"
-              >
-                {createTokenMutation.isPending ? "Creating..." : "Create coin"}
-              </button>
-              
-              {parseFloat(devBuyAmount) < 0.2 && (
+                  {walletBalance !== null && (
+                    <div className="flex items-center justify-between mt-2 text-xs">
+                      <span className="text-zinc-500">Need {requiredSol.toFixed(3)} SOL ({devBuyAmount} buy + {FEE_BUFFER_SOL} fees)</span>
+                      <span className={insufficientBalance ? "text-red-400 font-bold" : "text-zinc-500"}>
+                        Balance: {walletBalance.toFixed(4)} SOL
+                      </span>
+                    </div>
+                  )}
+
+                  {insufficientBalance && (
+                    <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/40 flex items-start gap-2">
+                      <AlertTriangle className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-red-400 text-xs font-bold">Insufficient devnet SOL</p>
+                        <p className="text-zinc-400 text-xs mt-1">
+                          You need at least {requiredSol.toFixed(3)} SOL.{" "}
+                          <a href="https://faucet.solana.com/" target="_blank" rel="noopener noreferrer" className="text-purple-400 underline">
+                            Get free devnet SOL
+                          </a>
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {parseFloat(devBuyAmount) >= 0.2 && !insufficientBalance && (
+                    <div className="mt-4 p-3 rounded-lg bg-zinc-700/50">
+                      <p className="text-zinc-400 text-xs">You will receive approximately:</p>
+                      <p className="text-lg font-bold text-white">
+                        {((parseFloat(devBuyAmount) / 30) * 800000000).toLocaleString(undefined, {maximumFractionDigits: 0})} {formData.symbol || 'tokens'}
+                      </p>
+                      <p className="text-zinc-500 text-xs mt-1">
+                        {(((parseFloat(devBuyAmount) / 30) * 800000000) / 1000000000 * 100).toFixed(2)}% of total 1B supply
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Stepper - shown once flow starts */}
+              {flowSteps.length > 0 && (
+                <div className="mb-4 space-y-2" data-testid="flow-stepper">
+                  {flowSteps.map((step, idx) => (
+                    <div
+                      key={step.key}
+                      className={`flex items-start gap-3 p-3 rounded-lg border transition-all ${
+                        step.status === "active" ? "bg-blue-500/10 border-blue-500/50" :
+                        step.status === "done" ? "bg-green-500/10 border-green-500/40" :
+                        step.status === "error" ? "bg-red-500/10 border-red-500/50" :
+                        "bg-zinc-800/50 border-zinc-700"
+                      }`}
+                      data-testid={`step-${step.key}`}
+                    >
+                      <div className="flex-shrink-0 mt-0.5">
+                        {step.status === "done" && <CheckCircle2 className="w-5 h-5 text-green-400" />}
+                        {step.status === "active" && <Loader2 className="w-5 h-5 text-blue-400 animate-spin" />}
+                        {step.status === "error" && <XCircle className="w-5 h-5 text-red-400" />}
+                        {step.status === "idle" && <Circle className="w-5 h-5 text-zinc-600" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className={`text-sm font-bold ${
+                          step.status === "active" ? "text-blue-300" :
+                          step.status === "done" ? "text-green-300" :
+                          step.status === "error" ? "text-red-300" :
+                          "text-zinc-500"
+                        }`}>
+                          <span className="text-zinc-500 mr-1">{idx + 1}.</span>
+                          {step.label}
+                        </p>
+                        {step.hint && step.status === "error" && (
+                          <p className="text-xs text-red-400/80 mt-1 break-words">{step.hint}</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Error banner */}
+              {flowError && !createTokenMutation.isPending && (
+                <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/50">
+                  <p className="text-red-400 text-xs font-bold mb-1">Something went wrong</p>
+                  <p className="text-zinc-300 text-xs break-words">{flowError}</p>
+                </div>
+              )}
+
+              {/* Action button: changes based on state */}
+              {pendingDevBuy && !createTokenMutation.isPending ? (
+                <button
+                  onClick={handleRetryDevBuy}
+                  disabled={insufficientBalance}
+                  className="w-full py-4 rounded-xl font-bold text-lg bg-yellow-400 hover:bg-yellow-500 text-black transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  data-testid="button-retry-dev-buy"
+                >
+                  Retry dev buy
+                </button>
+              ) : (
+                <button
+                  onClick={handleCreateWithDevBuy}
+                  disabled={
+                    createTokenMutation.isPending ||
+                    parseFloat(devBuyAmount) < 0.2 ||
+                    insufficientBalance ||
+                    flowSteps.some(s => s.status === "done") // disable once flow has started
+                  }
+                  className={`w-full py-4 rounded-xl font-bold text-lg transition-all ${
+                    privateMode
+                      ? "bg-[#4ADE80] hover:bg-[#4ADE80]/90 text-black"
+                      : "bg-green-400 hover:bg-green-500 text-black"
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  data-testid="button-create-with-dev-buy"
+                >
+                  {createTokenMutation.isPending ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Working...
+                    </span>
+                  ) : "Create coin"}
+                </button>
+              )}
+
+              {parseFloat(devBuyAmount) < 0.2 && flowSteps.length === 0 && (
                 <p className="text-red-400 text-xs text-center mt-2">Minimum: 0.2 SOL</p>
               )}
 
               <button
                 onClick={handleBackToForm}
-                className="w-full mt-3 py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors"
+                disabled={createTokenMutation.isPending}
+                className="w-full mt-3 py-2 text-zinc-500 hover:text-zinc-300 text-sm transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 data-testid="button-back-to-form"
               >
-                ← Back to edit
+                {pendingDevBuy ? "Cancel (token will stay deployed)" : "← Back to edit"}
               </button>
             </div>
           </motion.div>
