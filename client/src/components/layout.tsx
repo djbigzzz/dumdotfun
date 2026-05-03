@@ -364,6 +364,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <Link href="/docs">
               <span className="font-bold transition-colors cursor-pointer text-gray-700 hover:text-blue-500">Docs</span>
             </Link>
+            <Link href="/hackathon">
+              <span className="font-bold transition-colors cursor-pointer text-gray-700 hover:text-pink-500" data-testid="link-nav-hackathon">Tracks</span>
+            </Link>
           </nav>
         </div>
         

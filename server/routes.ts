@@ -3670,6 +3670,78 @@ export async function registerRoutes(
     return res.json(getIkaStatus());
   });
 
+  // ========== JUPITER INTEGRATION (Jupiter Track $3K) ==========
+  app.get("/api/jupiter/status", async (_req, res) => {
+    const { getJupiterStatus } = await import("./jupiter-status");
+    return res.json(getJupiterStatus());
+  });
+
+  // ========== CLOAK INTEGRATION (Cloak Privacy Track $5K) ==========
+  app.get("/api/cloak/status", async (_req, res) => {
+    const { getCloakStatus } = await import("./cloak");
+    return res.json(getCloakStatus());
+  });
+
+  // ========== TORQUE + SAGAPAD + ZERION (MCP Bundle Track) ==========
+  app.get("/api/torque/status", async (_req, res) => {
+    const { getTorqueStatus } = await import("./torque");
+    return res.json(getTorqueStatus());
+  });
+
+  app.get("/api/sagapad/status", async (_req, res) => {
+    const { getSagaPadStatus } = await import("./torque");
+    return res.json(getSagaPadStatus());
+  });
+
+  app.get("/api/zerion/status", async (_req, res) => {
+    const { getZerionStatus } = await import("./torque");
+    return res.json(getZerionStatus());
+  });
+
+  // ========== ADEVAR AUDIT (Adevar Audit Credits Track) ==========
+  app.get("/api/adevar/status", async (_req, res) => {
+    const { getAdevarStatus } = await import("./adevar");
+    return res.json(getAdevarStatus());
+  });
+
+  // ========== HACKATHON INTEGRATIONS AGGREGATE ==========
+  app.get("/api/hackathon/integrations", async (_req, res) => {
+    const [
+      { getMagicBlockStatus },
+      { getEncryptStatus, getIkaStatus },
+      { getJupiterStatus },
+      { getCloakStatus },
+      { getTorqueStatus, getSagaPadStatus, getZerionStatus },
+      { getAdevarStatus },
+      { getUmbraStatus },
+    ] = await Promise.all([
+      import("./magicblock"),
+      import("./ika"),
+      import("./jupiter-status"),
+      import("./cloak"),
+      import("./torque"),
+      import("./adevar"),
+      import("./umbra"),
+    ]);
+    return res.json({
+      tracks: [
+        { id: "dune", name: "Dune", prize: "$6,000", status: "live", routes: ["/wallet/:address"], summary: "Dune Sim API powers every wallet profile (balances + tx history)." },
+        { id: "umbra", name: "Umbra", prize: "$10,000", status: "live", routes: ["/token/:mint"], detail: getUmbraStatus() },
+        { id: "sns", name: "SNS (.sol)", prize: "$5,000", status: "live", routes: ["/leaderboard", "/wallet/:address", "/token/:mint", "/markets", "/tokens"], summary: "WalletName resolves .sol names everywhere wallets appear." },
+        { id: "jupiter", name: "Jupiter", prize: "$3,000", status: "live", routes: ["/tokens", "/wallet/:address"], detail: getJupiterStatus() },
+        { id: "magicblock", name: "MagicBlock", prize: "$5,000", status: "integration-ready", routes: ["/token/:mint", "/market/:id"], detail: getMagicBlockStatus() },
+        { id: "encrypt", name: "Encrypt FHE", prize: "$15,000 (with Ika)", status: "program-ready", routes: ["/market/:id"], detail: getEncryptStatus() },
+        { id: "ika", name: "Ika dWallets", prize: "$15,000 (with Encrypt)", status: "integration-ready", routes: ["/market/:id"], detail: getIkaStatus() },
+        { id: "cloak", name: "Cloak", prize: "$5,000", status: "integration-ready", routes: ["/market/:id"], detail: getCloakStatus() },
+        { id: "torque", name: "Torque", prize: "MCP Bundle", status: "integration-ready", routes: ["/quests"], detail: getTorqueStatus() },
+        { id: "sagapad", name: "SagaPad", prize: "MCP Bundle", status: "integration-ready", routes: ["/create"], detail: getSagaPadStatus() },
+        { id: "zerion", name: "Zerion", prize: "MCP Bundle", status: "integration-ready", routes: ["/wallet/:address"], detail: getZerionStatus() },
+        { id: "adevar", name: "Adevar Audit", prize: "Audit Credits", status: "audit-applied", routes: ["/hackathon"], detail: getAdevarStatus() },
+        { id: "dumfun", name: "Dum.fun Sidetrack", prize: "$500", status: "live", routes: ["/"], summary: "The product itself: Solana devnet launchpad + prediction markets + neo-brutalist UI." },
+      ],
+    });
+  });
+
   // ========== POINTS SYSTEM ==========
   app.get("/api/points/og-card-info", async (_req, res) => {
     const { OG_CARD_PRICE_SOL, isMintOpen } = await import("./services/points");

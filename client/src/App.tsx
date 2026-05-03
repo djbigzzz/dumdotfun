@@ -25,6 +25,7 @@ const SearchPage = lazy(() => import("@/pages/search"));
 const Leaderboard = lazy(() => import("@/pages/leaderboard"));
 const QuestsPage = lazy(() => import("@/pages/quests"));
 const WalletPage = lazy(() => import("@/pages/wallet"));
+const HackathonPage = lazy(() => import("@/pages/hackathon"));
 
 function PitchRedirect() {
   useEffect(() => {
@@ -77,6 +78,7 @@ function Router() {
         <Route path="/leaderboard" component={Leaderboard} />
         <Route path="/quests" component={QuestsPage} />
         <Route path="/wallet/:address" component={WalletPage} />
+        <Route path="/hackathon" component={HackathonPage} />
         <Route path="/pitch" component={PitchRedirect} />
         <Route path="/legal/privacy" component={LazyLegal} />
         <Route path="/legal/eula" component={LazyEULA} />
