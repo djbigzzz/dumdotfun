@@ -1171,12 +1171,39 @@ export default function TokenPage() {
               />
             ) : (
             <div className={`${cardStyle} p-4 sticky top-4`}>
-              {/* Buy/Sell Toggle */}
-              <div className="flex gap-2 mb-4">
-                <button onClick={() => setTradeType("buy")} className={`flex-1 py-2 font-bold border-2 transition-all ${tradeType === "buy" ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-green-500 text-white border-green-500" : privateMode ? "bg-black text-[#4ADE80]/50 border-[#4ADE80]/30" : "bg-gray-100 text-gray-500 border-gray-300"}`}>
+              {/* Buy/Sell Toggle - pump.fun style pill */}
+              <div
+                className={`relative flex p-1 mb-4 rounded-lg ${
+                  privateMode ? "bg-black border border-[#4ADE80]/30" : "bg-gray-100 border border-gray-200"
+                }`}
+                data-testid="toggle-trade-type"
+              >
+                <button
+                  onClick={() => setTradeType("buy")}
+                  className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all duration-150 ${
+                    tradeType === "buy"
+                      ? privateMode
+                        ? "bg-[#4ADE80] text-black shadow-sm"
+                        : "bg-[#22c55e] text-white shadow-sm"
+                      : privateMode
+                      ? "text-[#4ADE80]/60 hover:text-[#4ADE80]"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                  data-testid="button-tab-buy"
+                >
                   Buy
                 </button>
-                <button onClick={() => setTradeType("sell")} className={`flex-1 py-2 font-bold border-2 transition-all ${tradeType === "sell" ? "bg-red-500 text-white border-red-500" : privateMode ? "bg-black text-[#4ADE80]/50 border-[#4ADE80]/30" : "bg-gray-100 text-gray-500 border-gray-300"}`}>
+                <button
+                  onClick={() => setTradeType("sell")}
+                  className={`flex-1 py-2.5 text-sm font-bold rounded-md transition-all duration-150 ${
+                    tradeType === "sell"
+                      ? "bg-[#ef4444] text-white shadow-sm"
+                      : privateMode
+                      ? "text-[#4ADE80]/60 hover:text-[#4ADE80]"
+                      : "text-gray-500 hover:text-gray-800"
+                  }`}
+                  data-testid="button-tab-sell"
+                >
                   Sell
                 </button>
               </div>
@@ -1210,7 +1237,7 @@ export default function TokenPage() {
                       } else {
                         setTradeAmount(amt);
                       }
-                    }} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                    }} className={`text-xs py-2 font-bold rounded-md transition-all ${privateMode ? "bg-black border border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80] hover:bg-[#4ADE80]/10" : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 hover:border-gray-400"}`}>
                       {amt === "Max" ? amt : `${amt}`}
                     </button>
                   ))
@@ -1224,7 +1251,7 @@ export default function TokenPage() {
                         const percent = parseInt(pct) / 100;
                         setTradeAmount((balance * percent).toFixed(2));
                       }
-                    }} className={`text-xs py-2 font-bold border transition-all ${privateMode ? "bg-black border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80]" : "bg-gray-100 border-gray-300 text-gray-600 hover:border-black"}`}>
+                    }} className={`text-xs py-2 font-bold rounded-md transition-all ${privateMode ? "bg-black border border-[#4ADE80]/30 text-[#4ADE80]/70 hover:border-[#4ADE80] hover:bg-[#4ADE80]/10" : "bg-gray-100 border border-gray-200 text-gray-700 hover:bg-gray-200 hover:border-gray-400"}`}>
                       {pct}
                     </button>
                   ))
@@ -1259,14 +1286,37 @@ export default function TokenPage() {
                 )}
               </AnimatePresence>
 
-              {/* Action Button */}
+              {/* Action Button - pump.fun style large pill */}
               {!connectedWallet ? (
-                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={() => connectWallet()} className={`w-full font-bold py-3 border-2 transition-all ${privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-connect-wallet">
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={() => connectWallet()}
+                  className={`w-full font-bold py-3.5 rounded-lg text-sm transition-all ${
+                    privateMode
+                      ? "bg-[#4ADE80] text-black hover:bg-[#3bc46e]"
+                      : "bg-[#ef4444] text-white hover:bg-[#dc2626]"
+                  }`}
+                  data-testid="button-connect-wallet"
+                >
                   Connect Wallet
                 </motion.button>
               ) : (
-                <motion.button whileHover={{ y: -2, x: -2 }} whileTap={{ y: 0, x: 0 }} onClick={handleTrade} disabled={!tradeAmount || Number(tradeAmount) <= 0 || isQuoting || isTrading} className={`w-full font-bold py-3 border-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed ${tradeType === "buy" ? privateMode ? "bg-[#4ADE80] text-black border-[#4ADE80]" : "bg-green-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]" : "bg-red-500 text-white border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]"}`} data-testid="button-trade">
-                  {isTrading ? "Confirming..." : isQuoting ? "Quoting..." : `${tradeType === "buy" ? "Buy" : "Sell"} ${token.symbol}`}
+                <motion.button
+                  whileHover={{ scale: 1.01 }}
+                  whileTap={{ scale: 0.99 }}
+                  onClick={handleTrade}
+                  disabled={!tradeAmount || Number(tradeAmount) <= 0 || isQuoting || isTrading}
+                  className={`w-full font-bold py-3.5 rounded-lg text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed ${
+                    tradeType === "buy"
+                      ? privateMode
+                        ? "bg-[#4ADE80] text-black hover:bg-[#3bc46e]"
+                        : "bg-[#22c55e] text-white hover:bg-[#16a34a]"
+                      : "bg-[#ef4444] text-white hover:bg-[#dc2626]"
+                  }`}
+                  data-testid="button-trade"
+                >
+                  {isTrading ? "Confirming..." : isQuoting ? "Quoting..." : `Place ${tradeType === "buy" ? "buy" : "sell"} order`}
                 </motion.button>
               )}
             </div>
