@@ -160,21 +160,14 @@ export default function MarketDetail() {
         throw new Error(e?.message || "Wallet sign-in required");
       }
 
-      // Use confidential betting endpoint if privacy mode is on
-      if (confidential) {
-        const confidentialRes = await apiRequest("POST", `/api/markets/${id}/confidential-bet`, {
-          walletAddress: publicKey,
-          side,
-          amount,
-        });
-        return confidentialRes.json();
-      }
-
-      // Step 1: Prepare bet (get transaction to sign)
+      // Confidential bets reuse the standard prepare/confirm pipeline but flag
+      // the bet so the server stores it as encrypted. Pool balances update via
+      // the same transfer; only the per-bet amount disclosure is suppressed.
       const prepareRes = await apiRequest("POST", `/api/markets/${id}/prepare-bet`, {
         walletAddress: publicKey,
         side,
         amount,
+        isConfidential: !!confidential,
       });
       const { transaction: txBase64, betId } = await prepareRes.json();
 
@@ -218,8 +211,14 @@ export default function MarketDetail() {
         }
       }
 
-      // Step 4: Confirm bet with server
-      const confirmRes = await apiRequest("POST", `/api/markets/${id}/confirm-bet`, { betId, signature });
+      // Step 4: Confirm bet with server (forward isConfidential so the
+      // server-side record is flagged correctly, even if pendingBets was
+      // evicted due to restart).
+      const confirmRes = await apiRequest("POST", `/api/markets/${id}/confirm-bet`, {
+        betId,
+        signature,
+        isConfidential: !!confidential,
+      });
       return confirmRes.json();
     },
     onSuccess: () => {

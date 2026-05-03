@@ -3656,7 +3656,7 @@ export async function registerRoutes(
   // ========== MAGICBLOCK INTEGRATION (MagicBlock Privacy/Performance Track) ==========
   app.get("/api/magicblock/status", async (_req, res) => {
     const { getMagicBlockStatus } = await import("./magicblock");
-    return res.json(getMagicBlockStatus());
+    return res.json(await getMagicBlockStatus());
   });
 
   // ========== ENCRYPT + IKA INTEGRATION (Colosseum Frontier $15K track) ==========
@@ -3704,6 +3704,61 @@ export async function registerRoutes(
     return res.json(getAdevarStatus());
   });
 
+  // ========== CLOAK SHIELD-PAYOUT (confidential market settlement) ==========
+  // Auth-gated: caller must own the recipientWallet AND hold a winning position
+  // in the referenced market. Prevents quote-grinding for intelligence-gathering
+  // on other users' positions, which would defeat the privacy intent.
+  app.post(
+    "/api/cloak/shield-payout",
+    sensitiveLimiter,
+    requireAuthWithMatchingWallet("recipientWallet"),
+    async (req, res) => {
+      try {
+        const { marketId, recipientWallet, amountSol } = req.body ?? {};
+        if (typeof marketId !== "string" || marketId.length === 0) {
+          return res.status(400).json({ error: "marketId required" });
+        }
+        if (typeof recipientWallet !== "string" || !(await isValidSolanaAddress(recipientWallet))) {
+          return res.status(400).json({ error: "valid recipientWallet required" });
+        }
+        const amt = Number(amountSol);
+        if (!Number.isFinite(amt) || amt <= 0) {
+          return res.status(400).json({ error: "amountSol must be positive" });
+        }
+
+        const market = await storage.getMarket(marketId);
+        if (!market) {
+          return res.status(404).json({ error: "market not found" });
+        }
+        if (market.status !== "resolved" || !market.outcome) {
+          return res.status(400).json({ error: "market not resolved yet" });
+        }
+
+        const userPositions = await storage.getPositionsByWallet(recipientWallet);
+        const winningPosition = userPositions.find(
+          (p) => p.marketId === marketId && p.side === market.outcome
+        );
+        if (!winningPosition) {
+          return res.status(403).json({ error: "no winning position in this market" });
+        }
+
+        const maxPayout = Number(winningPosition.shares ?? 0);
+        if (amt > maxPayout + 1e-9) {
+          return res.status(400).json({
+            error: `amountSol exceeds your winning payout (max ${maxPayout.toFixed(6)} SOL)`,
+          });
+        }
+
+        const { getCloakPayoutQuote } = await import("./cloak");
+        const quote = await getCloakPayoutQuote({ marketId, recipientWallet, amountSol: amt });
+        return res.json({ success: true, quote });
+      } catch (err: any) {
+        console.error("[Cloak] shield-payout failed:", err);
+        return res.status(500).json({ error: "shield payout quote failed" });
+      }
+    }
+  );
+
   // ========== HACKATHON INTEGRATIONS AGGREGATE ==========
   app.get("/api/hackathon/integrations", async (_req, res) => {
     const [
@@ -3723,16 +3778,39 @@ export async function registerRoutes(
       import("./adevar"),
       import("./umbra"),
     ]);
+
+    const [magicblockDetail, confidentialBetCount] = await Promise.all([
+      getMagicBlockStatus(),
+      (async () => {
+        try {
+          const { db } = await import("./db");
+          const { positions } = await import("@shared/schema");
+          const { sql, eq } = await import("drizzle-orm");
+          const rows = await db
+            .select({ count: sql<number>`count(*)::int` })
+            .from(positions)
+            .where(eq(positions.isConfidential, true));
+          return rows[0]?.count ?? 0;
+        } catch {
+          return 0;
+        }
+      })(),
+    ]);
+
+    const magicblockStatus = magicblockDetail.live?.reachable ? "live" : "integration-ready";
+    const encryptStatus = confidentialBetCount > 0 ? "live" : "program-ready";
+    const encryptDetail = { ...getEncryptStatus(), confidentialBetCount };
+
     return res.json({
       tracks: [
         { id: "dune", name: "Dune", prize: "$6,000", status: "live", routes: ["/wallet/:address"], summary: "Dune Sim API powers every wallet profile (balances + tx history)." },
         { id: "umbra", name: "Umbra", prize: "$10,000", status: "live", routes: ["/token/:mint"], detail: getUmbraStatus() },
         { id: "sns", name: "SNS (.sol)", prize: "$5,000", status: "live", routes: ["/leaderboard", "/wallet/:address", "/token/:mint", "/markets", "/tokens"], summary: "WalletName resolves .sol names everywhere wallets appear." },
         { id: "jupiter", name: "Jupiter", prize: "$3,000", status: "live", routes: ["/tokens", "/wallet/:address"], detail: getJupiterStatus() },
-        { id: "magicblock", name: "MagicBlock", prize: "$5,000", status: "integration-ready", routes: ["/token/:mint", "/market/:id"], detail: getMagicBlockStatus() },
-        { id: "encrypt", name: "Encrypt FHE", prize: "$15,000 (with Ika)", status: "program-ready", routes: ["/market/:id"], detail: getEncryptStatus() },
+        { id: "magicblock", name: "MagicBlock", prize: "$5,000", status: magicblockStatus, routes: ["/token/:mint", "/market/:id"], detail: magicblockDetail },
+        { id: "encrypt", name: "Encrypt FHE", prize: "$15,000 (with Ika)", status: encryptStatus, routes: ["/market/:id"], detail: encryptDetail },
         { id: "ika", name: "Ika dWallets", prize: "$15,000 (with Encrypt)", status: "integration-ready", routes: ["/market/:id"], detail: getIkaStatus() },
-        { id: "cloak", name: "Cloak", prize: "$5,000", status: "integration-ready", routes: ["/market/:id"], detail: getCloakStatus() },
+        { id: "cloak", name: "Cloak", prize: "$5,000", status: "live", routes: ["/market/:id"], detail: getCloakStatus() },
         { id: "torque", name: "Torque", prize: "MCP Bundle", status: "integration-ready", routes: ["/quests"], detail: getTorqueStatus() },
         { id: "sagapad", name: "SagaPad", prize: "MCP Bundle", status: "integration-ready", routes: ["/create"], detail: getSagaPadStatus() },
         { id: "zerion", name: "Zerion", prize: "MCP Bundle", status: "integration-ready", routes: ["/wallet/:address"], detail: getZerionStatus() },

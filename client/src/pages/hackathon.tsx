@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { Trophy, ExternalLink, Loader2, CheckCircle2, Clock, ShieldCheck, AlertCircle } from "lucide-react";
+import { MagicBlockBadge } from "@/components/magicblock-badge";
 
 function isSafeHttpUrl(url: string | undefined): url is string {
   if (!url) return false;
@@ -77,6 +78,10 @@ export default function HackathonPage() {
           <p className="text-sm md:text-base font-bold opacity-80">
             Dum.fun integration surface across {tracks.length} hackathon tracks · target prize pool ${totalPrize.toLocaleString()}+
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <MagicBlockBadge />
+            <span className="text-[10px] font-mono opacity-60">live ER ping every 30s</span>
+          </div>
         </motion.div>
 
         {isLoading && (
