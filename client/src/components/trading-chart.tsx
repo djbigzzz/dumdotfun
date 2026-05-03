@@ -365,15 +365,27 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     if (candleData.length > 0 && didAnchorRef.current !== interval) {
       // pump.fun-style anchor: ALL candles visible AND squeezed into the
       // right ~60% of the chart, leaving ~40% empty pre-history canvas
-      // on the left. We do this by extending the visible logical range
-      // to the left by ~67% of the data length. Only fires once per
-      // (interval, token) change so 10s data refreshes don't snap users
-      // back when they've panned/zoomed to inspect a region.
+      // on the left. We do this by computing a barSpacing that makes
+      // (dataLen + rightOffset) bars span ~60% of the actual container
+      // width, then scrolling the latest bar to the right edge.
+      // Only fires once per (interval, token) change so 10s data refreshes
+      // don't snap users back when they've panned to inspect a region.
       const dataLen = candleData.length;
-      chartRef.current?.timeScale().setVisibleLogicalRange({
-        from: -Math.max(Math.round(dataLen * 0.67), 5),
-        to: dataLen - 1 + 3,
+      const containerWidth = chartContainerRef.current?.clientWidth || 700;
+      const rightOffset = 3;
+      // Reserve 60px on the right for the price scale.
+      const usableWidth = Math.max(200, containerWidth - 60);
+      const targetDataWidth = usableWidth * 0.6;
+      // Clamp barSpacing between 1px (super-dense) and 12px (super-sparse).
+      const barSpacing = Math.max(
+        1,
+        Math.min(12, targetDataWidth / (dataLen + rightOffset)),
+      );
+      chartRef.current?.timeScale().applyOptions({
+        barSpacing,
+        rightOffset,
       });
+      chartRef.current?.timeScale().scrollToRealTime();
       didAnchorRef.current = interval;
     }
   }, [ohlcData, getMultiplier, showBubbles, getFormatter, interval]);
