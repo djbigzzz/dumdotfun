@@ -20,6 +20,9 @@ interface TradingChartProps {
 
 const INTERVALS = ["1s", "15s", "30s", "1m", "5m", "15m", "30m", "1h", "4h", "1D"] as const;
 
+type BadgeKind = "C" | "DB" | "DS" | "B" | "S";
+type Badge = { id: string; time: number; price: number; kind: BadgeKind; side: "buy" | "sell"; label: string; size: number };
+
 function formatMcap(val: number): string {
   if (val >= 1_000_000) return `$${(val / 1_000_000).toFixed(2)}M`;
   if (val >= 1_000) return `$${(val / 1_000).toFixed(2)}K`;
@@ -65,6 +68,12 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   const [logScale, setLogScale] = useState<boolean>(false);
   const priceLineRef = useRef<any>(null);
   const athLineRef = useRef<any>(null);
+
+  // Badges rendered as HTML overlay so we can show pump.fun-style coin
+  // pills with the letter (DB / C / B / S) inside the circle. The native
+  // lightweight-charts markers can only render text below the candle.
+  const [badges, setBadges] = useState<Badge[]>([]);
+  const [badgePositions, setBadgePositions] = useState<Record<string, { x: number; y: number }>>({});
   // Tracks whether we've already applied the initial pump.fun-style
   // anchor for the current interval. Resets when interval changes so
   // periodic 10s data refreshes don't snap users back if they've panned.
@@ -316,49 +325,45 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
           grouped.set(key, { time: bucketTime, type: t.type, sumSol: t.solAmount, lastPrice: t.price, hasDev: t.isDev });
         }
       }
-      const markers = Array.from(grouped.values())
-        .map(b => {
-          const prefix = b.hasDev ? "C" : (b.type === "buy" ? "B" : "S");
-          // Compact SOL label. K only at 1k+, M only at 1M+, otherwise
-          // plain rounded SOL. Keeps badges short to avoid overlap.
-          const solStr = b.sumSol >= 1_000_000
-            ? `${(b.sumSol / 1_000_000).toFixed(1)}M`
-            : b.sumSol >= 1000
-            ? `${(b.sumSol / 1000).toFixed(1)}K`
-            : b.sumSol >= 10 ? b.sumSol.toFixed(0)
-            : b.sumSol.toFixed(2);
-          // pump.fun marker palette: muted purple for creator/dev,
-          // cool teal for regular buys, soft red for sells.
-          // Avoids the harsh orange we had before.
-          return {
-            time: b.time as any,
-            position: b.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-            color: b.hasDev
-              ? "#a855f7"
-              : b.type === "buy"
-              ? "#2dd4bf"
-              : "#f87171",
-            shape: "circle" as const,
-            size: b.hasDev ? 1.4 : 0.9,
-            text: `${prefix} ${solStr}`,
-          };
-        })
-        .sort((a, b) => (a.time as number) - (b.time as number));
-      candleSeriesRef.current.setMarkers(markers);
+      // Clear native markers - we render our own coin-pill badges as
+      // an HTML overlay on top of the chart.
+      candleSeriesRef.current.setMarkers([]);
+      const newBadges: Badge[] = Array.from(grouped.values()).map((b, idx): Badge => {
+        const solStr = b.sumSol >= 1_000_000
+          ? `${(b.sumSol / 1_000_000).toFixed(1)}M`
+          : b.sumSol >= 1000
+          ? `${(b.sumSol / 1000).toFixed(1)}K`
+          : b.sumSol >= 10 ? b.sumSol.toFixed(0)
+          : b.sumSol.toFixed(2);
+        const kind: Badge["kind"] = b.hasDev
+          ? (b.type === "buy" ? "DB" : "DS")
+          : (b.type === "buy" ? "B" : "S");
+        return {
+          id: `b-${b.time}-${b.type}-${idx}`,
+          time: b.time,
+          price: b.lastPrice * getMultiplier(),
+          kind,
+          side: (b.type === "buy" ? "buy" : "sell"),
+          label: solStr,
+          size: b.hasDev ? 24 : 18,
+        };
+      }).sort((a, b) => a.time - b.time);
+      setBadges(newBadges);
     } else if (showBubbles && ohlcData.devTrades.length > 0) {
-      const markers = ohlcData.devTrades
-        .map(t => ({
-          time: t.time as any,
-          position: t.type === "buy" ? "belowBar" as const : "aboveBar" as const,
-          color: "#a855f7",
-          shape: "circle" as const,
-          size: 1.4,
-          text: t.type === "buy" ? `C ${t.solAmount.toFixed(2)}` : `C -${t.solAmount.toFixed(2)}`,
-        }))
-        .sort((a, b) => (a.time as number) - (b.time as number));
-      candleSeriesRef.current.setMarkers(markers);
+      candleSeriesRef.current.setMarkers([]);
+      const newBadges: Badge[] = ohlcData.devTrades.map((t, idx): Badge => ({
+        id: `dev-${t.time}-${t.type}-${idx}`,
+        time: t.time,
+        price: t.price * getMultiplier(),
+        kind: "C" as const,
+        side: (t.type === "buy" ? "buy" : "sell"),
+        label: t.solAmount.toFixed(2),
+        size: 24,
+      })).sort((a, b) => a.time - b.time);
+      setBadges(newBadges);
     } else {
       candleSeriesRef.current.setMarkers([]);
+      setBadges([]);
     }
 
     // Current price horizontal line + ATH line - the dotted reference
@@ -418,6 +423,61 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
   useEffect(() => {
     didAnchorRef.current = null;
   }, [interval, mint]);
+
+  // Recompute badge pixel positions whenever badges change, the visible
+  // range scrolls/zooms, or the chart resizes. Uses lightweight-charts'
+  // coordinate APIs to translate (time, price) -> (x, y) inside the
+  // chart canvas, so our HTML overlay stays glued to the candles.
+  // Throttled with requestAnimationFrame and shallow-equality guarded
+  // so rapid pan/zoom callbacks don't thrash React.
+  useEffect(() => {
+    const chart = chartRef.current;
+    const series = candleSeriesRef.current;
+    if (!chart || !series) return;
+
+    let rafId: number | null = null;
+    const computeNow = () => {
+      rafId = null;
+      const next: Record<string, { x: number; y: number }> = {};
+      const ts = chart.timeScale();
+      for (const b of badges) {
+        const x = ts.timeToCoordinate(b.time as any);
+        const y = series.priceToCoordinate(b.price);
+        if (x != null && y != null) {
+          next[b.id] = { x, y };
+        }
+      }
+      setBadgePositions(prev => {
+        const prevKeys = Object.keys(prev);
+        const nextKeys = Object.keys(next);
+        if (prevKeys.length === nextKeys.length) {
+          let same = true;
+          for (const k of nextKeys) {
+            const p = prev[k];
+            const n = next[k];
+            if (!p || p.x !== n.x || p.y !== n.y) { same = false; break; }
+          }
+          if (same) return prev;
+        }
+        return next;
+      });
+    };
+    const schedule = () => {
+      if (rafId != null) return;
+      rafId = requestAnimationFrame(computeNow);
+    };
+
+    schedule();
+    const ts = chart.timeScale();
+    ts.subscribeVisibleLogicalRangeChange(schedule);
+    const ro = new ResizeObserver(schedule);
+    if (chartContainerRef.current) ro.observe(chartContainerRef.current);
+    return () => {
+      if (rafId != null) cancelAnimationFrame(rafId);
+      ts.unsubscribeVisibleLogicalRangeChange(schedule);
+      ro.disconnect();
+    };
+  }, [badges, logScale]);
 
   const hasCandles = ohlcData && ohlcData.candles.length > 0;
   const lastCandle = hasCandles ? ohlcData.candles[ohlcData.candles.length - 1] : null;
@@ -535,7 +595,67 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       </div>
 
       {/* Chart */}
-      <div ref={chartContainerRef} className="w-full" style={{ minHeight: 350 }}>
+      <div ref={chartContainerRef} className="relative w-full" style={{ minHeight: 350 }}>
+        {/* pump.fun-style coin badges overlay - rendered as HTML so we can
+            put the letter (DB / DS / C / B / S) inside a styled circle. */}
+        {showBubbles && badges.length > 0 && (
+          <div className="absolute inset-0 pointer-events-none z-10">
+            {badges.map(b => {
+              const pos = badgePositions[b.id];
+              if (!pos) return null;
+              // pump.fun coin palette:
+              //  C/DB/DS = creator-related, purple
+              //  B = regular buy, teal
+              //  S = regular sell, soft red
+              const isCreator = b.kind === "C" || b.kind === "DB" || b.kind === "DS";
+              const fill = isCreator
+                ? "#a855f7"
+                : b.kind === "B"
+                ? "#2dd4bf"
+                : "#f87171";
+              const ring = isCreator
+                ? "#6b21a8"
+                : b.kind === "B"
+                ? "#0d9488"
+                : "#b91c1c";
+              // Buys sit just below the candle, sells just above.
+              const isBuy = b.side === "buy";
+              const yOffset = isBuy ? 14 : -14 - b.size;
+              return (
+                <div
+                  key={b.id}
+                  className="absolute flex flex-col items-center select-none"
+                  style={{
+                    left: pos.x - b.size / 2,
+                    top: pos.y + yOffset,
+                  }}
+                  data-testid={`badge-${b.kind}-${b.time}`}
+                >
+                  <div
+                    className="rounded-full flex items-center justify-center font-bold text-white"
+                    style={{
+                      width: b.size,
+                      height: b.size,
+                      backgroundColor: fill,
+                      border: `1.5px solid ${ring}`,
+                      fontSize: b.size <= 18 ? 8 : 9,
+                      boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                      lineHeight: 1,
+                    }}
+                  >
+                    {b.kind}
+                  </div>
+                  <span
+                    className="mt-0.5 text-[9px] font-semibold whitespace-nowrap"
+                    style={{ color: fill, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}
+                  >
+                    {b.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
         {!hasCandles && (
           <div className="h-[350px] flex items-center justify-center text-sm text-[#787b86]">
             No trade data yet
