@@ -6,7 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, Link, useLocation } from "wouter";
 import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target, Plus, Copy, Check, Eye, Shield, Lock, Share2, BadgeCheck } from "lucide-react";
-import { shareContent, hapticFeedback } from "@/lib/mobile-utils";
+import { shareContent, hapticFeedback, buildTwitterIntent } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
@@ -798,6 +798,76 @@ export default function TokenPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Viral X share strip: prominent one-tap presets so users
+                  can broadcast a discovery, an ape, or a chart-hype post
+                  to X in a single click. Each preset opens a pre-filled
+                  intent in a new tab. */}
+              {(() => {
+                const baseUrl = typeof window !== "undefined" && window.location.origin?.startsWith("http")
+                  ? window.location.origin
+                  : "https://dum.fun";
+                const tokenUrl = `${baseUrl}/token/${token.mint}`;
+                const mcStr = formatMarketCap(token.marketCapSol, solPrice?.price || null);
+                const progressStr = token.isGraduated
+                  ? "graduated to Raydium"
+                  : `${token.bondingCurveProgress.toFixed(1)}% bonded`;
+                const presets: Array<{ id: string; emoji: string; label: string; text: string }> = [
+                  {
+                    id: "discover",
+                    emoji: "👀",
+                    label: "I found a gem",
+                    text: `👀 Just found $${token.symbol} on @dumdotfun\n\n${token.name} - ${mcStr} MC, ${progressStr}\n\nape responsibly`,
+                  },
+                  {
+                    id: "ape",
+                    emoji: "🚀",
+                    label: "Aping in",
+                    text: `🚀 Aping $${token.symbol} on @dumdotfun\n\nDevnet meme season is real\n${mcStr} MC and climbing`,
+                  },
+                  {
+                    id: "chart",
+                    emoji: "📈",
+                    label: "Chart hype",
+                    text: `📈 $${token.symbol} chart is cooking on @dumdotfun\n\n${mcStr} MC | ${progressStr}\n\nwho else is in?`,
+                  },
+                  {
+                    id: "rug",
+                    emoji: "🎯",
+                    label: "Bet it rugs",
+                    text: `🎯 New prediction market on @dumdotfun: will $${token.symbol} rug?\n\nPlace your bet on devnet\n${mcStr} MC right now`,
+                  },
+                ];
+                return (
+                  <div className="mt-3 -mx-1 overflow-x-auto">
+                    <div className="flex items-stretch gap-2 px-1 min-w-max">
+                      <div className={`flex items-center px-2 text-[11px] font-black uppercase tracking-wide ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                        Share on X
+                      </div>
+                      {presets.map(p => (
+                        <a
+                          key={p.id}
+                          href={buildTwitterIntent(p.text, tokenUrl)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={() => hapticFeedback("light")}
+                          data-testid={`button-share-x-${p.id}`}
+                          className={`group flex items-center gap-2 px-3 py-2 rounded-lg border-2 font-bold text-sm whitespace-nowrap transition-all
+                            ${privateMode
+                              ? "bg-black border-[#4ADE80]/40 text-[#4ADE80] hover:border-[#4ADE80] hover:bg-[#4ADE80]/10"
+                              : "bg-black border-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"}`}
+                        >
+                          <span className="text-base">{p.emoji}</span>
+                          <span>{p.label}</span>
+                          <svg className="w-3.5 h-3.5 opacity-80" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-7.01L4.6 22H1.34l8.02-9.17L1 2h7.02l4.84 6.4L18.244 2zm-1.2 18h1.86L7.06 4H5.1l11.944 16z" />
+                          </svg>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* TradingView Chart */}
