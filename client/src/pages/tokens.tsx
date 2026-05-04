@@ -309,7 +309,11 @@ export default function TokensPage() {
   });
 
   const trendingTokens = [...filteredTokens]
-    .sort((a, b) => b.marketCapSol - a.marketCapSol)
+    .sort((a, b) => {
+      const aScore = (b.bondingCurveProgress ?? 0) + (b.marketCapSol ?? 0);
+      const bScore = (a.bondingCurveProgress ?? 0) + (a.marketCapSol ?? 0);
+      return aScore - bScore;
+    })
     .slice(0, 8);
 
   const totalPages = Math.max(1, Math.ceil(sortedTokens.length / PAGE_SIZE));
