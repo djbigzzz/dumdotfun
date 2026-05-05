@@ -3070,6 +3070,14 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Only the market creator can resolve this market" });
       }
 
+      const resolutionDate = new Date(market.resolutionDate);
+      if (resolutionDate > new Date()) {
+        return res.status(403).json({
+          error: "Market cannot be resolved before the resolution date",
+          resolutionDate: resolutionDate.toISOString(),
+        });
+      }
+
       // Get all positions for this market
       const positions = await storage.getPositionsByMarket(id);
       
