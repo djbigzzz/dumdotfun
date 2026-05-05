@@ -60,8 +60,11 @@ function sanitizeUrl(url: string | undefined | null): string | null {
   if (!url) return null;
   const trimmed = url.trim();
   if (!trimmed) return null;
-  if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:') || trimmed.startsWith('vbscript:')) return null;
-  try { new URL(trimmed); return trimmed; } catch { return null; }
+  let parsed: URL;
+  try { parsed = new URL(trimmed); } catch { return null; }
+  const protocol = parsed.protocol.toLowerCase();
+  if (protocol !== 'http:' && protocol !== 'https:') return null;
+  return parsed.toString();
 }
 
 function generateUserReferralCode(walletAddress: string): string {

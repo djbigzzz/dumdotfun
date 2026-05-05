@@ -28,6 +28,18 @@ if (typeof window !== "undefined") {
   (window as any).Buffer = Buffer;
 }
 
+function safeHttpUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  try {
+    const parsed = new URL(url);
+    const protocol = parsed.protocol.toLowerCase();
+    if (protocol !== "http:" && protocol !== "https:") return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
 interface TokenPrediction {
   id: string;
   question: string;
@@ -723,9 +735,18 @@ export default function TokenPage() {
                     </a>
                     <span>{getTimeAgo(new Date(token.createdAt))} ago</span>
                     <div className="flex items-center gap-2">
-                      {token.twitter && <a href={token.twitter} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Twitter className="w-3.5 h-3.5" /></a>}
-                      {token.telegram && <a href={token.telegram} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><MessageCircle className="w-3.5 h-3.5" /></a>}
-                      {token.website && <a href={token.website} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Globe className="w-3.5 h-3.5" /></a>}
+                      {(() => {
+                        const tw = safeHttpUrl(token.twitter);
+                        return tw && <a href={tw} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Twitter className="w-3.5 h-3.5" /></a>;
+                      })()}
+                      {(() => {
+                        const tg = safeHttpUrl(token.telegram);
+                        return tg && <a href={tg} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><MessageCircle className="w-3.5 h-3.5" /></a>;
+                      })()}
+                      {(() => {
+                        const ws = safeHttpUrl(token.website);
+                        return ws && <a href={ws} target="_blank" rel="noopener noreferrer" className="hover:text-gray-700"><Globe className="w-3.5 h-3.5" /></a>;
+                      })()}
                     </div>
                   </div>
                 </div>
