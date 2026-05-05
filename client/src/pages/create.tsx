@@ -375,8 +375,6 @@ export default function CreateToken() {
         await apiRequest("POST", "/api/bonding-curve/confirm-trade", {
           walletAddress: connectedWallet,
           tokenMint: mint,
-          side: "buy",
-          amount: devBuySol,
           signature: buySignature,
         });
       } catch (recErr) {

@@ -307,9 +307,12 @@ export async function registerRoutes(
         .select()
         .from(tokensTable)
         .where(
-          or(
-            isNull(tokensTable.graduationStatus),
-            ne(tokensTable.graduationStatus, "broken"),
+          and(
+            eq(tokensTable.deploymentStatus, "deployed"),
+            or(
+              isNull(tokensTable.graduationStatus),
+              ne(tokensTable.graduationStatus, "broken"),
+            ),
           ),
         )
         .orderBy(desc(tokensTable.createdAt))
@@ -376,6 +379,13 @@ export async function registerRoutes(
       });
       
       if (!token) {
+        return res.status(404).json({ error: "Token not found on dum.fun" });
+      }
+
+      // Only expose tokens that have been verified on-chain. Pending tokens
+      // may have been created by /api/tokens/create before a signature was
+      // ever submitted, and should not be publicly visible.
+      if (token.deploymentStatus !== "deployed") {
         return res.status(404).json({ error: "Token not found on dum.fun" });
       }
 
@@ -1091,31 +1101,115 @@ export async function registerRoutes(
     }
   });
 
-  // Record trade after successful on-chain confirmation
-  app.post("/api/trade/record", requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
+  // Record trade after successful on-chain confirmation.
+  // Follows the same on-chain verification model as /api/raydium/swap/record:
+  // the signature is fetched from chain, the signer and mint are confirmed,
+  // and side/amount are derived from balance deltas rather than trusted from
+  // the client payload. This prevents fabricated activity and quest farming.
+  app.post("/api/trade/record", sensitiveLimiter, requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
-      const { walletAddress, tokenMint, amount, side, signature } = req.body;
-      
-      if (!walletAddress || !tokenMint || !amount || !side) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const { walletAddress, tokenMint, signature } = req.body;
+
+      if (!walletAddress || !tokenMint || !signature || typeof signature !== "string") {
+        return res.status(400).json({ error: "walletAddress, tokenMint, and signature are required" });
+      }
+      if (!(await isValidSolanaAddress(walletAddress)) || !(await isValidSolanaAddress(tokenMint))) {
+        return res.status(400).json({ error: "Invalid wallet or mint address" });
       }
 
-      // Atomic idempotency: try to claim the signature. If the claim fails
-      // (someone else already recorded this trade), short-circuit with success
-      // so concurrent client retries are safe no-ops. If the claim itself
-      // errors out (DB blip etc.), fail closed so the client can retry rather
-      // than risk a duplicate activity row on the next attempt.
-      if (signature && typeof signature === "string") {
-        let claimed = false;
+      // Idempotency: claim the signature so concurrent retries are safe no-ops.
+      let claimed = false;
+      try {
+        claimed = await storage.claimSignature(signature);
+      } catch (claimErr) {
+        console.error("[trade/record] signature claim threw - failing closed:", claimErr);
+        return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+      }
+      if (!claimed) {
+        return res.json({ success: true, alreadyRecorded: true, pointsAwarded: [] });
+      }
+
+      // On-chain verification: fetch the parsed transaction, ensure it
+      // succeeded, was signed by the claimed wallet, and actually moved this
+      // mint. Side and amount are derived from pre/post balance deltas so the
+      // client cannot inject fabricated values.
+      const { getConnection } = await import("./bonding-curve-client");
+      const connection = getConnection();
+      let tx: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          claimed = await storage.claimSignature(signature);
-        } catch (claimErr) {
-          console.error("[trade/record] signature claim threw - failing closed:", claimErr);
-          return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+          tx = await connection.getParsedTransaction(signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: "confirmed",
+          });
+          if (tx) break;
+        } catch (e) {
+          // retry
         }
-        if (!claimed) {
-          return res.json({ success: true, alreadyRecorded: true, pointsAwarded: [] });
-        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!tx) {
+        return res.status(400).json({ error: "Transaction not found on chain" });
+      }
+      if (tx.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      // Parse account keys and extract true signers via the signer flag.
+      // Presence in accountKeys is not sufficient — the wallet must have
+      // actually signed (signer flag set in the message header).
+      const rawKeys: any[] = tx.transaction?.message?.accountKeys || [];
+      const allKeys: string[] = rawKeys.map((k: any) =>
+        typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+      );
+      const signerKeys = new Set<string>(
+        rawKeys
+          .filter((k: any) => k && k.signer === true)
+          .map((k: any) =>
+            typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+          )
+      );
+      if (!signerKeys.has(walletAddress)) {
+        return res.status(400).json({ error: "Wallet is not a signer in this transaction" });
+      }
+      const signerIdx = allKeys.indexOf(walletAddress);
+
+      // Protocol evidence: the bonding curve program must appear in the
+      // transaction's account keys. Without this, plain token transfers
+      // could be misrecorded as bonding-curve trades.
+      const { PROGRAM_ID: bondingCurveProgramId } = await import("./bonding-curve-client");
+      const bondingCurveProgramStr = bondingCurveProgramId.toBase58();
+      if (!allKeys.includes(bondingCurveProgramStr)) {
+        return res.status(400).json({ error: "Transaction does not interact with the bonding curve program" });
+      }
+
+      // Derive side and amount from on-chain token balance deltas.
+      const preTokenBalances: any[] = tx.meta?.preTokenBalances || [];
+      const postTokenBalances: any[] = tx.meta?.postTokenBalances || [];
+      const findUserTokenBal = (arr: any[]) =>
+        arr.find((b) => b.mint === tokenMint && b.owner === walletAddress);
+      const preTok = findUserTokenBal(preTokenBalances);
+      const postTok = findUserTokenBal(postTokenBalances);
+      const preTokAmt = Number(preTok?.uiTokenAmount?.uiAmount ?? 0);
+      const postTokAmt = Number(postTok?.uiTokenAmount?.uiAmount ?? 0);
+      const tokenDelta = postTokAmt - preTokAmt;
+
+      const preLamports = (tx.meta?.preBalances || [])[signerIdx] ?? 0;
+      const postLamports = (tx.meta?.postBalances || [])[signerIdx] ?? 0;
+      const fee = tx.meta?.fee ?? 0;
+      const solDeltaLamports = postLamports - preLamports + fee;
+      const solDelta = solDeltaLamports / 1_000_000_000;
+
+      let side: "buy" | "sell";
+      let amount: number;
+      if (tokenDelta > 0.000001) {
+        side = "buy";
+        amount = Math.abs(solDelta);
+      } else if (tokenDelta < -0.000001) {
+        side = "sell";
+        amount = tokenDelta * -1;
+      } else {
+        return res.status(400).json({ error: "Transaction did not move this token for the wallet" });
       }
 
       await storage.addActivity({
@@ -1124,7 +1218,13 @@ export async function registerRoutes(
         tokenMint,
         amount: amount.toString(),
         side,
-        metadata: JSON.stringify({ signature, real: true, blockTime: Math.floor(Date.now() / 1000) }),
+        metadata: JSON.stringify({
+          signature,
+          real: true,
+          blockTime: tx.blockTime ?? Math.floor(Date.now() / 1000),
+          tokenDelta,
+          solDelta,
+        }),
       });
 
       let pointsAwarded: { action: string; points: number }[] = [];
@@ -1146,8 +1246,8 @@ export async function registerRoutes(
           console.error("[Auto-Graduation] Check failed (non-blocking):", gradErr);
         }
       }
-      
-      return res.json({ success: true, pointsAwarded });
+
+      return res.json({ success: true, side, amount, pointsAwarded });
     } catch (error: any) {
       console.error("Error recording trade:", error);
       return res.status(500).json({ error: "Failed to record trade" });
@@ -1446,12 +1546,16 @@ export async function registerRoutes(
     }
   });
 
-  // DEVNET: Confirm token creation after user signs and submits
+  // Confirm a devnet token deployment. Verifies the signature on-chain before
+  // writing any public state: the transaction must exist, have succeeded, have
+  // creatorAddress as a signer, and the claimed mint account must be present in
+  // the transaction. Only after all checks pass does the token row become
+  // visible, the prediction market get created, and the quest get awarded.
   app.post("/api/tokens/devnet-confirm", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
     try {
       const { mint, name, symbol, description, imageUri, creatorAddress, signature } = req.body;
 
-      if (!mint || !name || !symbol || !creatorAddress || !signature) {
+      if (!mint || !name || !symbol || !creatorAddress || !signature || typeof signature !== "string") {
         return res.status(400).json({ error: "Missing required fields" });
       }
 
@@ -1459,11 +1563,94 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Token image is required" });
       }
 
+      if (!(await isValidSolanaAddress(creatorAddress)) || !(await isValidSolanaAddress(mint))) {
+        return res.status(400).json({ error: "Invalid creator or mint address" });
+      }
+
       console.log(`[DEVNET] Confirming token: ${name} (${symbol}), mint: ${mint}, sig: ${signature}`);
 
-      // Save token to database. Mark deployment as deployed immediately since
-      // this endpoint is only called after the create tx has confirmed on-chain
-      // (the client posts the signature here). Avoids zombie 'pending' rows.
+      // On-chain verification: fetch the transaction, confirm it succeeded,
+      // the creatorAddress signed it, and the claimed mint appears in the
+      // account keys (proving it was involved in the transaction).
+      const { getConnection } = await import("./bonding-curve-client");
+      const connection = getConnection();
+      let tx: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          tx = await connection.getParsedTransaction(signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: "confirmed",
+          });
+          if (tx) break;
+        } catch (e) {
+          // retry
+        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!tx) {
+        return res.status(400).json({ error: "Transaction not found on chain" });
+      }
+      if (tx.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      // Parse account keys and verify true signer status via the signer flag.
+      // An account can appear in the key list without being a signer (as a
+      // writable or read-only participant), so presence alone is not enough.
+      const rawKeys: any[] = tx.transaction?.message?.accountKeys || [];
+      const allKeys: string[] = rawKeys.map((k: any) =>
+        typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+      );
+      const signerKeys = new Set<string>(
+        rawKeys
+          .filter((k: any) => k && k.signer === true)
+          .map((k: any) =>
+            typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+          )
+      );
+      if (!signerKeys.has(creatorAddress)) {
+        return res.status(400).json({ error: "Creator wallet is not a signer in this transaction" });
+      }
+
+      const mintIdx = allKeys.indexOf(mint);
+      if (mintIdx < 0) {
+        return res.status(400).json({ error: "Claimed mint does not appear in this transaction" });
+      }
+
+      // Prove the mint was *created* (not just referenced) by this transaction.
+      // When a new account is created, its pre-balance is 0 and its post-balance
+      // is the rent-exempt minimum. A transaction that merely reads an existing
+      // mint would show equal pre/post balances for it.
+      const preBalances: number[] = tx.meta?.preBalances || [];
+      const postBalances: number[] = tx.meta?.postBalances || [];
+      const mintPreBal = preBalances[mintIdx] ?? 0;
+      const mintPostBal = postBalances[mintIdx] ?? 0;
+      if (mintPreBal !== 0 || mintPostBal === 0) {
+        return res.status(400).json({ error: "Transaction did not create the claimed mint account" });
+      }
+
+      // Verify the platform fee was paid in this transaction. The devnet-create
+      // path always embeds a SystemProgram.transfer to the fee recipient as its
+      // first instruction. Confirm the recipient's balance increased by at least
+      // the expected fee so the flow cannot be skipped via a hand-crafted tx.
+      const { getFeeRecipientWallet, PLATFORM_FEES } = await import("./fees");
+      const feeRecipientStr = getFeeRecipientWallet().toBase58();
+      const feeRecipientIdx = allKeys.indexOf(feeRecipientStr);
+      const MIN_FEE_LAMPORTS = Math.floor(PLATFORM_FEES.TOKEN_CREATION * 1_000_000_000);
+      if (feeRecipientIdx >= 0) {
+        const feePreBal = preBalances[feeRecipientIdx] ?? 0;
+        const feePostBal = postBalances[feeRecipientIdx] ?? 0;
+        const feeReceived = feePostBal - feePreBal;
+        if (feeReceived < MIN_FEE_LAMPORTS) {
+          return res.status(400).json({ error: "Required platform fee was not paid in this transaction" });
+        }
+      } else {
+        // Fee recipient not in this transaction at all — fee was not paid.
+        return res.status(400).json({ error: "Required platform fee was not paid in this transaction" });
+      }
+
+      // All checks passed. Create the token row and mark it deployed immediately
+      // so the reconciler never downgrade it. The token is now visible publicly.
       const token = await storage.createToken({
         mint,
         name: name.trim(),
@@ -1472,14 +1659,10 @@ export async function registerRoutes(
         imageUri: imageUri || null,
         creatorAddress,
       });
-      try {
-        await db
-          .update(tokensTable)
-          .set({ deploymentStatus: "deployed" })
-          .where(eq(tokensTable.mint, mint));
-      } catch (statusErr) {
-        console.error("[DEVNET] Failed to set deployment_status=deployed:", statusErr);
-      }
+      await db
+        .update(tokensTable)
+        .set({ deploymentStatus: "deployed" })
+        .where(eq(tokensTable.mint, mint));
 
       // Auto-create a default "Will it rug?" prediction market (3 day resolution)
       try {
@@ -1756,38 +1939,121 @@ export async function registerRoutes(
     }
   });
 
+  // Confirm a bonding-curve trade after on-chain settlement. Applies the same
+  // verification model as /api/trade/record: the signature is fetched from
+  // chain, the signer is confirmed, the bonding-curve program must be present,
+  // and side/amount are derived from balance deltas — never trusted from the
+  // client payload. This prevents fabricated activity from entering public feeds.
   app.post("/api/bonding-curve/confirm-trade", sensitiveLimiter, requireAuthWithMatchingWallet("walletAddress"), async (req, res) => {
     try {
-      const { walletAddress, tokenMint, side, amount, signature } = req.body;
-      
-      if (!walletAddress || !tokenMint || !side || !amount) {
-        return res.status(400).json({ error: "Missing required fields" });
+      const { walletAddress, tokenMint, signature } = req.body;
+
+      if (!walletAddress || !tokenMint || !signature || typeof signature !== "string") {
+        return res.status(400).json({ error: "walletAddress, tokenMint, and signature are required" });
+      }
+      if (!(await isValidSolanaAddress(walletAddress)) || !(await isValidSolanaAddress(tokenMint))) {
+        return res.status(400).json({ error: "Invalid wallet or mint address" });
       }
 
-      // Atomic idempotency: claim the signature first; if claim fails the
-      // trade was already recorded by an earlier (possibly retried) request.
-      // Fail closed if the claim itself errors so a retry can do the right
-      // thing rather than producing a duplicate activity row.
-      if (signature && typeof signature === "string") {
-        let claimed = false;
+      // Idempotency: claim the signature before verification so concurrent
+      // retries short-circuit immediately. Fail closed if the claim itself errors.
+      let claimed = false;
+      try {
+        claimed = await storage.claimSignature(signature);
+      } catch (claimErr) {
+        console.error("[bonding-curve/confirm-trade] signature claim threw - failing closed:", claimErr);
+        return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+      }
+      if (!claimed) {
+        return res.json({ success: true, alreadyRecorded: true });
+      }
+
+      // On-chain verification: fetch parsed tx, check success, verify signer,
+      // require bonding-curve program presence, derive side/amount from deltas.
+      const { getConnection, PROGRAM_ID: bondingCurveProgramId } = await import("./bonding-curve-client");
+      const connection = getConnection();
+      let tx: any = null;
+      for (let attempt = 0; attempt < 5; attempt++) {
         try {
-          claimed = await storage.claimSignature(signature);
-        } catch (claimErr) {
-          console.error("[bonding-curve/confirm-trade] signature claim threw - failing closed:", claimErr);
-          return res.status(503).json({ error: "Recorder temporarily unavailable - please retry." });
+          tx = await connection.getParsedTransaction(signature, {
+            maxSupportedTransactionVersion: 0,
+            commitment: "confirmed",
+          });
+          if (tx) break;
+        } catch (e) {
+          // retry
         }
-        if (!claimed) {
-          return res.json({ success: true, alreadyRecorded: true });
-        }
+        await new Promise((r) => setTimeout(r, 1500));
+      }
+      if (!tx) {
+        return res.status(400).json({ error: "Transaction not found on chain" });
+      }
+      if (tx.meta?.err) {
+        return res.status(400).json({ error: "Transaction failed on chain" });
+      }
+
+      const rawKeys: any[] = tx.transaction?.message?.accountKeys || [];
+      const allKeys: string[] = rawKeys.map((k: any) =>
+        typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+      );
+      const signerKeys = new Set<string>(
+        rawKeys
+          .filter((k: any) => k && k.signer === true)
+          .map((k: any) =>
+            typeof k === "string" ? k : (k.pubkey?.toBase58?.() || k.pubkey?.toString?.() || String(k.pubkey || k))
+          )
+      );
+      if (!signerKeys.has(walletAddress)) {
+        return res.status(400).json({ error: "Wallet is not a signer in this transaction" });
+      }
+      const signerIdx = allKeys.indexOf(walletAddress);
+
+      const bondingCurveProgramStr = bondingCurveProgramId.toBase58();
+      if (!allKeys.includes(bondingCurveProgramStr)) {
+        return res.status(400).json({ error: "Transaction does not interact with the bonding curve program" });
+      }
+
+      const preTokenBalances: any[] = tx.meta?.preTokenBalances || [];
+      const postTokenBalances: any[] = tx.meta?.postTokenBalances || [];
+      const findUserTokenBal = (arr: any[]) =>
+        arr.find((b) => b.mint === tokenMint && b.owner === walletAddress);
+      const preTok = findUserTokenBal(preTokenBalances);
+      const postTok = findUserTokenBal(postTokenBalances);
+      const preTokAmt = Number(preTok?.uiTokenAmount?.uiAmount ?? 0);
+      const postTokAmt = Number(postTok?.uiTokenAmount?.uiAmount ?? 0);
+      const tokenDelta = postTokAmt - preTokAmt;
+
+      const preLamports = (tx.meta?.preBalances || [])[signerIdx] ?? 0;
+      const postLamports = (tx.meta?.postBalances || [])[signerIdx] ?? 0;
+      const fee = tx.meta?.fee ?? 0;
+      const solDeltaLamports = postLamports - preLamports + fee;
+      const solDelta = solDeltaLamports / 1_000_000_000;
+
+      let side: "buy" | "sell";
+      let amount: number;
+      if (tokenDelta > 0.000001) {
+        side = "buy";
+        amount = Math.abs(solDelta);
+      } else if (tokenDelta < -0.000001) {
+        side = "sell";
+        amount = tokenDelta * -1;
+      } else {
+        return res.status(400).json({ error: "Transaction did not move this token for the wallet" });
       }
 
       await storage.addActivity({
         activityType: side,
         walletAddress,
         tokenMint,
-        amount: String(amount),
+        amount: amount.toString(),
         side,
-        metadata: JSON.stringify({ signature }),
+        metadata: JSON.stringify({
+          signature,
+          real: true,
+          blockTime: tx.blockTime ?? Math.floor(Date.now() / 1000),
+          tokenDelta,
+          solDelta,
+        }),
       });
 
       if (side === "buy") {
@@ -1803,7 +2069,7 @@ export async function registerRoutes(
         }
       }
 
-      return res.json({ success: true });
+      return res.json({ success: true, side, amount });
     } catch (error: any) {
       console.error("Error logging trade activity:", error);
       return res.status(500).json({ error: "Internal server error" });
@@ -1953,24 +2219,6 @@ export async function registerRoutes(
 
       console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
 
-      // Auto-create a default "Will it rug?" prediction market (3 day resolution)
-      let graduationMarket = null;
-      try {
-        graduationMarket = await storage.createMarket({
-          question: `Will $${token.symbol} rug?`,
-          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
-          imageUri: token.imageUri,
-          creatorAddress,
-          predictionType: "survival",
-          tokenMint: mintPublicKey,
-          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-          survivalCriteria: "dev_sells",
-        });
-        console.log(`Created "Will it rug?" prediction for ${token.symbol}`);
-      } catch (marketError) {
-        console.error(`Failed to create prediction for ${token.symbol}`, marketError);
-      }
-
       // Build platform fee transaction (separate from pump.fun tx)
       let feeTransaction = null;
       try {
@@ -1993,11 +2241,12 @@ export async function registerRoutes(
         console.error("Failed to build fee transaction:", feeError);
       }
 
-      // Return transactions for frontend to sign (no secret keys exposed)
+      // Return transactions for frontend to sign (no secret keys exposed).
+      // The prediction market is created only after devnet-confirm verifies
+      // the on-chain signature, so it is intentionally not created here.
       return res.json({
         success: true,
         token,
-        graduationMarket,
         transaction: txResult.transaction,
         feeTransaction,
         platformFee: PLATFORM_FEES.TOKEN_CREATION,

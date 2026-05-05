@@ -561,8 +561,6 @@ export default function TokenPage() {
             const r = await apiRequest("POST", "/api/trade/record", {
               walletAddress: connectedWallet,
               tokenMint: token.mint,
-              amount: tradeAmount,
-              side: isBuy ? "buy" : "sell",
               signature,
             });
             return await r.json();

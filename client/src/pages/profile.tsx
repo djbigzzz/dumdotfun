@@ -240,8 +240,6 @@ export default function Profile() {
             await apiRequest("POST", "/api/trade/record", {
               walletAddress: connectedWallet,
               tokenMint: sellToken.mint,
-              amount: tokenAmountStr,
-              side: "sell",
               signature: sig,
             });
             return;
