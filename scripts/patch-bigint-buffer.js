@@ -40,6 +40,14 @@ function toBufferBE(num, width) {
 exports.toBufferBE = toBufferBE;
 `;
 
+const patchedPackageJson = JSON.stringify({
+  name: "bigint-buffer",
+  version: "1.2.0",
+  description: "Pure JS replacement for bigint-buffer — no native bindings, eliminates GHSA-3gc7-fjrx-p6mg buffer overflow",
+  main: "index.js",
+  license: "MIT"
+}, null, 2) + '\n';
+
 const patchSrc = join(process.cwd(), 'patches', 'bigint-buffer');
 
 const targets = [
@@ -66,10 +74,13 @@ for (const targetDir of targets) {
     const srcDir = join(targetDir, 'src');
     if (existsSync(srcDir)) rmSync(srcDir, { recursive: true, force: true });
 
+    writeFileSync(join(targetDir, 'package.json'), patchedPackageJson);
+
     console.log(`Patched bigint-buffer at ${targetDir}`);
   } else {
     mkdirSync(targetDir, { recursive: true });
     cpSync(patchSrc, targetDir, { recursive: true });
+    writeFileSync(join(targetDir, 'package.json'), patchedPackageJson);
     console.log(`Created bigint-buffer patch at ${targetDir}`);
   }
 }

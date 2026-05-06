@@ -154,6 +154,10 @@
   "overrides": {
     "bfj": "^9.1.3",
     "bigint-buffer": "file:./patches/bigint-buffer",
+    "@solana/buffer-layout-utils": {
+      "bigint-buffer": "file:./patches/bigint-buffer"
+    },
+    "elliptic": "6.6.1",
     "axios": "^1.16.0",
     "@esbuild-kit/core-utils": {
       "esbuild": "^0.25.0"

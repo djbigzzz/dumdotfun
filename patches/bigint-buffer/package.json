@@ -1,7 +1,7 @@
 {
   "name": "bigint-buffer",
-  "version": "1.1.5",
-  "description": "Pure JS replacement for bigint-buffer — no native bindings",
+  "version": "1.2.0",
+  "description": "Pure JS replacement for bigint-buffer — no native bindings, eliminates GHSA-3gc7-fjrx-p6mg buffer overflow",
   "main": "index.js",
   "license": "MIT"
 }
