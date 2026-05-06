@@ -1,111 +1,85 @@
-# Dum.fun - Solana Token Launchpad + Prediction Markets
+# Dum.fun
 
-## Overview
+Dum.fun is a Solana token launchpad offering prediction markets and gamified token launches with a neo-brutalist aesthetic.
 
-Dum.fun is a Solana-based token launchpad with integrated prediction markets, offering a neo-brutalist aesthetic. It combines meme token launches with bonding curves and prediction markets. The platform includes a gamified points and quests system, a seasonal leaderboard with SOL rewards, and automatic migration of successful tokens to Raydium DEX. Winner of the Solana Privacy Hackathon 2026 and recipient of a Solana Foundation Ireland grant.
+## Run & Operate
 
-## User Preferences
+*   **Run:** `npm start`
+*   **Build:** `npm run build`
+*   **Typecheck:** `npm run typecheck`
+*   **Codegen:** `npm run codegen`
+*   **DB Push:** `npx prisma db push` (for schema changes)
 
-- Preferred communication style: Simple, everyday language
-- NO fake/mock data - only real blockchain data or clear errors when APIs fail
-- Platform running on Solana Devnet only (no demo mode)
+**Required Environment Variables:**
+*   `HELIUS_API_KEY`
+*   `DATABASE_URL`
+*   `FEE_RECIPIENT_WALLET`
+*   `PLATFORM_AUTHORITY_SECRET_KEY` (for prediction market payouts)
+*   `SENDGRID_API_KEY` (for waitlist emails)
+*   `DUNE_API_KEY` (optional, for Dune SIM API)
 
-## System Architecture
+## Stack
 
-### Frontend Architecture
+*   **Frontend:** React 18, TypeScript, Vite, Wouter, Shadcn/ui (Radix UI), Tailwind CSS v4, Framer Motion
+*   **Backend:** Express.js, TypeScript, WebSockets, Helius RPC
+*   **Database:** PostgreSQL
+*   **ORM:** Prisma
+*   **Build Tool:** Vite
+*   **Mobile:** Capacitor (Android)
 
-The frontend is built with React 18 and TypeScript, utilizing Vite for tooling, Wouter for routing, Shadcn/ui with Radix UI primitives for components, and Tailwind CSS v4 for styling. Framer Motion is used for animations. The design adheres to a neo-brutalist theme using a palette of zinc-950, red-500, yellow-500, and green-500. Key pages include token listings (`/`, `/tokens`), token creation (`/create`), prediction markets (`/predictions`), documentation (`/docs`), user profiles (`/profile`), quests (`/quests`), and a leaderboard (`/leaderboard`). All heavy pages are lazy-loaded with `React.lazy()` + Suspense.
+## Where things live
 
-### Backend Architecture
+*   **Frontend Source:** `client/src/`
+*   **Backend Source:** `server/`
+*   **Database Schema:** `prisma/schema.prisma`
+*   **Solana Program Interactions:** `server/bonding-curve-client.ts`, `server/services/raydium-swap.ts`
+*   **API Routes:** `server/routes.ts`
+*   **UI Components:** `client/src/components/`
+*   **Theme/Styling:** `client/tailwind.config.ts` (Tailwind CSS v4)
+*   **Prediction Market Payouts Logic:** `server/services/market-payouts.ts`
+*   **Cloak Privacy Integration:** `server/cloak.ts`, `client/src/components/cloak-shield-button.tsx`
+*   **Platform Fees Configuration:** `server/fees.ts`
 
-The backend is an Express.js and TypeScript application. It connects to Solana via Helius RPC for all on-chain interactions on devnet. Data persistence is managed using a PostgreSQL database. Real-time features are supported by WebSockets. The backend exposes API endpoints for tokens, markets, points, seasons, quests, and user management.
+## Architecture decisions
 
-### Core Features & Design Decisions
+*   **Neo-Brutalist Aesthetic:** Consistent design language using a specific color palette (zinc-950, red-500, yellow-500, green-500).
+*   **Solana Devnet Focus:** Platform exclusively uses Solana Devnet, leveraging Helius RPC for all on-chain interactions.
+*   **Gamified User Engagement:** Implemented a comprehensive points, quests, and seasonal leaderboard system with SOL rewards to incentivize user activity.
+*   **Automated DEX Migration:** Successful bonding curve tokens automatically graduate to Raydium CPMM pools to ensure continued liquidity.
+*   **Crash-Safe Prediction Market Payouts:** Robust system for automated payouts with idempotency, crash recovery, and double-pay prevention.
+*   **Confidential Market Payouts:** Integration with Cloak for UTXO-based shielded payouts on prediction markets, enhancing user privacy.
 
-- **Token Launchpad:** Supports real on-chain SPL token creation on Solana devnet, managed by bonding curves.
-- **Prediction Markets:** Allows betting on token survival, incorporating intelligent resolution logic that checks developer holdings and token status (e.g., graduated to Raydium).
-- **Gamification (Points & Quests v1):** 10 quests across 4 categories (onboarding, activity, streaks, special), 5 tiers (Fresh Pill 0-499, Curve Rider 500-1999, Full Degen 2000-4999, Diamond Hands 5000-9999, On-Chain God 10000+), daily check-in with streak tracking, and a leaderboard. OG Card is 0.2 SOL on mainnet and grants permanent 1.5x points multiplier. Quest list: connect_wallet (50), first_trade (100), first_bet (100), first_token (500), first_market (300), first_win (200), daily_login (10/day), streak_7 (150), streak_30 (600), mint_og_nft (500). Quests have explicit claim buttons when eligible. OG Card holders see bonus points from 1.5x multiplier in the points summary. Profile page has 3 tabs: Overview, Quests, Leaderboard. Dedicated `/quests` page shows tier ladder, all quests by category, OG Card mint, and daily check-in. Quests teaser widget appears on tokens page and home page linking to `/quests`. Nav bar includes Quests and Ranks links on both desktop and mobile.
-- **Seasons System:** Leaderboard is organized into named seasons (Arkada-style). Season 1 "Genesis" runs until mainnet launch. Top 10 users per season win SOL rewards (total pool configurable per season). Reward distribution: #1=1.5 SOL, #2=1.0, #3=0.75, #4-5=0.5, #6-7=0.25, #8-9=0.1, #10=0.05. Seasons are admin-controlled (no auto-end). DB tables: `seasons` (name, number, status, reward_pool) and `season_rewards` (per-rank payouts). Leaderboard UI shows Seasonal vs All-time toggle, season info banner, per-rank reward badges, multiplier tier tags, and sortable columns.
-- **Raydium DEX Auto-Migration:** Bonding curves automatically graduate to Raydium CPMM pools once liquidity reaches 85 SOL. This involves on-chain withdrawal of liquidity from the bonding curve and subsequent pool creation.
-- **TradingView Charts:** Professional OHLC candlestick charts with volume histograms and developer trade bubbles are integrated for token detail pages, supporting various intervals and price toggles.
-- **SEO Optimization:** Comprehensive meta tags, Open Graph, Twitter Card tags, JSON-LD structured data, dynamic sitemaps, and robots.txt are implemented for improved search engine visibility.
-- **Mobile App:** A native Android application is set up using Capacitor, wrapping the React web app for the Solana dApp Store, with support for Saga wallet integration via `@solana-mobile/wallet-adapter-mobile`.
-- **Cloak Privacy Layer (Confidential Market Payouts):** Real `@cloak.dev/sdk-devnet` integration on Solana devnet (program `Zc1kHfp4rajSMeASFDwFFgkHRjv7dFQuLheJoQus27h`, relay `api.devnet.cloak.ag`). Winners on resolved prediction markets can route their payout through Cloak's UTXO-based shielded pool: the platform payer (`PLATFORM_AUTHORITY_SECRET_KEY`) deposits SOL into a fresh UTXO with a Groth16 proof, then immediately performs a `fullWithdraw` to the recipient. The on-chain trail no longer links winner-market-amount in plaintext. Implementation in `server/cloak.ts` (executeShieldedPayout with `onUtxoOwnerGenerated` / `onDepositConfirmed` persistence hooks), route in `server/routes.ts` at `/api/cloak/shield-payout`, frontend button in `client/src/components/cloak-shield-button.tsx` surfacing real Solana Explorer links for both deposit and withdraw transactions. **Anti-drain idempotency:** `cloak_payouts` table with `UNIQUE(position_id)` claims a row before any on-chain action; only `failed` rows can be retried (via `onConflictDoUpdate setWhere status='failed'`). **Crash-safe recovery:** the ephemeral UTXO owner private key is persisted to `cloak_payouts.utxo_owner_secret` BEFORE the deposit is broadcast, so a deposit-succeeded/withdraw-failed crash leaves a recoverable row instead of orphaning funds in the shielded pool. Status codes: 503 for missing payer config, 400 for amount/policy violations, 409 for already-claimed positions, 500 for transient relay/RPC/proof errors. Targets the Cloak Privacy Track at Colosseum Frontier 2026 ($5K).
+## Product
 
-### Privacy Mode (REMOVED)
+*   Solana token launchpad with bonding curves.
+*   Prediction markets on token survival and other outcomes.
+*   Gamified points and quests system with a seasonal leaderboard.
+*   Automatic token migration to Raydium DEX.
+*   Professional OHLC candlestick charts for token detail pages.
+*   SEO optimized for discoverability.
+*   Native Android app via Capacitor.
+*   Confidential payouts for prediction market winners via Cloak.
 
-Privacy mode and all related features have been fully removed from the platform. This includes:
-- Client-side: PrivacyProvider context (stubbed to always return false), PrivacyDrawer, PrivacyBadge, PrivacyHub, PrivacyWallet, PrivacyIntegrationsCard components all deleted. Privacy toggle removed from layout header. Privacy-themed Matrix green styling conditionals remain as dead code (always resolving to non-private branch) in some page files but are functionally inert.
-- Server-side: All `/api/privacy/*` routes removed (~1400 lines). Server privacy module directory (`server/privacy/`) deleted entirely — this included inco-lightning, stealth-addresses, token2022-confidential, privacy-cash, shadowwire, arcium-cspl, np-exchange, and pool-authority modules.
-- `client/src/lib/inco-client.ts` simplified to a no-op stub.
-- Documentation page rewritten without any privacy references.
+## User preferences
 
-### Database Schema
+*   Preferred communication style: Simple, everyday language
+*   NO fake/mock data - only real blockchain data or clear errors when APIs fail
+*   Platform running on Solana Devnet only (no demo mode)
 
-The PostgreSQL database includes tables for `users` (wallet addresses, profiles), `tokens` (metadata, bonding curve state), `prediction_markets` (questions, outcomes, `pool_wallet` recording which wallet holds the bet pool), `positions` (user bets), `market_payouts` (one row per winning position, status pending/sent/failed, dedupes via unique `position_id`, used for crash-safe automated SOL payouts), `used_signatures` (replay protection), `activity_feed`, `waitlist`, `user_points`, `points_history`, `seasons` (seasonal leaderboard competitions with SOL reward pools), and `season_rewards` (per-rank reward allocations for completed seasons).
+## Gotchas
 
-### Platform Fees
+*   **Prediction Market Manipulation:** Dev-behavior markets are susceptible to manipulation on mainnet without specific mitigations (TWAP/multi-snapshot resolution, randomized resolution time, Sybil wallet detection, honest-side seed enforcement, one dev-behavior market per token).
+*   **Bonding Curve Overflow:** The deployed Solana program has a known bug with large sells (`subtract with overflow`). A client-side cap is a temporary workaround; the program needs redeploying with checked math.
+*   **Vanity Keypair Security:** `vanity_keypairs.secret` currently stores secrets in plaintext in PostgreSQL; encryption is needed before mainnet.
+*   **npm overrides:** `bfj` is overridden to `^9.1.3` to mitigate a critical CVE in `jsonpath`.
+*   **bigint-buffer patch:** `bigint-buffer` is polyfilled via a postinstall script due to a transitive dependency issue.
 
-Two on-chain revenue streams flow to `FEE_RECIPIENT_WALLET` (env var, defaults to `G6Miqs4m...`):
+## Pointers
 
-1. **Bonding-curve trades (pre-graduation):** the deployed Solana program takes a flat 1% of every buy/sell. Hardcoded in `server/bonding-curve-client.ts` (lines 266, 289) and enforced on-chain - the program account list always includes `FEE_RECIPIENT` as writable.
-2. **Raydium swaps (post-graduation):** added 2026-05-02. A 1% platform fee is injected into every Raydium swap built by `server/services/raydium-swap.ts`. For BUY (SOL -> token) the fee is taken off the SOL input via a `SystemProgram.transfer` PREPENDED to the tx, and the swap is built with `(gross - fee)`. For SELL (token -> SOL) a `SystemProgram.transfer` is APPENDED after the swap, sized off `minOutputAmount * RAYDIUM_SWAP_BPS / 10000` so the on-chain transfer never under-funds even at worst-case slippage. The quote API (`/api/raydium/swap/quote`) returns `platformFeeLamports` and `platformFeeBps` so the UI can display "Platform fee (1.00%)" alongside the existing pool/slippage rows. Constant lives in `PLATFORM_FEES.RAYDIUM_SWAP_BPS` in `server/fees.ts`.
-3. **Token creation / market creation:** flat SOL fees (0.05 SOL each) collected when the user signs the create transaction. See `PLATFORM_FEES` in `server/fees.ts`.
-4. **Prediction market house cut:** 2% of each bet (`PLATFORM_FEES.BETTING_FEE_PERCENT`).
-
-### Automated Prediction Market Payouts
-
-When a market resolves (via `/api/markets/:id/resolve` or the auto-resolver job in `server/services/auto-resolver.ts`), `payoutMarket(marketId)` in `server/services/market-payouts.ts` runs: it computes parimutuel SOL owed per winning position, inserts pending rows into `market_payouts` (idempotent via `ON CONFLICT (position_id)`), then drains the queue with `processPendingPayouts()`. Crash-safe and double-pay-safe by construction: claims atomically transition `pending -> processing` (with `FOR UPDATE SKIP LOCKED` + a 90s time gate so a row with a persisted signature can't be re-claimed before the prior Solana blockhash expires), each send persists its tx signature BEFORE broadcasting, and retries query the chain for the prior signature first - any non-null status with `err===null` is treated as authoritative success and never rebroadcast. A startup+periodic reaper (`reapStuckProcessingPayouts`, every 60s, 120s threshold) recovers rows stranded in `processing` after a crash, and a periodic drainer (`processPendingPayouts`, every 60s) ensures queued payouts complete automatically without waiting for the next market resolution. Each transfer is signed by the keypair matching the market's recorded `pool_wallet` (single platform authority today, but the architecture supports a separate dedicated betting-pool wallet via `BETTING_POOL_WALLET` + `BETTING_POOL_AUTHORITY_SECRET_KEY` if commingling becomes a concern again). Caps: `MAX_PAYOUT_LAMPORTS` 50 SOL, `MAX_ATTEMPTS` 3. Operational scripts: `scripts/payouts-audit.ts` (lists unpaid winners), `scripts/backfill-payouts.ts` (queues + sends payouts for any resolved market with missing payouts).
-
-## External Dependencies
-
--   **Helius RPC:** Primary Solana RPC service for all server-side Solana connections.
--   **Phantom Wallet:** Used for wallet connection and signing transactions.
--   **Jupiter API:** Provides SOL pricing data.
--   **CoinGecko API:** Serves as a fallback for pricing data.
--   **PostgreSQL:** Relational database for data persistence.
--   **SendGrid:** Utilized for sending waitlist emails.
--   **DFlow API:** (Optional) For tokenized prediction markets (Kalshi on Solana).
--   **Dune SIM API:** (Optional) Real-time Solana mainnet analytics. Powers (a) the "On-Chain Activity" section on token detail pages and (b) the in-app `/wallet/:address` page (`client/src/pages/wallet.tsx`) showing any wallet's mainnet portfolio + recent transactions, reachable via the "On-chain" badge button next to wallet addresses in token activity feeds. Requires `DUNE_API_KEY` secret (Sim API key from sim.dune.com, NOT the Dune Analytics key). Endpoints: `GET /api/dune/token/:mint`, `GET /api/dune/wallet/:address` (portfolio), `GET /api/dune/wallet/:address/activity` (transactions). Base URL: `https://api.sim.dune.com/beta/svm`. Module: `server/dune.ts`. Gracefully falls back when API key not configured.
--   **@solana-mobile/wallet-adapter-mobile:** For mobile wallet support.
--   **@lightweight-charts/react-wrapper:** For interactive trading charts.
--   **Raydium SDK V2:** For creating CPMM pools on Raydium.
-
-## Mainnet Readiness Checklist
-
-The platform is currently on Solana Devnet. Before flipping the switch to mainnet, the following must be addressed:
-
-### Blocker: Prediction market manipulation defenses
-
-For dev-behavior markets (`dev_holds`, `dev_sells`), the creator literally controls the on-chain outcome (they can rug or hold at will). On devnet this is harmless, but on mainnet a creator could extract real SOL from honest bettors. The current single per-wallet block on the creator is trivial to bypass with alt wallets.
-
-Required mitigations before mainnet (each is roughly half a day of work):
-
-1. **TWAP / multi-snapshot resolution** - sample dev wallet balance and liquidity at 5+ random moments in the last 24h before resolution and take the average/majority. Stops single-instant snapshot gaming where creators briefly transfer tokens out at the resolution moment.
-
-2. **Randomized resolution time** - auto-resolver currently fires at exactly the expiration time. Change it to fire at a random moment within the last 6h. Stops creators from sniping a huge bet right before resolution.
-
-3. **Sybil wallet detection** - extend the per-wallet bet block to cover any wallet that received >0.1 SOL from the creator within the last 30 days. Block them from betting on any of that creator's markets. Trivial on-chain check, kills the alt-wallet attack.
-
-4. **Honest-side seed enforcement** - force the creator's initial seed bet onto the "honest" side: `dev_holds` markets must seed YES, `dev_sells` markets must seed NO. Aligns the creator's seed with non-rug behavior so cheating costs them their own seed first.
-
-5. **One dev-behavior market per token** - hard cap. Currently nothing prevents spawning 5 `dev_sells` markets on the same token and winning them all with one rug.
-
-### Other mainnet blockers
-
-- **Bonding curve overflow bug** - the deployed program panics on large sells (`subtract with overflow` at lib.rs:188). Source code is already fixed with checked math, but the deployed binary is older. Redeploy a fresh program ID before mainnet. Client-side cap on max sell percentage is in place as a stopgap.
-- **Fee recipient wallet** - confirm the production fee recipient is a hardware-wallet-controlled address, not a hot wallet.
-- **RPC rate limits** - mainnet Helius traffic will be much higher. Confirm the Helius plan supports expected load and add fallback RPCs.
-- **Rugcheck integration** - currently no automated dev wallet labeling. Consider integrating a third-party rugcheck source for richer creator history before mainnet.
-- **Vanity grinder** - production vanity pool lives in the `vanity_keypairs` Postgres table (DB-backed, shared across replicas). Worker thread in `server/vanity-pool.ts` grinds suffixes ["dum","DUM","Dum"] until pool reaches POOL_TARGET=32, then pauses. Claims are atomic via `UPDATE ... WHERE id = (SELECT ... FOR UPDATE SKIP LOCKED) RETURNING`. Each claim re-validates with `getAccountInfo` and marks stale entries as `status='invalid'` so they're never re-tried. Falls back to `Keypair.generate()` after MAX_VALIDATION_TRIES=8 stale hits. A single recurring monitor (`setInterval`, 60s) drives pause/resume so the grinder can never stall permanently. The legacy `.local/state/vanity-pool.json` was migrated to DB on 2026-05-01 then deleted; all 16 entries turned out to be already used on chain (root cause of the AccountAlreadyInUse outage) and are now permanently quarantined.
-- **Vanity secret at rest** - `vanity_keypairs.secret` stores the 64-byte mint secretKey as a JSON byte array, plaintext in Postgres. Same threat model as the previous on-disk JSON pool. These keys only ever sign the one-time mint init for a single token; they're authority-revoked immediately after. Pre-mainnet hardening: encrypt the column with a KMS-managed key (or app-layer AES-GCM with a secret env var) and decrypt only at claim time.
-
-### v2 (post-mainnet, not blockers)
-
-- **Optimistic dispute window** - Polymarket-style. Anyone can dispute an auto-resolution within 24h by staking SOL. Wrong dispute loses stake to platform. Crowdsources fraud detection. Multi-week build.
-- **Whale cap on late bets** - cap individual bets in the last 60min to 5% of pool. Stops late snipes without affecting retail volume.
-
-## Security Notes
-
-- **npm overrides:** `bfj` is overridden to `^9.1.3` in `package.json` to eliminate the transitive dependency on `jsonpath@1.2.1` (critical CVE). The `bfj` 9.x release dropped `jsonpath` entirely.
-- **bigint-buffer CVE patch:** `bigint-buffer@1.1.5` (transitive via `@solana/spl-token` → `@solana/buffer-layout-utils`) has been replaced with a pure JavaScript implementation. The postinstall script at `scripts/patch-bigint-buffer.js` overwrites the native binding entry point with a pure JS equivalent on every `npm install`. The polyfill source lives in `packages/bigint-buffer-polyfill/`.
+*   **Solana Documentation:** `https://docs.solana.com/`
+*   **Helius API Documentation:** `https://docs.helius.xyz/`
+*   **Raydium SDK V2 Documentation:** `https://docs.raydium.io/raydium/`
+*   **Shadcn/ui Documentation:** `https://ui.shadcn.com/docs`
+*   **Tailwind CSS Documentation:** `https://tailwindcss.com/docs`
+*   **Framer Motion Documentation:** `https://www.framer.com/motion/`
+*   **Cloak Protocol Documentation:** `https://docs.cloak.dev/`

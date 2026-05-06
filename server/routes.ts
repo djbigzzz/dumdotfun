@@ -2174,10 +2174,14 @@ export async function registerRoutes(
       console.log(`Creating token: ${name} (${symbol}) for ${creatorAddress}, mint: ${mintPublicKey}`);
 
       // Step 1: Upload metadata to IPFS via Pump.fun
+      const safeTwitter = sanitizeUrl(twitter);
+      const safeTelegram = sanitizeUrl(telegram);
+      const safeWebsite = sanitizeUrl(website);
+
       let metadataUri: string;
       try {
         const ipfsResult = await uploadMetadataToIPFS(
-          { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: description?.trim(), twitter, telegram, website },
+          { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: description?.trim(), twitter: safeTwitter ?? undefined, telegram: safeTelegram ?? undefined, website: safeWebsite ?? undefined },
           imageUri
         );
         metadataUri = ipfsResult.metadataUri;
@@ -2212,9 +2216,9 @@ export async function registerRoutes(
         description: description?.trim() || null,
         imageUri: imageUri || null,
         creatorAddress,
-        twitter: sanitizeUrl(twitter),
-        telegram: sanitizeUrl(telegram),
-        website: sanitizeUrl(website),
+        twitter: safeTwitter,
+        telegram: safeTelegram,
+        website: safeWebsite,
       });
 
       console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
