@@ -1,4 +1,4 @@
-import { writeFileSync, existsSync, unlinkSync, rmSync, mkdirSync, cpSync } from 'fs';
+import { writeFileSync, existsSync, unlinkSync, rmSync, mkdirSync, cpSync, lstatSync } from 'fs';
 import { join } from 'path';
 
 const pureJS = `'use strict';
@@ -48,7 +48,13 @@ const targets = [
 ];
 
 for (const targetDir of targets) {
-  if (existsSync(targetDir)) {
+  let lst = null;
+  try { lst = lstatSync(targetDir); } catch {}
+  if (lst && lst.isSymbolicLink() && !existsSync(targetDir)) {
+    unlinkSync(targetDir);
+    lst = null;
+  }
+  if (lst && existsSync(targetDir)) {
     const targetFile = join(targetDir, 'dist', 'node.js');
     if (existsSync(join(targetDir, 'dist'))) {
       writeFileSync(targetFile, pureJS);
