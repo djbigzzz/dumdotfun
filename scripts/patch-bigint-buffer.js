@@ -1,11 +1,7 @@
-import { writeFileSync, existsSync, unlinkSync, rmSync } from 'fs';
+import { writeFileSync, existsSync, unlinkSync, rmSync, mkdirSync, cpSync } from 'fs';
 import { join } from 'path';
 
-const targetDir = join(process.cwd(), 'node_modules', 'bigint-buffer');
-const targetFile = join(targetDir, 'dist', 'node.js');
-
-if (existsSync(targetDir)) {
-  const pureJS = `'use strict';
+const pureJS = `'use strict';
 
 Object.defineProperty(exports, "__esModule", { value: true });
 
@@ -44,13 +40,30 @@ function toBufferBE(num, width) {
 exports.toBufferBE = toBufferBE;
 `;
 
-  writeFileSync(targetFile, pureJS);
+const patchSrc = join(process.cwd(), 'patches', 'bigint-buffer');
 
-  const bindingGyp = join(targetDir, 'binding.gyp');
-  if (existsSync(bindingGyp)) unlinkSync(bindingGyp);
+const targets = [
+  join(process.cwd(), 'node_modules', 'bigint-buffer'),
+  join(process.cwd(), 'node_modules', '@solana', 'buffer-layout-utils', 'patches', 'bigint-buffer'),
+];
 
-  const srcDir = join(targetDir, 'src');
-  if (existsSync(srcDir)) rmSync(srcDir, { recursive: true, force: true });
+for (const targetDir of targets) {
+  if (existsSync(targetDir)) {
+    const targetFile = join(targetDir, 'dist', 'node.js');
+    if (existsSync(join(targetDir, 'dist'))) {
+      writeFileSync(targetFile, pureJS);
+    }
 
-  console.log('Patched bigint-buffer: replaced native bindings with pure JS implementation');
+    const bindingGyp = join(targetDir, 'binding.gyp');
+    if (existsSync(bindingGyp)) unlinkSync(bindingGyp);
+
+    const srcDir = join(targetDir, 'src');
+    if (existsSync(srcDir)) rmSync(srcDir, { recursive: true, force: true });
+
+    console.log(`Patched bigint-buffer at ${targetDir}`);
+  } else {
+    mkdirSync(targetDir, { recursive: true });
+    cpSync(patchSrc, targetDir, { recursive: true });
+    console.log(`Created bigint-buffer patch at ${targetDir}`);
+  }
 }

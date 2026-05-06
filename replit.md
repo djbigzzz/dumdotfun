@@ -1,6 +1,6 @@
 # Dum.fun
 
-Dum.fun is a Solana token launchpad offering prediction markets and gamified token launches with a neo-brutalist aesthetic.
+Dum.fun is a Solana-based token launchpad with integrated prediction markets, offering a neo-brutalist aesthetic for launching meme tokens and engaging in gamified prediction.
 
 ## Run & Operate
 
@@ -9,6 +9,11 @@ Dum.fun is a Solana token launchpad offering prediction markets and gamified tok
 *   **Typecheck:** `npm run typecheck`
 *   **Codegen:** `npm run codegen`
 *   **DB Push:** `npx prisma db push` (for schema changes)
+*   **Env Vars:**
+    - `FEE_RECIPIENT_WALLET`: Wallet address for platform fees (defaults to `G6Miqs4m...`).
+    - `DUNE_API_KEY`: Sim API key for Dune analytics integration.
+    - `PLATFORM_AUTHORITY_SECRET_KEY`: Used for Cloak shielded payouts.
+    - `BETTING_POOL_WALLET`, `BETTING_POOL_AUTHORITY_SECRET_KEY`: (Optional) for dedicated betting pool.
 
 **Required Environment Variables:**
 *   `HELIUS_API_KEY`
@@ -44,6 +49,8 @@ Dum.fun is a Solana token launchpad offering prediction markets and gamified tok
 
 *   **Neo-Brutalist Aesthetic:** Consistent design language using a specific color palette (zinc-950, red-500, yellow-500, green-500).
 *   **Solana Devnet Focus:** Platform exclusively uses Solana Devnet, leveraging Helius RPC for all on-chain interactions.
+*   **Hybrid On-chain/Off-chain Logic:** Core token and market actions are on-chain via Solana programs; gamification, user profiles, and indexing are off-chain in PostgreSQL.
+*   **Progressive Decentralization:** Starting with platform-controlled betting pools and fee recipients, with future potential for community governance or multi-sig.
 *   **Gamified User Engagement:** Implemented a comprehensive points, quests, and seasonal leaderboard system with SOL rewards to incentivize user activity.
 *   **Automated DEX Migration:** Successful bonding curve tokens automatically graduate to Raydium CPMM pools to ensure continued liquidity.
 *   **Crash-Safe Prediction Market Payouts:** Robust system for automated payouts with idempotency, crash recovery, and double-pay prevention.
@@ -59,6 +66,7 @@ Dum.fun is a Solana token launchpad offering prediction markets and gamified tok
 *   SEO optimized for discoverability.
 *   Native Android app via Capacitor.
 *   Confidential payouts for prediction market winners via Cloak.
+*   Mobile Support: Native Android app via Capacitor, with Solana dApp Store and Saga wallet integration.
 
 ## User preferences
 
@@ -73,13 +81,16 @@ Dum.fun is a Solana token launchpad offering prediction markets and gamified tok
 *   **Vanity Keypair Security:** `vanity_keypairs.secret` currently stores secrets in plaintext in PostgreSQL; encryption is needed before mainnet.
 *   **npm overrides:** `bfj` is overridden to `^9.1.3` to mitigate a critical CVE in `jsonpath`.
 *   **bigint-buffer patch:** `bigint-buffer` is polyfilled via a postinstall script due to a transitive dependency issue.
+*   **Transitive Dependency CVEs:** Specific `npm overrides` and postinstall scripts are used to patch security vulnerabilities in transitive dependencies like `bfj` and `bigint-buffer`.
 
 ## Pointers
 
-*   **Solana Documentation:** `https://docs.solana.com/`
-*   **Helius API Documentation:** `https://docs.helius.xyz/`
-*   **Raydium SDK V2 Documentation:** `https://docs.raydium.io/raydium/`
-*   **Shadcn/ui Documentation:** `https://ui.shadcn.com/docs`
-*   **Tailwind CSS Documentation:** `https://tailwindcss.com/docs`
-*   **Framer Motion Documentation:** `https://www.framer.com/motion/`
-*   **Cloak Protocol Documentation:** `https://docs.cloak.dev/`
+*   **Solana Documentation:** [https://docs.solana.com/](https://docs.solana.com/)
+*   **Helius API Documentation:** [https://docs.helius.xyz/](https://docs.helius.xyz/)
+*   **Raydium SDK V2 Documentation:** [https://docs.raydium.io/raydium/](https://docs.raydium.io/raydium/)
+*   **Shadcn/ui Documentation:** [https://ui.shadcn.com/docs](https://ui.shadcn.com/docs)
+*   **Tailwind CSS Documentation:** [https://tailwindcss.com/docs](https://tailwindcss.com/docs)
+*   **Framer Motion Documentation:** [https://www.framer.com/motion/](https://www.framer.com/motion/)
+*   **Cloak Protocol Documentation:** [https://cloak.dev/](https://cloak.dev/)
+*   **PostgreSQL Documentation:** [https://www.postgresql.org/docs/](https://www.postgresql.org/docs/)
+*   **React Documentation:** [https://react.dev/](https://react.dev/)
