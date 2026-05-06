@@ -66,17 +66,54 @@ async function refreshOne(mint: string): Promise<boolean> {
   }
 }
 
+async function refreshOneGraduated(mint: string): Promise<boolean> {
+  try {
+    const { getPoolStats } = await import("./raydium-swap");
+    const pool = await getPoolStats(mint);
+    if (!pool || !(pool.priceTokenInSol > 0)) return false;
+
+    const [row] = await db
+      .select({ totalSupply: tokensTable.totalSupply })
+      .from(tokensTable)
+      .where(eq(tokensTable.mint, mint))
+      .limit(1);
+    // tokens.totalSupply is stored in UI units (e.g. 1,000,000,000), not raw
+    // base units, so no decimals adjustment is needed here.
+    const totalSupply = Number(row?.totalSupply) || 1_000_000_000;
+    const priceInSol = pool.priceTokenInSol;
+    const marketCapSol = priceInSol * totalSupply;
+
+    await db
+      .update(tokensTable)
+      .set({
+        priceInSol: priceInSol.toFixed(12),
+        marketCapSol: marketCapSol.toFixed(9),
+        bondingCurveProgress: "100.000",
+        isGraduated: true,
+        updatedAt: new Date(),
+      })
+      .where(eq(tokensTable.mint, mint));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function refreshActiveTokenStats(): Promise<number> {
   // Stale-first ordering so every active token eventually gets refreshed,
   // even when the active set is bigger than ACTIVE_REFRESH_LIMIT. NULLs
   // first to prioritise rows that were never refreshed.
   const active = await db
-    .select({ mint: tokensTable.mint })
+    .select({
+      mint: tokensTable.mint,
+      isGraduated: tokensTable.isGraduated,
+      graduationStatus: tokensTable.graduationStatus,
+      raydiumPoolId: tokensTable.raydiumPoolId,
+    })
     .from(tokensTable)
     .where(
       and(
         eq(tokensTable.deploymentStatus, "deployed"),
-        eq(tokensTable.isGraduated, false),
         or(
           isNull(tokensTable.graduationStatus),
           ne(tokensTable.graduationStatus, "broken"),
@@ -93,7 +130,15 @@ async function refreshActiveTokenStats(): Promise<number> {
     while (queue.length > 0) {
       const next = queue.shift();
       if (!next) break;
-      const ok = await refreshOne(next.mint);
+      // Only use the Raydium path when the pool actually exists; otherwise
+      // (graduation flag flipped on-chain but migration not yet completed)
+      // fall back to the bonding-curve refresh so stats keep ticking.
+      const useRaydium =
+        next.isGraduated &&
+        next.graduationStatus === "completed" &&
+        !!next.raydiumPoolId;
+      let ok = useRaydium ? await refreshOneGraduated(next.mint) : false;
+      if (!ok) ok = await refreshOne(next.mint);
       if (ok) refreshed++;
     }
   });

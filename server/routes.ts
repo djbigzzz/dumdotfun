@@ -416,9 +416,32 @@ export async function registerRoutes(
       let bondingCurveProgress = Number(token.bondingCurveProgress) || 0;
       let isGraduated = token.isGraduated;
       let serializedCurveData = null;
+
+      // For graduated tokens, the bonding curve has been drained and its
+      // virtual reserves give a stale (frozen-at-graduation) price. Use the
+      // live Raydium pool reserves as the source of truth instead.
+      if (token.isGraduated && token.raydiumPoolId && token.graduationStatus === "completed") {
+        try {
+          const { getPoolStats } = await import("./services/raydium-swap");
+          const pool = await getPoolStats(mint);
+          if (pool && pool.priceTokenInSol > 0) {
+            priceInSol = pool.priceTokenInSol;
+            const totalSupply = Number(token.totalSupply) || 1_000_000_000;
+            marketCapSol = priceInSol * totalSupply;
+            bondingCurveProgress = 100;
+            import("./services/token-reconciler")
+              .then(({ writeBackTokenStats }) =>
+                writeBackTokenStats(mint, priceInSol, marketCapSol, bondingCurveProgress, true))
+              .catch(() => {});
+          }
+        } catch (raydiumError) {
+          console.log("Could not fetch live Raydium pool data:", raydiumError);
+        }
+      }
+
       try {
         const mintPubkey = new PublicKey(mint);
-        const rawCurveData = await bondingCurve.fetchBondingCurveData(mintPubkey);
+        const rawCurveData = isGraduated ? null : await bondingCurve.fetchBondingCurveData(mintPubkey);
         if (rawCurveData) {
           priceInSol = bondingCurve.calculatePrice(rawCurveData.virtualSolReserves, rawCurveData.virtualTokenReserves);
           const bnToNum = (val: any) => {
