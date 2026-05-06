@@ -4,6 +4,7 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+contracts/*/target/
 # Local generated keypair (do NOT commit)
 .local/betting-pool-secret.txt
 
