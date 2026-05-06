@@ -262,6 +262,19 @@ export async function graduateToken(mintAddress: string): Promise<GraduationResu
     console.log(`[Graduation] Token ${mintAddress} graduated successfully!`);
     console.log(`[Graduation] Pool ID: ${poolResult.poolId}`);
 
+    // Close any open "will it graduate?" markets immediately. Leaving them
+    // open lets late bettors take YES on a question whose answer is already
+    // public, milking earlier NO holders.
+    try {
+      const { resolveGraduationMarketsForToken } = await import("./graduation-resolver");
+      const summary = await resolveGraduationMarketsForToken(mintAddress);
+      if (summary.resolved.length > 0) {
+        console.log(`[Graduation] Auto-resolved ${summary.resolved.length} graduation market(s) for ${mintAddress}`);
+      }
+    } catch (err) {
+      console.error(`[Graduation] Failed to auto-resolve graduation markets for ${mintAddress}:`, err);
+    }
+
     return {
       success: true,
       poolId: poolResult.poolId,

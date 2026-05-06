@@ -45,8 +45,14 @@ export async function autoResolveExpiredMarkets(): Promise<ResolutionResult[]> {
         const losingPositions = positions.filter(p => p.side !== outcome);
         
         const totalPool = Number(market.yesPool) + Number(market.noPool);
-        
-        await storage.resolveMarket(market.id, outcome);
+
+        const transitioned = await storage.resolveMarket(market.id, outcome);
+        if (!transitioned) {
+          // Another resolver path (e.g. graduation hook) already closed
+          // this market. Don't double-award quests or duplicate activity.
+          console.log(`[AutoResolver] Skipping ${market.id} - already resolved by another path`);
+          continue;
+        }
 
         // Award the "first_win" quest to every wallet that bet on the
         // winning side. awardQuest is idempotent (it checks for an existing

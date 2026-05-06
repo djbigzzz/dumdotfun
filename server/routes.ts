@@ -3027,6 +3027,33 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Market has expired" });
       }
 
+      // Block bets on "will it graduate?" markets when the underlying token
+      // has already graduated. The answer is public on-chain, so any further
+      // wager is just front-running settled information.
+      try {
+        const { isGraduationQuestion, resolveGraduationMarketsForToken } =
+          await import("./services/graduation-resolver");
+        if (isGraduationQuestion(market.survivalCriteria, market.question)) {
+          const [tokenRow] = await db
+            .select({
+              isGraduated: tokensTable.isGraduated,
+              graduationStatus: tokensTable.graduationStatus,
+            })
+            .from(tokensTable)
+            .where(eq(tokensTable.mint, market.tokenMint))
+            .limit(1);
+          if (tokenRow?.isGraduated || tokenRow?.graduationStatus === "completed") {
+            // Best-effort close so the market stops accepting any further bets.
+            resolveGraduationMarketsForToken(market.tokenMint).catch(() => {});
+            return res.status(400).json({
+              error: "Token has already graduated - this market is settled and no new bets are accepted.",
+            });
+          }
+        }
+      } catch (graduationGuardErr) {
+        console.error("[Betting] Graduation guard failed (non-fatal):", graduationGuardErr);
+      }
+
       // Block the creator from betting on their own dev-behavior markets
       // (they have direct control over the outcome — clear conflict of interest)
       const devBehaviorCriteria = ["dev_holds", "dev_sells"];
@@ -3177,6 +3204,44 @@ export async function registerRoutes(
 
       if (pendingBet.marketId !== id) {
         return res.status(400).json({ error: "Market ID mismatch" });
+      }
+
+      // Re-check market state at confirm time. The user may have prepared
+      // the bet while the market was open, then the underlying token
+      // graduated (or the market expired / was resolved) before they
+      // submitted the signed transaction. Recording the position now would
+      // let bets land on a settled market.
+      {
+        const liveMarket = await storage.getMarket(id);
+        if (!liveMarket) {
+          return res.status(404).json({ error: "Market not found" });
+        }
+        if (liveMarket.status !== "open") {
+          return res.status(400).json({ error: "Market is no longer open for betting" });
+        }
+        if (new Date(liveMarket.resolutionDate) <= new Date()) {
+          return res.status(400).json({ error: "Market has expired" });
+        }
+        try {
+          const { isGraduationQuestion } = await import("./services/graduation-resolver");
+          if (isGraduationQuestion(liveMarket.survivalCriteria, liveMarket.question)) {
+            const [tokenRow] = await db
+              .select({
+                isGraduated: tokensTable.isGraduated,
+                graduationStatus: tokensTable.graduationStatus,
+              })
+              .from(tokensTable)
+              .where(eq(tokensTable.mint, liveMarket.tokenMint))
+              .limit(1);
+            if (tokenRow?.isGraduated || tokenRow?.graduationStatus === "completed") {
+              return res.status(400).json({
+                error: "Token graduated before this bet was confirmed - market is settled.",
+              });
+            }
+          }
+        } catch (graduationGuardErr) {
+          console.error("[Betting] confirm-bet graduation guard failed:", graduationGuardErr);
+        }
       }
 
       let txInfo;

@@ -250,13 +250,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async resolveMarket(id: string, outcome: string): Promise<Market | undefined> {
+    // Idempotent: only the first call that finds the market still "open"
+    // performs the transition. Concurrent callers (e.g. graduation hook +
+    // the periodic auto-resolver firing on the same tick) will see no
+    // returned row and can skip downstream payouts/quests safely.
     const [market] = await db.update(predictionMarkets)
-      .set({ 
+      .set({
         status: "resolved",
         outcome,
         resolvedAt: new Date()
       })
-      .where(eq(predictionMarkets.id, id))
+      .where(and(
+        eq(predictionMarkets.id, id),
+        eq(predictionMarkets.status, "open"),
+      ))
       .returning();
     return market || undefined;
   }
