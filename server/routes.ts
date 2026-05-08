@@ -374,10 +374,32 @@ export async function registerRoutes(
   app.get("/api/tokens/:mint", async (req, res) => {
     try {
       const { mint } = req.params;
-      const token = await db.query.tokens.findFirst({
+      let token = await db.query.tokens.findFirst({
         where: (tokens) => eq(tokens.mint, mint)
       });
-      
+
+      // Self-heal an orphaned dum.fun token: the on-chain deploy succeeded
+      // but the DB row was never inserted (e.g. /devnet/confirm-create never
+      // landed). If the bonding-curve account exists, import the token from
+      // on-chain Metaplex metadata so the detail page works.
+      if (!token) {
+        try {
+          const { recoverOrphanedToken } = await import("./services/orphan-recovery");
+          const recovered = await recoverOrphanedToken(mint);
+          if (recovered) {
+            await db
+              .update(tokensTable)
+              .set({ deploymentStatus: "deployed" })
+              .where(eq(tokensTable.mint, mint));
+            token = await db.query.tokens.findFirst({
+              where: (tokens) => eq(tokens.mint, mint),
+            });
+          }
+        } catch (recoveryErr) {
+          console.error("[token detail] orphan recovery failed:", recoveryErr);
+        }
+      }
+
       if (!token) {
         return res.status(404).json({ error: "Token not found on dum.fun" });
       }
@@ -678,6 +700,31 @@ export async function registerRoutes(
                   isOnBondingCurve = true;
                   priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
                   valueInSol = priceInSol !== null ? balance * priceInSol : null;
+
+                  // Self-heal: this is a dum.fun token whose DB row was lost
+                  // (e.g. user closed the page before /devnet/confirm-create
+                  // ran). Read on-chain Metaplex metadata and import it so
+                  // it stops showing as "Unknown Token / orphaned".
+                  try {
+                    const { recoverOrphanedToken } = await import("./services/orphan-recovery");
+                    const recovered = await recoverOrphanedToken(mint);
+                    if (recovered) {
+                      return {
+                        mint,
+                        name: recovered.name,
+                        symbol: recovered.symbol,
+                        imageUri: recovered.imageUri ?? null,
+                        balance,
+                        priceInSol,
+                        valueInSol,
+                        marketCapSol,
+                        isDumFun: true,
+                        isOnBondingCurve,
+                      };
+                    }
+                  } catch (recoveryErr) {
+                    console.error("[holdings] orphan recovery failed:", recoveryErr);
+                  }
                 }
               } catch {
                 // Not on our bonding curve — leave as external
