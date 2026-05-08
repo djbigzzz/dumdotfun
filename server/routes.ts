@@ -805,6 +805,35 @@ export async function registerRoutes(
         })
       );
 
+      // Enrich dum.fun holdings with weighted-average cost basis + unrealized
+      // PnL computed from this wallet's recorded buy/sell history.
+      try {
+        const { getCostBasisForWalletMints } = await import("./services/cost-basis");
+        const dumMints = holdingResults
+          .filter((h) => h.isDumFun || h.isOnBondingCurve)
+          .map((h) => h.mint);
+        const basisMap = await getCostBasisForWalletMints(walletAddress, dumMints);
+        for (const h of holdingResults as any[]) {
+          const cb = basisMap.get(h.mint);
+          if (cb && cb.avgBuyPriceSol != null) {
+            h.avgBuyPriceSol = cb.avgBuyPriceSol;
+            if (h.priceInSol != null && cb.avgBuyPriceSol > 0) {
+              h.unrealizedPnlPct = ((h.priceInSol - cb.avgBuyPriceSol) / cb.avgBuyPriceSol) * 100;
+              h.unrealizedPnlSol = (h.priceInSol - cb.avgBuyPriceSol) * h.balance;
+            } else {
+              h.unrealizedPnlPct = null;
+              h.unrealizedPnlSol = null;
+            }
+          } else {
+            h.avgBuyPriceSol = null;
+            h.unrealizedPnlPct = null;
+            h.unrealizedPnlSol = null;
+          }
+        }
+      } catch (basisErr) {
+        console.error("[holdings] cost-basis enrichment failed:", basisErr);
+      }
+
       // Sort: dum.fun tokens by SOL value desc, then other tokens by balance desc
       const holdings = holdingResults.sort((a, b) => {
         if (a.valueInSol !== null && b.valueInSol !== null) return b.valueInSol - a.valueInSol;
@@ -817,6 +846,40 @@ export async function registerRoutes(
     } catch (error: any) {
       console.error("Error fetching user holdings:", error);
       return res.status(500).json({ error: "Failed to fetch holdings" });
+    }
+  });
+
+  // Recent token trades for a wallet, joined with token name/symbol/image,
+  // newest first. Used by the History tab on the profile page.
+  app.get("/api/users/:walletAddress/trade-history", async (req, res) => {
+    try {
+      const { walletAddress } = req.params;
+      if (!walletAddress || walletAddress.length < 32) {
+        return res.status(400).json({ error: "Invalid wallet address" });
+      }
+      const limit = Math.min(parseInt(String(req.query.limit ?? "100"), 10) || 100, 200);
+      const { getTradeHistoryForWallet } = await import("./services/cost-basis");
+      const trades = await getTradeHistoryForWallet(walletAddress, limit);
+
+      // Batch-fetch token metadata for all referenced mints.
+      const mints = Array.from(new Set(trades.map((t) => t.tokenMint)));
+      const tokens = await Promise.all(mints.map((m) => storage.getTokenByMint(m).catch(() => null)));
+      const tokenMap = new Map(tokens.filter(Boolean).map((t) => [t!.mint, t!]));
+
+      const enriched = trades.map((t) => {
+        const tok = tokenMap.get(t.tokenMint);
+        return {
+          ...t,
+          name: tok?.name ?? null,
+          symbol: tok?.symbol ?? null,
+          imageUri: tok ? toImageUrl(tok.mint, tok.imageUri) : null,
+        };
+      });
+
+      return res.json({ trades: enriched });
+    } catch (error: any) {
+      console.error("Error fetching trade history:", error);
+      return res.status(500).json({ error: "Failed to fetch trade history" });
     }
   });
 

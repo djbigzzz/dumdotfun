@@ -8,7 +8,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, X, Pencil, ChevronRight, Sparkles, LogOut, Twitter } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, ArrowUpRight, X, Pencil, ChevronRight, Sparkles, LogOut, Twitter, History as HistoryIcon, ArrowUpDown } from "lucide-react";
 import { Connection, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { toast } from "sonner";
@@ -60,7 +60,31 @@ interface HeldToken {
   marketCapSol: number | null;
   isDumFun: boolean;
   isOnBondingCurve?: boolean;
+  avgBuyPriceSol?: number | null;
+  unrealizedPnlSol?: number | null;
+  unrealizedPnlPct?: number | null;
 }
+
+interface TradeHistoryItem {
+  id: string;
+  tokenMint: string;
+  side: "buy" | "sell";
+  amountSol: number;
+  amountTokens: number;
+  pricePerToken: number | null;
+  signature: string | null;
+  createdAt: string;
+  name: string | null;
+  symbol: string | null;
+  imageUri: string | null;
+}
+
+interface TradeHistoryResponse {
+  trades: TradeHistoryItem[];
+}
+
+type SortKey = "value" | "pnl" | "balance" | "name";
+const ALLOC_COLORS = ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899", "#06B6D4", "#F97316"];
 
 interface HoldingsResponse {
   solBalance: number;
@@ -97,7 +121,7 @@ const TIER_CONFIG: Record<string, { label: string; color: string; icon: React.Re
   solana_god: { label: "On-Chain God", color: "#06B6D4", icon: <Diamond className="w-5 h-5" />, bg: "bg-cyan-500/20", border: "border-cyan-400" },
 };
 
-type TabType = "holdings" | "bets" | "coins";
+type TabType = "holdings" | "bets" | "history" | "coins";
 
 interface BetPosition {
   id: string;
@@ -146,6 +170,7 @@ export default function Profile() {
   const [sellPct, setSellPct] = useState(100);
   const [maxSafePct, setMaxSafePct] = useState<number>(100);
   const [curveLoading, setCurveLoading] = useState(false);
+  const [holdingsSort, setHoldingsSort] = useState<SortKey>("value");
 
   useEffect(() => {
     if (!sellToken) { setMaxSafePct(100); return; }
@@ -379,6 +404,16 @@ export default function Profile() {
     },
     enabled: !!connectedWallet && activeTab === "bets",
     refetchInterval: 30000,
+  });
+
+  const { data: tradeHistoryData, isLoading: tradeHistoryLoading } = useQuery<TradeHistoryResponse>({
+    queryKey: ["my-trade-history", connectedWallet],
+    queryFn: async () => {
+      const res = await fetch(`/api/users/${connectedWallet}/trade-history?limit=100`);
+      if (!res.ok) throw new Error("Failed to fetch trade history");
+      return res.json();
+    },
+    enabled: !!connectedWallet && activeTab === "history",
   });
 
   // Always fetch a lightweight count so the tab badge stays accurate
@@ -655,6 +690,11 @@ export default function Profile() {
                       )}
                     </span>
                   </button>
+                  <button onClick={() => setActiveTab("history")} className={tabStyle("history")} data-testid="tab-history">
+                    <span className="flex items-center gap-1.5">
+                      <HistoryIcon className="w-4 h-4" /> History
+                    </span>
+                  </button>
                   <button onClick={() => setActiveTab("coins")} className={tabStyle("coins")} data-testid="tab-coins">
                     <span className="flex items-center gap-1.5">
                       <Coins className="w-4 h-4" /> My Coins
@@ -751,6 +791,52 @@ export default function Profile() {
                     ) : holdingsData ? (() => {
                       const totalSol = (holdingsData.solBalance ?? 0) + holdingsData.holdings.reduce((s, h) => s + (h.valueInSol ?? 0), 0);
                       const rowClass = `flex items-center gap-4 p-3 rounded-lg border cursor-pointer ${privateMode ? "border-[#4ADE80]/20 hover:border-[#4ADE80]/50 bg-black/50" : "border-gray-200 hover:border-black bg-gray-50"}`;
+
+                      // Total cost basis + unrealized PnL across dum.fun holdings.
+                      let totalBasisSol = 0;
+                      let totalPnlSol = 0;
+                      let hasAnyBasis = false;
+                      for (const h of holdingsData.holdings) {
+                        if (h.avgBuyPriceSol != null && h.unrealizedPnlSol != null) {
+                          totalBasisSol += h.avgBuyPriceSol * h.balance;
+                          totalPnlSol += h.unrealizedPnlSol;
+                          hasAnyBasis = true;
+                        }
+                      }
+                      const totalPnlPct = hasAnyBasis && totalBasisSol > 0 ? (totalPnlSol / totalBasisSol) * 100 : null;
+
+                      // Asset allocation: SOL + each dum.fun token with a value, top 7 + "Other"
+                      type Slice = { label: string; symbol: string; value: number; color: string };
+                      const valued = holdingsData.holdings
+                        .filter((h) => (h.valueInSol ?? 0) > 0)
+                        .sort((a, b) => (b.valueInSol ?? 0) - (a.valueInSol ?? 0));
+                      const topSlices: Slice[] = [];
+                      topSlices.push({ label: "Solana", symbol: "SOL", value: holdingsData.solBalance ?? 0, color: "#9945FF" });
+                      const TOP_N = 7;
+                      valued.slice(0, TOP_N).forEach((h, i) => {
+                        topSlices.push({ label: h.name, symbol: h.symbol, value: h.valueInSol ?? 0, color: ALLOC_COLORS[i % ALLOC_COLORS.length] });
+                      });
+                      if (valued.length > TOP_N) {
+                        const other = valued.slice(TOP_N).reduce((s, h) => s + (h.valueInSol ?? 0), 0);
+                        if (other > 0) topSlices.push({ label: "Other", symbol: "·", value: other, color: "#9CA3AF" });
+                      }
+                      const sliceTotal = topSlices.reduce((s, x) => s + x.value, 0);
+
+                      // Sort the SPL token list according to user choice.
+                      const sortedHoldings = [...holdingsData.holdings].sort((a, b) => {
+                        if (holdingsSort === "name") return (a.name || "").localeCompare(b.name || "");
+                        if (holdingsSort === "balance") return b.balance - a.balance;
+                        if (holdingsSort === "pnl") {
+                          const ap = a.unrealizedPnlPct ?? -Infinity;
+                          const bp = b.unrealizedPnlPct ?? -Infinity;
+                          return bp - ap;
+                        }
+                        // value (default)
+                        const av = a.valueInSol ?? -1;
+                        const bv = b.valueInSol ?? -1;
+                        return bv - av;
+                      });
+
                       return (
                         <>
                           {/* Portfolio total bar */}
@@ -768,7 +854,7 @@ export default function Profile() {
                               </button>
                             </div>
                             <div className="text-right">
-                              <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
+                              <span className={`font-black text-lg ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`} data-testid="text-portfolio-total">
                                 {totalSol.toFixed(4)} SOL
                               </span>
                               {solPrice && (
@@ -776,6 +862,63 @@ export default function Profile() {
                                   ≈ ${(totalSol * solPrice.price).toFixed(2)}
                                 </span>
                               )}
+                              {totalPnlPct != null && (
+                                <div
+                                  className={`text-xs font-bold mt-0.5 ${totalPnlSol >= 0 ? "text-green-600" : "text-red-500"}`}
+                                  data-testid="text-portfolio-pnl"
+                                >
+                                  Unrealized {totalPnlSol >= 0 ? "+" : ""}{totalPnlSol.toFixed(4)} SOL ({totalPnlSol >= 0 ? "+" : ""}{totalPnlPct.toFixed(1)}%)
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Asset allocation */}
+                          {sliceTotal > 0 && (
+                            <div className="mb-4" data-testid="allocation-breakdown">
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-[10px] font-bold uppercase text-gray-500">Allocation</span>
+                                <span className="text-[10px] text-gray-400">{topSlices.length} assets</span>
+                              </div>
+                              <div className="h-2.5 w-full rounded-full overflow-hidden flex border-2 border-black">
+                                {topSlices.map((s) => (
+                                  <div
+                                    key={s.label}
+                                    style={{ width: `${(s.value / sliceTotal) * 100}%`, background: s.color }}
+                                    title={`${s.symbol} - ${((s.value / sliceTotal) * 100).toFixed(1)}%`}
+                                    data-testid={`alloc-slice-${s.symbol}`}
+                                  />
+                                ))}
+                              </div>
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 mt-2">
+                                {topSlices.map((s) => (
+                                  <div key={s.label} className="flex items-center gap-1.5 text-[11px]">
+                                    <span className="w-2 h-2 rounded-full inline-block" style={{ background: s.color }} />
+                                    <span className="font-bold text-gray-700">{s.symbol}</span>
+                                    <span className="text-gray-400">{((s.value / sliceTotal) * 100).toFixed(1)}%</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Sort control */}
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-[10px] font-bold uppercase text-gray-500">Holdings</span>
+                            <div className="flex items-center gap-1.5 text-[11px]">
+                              <ArrowUpDown className="w-3 h-3 text-gray-400" />
+                              <span className="text-gray-500 font-bold uppercase">Sort</span>
+                              <select
+                                value={holdingsSort}
+                                onChange={(e) => setHoldingsSort(e.target.value as SortKey)}
+                                className="text-[11px] font-bold border border-gray-300 rounded px-1.5 py-0.5 bg-white text-black"
+                                data-testid="select-holdings-sort"
+                              >
+                                <option value="value">Value</option>
+                                <option value="pnl">PnL %</option>
+                                <option value="balance">Balance</option>
+                                <option value="name">Name</option>
+                              </select>
                             </div>
                           </div>
 
@@ -811,11 +954,14 @@ export default function Profile() {
                             </a>
 
                             {/* SPL tokens */}
-                            {holdingsData.holdings.map((token) => {
-                              const canSell = token.isOnBondingCurve;
+                            {sortedHoldings.map((token) => {
+                              const canTrade = !!token.isOnBondingCurve;
+                              const pnlPct = token.unrealizedPnlPct;
+                              const pnlSol = token.unrealizedPnlSol;
+                              const pnlColor = pnlPct == null ? "text-gray-400" : pnlPct >= 0 ? "text-green-600" : "text-red-500";
                               const row = (
                                 <motion.div
-                                  whileHover={{ x: canSell ? 0 : 4 }}
+                                  whileHover={{ x: canTrade ? 0 : 4 }}
                                   className={rowClass}
                                   data-testid={`token-held-${token.mint}`}
                                 >
@@ -832,6 +978,11 @@ export default function Profile() {
                                     <div className={`font-black truncate ${privateMode ? "text-white" : "text-gray-900"}`}>{token.name}</div>
                                     <div className={`text-xs font-mono ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
                                       {formatBalance(token.balance)} ${token.symbol}
+                                      {token.avgBuyPriceSol != null && (
+                                        <span className="ml-1.5 text-gray-400" data-testid={`text-avg-cost-${token.mint}`}>
+                                          · avg {token.avgBuyPriceSol < 0.0001 ? token.avgBuyPriceSol.toExponential(2) : token.avgBuyPriceSol.toFixed(6)} SOL
+                                        </span>
+                                      )}
                                       {!token.isDumFun && !token.isOnBondingCurve && (
                                         <span className={`ml-1.5 ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>· external</span>
                                       )}
@@ -847,25 +998,45 @@ export default function Profile() {
                                           <div className={`font-bold ${privateMode ? "text-[#4ADE80]" : "text-green-600"}`}>
                                             {token.valueInSol.toFixed(4)} SOL
                                           </div>
-                                          {solPrice && (
+                                          {pnlPct != null ? (
+                                            <div className={`text-xs font-bold ${pnlColor}`} data-testid={`text-pnl-${token.mint}`}>
+                                              {pnlPct >= 0 ? "+" : ""}{pnlPct.toFixed(1)}%
+                                              {pnlSol != null && (
+                                                <span className="ml-1 font-normal text-gray-400">
+                                                  ({pnlSol >= 0 ? "+" : ""}{pnlSol.toFixed(4)})
+                                                </span>
+                                              )}
+                                            </div>
+                                          ) : solPrice ? (
                                             <div className={`text-xs ${privateMode ? "text-zinc-400" : "text-gray-400"}`}>
                                               ≈ ${(token.valueInSol * solPrice.price).toFixed(2)}
                                             </div>
-                                          )}
+                                          ) : null}
                                         </>
                                       ) : (
                                         <div className={`text-xs italic ${privateMode ? "text-zinc-600" : "text-gray-300"}`}>no price</div>
                                       )}
                                     </div>
-                                    {canSell && (
-                                      <button
-                                        data-testid={`button-sell-${token.mint}`}
-                                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSellToken(token); setSellPct(100); }}
-                                        className="flex items-center gap-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-xs font-bold transition-colors flex-shrink-0"
-                                      >
-                                        <ArrowDownLeft className="w-3 h-3" />
-                                        Sell
-                                      </button>
+                                    {canTrade && (
+                                      <div className="flex flex-col gap-1">
+                                        <Link
+                                          href={`/token/${token.mint}#buy`}
+                                          onClick={(e) => e.stopPropagation()}
+                                          data-testid={`button-buy-${token.mint}`}
+                                          className="flex items-center gap-1 px-2 py-1 rounded bg-green-500 hover:bg-green-600 text-white text-[11px] font-bold transition-colors"
+                                        >
+                                          <ArrowUpRight className="w-3 h-3" />
+                                          Buy
+                                        </Link>
+                                        <button
+                                          data-testid={`button-sell-${token.mint}`}
+                                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setSellToken(token); setSellPct(100); }}
+                                          className="flex items-center gap-1 px-2 py-1 rounded bg-red-500 hover:bg-red-600 text-white text-[11px] font-bold transition-colors"
+                                        >
+                                          <ArrowDownLeft className="w-3 h-3" />
+                                          Sell
+                                        </button>
+                                      </div>
                                     )}
                                   </div>
                                 </motion.div>
@@ -1015,6 +1186,157 @@ export default function Profile() {
                       )}
                     </>
                   )}
+                </motion.div>
+              )}
+
+              {activeTab === "history" && (
+                <motion.div
+                  key="history"
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  className="space-y-4"
+                  data-testid="history-tab-content"
+                >
+                  <div className={`${cardStyle} p-6`}>
+                    {tradeHistoryLoading ? (
+                      <div className="flex items-center justify-center py-10 gap-2 text-gray-400">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span className="font-mono text-sm">Loading trade history…</span>
+                      </div>
+                    ) : (() => {
+                      const trades = tradeHistoryData?.trades ?? [];
+                      const resolvedBets = (betsBadge?.resolved ?? []).map((p) => ({
+                        kind: "bet" as const,
+                        id: p.id,
+                        marketId: p.marketId,
+                        question: p.market.question,
+                        imageUri: p.market.imageUri,
+                        side: p.side,
+                        won: p.won,
+                        amount: p.amount,
+                        payout: p.payout ?? 0,
+                        createdAt: p.createdAt,
+                        outcome: p.market.outcome,
+                      }));
+                      const tradeItems = trades.map((t) => ({
+                        kind: "trade" as const,
+                        ...t,
+                      }));
+                      const combined = [...tradeItems, ...resolvedBets].sort(
+                        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+                      );
+                      if (combined.length === 0) {
+                        return (
+                          <div className="text-center py-10 text-gray-400">
+                            <HistoryIcon className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                            <p className="font-bold">No history yet</p>
+                            <p className="text-xs mt-1">Your trades and resolved bets will appear here.</p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="space-y-2" data-testid="history-list">
+                          {combined.map((item) => {
+                            if (item.kind === "trade") {
+                              const isBuy = item.side === "buy";
+                              const sigUrl = item.signature ? `https://solscan.io/tx/${item.signature}?cluster=devnet` : null;
+                              const inner = (
+                                <div className={`p-3 rounded-lg border flex items-center gap-3 ${privateMode ? "border-[#4ADE80]/20 bg-black/50" : "border-gray-200 hover:border-black bg-gray-50"}`} data-testid={`history-trade-${item.id}`}>
+                                  <div className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                                    {item.imageUri ? (
+                                      <img src={item.imageUri} alt="" className="w-full h-full object-cover" />
+                                    ) : (
+                                      <Coins className="w-4 h-4 text-gray-400" />
+                                    )}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${isBuy ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                        {isBuy ? "BUY" : "SELL"}
+                                      </span>
+                                      <span className="font-bold text-sm truncate">{item.name || item.tokenMint.slice(0, 8) + "…"}</span>
+                                      {item.symbol && <span className="text-xs text-gray-400 font-mono">${item.symbol}</span>}
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 mt-0.5">
+                                      {new Date(item.createdAt).toLocaleString()}
+                                      {sigUrl && (
+                                        <>
+                                          <span className="mx-1">·</span>
+                                          <a
+                                            href={sigUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            onClick={(e) => e.stopPropagation()}
+                                            className="hover:text-black inline-flex items-center gap-0.5"
+                                            data-testid={`link-tx-${item.id}`}
+                                          >
+                                            tx <ExternalLink className="w-2.5 h-2.5" />
+                                          </a>
+                                        </>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="text-right flex-shrink-0">
+                                    <div className={`text-xs font-mono font-bold ${isBuy ? "text-red-500" : "text-green-600"}`}>
+                                      {isBuy ? "-" : "+"}{item.amountSol.toFixed(4)} SOL
+                                    </div>
+                                    <div className="text-[11px] text-gray-500 font-mono">
+                                      {formatBalance(item.amountTokens)} {item.symbol ? `$${item.symbol}` : "tokens"}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                              return (
+                                <Link key={`t-${item.id}`} href={`/token/${item.tokenMint}`} className="block">
+                                  {inner}
+                                </Link>
+                              );
+                            }
+                            // resolved bet
+                            return (
+                              <Link
+                                key={`b-${item.id}`}
+                                href={`/market/${item.marketId}`}
+                                className={`p-3 rounded-lg border flex items-center gap-3 block ${privateMode ? "border-[#4ADE80]/20 bg-black/50" : "border-gray-200 hover:border-black bg-gray-50"}`}
+                                data-testid={`history-bet-${item.id}`}
+                              >
+                                <div className="w-9 h-9 rounded-lg overflow-hidden border border-gray-200 flex-shrink-0 bg-gray-100 flex items-center justify-center">
+                                  {item.imageUri ? (
+                                    <img src={item.imageUri} alt="" className="w-full h-full object-cover" />
+                                  ) : (
+                                    <Target className="w-4 h-4 text-gray-400" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${item.won ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"}`}>
+                                      {item.won ? "WON" : "LOST"}
+                                    </span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded font-black bg-gray-100 text-gray-600">
+                                      BET {item.side.toUpperCase()}
+                                    </span>
+                                    <span className="font-bold text-sm truncate">{item.question}</span>
+                                  </div>
+                                  <div className="text-[11px] text-gray-500 mt-0.5">
+                                    {new Date(item.createdAt).toLocaleString()}
+                                    {item.outcome && <span className="ml-1">· resolved {item.outcome.toUpperCase()}</span>}
+                                  </div>
+                                </div>
+                                <div className="text-right flex-shrink-0">
+                                  {item.won ? (
+                                    <div className="text-xs font-mono font-bold text-green-600">+{item.payout.toFixed(3)} SOL</div>
+                                  ) : (
+                                    <div className="text-xs font-mono font-bold text-gray-500">-{item.amount.toFixed(3)} SOL</div>
+                                  )}
+                                </div>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </motion.div>
               )}
                 </AnimatePresence>
