@@ -4670,6 +4670,7 @@ export async function registerRoutes(
       // especially after a token graduates to Raydium.
       const initialPrice = 0.0000000375;
       let cumulativeSol = 30;
+      let lastRealPrice = 0;
       const tradePoints: { time: number; price: number; volume: number; wallet: string; type: string }[] = [];
 
       for (const trade of trades) {
