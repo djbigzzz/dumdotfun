@@ -348,8 +348,8 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
           price: b.lastPrice * getMultiplier(),
           kind,
           side: (b.type === "buy" ? "buy" : "sell"),
-          label: solStr,
-          size: b.hasDev ? 24 : 18,
+          label: `${solStr} SOL`,
+          size: 28,
         };
       }).sort((a, b) => a.time - b.time);
       setBadges(newBadges);
@@ -607,24 +607,20 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
             {badges.map(b => {
               const pos = badgePositions[b.id];
               if (!pos) return null;
-              // pump.fun coin palette:
-              //  C/DB/DS = creator-related, purple
-              //  B = regular buy, teal
-              //  S = regular sell, soft red
-              const isCreator = b.kind === "C" || b.kind === "DB" || b.kind === "DS";
-              const fill = isCreator
-                ? "#a855f7"
-                : b.kind === "B"
-                ? "#2dd4bf"
-                : "#f87171";
-              const ring = isCreator
-                ? "#6b21a8"
-                : b.kind === "B"
-                ? "#0d9488"
-                : "#b91c1c";
-              // Buys sit just below the candle, sells just above.
               const isBuy = b.side === "buy";
-              const yOffset = isBuy ? 14 : -14 - b.size;
+              // Direction-driven palette: green = buy, red = sell.
+              // Dev/creator trades get a brighter saturated tone plus a
+              // glowing ring so they pop against community trades.
+              const palette = isBuy
+                ? { fill: "#16c784", glow: "#16c78477", ring: "#0a8f5a" }
+                : { fill: "#ef4444", glow: "#ef444477", ring: "#991b1b" };
+              const isCreator = b.kind === "C" || b.kind === "DB" || b.kind === "DS";
+              const arrow = isBuy ? "▲" : "▼";
+              // Buys sit just below the candle, sells just above. Pull
+              // sell-side badges further up so the value label below the
+              // disc (above the candle) doesn't overlap the wick.
+              const labelOffset = 14;
+              const yOffset = isBuy ? 8 : -8 - b.size - labelOffset;
               return (
                 <div
                   key={b.id}
@@ -636,22 +632,46 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
                   data-testid={`badge-${b.kind}-${b.time}`}
                 >
                   <div
-                    className="rounded-full flex items-center justify-center font-bold text-white"
+                    className="relative rounded-full flex items-center justify-center font-extrabold text-white"
                     style={{
                       width: b.size,
                       height: b.size,
-                      backgroundColor: fill,
-                      border: `1.5px solid ${ring}`,
-                      fontSize: b.size <= 18 ? 8 : 9,
-                      boxShadow: "0 1px 3px rgba(0,0,0,0.4)",
+                      background: `radial-gradient(circle at 30% 25%, #ffffff55 0%, ${palette.fill} 45%, ${palette.ring} 100%)`,
+                      border: `1.5px solid ${isCreator ? "#facc15" : palette.ring}`,
+                      boxShadow: isCreator
+                        ? `0 0 0 2px #facc1533, 0 0 10px ${palette.glow}, 0 2px 4px rgba(0,0,0,0.5)`
+                        : `0 0 8px ${palette.glow}, 0 1px 3px rgba(0,0,0,0.5)`,
+                      fontSize: 11,
                       lineHeight: 1,
+                      textShadow: "0 1px 2px rgba(0,0,0,0.6)",
                     }}
                   >
-                    {b.kind}
+                    {arrow}
+                    {isCreator && (
+                      <span
+                        className="absolute -top-1 -right-1 rounded-full font-bold flex items-center justify-center"
+                        style={{
+                          width: 12,
+                          height: 12,
+                          background: "linear-gradient(135deg, #fde047, #f59e0b)",
+                          color: "#422006",
+                          fontSize: 8,
+                          border: "1px solid #78350f",
+                          lineHeight: 1,
+                        }}
+                      >
+                        D
+                      </span>
+                    )}
                   </div>
                   <span
-                    className="mt-0.5 text-[9px] font-semibold whitespace-nowrap"
-                    style={{ color: fill, textShadow: "0 1px 2px rgba(0,0,0,0.8)" }}
+                    className="mt-1 px-1.5 py-[1px] rounded-md text-[9px] font-bold whitespace-nowrap"
+                    style={{
+                      color: "#ffffff",
+                      background: `${palette.fill}cc`,
+                      border: `1px solid ${palette.ring}`,
+                      boxShadow: "0 1px 2px rgba(0,0,0,0.4)",
+                    }}
                   >
                     {b.label}
                   </span>
