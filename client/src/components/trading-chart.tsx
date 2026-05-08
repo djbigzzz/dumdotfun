@@ -298,7 +298,11 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
     // Trade markers: pump.fun-style. To avoid overlap clutter we group
     // markers per-bucket - one marker per (bucket, side) summarising the
     // total SOL traded in that bucket. Dev trades always get a gold "C".
-    if (showBubbles && ohlcData.allTrades && ohlcData.allTrades.length > 0) {
+    // Only render markers for dev (creator) trades. Showing every buyer's
+    // bubbles drowns out the chart, and the user only cares about what
+    // the dev wallet is doing.
+    const devOnly = (ohlcData.allTrades || []).filter(t => t.isDev);
+    if (showBubbles && devOnly.length > 0) {
       // Bucket trades by candle time + side so multiple trades in one
       // bucket collapse into a single marker (matches pump.fun's "DB" /
       // "C" badges - one per bucket, not one per fill).
@@ -310,7 +314,7 @@ export function TradingChart({ mint, solPrice, tokenSymbol = "TOKEN", totalSuppl
       const bucketSec = intervalSecMap[interval] || 300;
       type Bucket = { time: number; type: string; sumSol: number; lastPrice: number; hasDev: boolean };
       const grouped = new Map<string, Bucket>();
-      for (const t of ohlcData.allTrades) {
+      for (const t of devOnly) {
         const bucketTime = Math.floor(t.time / bucketSec) * bucketSec;
         // Group by bucket + side only - one marker per (bucket, side).
         // If any trade in the group is from the creator the whole bucket
