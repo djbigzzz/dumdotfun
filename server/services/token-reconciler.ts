@@ -178,12 +178,26 @@ export async function reconcilePendingTokens(): Promise<ReconcileResult> {
 
   if (pending.length > 0) {
     const connection = getConnection();
+    const { recoverOrphanedToken, isPlaceholderRow } = await import("./orphan-recovery");
     for (const token of pending) {
       try {
         const mintPubkey = new PublicKey(token.mint);
         const accountInfo = await connection.getAccountInfo(mintPubkey);
 
         if (accountInfo && accountInfo.data.length > 0) {
+          // Mint account exists on-chain. Before publishing the token to the
+          // public Explore feed we also require real Metaplex metadata, so
+          // we don't show garbage rows like "Token 1ph6 / $1PH6 / no image".
+          // For placeholder rows we run orphan-recovery, which upgrades the
+          // row in place once metadata becomes readable; if metadata still
+          // isn't there, leave the row as pending and check again next cycle.
+          if (isPlaceholderRow(token, token.mint)) {
+            const upgraded = await recoverOrphanedToken(token.mint);
+            if (!upgraded || isPlaceholderRow(upgraded, token.mint)) {
+              result.stillPending.push(token.mint);
+              continue;
+            }
+          }
           await db
             .update(tokensTable)
             .set({ deploymentStatus: "deployed", updatedAt: new Date() })

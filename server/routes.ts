@@ -325,22 +325,43 @@ export async function registerRoutes(
     try {
       const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "100"), 10) || 100, 1), 500);
       const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
-      const dbTokens = await db
-        .select()
-        .from(tokensTable)
-        .where(
-          and(
-            eq(tokensTable.deploymentStatus, "deployed"),
-            or(
-              isNull(tokensTable.graduationStatus),
-              ne(tokensTable.graduationStatus, "broken"),
+      // Hide placeholder rows that older orphan-recovery code wrote when
+      // on-chain metadata was unreadable (e.g. mint exists but Metaplex
+      // metadata account never landed). They have no real name, symbol or
+      // image and would otherwise pollute the Explore page. We over-fetch
+      // and filter in JS so pagination semantics still return up to `limit`
+      // visible rows. Bounded scan cap protects against pathological cases.
+      const { isPlaceholderRow } = await import("./services/orphan-recovery");
+      const SCAN_CAP = 1000;
+      const dbTokens: (typeof tokensTable.$inferSelect)[] = [];
+      let scanOffset = offset;
+      let scanned = 0;
+      while (dbTokens.length < limit && scanned < SCAN_CAP) {
+        const batch = await db
+          .select()
+          .from(tokensTable)
+          .where(
+            and(
+              eq(tokensTable.deploymentStatus, "deployed"),
+              or(
+                isNull(tokensTable.graduationStatus),
+                ne(tokensTable.graduationStatus, "broken"),
+              ),
             ),
-          ),
-        )
-        .orderBy(desc(tokensTable.createdAt))
-        .limit(limit)
-        .offset(offset);
-      
+          )
+          .orderBy(desc(tokensTable.createdAt))
+          .limit(limit)
+          .offset(scanOffset);
+        if (batch.length === 0) break;
+        for (const t of batch) {
+          if (!isPlaceholderRow(t, t.mint)) dbTokens.push(t);
+          if (dbTokens.length >= limit) break;
+        }
+        scanOffset += batch.length;
+        scanned += batch.length;
+        if (batch.length < limit) break;
+      }
+
       const tokensWithPredictions = await Promise.all(
         dbTokens.map(async (token: typeof tokensTable.$inferSelect) => {
           const linkedMarkets = await storage.getMarketsByTokenMint(token.mint);
@@ -436,6 +457,24 @@ export async function registerRoutes(
       // ever submitted, and should not be publicly visible.
       if (token.deploymentStatus !== "deployed") {
         return res.status(404).json({ error: "Token not found on dum.fun" });
+      }
+
+      // Hide stale placeholder rows (no real metadata) from the public
+      // detail endpoint, mirroring the list filter. Try to upgrade once
+      // (in case Metaplex metadata is now readable) before giving up.
+      const { isPlaceholderRow: _isPlaceholderRow, recoverOrphanedToken: _recover } =
+        await import("./services/orphan-recovery");
+      if (_isPlaceholderRow(token, token.mint)) {
+        try {
+          const upgraded = await _recover(token.mint);
+          if (upgraded && !_isPlaceholderRow(upgraded, token.mint)) {
+            token = upgraded as typeof token;
+          } else {
+            return res.status(404).json({ error: "Token not found on dum.fun" });
+          }
+        } catch {
+          return res.status(404).json({ error: "Token not found on dum.fun" });
+        }
       }
 
       const linkedMarkets = await storage.getMarketsByTokenMint(mint);
@@ -2437,7 +2476,9 @@ export async function registerRoutes(
       }
 
       const tokens = await storage.getTokensByCreator(address);
-      return res.json(tokens);
+      const { isPlaceholderRow } = await import("./services/orphan-recovery");
+      const visible = tokens.filter((t) => !isPlaceholderRow(t, t.mint));
+      return res.json(visible);
     } catch (error: any) {
       console.error("Error fetching creator tokens:", error);
       return res.status(500).json({ error: "Failed to fetch tokens" });

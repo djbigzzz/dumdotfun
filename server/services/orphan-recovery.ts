@@ -130,7 +130,7 @@ const NEGATIVE_TTL_MS = 60_000;
 // recovery code (name = "Token <first 4 of mint>", symbol = first 4 of mint
 // uppercased, no image). When we encounter one of these we re-attempt the
 // metadata read so the row gets upgraded once on-chain metadata is readable.
-function isPlaceholderRow(row: { name: string; symbol: string; imageUri: string | null }, mintStr: string): boolean {
+export function isPlaceholderRow(row: { name: string; symbol: string; imageUri: string | null }, mintStr: string): boolean {
   const prefix = mintStr.slice(0, 4);
   return (
     !row.imageUri &&
