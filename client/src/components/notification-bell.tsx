@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Bell, XCircle, Clock, Trophy, X } from "lucide-react";
+import { Bell, XCircle, Clock, Trophy, X, History } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useWallet } from "@/lib/wallet-context";
 
@@ -18,16 +18,19 @@ interface Notification {
   minutesLeft?: number;
 }
 
-// Persist dismissed notification IDs per wallet so "mark as read" survives a
-// page refresh. Without this, every refresh re-shows the same items and the
-// red dot never goes away - which is exactly the "messed up" symptom users
-// report.
+// Two sets per wallet, persisted in localStorage:
+//   read      - badge no longer counts these (cleared automatically on open)
+//   dismissed - hidden from the main list (only shown in "History" view)
+// Splitting them lets the red dot clear the moment the user looks at the
+// dropdown, while the items themselves stay visible until explicitly closed
+// and remain reachable later via the history toggle.
+const readKey = (wallet: string) => `notifications:read:${wallet}`;
 const dismissedKey = (wallet: string) => `notifications:dismissed:${wallet}`;
 
-function loadDismissed(wallet: string | null): Set<string> {
-  if (!wallet || typeof window === "undefined") return new Set();
+function loadSet(key: string): Set<string> {
+  if (typeof window === "undefined") return new Set();
   try {
-    const raw = window.localStorage.getItem(dismissedKey(wallet));
+    const raw = window.localStorage.getItem(key);
     if (!raw) return new Set();
     const arr = JSON.parse(raw);
     return new Set(Array.isArray(arr) ? arr : []);
@@ -36,10 +39,10 @@ function loadDismissed(wallet: string | null): Set<string> {
   }
 }
 
-function saveDismissed(wallet: string | null, ids: Set<string>) {
-  if (!wallet || typeof window === "undefined") return;
+function saveSet(key: string, ids: Set<string>) {
+  if (typeof window === "undefined") return;
   try {
-    window.localStorage.setItem(dismissedKey(wallet), JSON.stringify(Array.from(ids)));
+    window.localStorage.setItem(key, JSON.stringify(Array.from(ids)));
   } catch {
     // localStorage quota or disabled - silently degrade to in-memory only.
   }
@@ -49,19 +52,36 @@ export function NotificationBell() {
   const { connectedWallet } = useWallet();
   const [, navigate] = useLocation();
   const [open, setOpen] = useState(false);
-  const [dismissed, setDismissed] = useState<Set<string>>(() => loadDismissed(connectedWallet));
+  const [showHistory, setShowHistory] = useState(false);
+  const [read, setRead] = useState<Set<string>>(() =>
+    connectedWallet ? loadSet(readKey(connectedWallet)) : new Set(),
+  );
+  const [dismissed, setDismissed] = useState<Set<string>>(() =>
+    connectedWallet ? loadSet(dismissedKey(connectedWallet)) : new Set(),
+  );
 
-  // Re-hydrate the dismissed set when the active wallet changes (account
-  // switch in Phantom, or fresh mount). Each wallet gets its own list.
+  // Re-hydrate state when the active wallet changes (account switch in
+  // Phantom, fresh mount, etc). Each wallet keeps its own lists.
   useEffect(() => {
-    setDismissed(loadDismissed(connectedWallet));
+    setRead(connectedWallet ? loadSet(readKey(connectedWallet)) : new Set());
+    setDismissed(connectedWallet ? loadSet(dismissedKey(connectedWallet)) : new Set());
+    setShowHistory(false);
   }, [connectedWallet]);
 
   const dismissOne = useCallback((id: string) => {
     setDismissed((prev) => {
       const next = new Set(prev);
       next.add(id);
-      saveDismissed(connectedWallet, next);
+      if (connectedWallet) saveSet(dismissedKey(connectedWallet), next);
+      return next;
+    });
+  }, [connectedWallet]);
+
+  const undismissOne = useCallback((id: string) => {
+    setDismissed((prev) => {
+      const next = new Set(prev);
+      next.delete(id);
+      if (connectedWallet) saveSet(dismissedKey(connectedWallet), next);
       return next;
     });
   }, [connectedWallet]);
@@ -77,10 +97,37 @@ export function NotificationBell() {
     refetchInterval: 30000,
   });
 
-  const notifications = (data?.notifications || []).filter(n => !dismissed.has(n.id));
-  const unreadCount = notifications.length;
+  const allNotifications = data?.notifications || [];
+  const visibleNotifications = useMemo(
+    () => allNotifications.filter((n) => !dismissed.has(n.id)),
+    [allNotifications, dismissed],
+  );
+  const dismissedNotifications = useMemo(
+    () => allNotifications.filter((n) => dismissed.has(n.id)),
+    [allNotifications, dismissed],
+  );
+  const unreadCount = useMemo(
+    () => visibleNotifications.filter((n) => !read.has(n.id)).length,
+    [visibleNotifications, read],
+  );
+
+  // Auto-mark currently visible notifications as read the moment the user
+  // opens the dropdown - this is the "I saw it" signal, no extra click needed.
+  useEffect(() => {
+    if (!open || !connectedWallet) return;
+    const ids = visibleNotifications.map((n) => n.id).filter((id) => !read.has(id));
+    if (ids.length === 0) return;
+    setRead((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.add(id));
+      saveSet(readKey(connectedWallet), next);
+      return next;
+    });
+  }, [open, connectedWallet, visibleNotifications, read]);
 
   if (!connectedWallet) return null;
+
+  const listToShow = showHistory ? dismissedNotifications : visibleNotifications;
 
   return (
     <div className={`relative ${open ? "z-[100]" : ""}`}>
@@ -112,21 +159,21 @@ export function NotificationBell() {
               className="absolute right-0 top-full mt-2 w-80 max-w-[calc(100vw-1rem)] max-h-96 overflow-y-auto rounded-xl border-2 shadow-xl z-[100] bg-white border-black"
               data-testid="dropdown-notifications"
             >
-              <div className="p-3 border-b border-gray-200">
+              <div className="p-3 border-b border-gray-200 sticky top-0 bg-white z-10">
                 <div className="flex items-center justify-between gap-2">
                   <h3 className="font-bold text-sm text-gray-900">
-                    Notifications
+                    {showHistory ? "History" : "Notifications"}
                   </h3>
                   <div className="flex items-center gap-1">
-                    {notifications.length > 0 && (
+                    {!showHistory && visibleNotifications.length > 0 && (
                       <button
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
                           const all = new Set(dismissed);
-                          notifications.forEach(n => all.add(n.id));
+                          visibleNotifications.forEach((n) => all.add(n.id));
                           setDismissed(all);
-                          saveDismissed(connectedWallet, all);
+                          if (connectedWallet) saveSet(dismissedKey(connectedWallet), all);
                         }}
                         className="text-[10px] font-bold uppercase tracking-wide text-gray-500 hover:text-gray-900 px-2 py-1 rounded hover:bg-gray-100"
                         data-testid="button-clear-notifications"
@@ -134,20 +181,46 @@ export function NotificationBell() {
                         Clear all
                       </button>
                     )}
-                    <button onClick={() => setOpen(false)} className="p-1 rounded text-gray-400 hover:text-gray-600">
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setShowHistory((v) => !v);
+                      }}
+                      className={`text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded flex items-center gap-1 ${
+                        showHistory
+                          ? "bg-gray-900 text-white"
+                          : "text-gray-500 hover:text-gray-900 hover:bg-gray-100"
+                      }`}
+                      data-testid="button-toggle-history"
+                      title={showHistory ? "Back to current" : "View dismissed notifications"}
+                    >
+                      <History className="w-3 h-3" />
+                      {showHistory ? "Current" : "History"}
+                      {!showHistory && dismissedNotifications.length > 0 && (
+                        <span className="text-gray-400">({dismissedNotifications.length})</span>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setOpen(false)}
+                      className="p-1 rounded text-gray-400 hover:text-gray-600"
+                      data-testid="button-close-notifications"
+                    >
                       <X className="w-4 h-4" />
                     </button>
                   </div>
                 </div>
               </div>
 
-              {notifications.length === 0 ? (
+              {listToShow.length === 0 ? (
                 <div className="p-6 text-center text-sm text-gray-400">
-                  No notifications
+                  {showHistory ? "No dismissed notifications" : "No notifications"}
                 </div>
               ) : (
                 <div className="divide-y divide-gray-100">
-                  {notifications.map((notif) => (
+                  {listToShow.map((notif) => {
+                    const isRead = read.has(notif.id);
+                    return (
                       <motion.div
                         key={notif.id}
                         whileTap={{ scale: 0.98 }}
@@ -155,7 +228,9 @@ export function NotificationBell() {
                           setOpen(false);
                           navigate(`/market/${notif.marketId}`);
                         }}
-                        className="p-3 cursor-pointer transition-colors hover:bg-gray-50"
+                        className={`p-3 cursor-pointer transition-colors hover:bg-gray-50 ${
+                          isRead && !showHistory ? "opacity-70" : ""
+                        }`}
                         data-testid={`notification-${notif.id}`}
                       >
                         {notif.type === "market_resolved" ? (
@@ -194,17 +269,32 @@ export function NotificationBell() {
                                 )}
                               </div>
                             </div>
-                            <button
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                dismissOne(notif.id);
-                              }}
-                              className="p-1 rounded self-start text-gray-300 hover:text-gray-500"
-                              data-testid={`button-dismiss-${notif.id}`}
-                            >
-                              <X className="w-3 h-3" />
-                            </button>
+                            {showHistory ? (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  undismissOne(notif.id);
+                                }}
+                                className="text-[10px] font-bold uppercase tracking-wide text-gray-400 hover:text-gray-900 px-2 self-start"
+                                data-testid={`button-restore-${notif.id}`}
+                                title="Move back to current"
+                              >
+                                Restore
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  dismissOne(notif.id);
+                                }}
+                                className="p-1 rounded self-start text-gray-300 hover:text-gray-500"
+                                data-testid={`button-dismiss-${notif.id}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         ) : (
                           <div className="flex gap-3">
@@ -220,10 +310,37 @@ export function NotificationBell() {
                                 {notif.minutesLeft}m remaining
                               </p>
                             </div>
+                            {showHistory ? (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  undismissOne(notif.id);
+                                }}
+                                className="text-[10px] font-bold uppercase tracking-wide text-gray-400 hover:text-gray-900 px-2 self-start"
+                                data-testid={`button-restore-${notif.id}`}
+                                title="Move back to current"
+                              >
+                                Restore
+                              </button>
+                            ) : (
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  dismissOne(notif.id);
+                                }}
+                                className="p-1 rounded self-start text-gray-300 hover:text-gray-500"
+                                data-testid={`button-dismiss-${notif.id}`}
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         )}
                       </motion.div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </motion.div>
