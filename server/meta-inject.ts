@@ -240,11 +240,14 @@ async function getTokenMeta(mint: string): Promise<PageMeta | null> {
     const description = token.description
       ? `${token.description.slice(0, 120)}${token.description.length > 120 ? "..." : ""}`
       : `${name} ($${symbol}) is a Solana meme coin on Dum.fun`;
-    const image = token.imageUri || DEFAULT_IMAGE;
     const url = `${BASE_URL}/token/${mint}`;
     const mcSol = Number(token.marketCapSol) || 0;
     const progress = Math.min(Number(token.bondingCurveProgress) || 0, 100);
     const price = Number(token.priceInSol) || 0;
+    // Cache-bust so updated stats (mc, progress) refresh on social platforms
+    // when the token actually changes, but stay cacheable in between.
+    const cacheKey = `${Math.round(mcSol * 100)}-${Math.round(progress)}-${token.isGraduated ? 1 : 0}`;
+    const image = `${BASE_URL}/api/og/token/${mint}.png?v=${encodeURIComponent(cacheKey)}`;
 
     const jsonLd: object[] = [
       {
@@ -322,9 +325,17 @@ function setMeta(html: string, meta: PageMeta): string {
   html = replaceMeta(html, 'name="twitter:description"', `content="${escapeHtml(meta.ogDescription || meta.description)}"`);
   html = replaceMeta(html, 'name="twitter:image"', `content="${escapeHtml(image)}"`);
 
-  // When using a custom token/market image (not the default OG), clear width/height so
-  // crawlers detect actual dimensions rather than using wrong hints.
-  if (image !== DEFAULT_IMAGE) {
+  // The dynamic OG endpoint and the default static card are both 1200x630 PNG,
+   // so advertise those dimensions to crawlers. For market images (raw imageUri
+   // of unknown size) we strip the hints so crawlers detect actual dimensions.
+  const isKnown1200x630 = image === DEFAULT_IMAGE || /\/api\/og\/token\//.test(image);
+  if (isKnown1200x630) {
+    html = replaceMeta(html, 'property="og:image:width"', `content="1200"`);
+    html = replaceMeta(html, 'property="og:image:height"', `content="630"`);
+    html = replaceMeta(html, 'property="og:image:type"', `content="image/png"`);
+    html = replaceMeta(html, 'name="twitter:image:width"', `content="1200"`);
+    html = replaceMeta(html, 'name="twitter:image:height"', `content="630"`);
+  } else {
     html = html.replace(/<meta\s[^>]*property="og:image:width"[^>]*>\n?/i, "");
     html = html.replace(/<meta\s[^>]*property="og:image:height"[^>]*>\n?/i, "");
     html = html.replace(/<meta\s[^>]*property="og:image:type"[^>]*>\n?/i, "");

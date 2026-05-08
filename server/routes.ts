@@ -254,6 +254,28 @@ export async function registerRoutes(
     "image/gif",
   ]);
 
+  // Dynamic Open Graph card for a token (1200x630 PNG). Used as og:image
+   // so Twitter/X, Discord, Telegram etc. show a rich card with the token's
+   // name, symbol, market cap, bonding progress, and top prediction market
+   // - generated server-side per request, cached at the edge.
+  app.get("/api/og/token/:mint.png", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const { generateTokenOgImage } = await import("./services/og-token-image");
+      const buf = await generateTokenOgImage(mint);
+      if (!buf) return res.status(404).end();
+      res.setHeader("Content-Type", "image/png");
+      res.setHeader("X-Content-Type-Options", "nosniff");
+      // Cache for 5 minutes - token stats move but not by the second.
+      res.setHeader("Cache-Control", "public, max-age=300, s-maxage=300");
+      res.setHeader("Content-Length", buf.length);
+      return res.end(buf);
+    } catch (e) {
+      console.error("[og] token image failed:", e);
+      return res.status(500).end();
+    }
+  });
+
   app.get("/api/token-image/:mint", async (req, res) => {
     try {
       const { mint } = req.params;
