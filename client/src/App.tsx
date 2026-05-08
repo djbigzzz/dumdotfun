@@ -92,6 +92,21 @@ function Router() {
 function App() {
   useEffect(() => {
     initMobileApp();
+    // Capture ?ref= from any landing URL (not just /) and persist it so
+    // the value survives the wallet connect flow and any client-side
+    // navigation. Connect logic reads this from localStorage on submit.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get("ref");
+      if (ref && /^[a-zA-Z0-9_-]{3,50}$/.test(ref)) {
+        const existing = localStorage.getItem("referralCode");
+        if (!existing) {
+          localStorage.setItem("referralCode", ref);
+        }
+      }
+    } catch {
+      // localStorage / URL parsing can throw in private mode — ignore.
+    }
   }, []);
 
   return (

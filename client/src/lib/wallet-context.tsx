@@ -183,13 +183,26 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
   const syncUserToDatabase = useCallback(async (walletAddress: string, referralCode?: string) => {
     try {
+      // Fall back to the persisted ?ref= code so callers that don't
+      // explicitly pass one (every Connect button outside the home page)
+      // still credit the original referrer. Server enforces self-referral
+      // and format validation.
+      let resolvedRef = referralCode;
+      if (!resolvedRef) {
+        try {
+          const stored = localStorage.getItem("referralCode");
+          if (stored) resolvedRef = stored;
+        } catch {
+          // localStorage may be unavailable in private mode — ignore.
+        }
+      }
       const res = await fetch("/api/users/connect", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           ...(getSessionToken() ? { Authorization: `Bearer ${getSessionToken()}` } : {}),
         },
-        body: JSON.stringify({ walletAddress, referralCode }),
+        body: JSON.stringify({ walletAddress, referralCode: resolvedRef }),
       });
 
       if (res.ok) {
