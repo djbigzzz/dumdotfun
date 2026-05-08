@@ -4661,6 +4661,13 @@ export async function registerRoutes(
 
       trades.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
 
+      // Bonding-curve fallback synthesis for legacy trades whose metadata
+      // doesn't carry tokenDelta/solDelta. Real trades (raydium-confirmed,
+      // devnet-confirm, etc.) record both deltas in metadata, so we use
+      // the actual per-trade price |solDelta| / |tokenDelta| whenever it's
+      // available. Without this the chart renders stale bonding-curve
+      // prices that don't match the live market cap shown in the header,
+      // especially after a token graduates to Raydium.
       const initialPrice = 0.0000000375;
       let cumulativeSol = 30;
       const tradePoints: { time: number; price: number; volume: number; wallet: string; type: string }[] = [];
@@ -4669,20 +4676,70 @@ export async function registerRoutes(
         const tradeTime = new Date(trade.createdAt).getTime();
         const amount = parseFloat(trade.amount || "0");
 
-        if (trade.activityType === "buy") {
-          cumulativeSol += amount;
-        } else {
-          cumulativeSol = Math.max(30, cumulativeSol - amount);
+        let price: number | null = null;
+        let solVolume = amount;
+        if (trade.metadata) {
+          try {
+            const meta = JSON.parse(trade.metadata);
+            const td = Number(meta.tokenDelta);
+            const sd = Number(meta.solDelta);
+            if (Number.isFinite(td) && Number.isFinite(sd) && td !== 0 && sd !== 0) {
+              price = Math.abs(sd) / Math.abs(td);
+              solVolume = Math.abs(sd);
+            }
+          } catch {
+            // ignore malformed metadata
+          }
         }
 
-        const price = cumulativeSol / 800000000;
+        if (price === null) {
+          // Legacy trade without per-trade price info. Fall back to the
+          // synthesized bonding-curve formula but anchor it against the
+          // last real price we saw so the curve doesn't snap backward.
+          if (trade.activityType === "buy") {
+            cumulativeSol += amount;
+          } else {
+            cumulativeSol = Math.max(30, cumulativeSol - amount);
+          }
+          price = cumulativeSol / 800000000;
+        } else {
+          lastRealPrice = price;
+        }
+
         tradePoints.push({
           time: tradeTime,
           price,
-          volume: amount,
+          volume: solVolume,
           wallet: trade.walletAddress || "",
           type: trade.activityType,
         });
+      }
+
+      // Anchor the most recent activity to the live priceInSol cached on
+      // the token row (refreshed from Raydium for graduated tokens, from
+      // the bonding curve otherwise). Guarantees the chart's last candle
+      // matches the market cap the header is showing, instead of showing
+      // a stale synthesized price.
+      const livePrice = Number(token.priceInSol);
+      if (Number.isFinite(livePrice) && livePrice > 0) {
+        const nowMs = Date.now();
+        const lastTradeMs = tradePoints.length > 0 ? tradePoints[tradePoints.length - 1].time : 0;
+        // Only append a synthetic anchor if the last real point is stale
+        // (>30s old) or significantly diverges from the live price.
+        if (
+          tradePoints.length === 0 ||
+          nowMs - lastTradeMs > 30_000 ||
+          Math.abs(tradePoints[tradePoints.length - 1].price - livePrice) /
+            Math.max(livePrice, 1e-18) > 0.01
+        ) {
+          tradePoints.push({
+            time: nowMs,
+            price: livePrice,
+            volume: 0,
+            wallet: "",
+            type: "anchor",
+          });
+        }
       }
 
       const intervalMs: Record<string, number> = {
@@ -4693,7 +4750,11 @@ export async function registerRoutes(
       const bucketMs = intervalMs[interval] || 300000;
 
       const bucketMap = new Map<number, { open: number; high: number; low: number; close: number; volume: number }>();
-      let lastPrice = initialPrice;
+      // Seed lastPrice from the first real point so the synthesized
+      // bonding-curve initialPrice (0.0000000375 SOL) doesn't pollute
+      // the open of the very first candle for tokens whose first trade
+      // is a real Raydium swap.
+      let lastPrice = tradePoints[0]?.price ?? initialPrice;
 
       for (const tp of tradePoints) {
         const bucketKey = Math.floor(tp.time / bucketMs) * bucketMs;
@@ -4752,8 +4813,11 @@ export async function registerRoutes(
       }
 
       const creatorAddress = token.creatorAddress;
+      // Exclude the synthetic anchor point from trade markers so it
+      // doesn't render as a fake "trade" badge on the chart.
+      const realTradePoints = tradePoints.filter(t => t.type !== "anchor");
       const devTrades = creatorAddress
-        ? tradePoints
+        ? realTradePoints
             .filter(t => t.wallet === creatorAddress)
             .map(t => ({
               time: Math.floor(t.time / 1000),
@@ -4766,7 +4830,7 @@ export async function registerRoutes(
       // All trades - used by the chart to render markers on every candle
       // (pump.fun-style "C" badges with $ amounts). Dev trades are still
       // returned separately so they can be visually distinguished.
-      const allTrades = tradePoints.map(t => ({
+      const allTrades = realTradePoints.map(t => ({
         time: Math.floor(t.time / 1000),
         type: t.type,
         solAmount: t.volume,
