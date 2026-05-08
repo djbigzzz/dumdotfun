@@ -408,7 +408,12 @@ export async function registerRoutes(
         try {
           const { recoverOrphanedToken } = await import("./services/orphan-recovery");
           const recovered = await recoverOrphanedToken(mint);
-          if (recovered) {
+          // Only promote to "deployed" when recovery returned a row with real
+          // on-chain metadata (orphan-recovery refuses to insert placeholders
+          // anymore). Without this guard a stale placeholder row would get
+          // re-promoted on every detail-page view and pollute Explore.
+          if (recovered && recovered.name && recovered.symbol &&
+              recovered.name !== `Token ${mint.slice(0, 4)}`) {
             await db
               .update(tokensTable)
               .set({ deploymentStatus: "deployed" })

@@ -126,39 +126,86 @@ const NEGATIVE_TTL_MS = 60_000;
  * Returns the (newly inserted or already existing) token row, or null if the
  * mint is not actually a dum.fun bonding-curve token.
  */
+// Detect placeholder rows previously written by older versions of this
+// recovery code (name = "Token <first 4 of mint>", symbol = first 4 of mint
+// uppercased, no image). When we encounter one of these we re-attempt the
+// metadata read so the row gets upgraded once on-chain metadata is readable.
+function isPlaceholderRow(row: { name: string; symbol: string; imageUri: string | null }, mintStr: string): boolean {
+  const prefix = mintStr.slice(0, 4);
+  return (
+    !row.imageUri &&
+    row.name === `Token ${prefix}` &&
+    row.symbol === prefix.toUpperCase()
+  );
+}
+
 export async function recoverOrphanedToken(mintStr: string) {
   try {
     const existing = await storage.getTokenByMint(mintStr);
-    if (existing) return existing;
+    // If we already have a real (non-placeholder) row, return it as-is.
+    if (existing && !isPlaceholderRow(existing as any, mintStr)) return existing;
 
     const negTs = NEGATIVE_CACHE.get(mintStr);
-    if (negTs && Date.now() - negTs < NEGATIVE_TTL_MS) return null;
+    if (negTs && Date.now() - negTs < NEGATIVE_TTL_MS) return existing ?? null;
 
     const mintPubkey = new PublicKey(mintStr);
     const curve = await bondingCurve.fetchBondingCurveData(mintPubkey);
     if (!curve) {
       NEGATIVE_CACHE.set(mintStr, Date.now());
-      return null; // Not a dum.fun bonding-curve token
+      return existing ?? null; // Not a dum.fun bonding-curve token
     }
 
     const meta = await fetchOnChainMetadata(mintPubkey);
     const json = meta?.uri ? await fetchMetadataJson(meta.uri) : null;
 
-    const name = (meta?.name || json?.name || "").slice(0, 64) || `Token ${mintStr.slice(0, 4)}`;
-    const symbolRaw = (meta?.symbol || json?.symbol || "").toUpperCase().slice(0, 10);
-    const symbol = symbolRaw || mintStr.slice(0, 4).toUpperCase();
+    // Require *real* metadata before publishing the token. Without this we
+    // were polluting the public Explore feed with rows like "Token 1ph6 /
+    // $1PH6 / no image" that confuse users and look like a broken launch.
+    const realName = (meta?.name || json?.name || "").trim().slice(0, 64);
+    const realSymbol = (meta?.symbol || json?.symbol || "").trim().toUpperCase().slice(0, 10);
+    if (!realName || !realSymbol) {
+      NEGATIVE_CACHE.set(mintStr, Date.now());
+      return existing ?? null;
+    }
+
     const imageUri = json?.image || null;
     const description = (json?.description || "").slice(0, 500) || null;
 
+    if (existing && isPlaceholderRow(existing as any, mintStr)) {
+      // Upgrade the previously-inserted placeholder row in place.
+      const { db } = await import("../db");
+      const { tokens: tokensTable } = await import("@shared/schema");
+      const { eq } = await import("drizzle-orm");
+      const [updated] = await db
+        .update(tokensTable)
+        .set({
+          name: realName,
+          symbol: realSymbol,
+          description,
+          imageUri,
+          twitter: json?.twitter ?? null,
+          telegram: json?.telegram ?? null,
+          website: json?.website ?? null,
+        })
+        .where(eq(tokensTable.mint, mintStr))
+        .returning();
+      console.log(`[OrphanRecovery] Upgraded placeholder row ${realSymbol} (${mintStr})`);
+      try {
+        const { awardQuest } = await import("./points");
+        await awardQuest(curve.creator, "first_token");
+      } catch (e) { console.error("[OrphanRecovery] first_token award failed:", e); }
+      return updated ?? existing;
+    }
+
     // Race-safe re-check: another request may have just inserted it.
     const recheck = await storage.getTokenByMint(mintStr);
-    if (recheck) return recheck;
+    if (recheck && !isPlaceholderRow(recheck as any, mintStr)) return recheck;
 
     try {
       const inserted = await storage.createToken({
         mint: mintStr,
-        name,
-        symbol,
+        name: realName,
+        symbol: realSymbol,
         description,
         imageUri,
         creatorAddress: curve.creator,
@@ -166,7 +213,11 @@ export async function recoverOrphanedToken(mintStr: string) {
         telegram: json?.telegram ?? null,
         website: json?.website ?? null,
       });
-      console.log(`[OrphanRecovery] Imported orphaned token ${symbol} (${mintStr})`);
+      console.log(`[OrphanRecovery] Imported orphaned token ${realSymbol} (${mintStr})`);
+      try {
+        const { awardQuest } = await import("./points");
+        await awardQuest(curve.creator, "first_token");
+      } catch (e) { console.error("[OrphanRecovery] first_token award failed:", e); }
       return inserted;
     } catch (insertErr: any) {
       // Unique-mint race: another concurrent recovery won. Re-read and return.
