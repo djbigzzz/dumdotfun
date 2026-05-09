@@ -311,8 +311,8 @@ export default function CreateToken() {
         // the token still exists on-chain AND in the DB. The user gets a "retry
         // dev buy" prompt instead of a zombie row + lost mint.
         setCreationStep("Saving token...");
-        try {
-          await apiRequest("POST", "/api/tokens/devnet-confirm", {
+        const callDevnetConfirm = () =>
+          apiRequest("POST", "/api/tokens/devnet-confirm", {
             mint,
             name: formData.name,
             symbol: formData.symbol,
@@ -321,9 +321,51 @@ export default function CreateToken() {
             creatorAddress: connectedWallet,
             signature,
           });
-        } catch (saveErr: any) {
-          console.warn("[create] devnet-confirm failed (token still on-chain):", saveErr?.message);
-          // Don't throw - the reconciler will pick it up. Continue to dev buy.
+
+        let saved = false;
+        let lastSaveErr: any = null;
+        // Try a few times with short backoff. The on-chain tx was just
+        // confirmed but devnet RPC propagation lag, transient 5xx, or a
+        // momentarily missing SIWS session can all make the first attempt
+        // fail. Without retry the token is created on-chain but never
+        // appears anywhere on dum.fun.
+        const attemptDelays = [0, 1500, 3000, 5000];
+        for (let i = 0; i < attemptDelays.length; i++) {
+          if (attemptDelays[i] > 0) {
+            await new Promise((r) => setTimeout(r, attemptDelays[i]));
+            setCreationStep(`Saving token (retry ${i})...`);
+          }
+          try {
+            await callDevnetConfirm();
+            saved = true;
+            break;
+          } catch (saveErr: any) {
+            lastSaveErr = saveErr;
+            const msg: string = saveErr?.message || "";
+            const is401 = /\b401\b/.test(msg) || /Sign in/i.test(msg);
+            console.warn(
+              `[create] devnet-confirm attempt ${i + 1} failed:`,
+              msg,
+            );
+            // Session was lost mid-flow. Re-sign once and retry immediately.
+            if (is401) {
+              try {
+                await ensureSession();
+              } catch (sigErr) {
+                console.warn("[create] re-auth before retry failed:", sigErr);
+              }
+            }
+          }
+        }
+
+        if (!saved) {
+          // Surface the failure instead of pretending the launch succeeded.
+          // The mint exists on-chain, but without a DB row the token will
+          // not show up on Explore, the detail page, or the user's profile.
+          const reason = lastSaveErr?.message || "Save request failed";
+          throw new Error(
+            `Token created on-chain (mint: ${mint}), but saving it to dum.fun failed: ${reason}. Reconnect your wallet and try again — your mint will be reused.`,
+          );
         }
         // Snapshot the metadata used on-chain. Used on retry so a mid-flow
         // form edit doesn't mislabel the success screen / activity record.

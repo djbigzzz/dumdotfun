@@ -53,12 +53,42 @@ interface WalletContextType {
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
+const CONNECTED_WALLET_KEY = "dumfun_connected_wallet";
+
+function readPersistedWallet(): string | null {
+  try {
+    return typeof window !== "undefined" ? window.localStorage.getItem(CONNECTED_WALLET_KEY) : null;
+  } catch {
+    return null;
+  }
+}
+
+function persistWallet(wallet: string | null): void {
+  try {
+    if (typeof window === "undefined") return;
+    if (wallet) window.localStorage.setItem(CONNECTED_WALLET_KEY, wallet);
+    else window.localStorage.removeItem(CONNECTED_WALLET_KEY);
+  } catch {
+    /* ignore storage errors */
+  }
+}
+
 export function WalletProvider({ children }: { children: ReactNode }) {
-  const [connectedWallet, setConnectedWallet] = useState<string | null>(null);
+  // Restore the previously connected wallet synchronously so navigating
+  // between routes (or hitting refresh) doesn't briefly render the app as
+  // signed-out before Phantom finishes injecting.
+  const [connectedWallet, setConnectedWalletState] = useState<string | null>(() => readPersistedWallet());
   const [hasPhantom, setHasPhantom] = useState(false);
   const [mobileAdapter, setMobileAdapter] = useState<SolanaMobileWalletAdapter | null>(null);
   const [isMobileWallet, setIsMobileWallet] = useState(false);
   const queryClient = useQueryClient();
+
+  // Wrapper that mirrors every connectedWallet write to localStorage so the
+  // restored value on next mount is always in sync with the live state.
+  const setConnectedWallet = useCallback((wallet: string | null) => {
+    persistWallet(wallet);
+    setConnectedWalletState(wallet);
+  }, []);
 
   const shouldUseMobileAdapter = useMemo(() => {
     return isMobileDevice() || isMobile();
@@ -156,6 +186,8 @@ export function WalletProvider({ children }: { children: ReactNode }) {
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     const checkPhantom = async () => {
       // Read through getPhantom() so a wallet collision on window.solana
       // (Backpack/Solflare/etc fighting Phantom for the global) doesn't
@@ -164,22 +196,108 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         setHasPhantom(true);
         // Auto-reconnect if Phantom already has a trusted session.
         const walletAddress = getPhantomPublicKey();
+        if (cancelled) return true;
         if (walletAddress) {
-          // Don't force a re-sign on page load — wait until the user takes
-          // an action that needs auth, or until they explicitly reconnect.
+          // If Phantom reports a different wallet than what we persisted
+          // (user switched accounts in the extension while app was closed),
+          // the persisted SIWS bearer is no longer valid — clear it before
+          // adopting the new address so we don't leak the old session.
+          const persisted = readPersistedWallet();
+          if (persisted && persisted !== walletAddress) {
+            try { setSessionToken(null); } catch { /* ignore */ }
+          }
           setConnectedWallet(walletAddress);
+        } else {
+          // Phantom is present but reports no trusted pubkey — the user
+          // disconnected from the extension while the app was closed.
+          // Drop any stale persisted wallet + bearer so the UI reflects
+          // reality instead of pretending we're still signed in.
+          if (readPersistedWallet()) {
+            setConnectedWallet(null);
+            try { setSessionToken(null); } catch { /* ignore */ }
+          }
         }
+        return true;
+      }
+      return false;
+    };
+
+    // Phantom can take a moment to inject window.solana after navigation,
+    // especially on the first page after extension startup. Retry a few
+    // times so the user doesn't appear signed out while Phantom catches up.
+    const pollForPhantom = async () => {
+      const delays = [0, 100, 250, 500, 1000, 2000];
+      for (const d of delays) {
+        if (cancelled) return;
+        if (d > 0) await new Promise((r) => setTimeout(r, d));
+        if (await checkPhantom()) return;
       }
     };
 
-    // Always check for injected Phantom (covers desktop extension + Phantom mobile browser)
     if (document.readyState === "complete") {
-      checkPhantom();
+      pollForPhantom();
     } else {
-      window.addEventListener("load", checkPhantom);
-      return () => window.removeEventListener("load", checkPhantom);
+      const onLoad = () => pollForPhantom();
+      window.addEventListener("load", onLoad);
+      return () => {
+        cancelled = true;
+        window.removeEventListener("load", onLoad);
+      };
     }
-  }, []);
+    return () => {
+      cancelled = true;
+    };
+  }, [setConnectedWallet]);
+
+  // Subscribe to Phantom's connect/disconnect events so external state
+  // changes (user disconnects from the extension UI, switches accounts,
+  // etc.) reflect in the app instead of leaving us stuck on a stale wallet.
+  useEffect(() => {
+    if (!hasPhantom) return;
+    const phantom = getPhantom();
+    if (!phantom || typeof (phantom as any).on !== "function") return;
+
+    const onConnect = (publicKey: any) => {
+      try {
+        const addr = publicKey?.toString?.() ?? getPhantomPublicKey();
+        if (addr) setConnectedWallet(addr);
+      } catch {
+        /* ignore */
+      }
+    };
+    const onDisconnect = () => {
+      setConnectedWallet(null);
+      try {
+        // Clear the SIWS bearer too — it's tied to the disconnected wallet.
+        setSessionToken(null);
+      } catch { /* ignore */ }
+    };
+    const onAccountChanged = (publicKey: any) => {
+      const addr = publicKey?.toString?.();
+      if (addr) {
+        setConnectedWallet(addr);
+        // Different wallet → previous SIWS session is no longer valid.
+        try { setSessionToken(null); } catch { /* ignore */ }
+      } else {
+        setConnectedWallet(null);
+        try { setSessionToken(null); } catch { /* ignore */ }
+      }
+    };
+
+    try {
+      (phantom as any).on("connect", onConnect);
+      (phantom as any).on("disconnect", onDisconnect);
+      (phantom as any).on("accountChanged", onAccountChanged);
+    } catch { /* ignore */ }
+
+    return () => {
+      try {
+        (phantom as any).removeListener?.("connect", onConnect);
+        (phantom as any).removeListener?.("disconnect", onDisconnect);
+        (phantom as any).removeListener?.("accountChanged", onAccountChanged);
+      } catch { /* ignore */ }
+    };
+  }, [hasPhantom, setConnectedWallet]);
 
   const syncUserToDatabase = useCallback(async (walletAddress: string, referralCode?: string) => {
     try {
