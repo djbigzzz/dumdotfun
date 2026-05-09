@@ -406,8 +406,23 @@ export async function registerRoutes(
         if (batch.length < limit) break;
       }
 
+      // Hide duplicate-name tokens from the same creator. When users
+      // retried failed launches before the fee-check fix, each retry
+      // signed a different mint with the same name/symbol. Keeping only
+      // the newest per (creator, normalized symbol) cleans up the feed
+      // without touching on-chain state. dbTokens is already ordered by
+      // createdAt DESC so the first occurrence is the newest.
+      const seenCreatorSymbol = new Set<string>();
+      const dedupedTokens = dbTokens.filter((t) => {
+        const key = `${(t.creatorAddress || "").toLowerCase()}::${(t.symbol || "").trim().toUpperCase()}`;
+        if (!t.creatorAddress || !t.symbol) return true;
+        if (seenCreatorSymbol.has(key)) return false;
+        seenCreatorSymbol.add(key);
+        return true;
+      });
+
       const tokensWithPredictions = await Promise.all(
-        dbTokens.map(async (token: typeof tokensTable.$inferSelect) => {
+        dedupedTokens.map(async (token: typeof tokensTable.$inferSelect) => {
           const linkedMarkets = await storage.getMarketsByTokenMint(token.mint);
           const predictions = linkedMarkets.slice(0, 2).map(market => {
             const yesPool = Number(market.yesPool) || 0;
