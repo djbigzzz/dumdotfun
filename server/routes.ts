@@ -1997,30 +1997,18 @@ export async function registerRoutes(
         }),
       );
 
-      // Auto-create a default "Will it rug?" prediction market, but only
-      // once per token. Without this guard, the retry loop on the client
-      // (and any /devnet-confirm replays) would create duplicate default
-      // markets for the same mint.
-      try {
-        const existingMarkets = await storage.getMarketsByTokenMint(mint);
-        const alreadyHasDefault = existingMarkets.some(
-          (m: any) => m.predictionType === "survival" && m.survivalCriteria === "dev_sells",
-        );
-        if (!alreadyHasDefault) {
-          await storage.createMarket({
-            question: `Will $${token.symbol} rug?`,
-            description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
-            imageUri: token.imageUri,
-            creatorAddress,
-            predictionType: "survival",
-            tokenMint: mint,
-            resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-            survivalCriteria: "dev_sells",
-          });
-          console.log(`[DEVNET] Auto-created "Will it rug?" market for ${token.symbol}`);
-        }
-      } catch (marketError) {
-        console.error("[DEVNET] Failed to create prediction market:", marketError);
+      // Auto-create a default "Will it rug?" prediction market. Idempotent
+      // helper guarantees only one default market per token, even across
+      // /devnet-confirm replays and the reconciler promotion path.
+      {
+        const { ensureDefaultRugMarket } = await import("./services/default-market");
+        await ensureDefaultRugMarket({
+          mint,
+          name: token.name,
+          symbol: token.symbol,
+          imageUri: token.imageUri,
+          creatorAddress,
+        });
       }
 
       try {

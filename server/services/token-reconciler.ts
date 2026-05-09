@@ -202,6 +202,25 @@ export async function reconcilePendingTokens(): Promise<ReconcileResult> {
             .update(tokensTable)
             .set({ deploymentStatus: "deployed", updatedAt: new Date() })
             .where(eq(tokensTable.mint, token.mint));
+          // Promotion to "deployed" must also seed the default "Will it
+          // rug?" market — otherwise tokens that arrived via the reconciler
+          // path (devnet-confirm never succeeded) show up on Explore with
+          // "No predictions yet" forever.
+          try {
+            const { ensureDefaultRugMarket } = await import("./default-market");
+            await ensureDefaultRugMarket({
+              mint: token.mint,
+              name: token.name,
+              symbol: token.symbol,
+              imageUri: token.imageUri,
+              creatorAddress: token.creatorAddress,
+            });
+          } catch (e) {
+            console.error(
+              `[TokenReconciler] default market seed failed for ${token.mint}:`,
+              (e as any)?.message || e,
+            );
+          }
           result.deployed.push(token.mint);
           continue;
         }
@@ -228,7 +247,59 @@ export async function reconcilePendingTokens(): Promise<ReconcileResult> {
   // Always refresh active token price/mcap/progress so the homepage list
   // (which reads cached values) doesn't show stale zeros.
   result.refreshed = await refreshActiveTokenStats();
+
+  // Backfill default "Will it rug?" markets for any deployed token that
+  // doesn't already have one. This fixes historic tokens that were
+  // promoted before the auto-create wiring landed (e.g. tokens whose
+  // /devnet-confirm leg failed the old fee check) and shows up on Explore
+  // as "No predictions yet". Bounded per cycle to keep the loop cheap.
+  try {
+    await backfillMissingDefaultMarkets();
+  } catch (e) {
+    console.error(
+      "[TokenReconciler] backfill default markets failed:",
+      (e as any)?.message || e,
+    );
+  }
+
   return result;
+}
+
+const BACKFILL_LIMIT = 25;
+
+async function backfillMissingDefaultMarkets(): Promise<void> {
+  const candidates = await db
+    .select({
+      mint: tokensTable.mint,
+      name: tokensTable.name,
+      symbol: tokensTable.symbol,
+      imageUri: tokensTable.imageUri,
+      creatorAddress: tokensTable.creatorAddress,
+    })
+    .from(tokensTable)
+    .where(
+      and(
+        eq(tokensTable.deploymentStatus, "deployed"),
+        or(
+          isNull(tokensTable.graduationStatus),
+          ne(tokensTable.graduationStatus, "broken"),
+        ),
+      ),
+    )
+    .orderBy(sql`${tokensTable.createdAt} DESC NULLS LAST`)
+    .limit(BACKFILL_LIMIT);
+
+  if (candidates.length === 0) return;
+  const { ensureDefaultRugMarket } = await import("./default-market");
+  for (const t of candidates) {
+    await ensureDefaultRugMarket({
+      mint: t.mint,
+      name: t.name,
+      symbol: t.symbol,
+      imageUri: t.imageUri,
+      creatorAddress: t.creatorAddress,
+    });
+  }
 }
 
 // Public helper for opportunistic cache fill from request handlers that
