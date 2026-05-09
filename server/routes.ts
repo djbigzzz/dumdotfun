@@ -1976,8 +1976,25 @@ export async function registerRoutes(
           mint,
         });
       }
+      // Single structured lifecycle log so launch outcomes are easy to
+      // grep across the pipeline (preinsert in /create-token, on-chain
+      // confirm here, DB upsert above).
       console.log(
-        `[launch] confirmed mint=${mint} symbol=${safeSymbol} sig=${signature} hasImage=${!!safeImage}`,
+        "[launch.lifecycle]",
+        JSON.stringify({
+          event: "launch_confirmed",
+          mint,
+          symbol: safeSymbol,
+          name: safeName,
+          creator: creatorAddress,
+          signature,
+          chainConfirmed: true,
+          dbWrite: "ok",
+          dbAttempts: 1,
+          hasImage: !!safeImage,
+          imageBytesPreserved: !safeImage,
+          ts: new Date().toISOString(),
+        }),
       );
 
       // Auto-create a default "Will it rug?" prediction market, but only
