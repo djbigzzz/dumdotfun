@@ -101,11 +101,26 @@ export async function buildCreateTokenTransaction(
   creator: PublicKey,
   name: string,
   symbol: string,
-  uri: string
+  uri: string,
+  // Optional: caller may pass an already-grinded mint keypair so the URI
+  // baked into the on-chain instruction can be derived from the SAME mint
+  // that ends up deployed. Without this, two back-to-back calls each grab
+  // a fresh vanity mint from the pool and the URI/mint diverge.
+  presetMintKeypair?: Keypair
 ): Promise<{ transaction: string; mint: string; mintKeypair: Keypair }> {
   const connection = getConnection();
-  const { getVanityMintKeypair } = await import("./vanity-pool");
-  const { keypair: mintKeypair, vanity, suffix } = await getVanityMintKeypair(connection);
+  let mintKeypair: Keypair;
+  let vanity = false;
+  let suffix: string | null | undefined;
+  if (presetMintKeypair) {
+    mintKeypair = presetMintKeypair;
+  } else {
+    const { getVanityMintKeypair } = await import("./vanity-pool");
+    const picked = await getVanityMintKeypair(connection);
+    mintKeypair = picked.keypair;
+    vanity = picked.vanity;
+    suffix = picked.suffix;
+  }
   const mint = mintKeypair.publicKey;
   if (vanity) {
     console.log(`[create-token] using vanity mint ${mint.toBase58()} (suffix: ${suffix})`);

@@ -9,7 +9,7 @@ import { getSolPrice, getTokenPriceInSol } from "./jupiter";
 import { Keypair, Connection, PublicKey, Transaction, SystemProgram, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { db } from "./db";
 import { eq, sql, desc, ne, or, isNull, and } from "drizzle-orm";
-import { uploadMetadataToIPFS, buildCreateTokenTransaction, buildBuyTransaction as pumpBuyTx, buildSellTransaction as pumpSellTx } from "./pumpportal";
+import { buildMetadataUri, getPublicBaseUrl, buildImageUri } from "./services/token-metadata-host";
 import { PLATFORM_FEES, getFeeRecipientWallet, calculateBettingFee } from "./fees";
 import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPortfolio as getDuneWalletPortfolio } from "./dune";
 import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
@@ -276,6 +276,50 @@ export async function registerRoutes(
     }
   });
 
+  // Self-hosted Metaplex-style JSON manifest. The on-chain bonding-curve
+  // `create` instruction stores this URL as the token URI, so anything
+  // reading the chain (wallets, scanners, future Metaplex CPI) sees a
+  // stable manifest sourced directly from our DB row. No IPFS, no
+  // third-party pin services, no pump.fun.
+  app.get("/api/token-metadata/:mint", async (req, res) => {
+    try {
+      const { mint } = req.params;
+      const token = await db.query.tokens.findFirst({
+        where: (t) => eq(t.mint, mint),
+        columns: {
+          name: true,
+          symbol: true,
+          description: true,
+          imageUri: true,
+          twitter: true,
+          telegram: true,
+          website: true,
+        },
+      });
+      if (!token) return res.status(404).json({ error: "Not found" });
+      const base = getPublicBaseUrl(req);
+      const image =
+        token.imageUri && token.imageUri.startsWith("data:")
+          ? buildImageUri(mint, base)
+          : token.imageUri || null;
+      res.setHeader("Content-Type", "application/json; charset=utf-8");
+      res.setHeader("Cache-Control", "public, max-age=60, s-maxage=60");
+      return res.json({
+        name: token.name,
+        symbol: token.symbol,
+        description: token.description || "",
+        image,
+        external_url: `${base}/token/${mint}`,
+        ...(token.twitter ? { twitter: token.twitter } : {}),
+        ...(token.telegram ? { telegram: token.telegram } : {}),
+        ...(token.website ? { website: token.website } : {}),
+      });
+    } catch (e) {
+      console.error("[token-metadata] failed:", e);
+      return res.status(500).json({ error: "Internal error" });
+    }
+  });
+
   app.get("/api/token-image/:mint", async (req, res) => {
     try {
       const { mint } = req.params;
@@ -459,21 +503,24 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Token not found on dum.fun" });
       }
 
-      // Hide stale placeholder rows (no real metadata) from the public
-      // detail endpoint, mirroring the list filter. Try to upgrade once
-      // (in case Metaplex metadata is now readable) before giving up.
+      // If the row looks like a stale placeholder (no real metadata),
+      // try to upgrade it from on-chain Metaplex once. If recovery fails
+      // we still render whatever DB metadata we have rather than 404'ing
+      // — hiding the row entirely was making real launches "disappear"
+      // for their owners.
       const { isPlaceholderRow: _isPlaceholderRow, recoverOrphanedToken: _recover } =
         await import("./services/orphan-recovery");
+      let metadataIncomplete = false;
       if (_isPlaceholderRow(token, token.mint)) {
         try {
           const upgraded = await _recover(token.mint);
           if (upgraded && !_isPlaceholderRow(upgraded, token.mint)) {
             token = upgraded as typeof token;
           } else {
-            return res.status(404).json({ error: "Token not found on dum.fun" });
+            metadataIncomplete = true;
           }
         } catch {
-          return res.status(404).json({ error: "Token not found on dum.fun" });
+          metadataIncomplete = true;
         }
       }
 
@@ -601,6 +648,7 @@ export async function registerRoutes(
         createdAt: token.createdAt?.toISOString() || new Date().toISOString(),
         isGraduated,
         source: "dum.fun",
+        metadataIncomplete,
         predictions,
         curveData: serializedCurveData,
         virtualSolReserves: serializedCurveData?.virtualSolReserves ?? 0,
@@ -1774,7 +1822,12 @@ export async function registerRoutes(
       const { getConnection } = await import("./bonding-curve-client");
       const connection = getConnection();
       let tx: any = null;
-      for (let attempt = 0; attempt < 5; attempt++) {
+      let lastFetchErr: any = null;
+      // 10 attempts with growing backoff + jitter. Helius bursts 429 under
+      // load and Solana devnet propagation can lag 5-10s after a confirmed
+      // signature. Five tries was not enough — the row never got written.
+      const baseDelays = [600, 1200, 1800, 2500, 3500, 4500, 6000, 7500, 9000, 11000];
+      for (let attempt = 0; attempt < baseDelays.length; attempt++) {
         try {
           tx = await connection.getParsedTransaction(signature, {
             maxSupportedTransactionVersion: 0,
@@ -1782,12 +1835,21 @@ export async function registerRoutes(
           });
           if (tx) break;
         } catch (e) {
-          // retry
+          lastFetchErr = e;
         }
-        await new Promise((r) => setTimeout(r, 1500));
+        const jitter = Math.floor(Math.random() * 400);
+        await new Promise((r) => setTimeout(r, baseDelays[attempt] + jitter));
       }
       if (!tx) {
-        return res.status(400).json({ error: "Transaction not found on chain" });
+        console.warn(
+          `[DEVNET] tx not visible after ${baseDelays.length} tries sig=${signature} err=${lastFetchErr?.message || "none"}`
+        );
+        // 503 (not 400) so the client knows it's transient and can retry
+        // without forcing the user to re-sign.
+        return res.status(503).json({
+          error: "Transaction not yet visible on chain. Please retry in a moment.",
+          retryable: true,
+        });
       }
       if (tx.meta?.err) {
         return res.status(400).json({ error: "Transaction failed on chain" });
@@ -1848,34 +1910,98 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Required platform fee was not paid in this transaction" });
       }
 
-      // All checks passed. Create the token row and mark it deployed immediately
-      // so the reconciler never downgrade it. The token is now visible publicly.
-      const token = await storage.createToken({
-        mint,
-        name: name.trim(),
-        symbol: symbol.trim().toUpperCase(),
-        description: description?.trim() || null,
-        imageUri: imageUri || null,
-        creatorAddress,
-      });
-      await db
-        .update(tokensTable)
-        .set({ deploymentStatus: "deployed" })
-        .where(eq(tokensTable.mint, mint));
+      // All checks passed. Upsert the token row and mark it deployed.
+      // /api/bonding-curve/create-token now pre-inserts a pending row with
+      // the image bytes, so the common path here is "promote pending to
+      // deployed" — but we must still handle the legacy path where no row
+      // exists yet.
+      //
+      // Wrap the write in a retry loop because Neon serverless can drop the
+      // socket between requests (uncaught "Cannot set property message"
+      // bug). Without this the on-chain mint exists but the DB never
+      // reflects it and the user sees their token disappear.
+      const safeName = name.trim().slice(0, 32);
+      const safeSymbol = symbol.trim().toUpperCase().slice(0, 10);
+      const safeDescription = description ? String(description).trim().slice(0, 500) : null;
+      const safeImage = imageUri && typeof imageUri === "string" ? imageUri : null;
 
-      // Auto-create a default "Will it rug?" prediction market (3 day resolution)
-      try {
-        await storage.createMarket({
-          question: `Will $${token.symbol} rug?`,
-          description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
-          imageUri: token.imageUri,
-          creatorAddress,
-          predictionType: "survival",
-          tokenMint: mint,
-          resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-          survivalCriteria: "dev_sells",
+      let token: any = null;
+      let lastDbErr: any = null;
+      for (let dbAttempt = 0; dbAttempt < 3; dbAttempt++) {
+        try {
+          const [upserted] = await db
+            .insert(tokensTable)
+            .values({
+              mint,
+              name: safeName,
+              symbol: safeSymbol,
+              description: safeDescription,
+              imageUri: safeImage,
+              creatorAddress,
+              deploymentStatus: "deployed",
+            })
+            .onConflictDoUpdate({
+              target: tokensTable.mint,
+              set: {
+                deploymentStatus: "deployed",
+                // Only overwrite image/text if the caller actually supplied
+                // values. The pre-insert from create-token may already hold
+                // good data we shouldn't blank out.
+                ...(safeName ? { name: safeName } : {}),
+                ...(safeSymbol ? { symbol: safeSymbol } : {}),
+                ...(safeDescription ? { description: safeDescription } : {}),
+                ...(safeImage ? { imageUri: safeImage } : {}),
+                updatedAt: new Date(),
+              },
+            })
+            .returning();
+          token = upserted;
+          break;
+        } catch (dbErr: any) {
+          lastDbErr = dbErr;
+          console.warn(
+            `[DEVNET] DB upsert attempt ${dbAttempt + 1} failed for ${mint}:`,
+            dbErr?.message || dbErr,
+          );
+          await new Promise((r) => setTimeout(r, 400 * (dbAttempt + 1)));
+        }
+      }
+      if (!token) {
+        console.error(
+          `[launch] DB write failed after retries mint=${mint} sig=${signature} err=${lastDbErr?.message || "unknown"}`,
+        );
+        return res.status(503).json({
+          error: "Database temporarily unavailable. Your token is on-chain — please retry to finish saving it.",
+          retryable: true,
+          mint,
         });
-        console.log(`[DEVNET] Auto-created "Will it rug?" market for ${token.symbol}`);
+      }
+      console.log(
+        `[launch] confirmed mint=${mint} symbol=${safeSymbol} sig=${signature} hasImage=${!!safeImage}`,
+      );
+
+      // Auto-create a default "Will it rug?" prediction market, but only
+      // once per token. Without this guard, the retry loop on the client
+      // (and any /devnet-confirm replays) would create duplicate default
+      // markets for the same mint.
+      try {
+        const existingMarkets = await storage.getMarketsByTokenMint(mint);
+        const alreadyHasDefault = existingMarkets.some(
+          (m: any) => m.predictionType === "survival" && m.survivalCriteria === "dev_sells",
+        );
+        if (!alreadyHasDefault) {
+          await storage.createMarket({
+            question: `Will $${token.symbol} rug?`,
+            description: `Will the ${token.name} creator dump 80%+ of the supply within 3 days? Resolved automatically by checking on-chain dev holdings.`,
+            imageUri: token.imageUri,
+            creatorAddress,
+            predictionType: "survival",
+            tokenMint: mint,
+            resolutionDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+            survivalCriteria: "dev_sells",
+          });
+          console.log(`[DEVNET] Auto-created "Will it rug?" market for ${token.symbol}`);
+        }
       } catch (marketError) {
         console.error("[DEVNET] Failed to create prediction market:", marketError);
       }
@@ -2052,38 +2178,65 @@ export async function registerRoutes(
         });
       }
 
-      // If the URI is a Base64 data URL, upload to IPFS to get a short URL
-      // Solana transactions have a ~1232 byte limit — Base64 images are far too large
-      let metadataUri = uri;
-      if (uri.startsWith("data:")) {
-        try {
-          const ipfsResult = await uploadMetadataToIPFS(
-            { name, symbol, description: description || "" },
-            uri
-          );
-          metadataUri = ipfsResult.metadataUri;
-          console.log(`[bonding-curve] Image uploaded to IPFS: ${metadataUri}`);
-        } catch (ipfsError: any) {
-          console.error("[bonding-curve] IPFS upload failed:", ipfsError.message);
-          return res.status(500).json({ error: `Failed to upload image to IPFS: ${ipfsError.message}` });
-        }
-      }
-
-      const result = await bondingCurve.buildCreateTokenTransaction(
+      // Pick the mint keypair up front so we can bake the correct
+      // /api/token-metadata/:mint URI into the on-chain instruction.
+      // Building twice with no preset mint would pull two different
+      // vanity keypairs and the URI in the deployed tx would point at
+      // the wrong (never-created) mint — exactly the "image broken"
+      // bug we're fixing.
+      const { getVanityMintKeypair } = await import("./vanity-pool");
+      const { getConnection: _getConn } = await import("./bonding-curve-client");
+      const mintPick = await getVanityMintKeypair(_getConn());
+      const baseUrl = getPublicBaseUrl(req);
+      const metadataUri = buildMetadataUri(mintPick.keypair.publicKey.toBase58(), baseUrl);
+      const finalResult = await bondingCurve.buildCreateTokenTransaction(
         new PublicKey(creator),
         name,
         symbol,
-        metadataUri
+        metadataUri,
+        mintPick.keypair
       );
+
+      // Pre-insert a pending row holding the image bytes BEFORE the user
+      // signs. This is the single most important fix for "tokens disappear":
+      // even if /api/tokens/devnet-confirm later fails (Helius 429 burst,
+      // Neon hibernation, browser closes mid-flow), the row already exists
+      // with the user-supplied image, and the background reconciler can
+      // promote it to "deployed" once it sees the mint on-chain.
+      try {
+        await db
+          .insert(tokensTable)
+          .values({
+            mint: finalResult.mint,
+            name: name.trim().slice(0, 32),
+            symbol: symbol.trim().toUpperCase().slice(0, 10),
+            description: description ? String(description).trim().slice(0, 500) : null,
+            imageUri: uri.startsWith("data:") ? uri : (sanitizeUrl(uri) || null),
+            creatorAddress: creator,
+            deploymentStatus: "pending",
+          })
+          .onConflictDoNothing({ target: tokensTable.mint });
+        console.log(
+          `[launch] preinserted pending row mint=${finalResult.mint} symbol=${symbol} hasImage=${!!uri}`
+        );
+      } catch (preErr: any) {
+        // Soft-fail: if the pre-insert fails (DB blip), the launch can
+        // still succeed via devnet-confirm. Log and continue.
+        console.warn(
+          `[launch] pending pre-insert failed for ${finalResult.mint}:`,
+          preErr?.message || preErr
+        );
+      }
 
       return res.json({
         success: true,
-        transaction: result.transaction,
-        mint: result.mint,
+        transaction: finalResult.transaction,
+        mint: finalResult.mint,
         metadataUri,
         message: "Sign this transaction to create your token on the bonding curve",
       });
     } catch (error: any) {
+      console.error("[bonding-curve/create-token] error:", error);
       return res.status(500).json({ error: "Internal server error" });
     }
   });
@@ -2348,121 +2501,18 @@ export async function registerRoutes(
     }
   });
 
-  // Token creation endpoint - now uses PumpPortal for real on-chain deployment
-  app.post("/api/tokens/create", sensitiveLimiter, requireAuthWithMatchingWallet("creatorAddress"), async (req, res) => {
-    try {
-      const { name, symbol, description, imageUri, twitter, telegram, website, creatorAddress, mintPublicKey, initialBuyAmount } = req.body;
-
-      // Validate required fields
-      if (!name || typeof name !== "string" || name.trim().length === 0 || name.length > 32) {
-        return res.status(400).json({ error: "Name is required (max 32 characters)" });
-      }
-
-      if (!symbol || typeof symbol !== "string" || symbol.trim().length === 0 || symbol.length > 10) {
-        return res.status(400).json({ error: "Symbol is required (max 10 characters)" });
-      }
-
-      if (!creatorAddress || typeof creatorAddress !== "string" || creatorAddress.length === 0) {
-        return res.status(400).json({ error: "Creator wallet address is required" });
-      }
-
-      if (!mintPublicKey || typeof mintPublicKey !== "string" || mintPublicKey.length === 0) {
-        return res.status(400).json({ error: "Mint public key is required (generated client-side)" });
-      }
-
-      console.log(`Creating token: ${name} (${symbol}) for ${creatorAddress}, mint: ${mintPublicKey}`);
-
-      // Step 1: Upload metadata to IPFS via Pump.fun
-      const safeTwitter = sanitizeUrl(twitter);
-      const safeTelegram = sanitizeUrl(telegram);
-      const safeWebsite = sanitizeUrl(website);
-
-      let metadataUri: string;
-      try {
-        const ipfsResult = await uploadMetadataToIPFS(
-          { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: description?.trim(), twitter: safeTwitter ?? undefined, telegram: safeTelegram ?? undefined, website: safeWebsite ?? undefined },
-          imageUri
-        );
-        metadataUri = ipfsResult.metadataUri;
-        console.log(`Metadata uploaded to IPFS: ${metadataUri}`);
-      } catch (ipfsError: any) {
-        console.error("IPFS upload failed:", ipfsError);
-        return res.status(500).json({ error: `Failed to upload metadata: ${ipfsError.message}` });
-      }
-
-      // Step 2: Build transaction via PumpPortal (mint keypair stays client-side for security)
-      let txResult;
-      try {
-        txResult = await buildCreateTokenTransaction(
-          creatorAddress,
-          mintPublicKey,
-          metadataUri,
-          name.trim(),
-          symbol.trim().toUpperCase(),
-          initialBuyAmount || 0
-        );
-        console.log(`Transaction built for mint: ${txResult.mint}`);
-      } catch (txError: any) {
-        console.error("PumpPortal transaction build failed:", txError);
-        return res.status(500).json({ error: `Failed to build transaction: ${txError.message}` });
-      }
-
-      // Step 3: Save token to database (pending deployment)
-      const token = await storage.createToken({
-        mint: mintPublicKey,
-        name: name.trim(),
-        symbol: symbol.trim().toUpperCase(),
-        description: description?.trim() || null,
-        imageUri: imageUri || null,
-        creatorAddress,
-        twitter: safeTwitter,
-        telegram: safeTelegram,
-        website: safeWebsite,
-      });
-
-      console.log(`Token saved to database: ${token.name} (${token.symbol}) - ${token.mint}`);
-
-      // Build platform fee transaction (separate from pump.fun tx)
-      let feeTransaction = null;
-      try {
-        const connection = getHeliusConnection();
-        const { blockhash } = await connection.getLatestBlockhash();
-        const feeRecipient = getFeeRecipientWallet();
-        const feeLamports = Math.floor(PLATFORM_FEES.TOKEN_CREATION * LAMPORTS_PER_SOL);
-        
-        const feeTx = new Transaction();
-        feeTx.add(SystemProgram.transfer({
-          fromPubkey: new PublicKey(creatorAddress),
-          toPubkey: feeRecipient,
-          lamports: feeLamports,
-        }));
-        feeTx.recentBlockhash = blockhash;
-        feeTx.feePayer = new PublicKey(creatorAddress);
-        feeTransaction = feeTx.serialize({ requireAllSignatures: false }).toString("base64");
-        console.log(`Fee transaction built: ${PLATFORM_FEES.TOKEN_CREATION} SOL to ${feeRecipient.toString()}`);
-      } catch (feeError) {
-        console.error("Failed to build fee transaction:", feeError);
-      }
-
-      // Return transactions for frontend to sign (no secret keys exposed).
-      // The prediction market is created only after devnet-confirm verifies
-      // the on-chain signature, so it is intentionally not created here.
-      return res.json({
-        success: true,
-        token,
-        transaction: txResult.transaction,
-        feeTransaction,
-        platformFee: PLATFORM_FEES.TOKEN_CREATION,
-        feeRecipient: getFeeRecipientWallet().toString(),
-        mint: mintPublicKey,
-        metadataUri,
-        deploymentStatus: "awaiting_signature",
-        message: `Transaction ready! Sign to deploy on Pump.fun (includes ${PLATFORM_FEES.TOKEN_CREATION} SOL platform fee).`,
-      });
-    } catch (error: any) {
-      console.error("Error creating token:", error);
-      return res.status(500).json({ error: "Failed to create token" });
-    }
+  // Legacy launch endpoint that routed through pump.fun's IPFS + PumpPortal
+  // build service. Removed entirely: pump.fun is a competitor and its IPFS
+  // pinning was the root cause of "image upload not working" launch
+  // failures. The active launch path is /api/bonding-curve/create-token
+  // followed by /api/tokens/devnet-confirm, both of which are fully
+  // self-hosted (image bytes live in our DB, JSON manifest at
+  // /api/token-metadata/:mint, on-chain create signed by the user's
+  // wallet against our own bonding-curve program).
+  app.post("/api/tokens/create", (_req, res) => {
+    return res.status(410).json({
+      error: "This endpoint has been removed. Use /api/bonding-curve/create-token followed by /api/tokens/devnet-confirm.",
+    });
   });
 
   // Get tokens created by a wallet
@@ -2476,9 +2526,18 @@ export async function registerRoutes(
       }
 
       const tokens = await storage.getTokensByCreator(address);
+      // Owner profile shows EVERY token they launched, even ones whose
+      // metadata recovery hasn't completed yet. Hiding placeholders here
+      // was the second cause of "my token disappeared" — the row existed
+      // but the owner couldn't see it. Mark incomplete rows so the UI can
+      // render a "metadata pending" badge instead of a polished card.
       const { isPlaceholderRow } = await import("./services/orphan-recovery");
-      const visible = tokens.filter((t) => !isPlaceholderRow(t, t.mint));
-      return res.json(visible);
+      const enriched = tokens.map((t) => ({
+        ...t,
+        imageUri: toImageUrl(t.mint, t.imageUri),
+        metadataIncomplete: isPlaceholderRow(t, t.mint),
+      }));
+      return res.json(enriched);
     } catch (error: any) {
       console.error("Error fetching creator tokens:", error);
       return res.status(500).json({ error: "Failed to fetch tokens" });

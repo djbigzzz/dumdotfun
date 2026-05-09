@@ -3,139 +3,15 @@ import bs58Module from "bs58";
 const bs58 = ((bs58Module as any).default ?? bs58Module) as { encode: (b: Uint8Array) => string; decode: (s: string) => Uint8Array };
 const bs58Encode = bs58.encode;
 const bs58Decode = bs58.decode;
-import FormData from "form-data";
-import sharp from "sharp";
-import axios from "axios";
-
 const PUMPPORTAL_API = "https://pumpportal.fun/api/trade-local";
-const PUMP_IPFS_API = "https://pump.fun/api/ipfs";
-const MAX_IMAGE_SIZE = 500 * 1024;
-const MAX_IMAGE_DIMENSION = 512;
-
-interface TokenMetadata {
-  name: string;
-  symbol: string;
-  description?: string;
-  twitter?: string;
-  telegram?: string;
-  website?: string;
-}
-
-interface IPFSUploadResult {
-  metadataUri: string;
-}
 
 interface TradeResult {
   transaction: string;
 }
 
-async function compressImage(imageBuffer: Buffer): Promise<Buffer> {
-  try {
-    const metadata = await sharp(imageBuffer).metadata();
-    console.log(`Original image: ${metadata.width}x${metadata.height}, ${imageBuffer.length} bytes`);
-    
-    let pipeline = sharp(imageBuffer);
-    
-    if ((metadata.width && metadata.width > MAX_IMAGE_DIMENSION) || 
-        (metadata.height && metadata.height > MAX_IMAGE_DIMENSION)) {
-      pipeline = pipeline.resize(MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION, {
-        fit: 'inside',
-        withoutEnlargement: true
-      });
-    }
-    
-    const compressed = await pipeline
-      .png({ quality: 80, compressionLevel: 9 })
-      .toBuffer();
-    
-    console.log(`Compressed image: ${compressed.length} bytes`);
-    return compressed;
-  } catch (error) {
-    console.error("Image compression failed:", error);
-    return imageBuffer;
-  }
-}
-
-export async function uploadMetadataToIPFS(
-  metadata: TokenMetadata,
-  imageBase64?: string
-): Promise<IPFSUploadResult> {
-  const formData = new FormData();
-  
-  formData.append("name", metadata.name);
-  formData.append("symbol", metadata.symbol);
-  formData.append("description", metadata.description || "");
-  
-  if (metadata.twitter) formData.append("twitter", metadata.twitter);
-  if (metadata.telegram) formData.append("telegram", metadata.telegram);
-  if (metadata.website) formData.append("website", metadata.website);
-  formData.append("showName", "true");
-  
-  let imageBuffer: Buffer;
-  
-  if (imageBase64) {
-    const matches = imageBase64.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-    if (matches && matches.length === 3) {
-      const base64Data = matches[2];
-      imageBuffer = Buffer.from(base64Data, "base64");
-      console.log(`Original image size: ${imageBuffer.length} bytes`);
-      
-      if (imageBuffer.length > MAX_IMAGE_SIZE) {
-        console.log("Image too large, compressing...");
-        imageBuffer = await compressImage(imageBuffer);
-      }
-    } else {
-      console.log("Image base64 format not recognized, using placeholder");
-      imageBuffer = Buffer.from(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-        'base64'
-      );
-    }
-  } else {
-    console.log("No image provided, using placeholder");
-    imageBuffer = Buffer.from(
-      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
-      'base64'
-    );
-  }
-  
-  formData.append("file", imageBuffer, {
-    filename: "token.png",
-    contentType: "image/png",
-  });
-
-  console.log("Uploading to pump.fun IPFS...", {
-    name: metadata.name,
-    symbol: metadata.symbol,
-    imageSize: imageBuffer.length,
-  });
-
-  try {
-    const response = await axios.post(PUMP_IPFS_API, formData, {
-      headers: {
-        ...formData.getHeaders(),
-      },
-      maxContentLength: Infinity,
-      maxBodyLength: Infinity,
-      timeout: 30000,
-    });
-
-    console.log("IPFS response status:", response.status, "body:", JSON.stringify(response.data));
-
-    if (!response.data.metadataUri) {
-      throw new Error("IPFS response missing metadataUri");
-    }
-
-    return { metadataUri: response.data.metadataUri };
-  } catch (error: any) {
-    if (error.response) {
-      console.error("IPFS upload failed:", error.response.status, error.response.data);
-      throw new Error(`IPFS upload failed: ${error.response.status} ${JSON.stringify(error.response.data)}`);
-    }
-    console.error("IPFS upload error:", error.message);
-    throw new Error(`IPFS upload failed: ${error.message}`);
-  }
-}
+// NOTE: pump.fun's IPFS pinning service was removed from this file as part
+// of cutting the competitor (and unreliable) dependency out of the launch
+// path. Token metadata is now self-hosted at /api/token-metadata/:mint.
 
 export async function buildCreateTokenTransaction(
   creatorPublicKey: string,

@@ -324,12 +324,13 @@ export default function CreateToken() {
 
         let saved = false;
         let lastSaveErr: any = null;
-        // Try a few times with short backoff. The on-chain tx was just
-        // confirmed but devnet RPC propagation lag, transient 5xx, or a
-        // momentarily missing SIWS session can all make the first attempt
-        // fail. Without retry the token is created on-chain but never
-        // appears anywhere on dum.fun.
-        const attemptDelays = [0, 1500, 3000, 5000];
+        // Try several times with growing backoff. The on-chain tx was just
+        // confirmed but devnet RPC propagation lag, Helius 429 bursts,
+        // transient 5xx, or a momentarily missing SIWS session can all make
+        // the first attempts fail. Server now returns 503 with retryable:true
+        // for the propagation-lag and DB-blip cases, which we detect here
+        // to keep waiting without burning the user's signature.
+        const attemptDelays = [0, 1500, 3000, 5000, 8000, 12000, 18000];
         for (let i = 0; i < attemptDelays.length; i++) {
           if (attemptDelays[i] > 0) {
             await new Promise((r) => setTimeout(r, attemptDelays[i]));
@@ -343,6 +344,7 @@ export default function CreateToken() {
             lastSaveErr = saveErr;
             const msg: string = saveErr?.message || "";
             const is401 = /\b401\b/.test(msg) || /Sign in/i.test(msg);
+            const is503 = /\b503\b/.test(msg) || /retryable/i.test(msg) || /temporarily unavailable/i.test(msg) || /not yet visible/i.test(msg);
             console.warn(
               `[create] devnet-confirm attempt ${i + 1} failed:`,
               msg,
@@ -355,16 +357,20 @@ export default function CreateToken() {
                 console.warn("[create] re-auth before retry failed:", sigErr);
               }
             }
+            // 503 is the server explicitly saying "transient, please retry".
+            // Keep going through the loop without bailing out early.
+            if (is503) continue;
           }
         }
 
         if (!saved) {
           // Surface the failure instead of pretending the launch succeeded.
-          // The mint exists on-chain, but without a DB row the token will
-          // not show up on Explore, the detail page, or the user's profile.
+          // The mint exists on-chain (and the server pre-inserted a pending
+          // row with the user's image), so the background reconciler will
+          // eventually mark the token deployed. Tell the user that.
           const reason = lastSaveErr?.message || "Save request failed";
           throw new Error(
-            `Token created on-chain (mint: ${mint}), but saving it to dum.fun failed: ${reason}. Reconnect your wallet and try again — your mint will be reused.`,
+            `Token created on-chain (mint: ${mint}), but the final confirmation didn't land: ${reason}. Your token will appear on your profile within a few minutes as the background reconciler picks it up.`,
           );
         }
         // Snapshot the metadata used on-chain. Used on retry so a mid-flow
