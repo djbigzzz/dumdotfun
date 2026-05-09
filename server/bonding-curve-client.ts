@@ -154,7 +154,11 @@ export async function buildCreateTokenTransaction(
     data,
   });
 
-  const transaction = new Transaction().add(instruction);
+  // Embed the platform fee transfer so devnet-confirm can verify it was paid.
+  const { createFeeTransferInstruction, PLATFORM_FEES } = await import("./fees");
+  const feeInstruction = createFeeTransferInstruction(creator, PLATFORM_FEES.TOKEN_CREATION);
+
+  const transaction = new Transaction().add(feeInstruction).add(instruction);
   const { blockhash } = await connection.getLatestBlockhash();
   transaction.recentBlockhash = blockhash;
   transaction.feePayer = creator;
