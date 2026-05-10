@@ -127,48 +127,41 @@ export default function MarketsPage() {
           </div>
         </div>
 
-        <div className="relative">
-          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-          <input
-            type="text"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            placeholder="Search by token, question, or mint…"
-            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white pl-9 pr-9 py-2 focus:outline-none focus:border-yellow-500"
-            data-testid="input-market-search"
-          />
-          {searchInput && (
-            <button
-              onClick={() => setSearchInput("")}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white"
-              data-testid="button-clear-search"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          )}
-        </div>
-
         <div className="flex flex-wrap items-center gap-2">
-          <div className="flex flex-wrap gap-1">
-            {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(key => (
+          <div className="relative flex-1 min-w-[220px]">
+            <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder="Search markets…"
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white pl-9 pr-8 py-2 focus:outline-none focus:border-yellow-500"
+              data-testid="input-market-search"
+            />
+            {searchInput && (
               <button
-                key={key}
-                onClick={() => setStatus(key)}
-                className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
-                  status === key
-                    ? "bg-yellow-500 text-black"
-                    : "bg-zinc-900 text-gray-400 hover:bg-zinc-800 hover:text-white border border-zinc-800"
-                }`}
-                data-testid={`filter-status-${key}`}
+                onClick={() => setSearchInput("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white"
+                data-testid="button-clear-search"
               >
-                {STATUS_LABELS[key]}
+                <X className="w-3.5 h-3.5" />
               </button>
-            ))}
+            )}
           </div>
+          <select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as CategoryFilter)}
+            className="bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white px-3 py-2 focus:outline-none focus:border-yellow-500"
+            data-testid="select-category"
+          >
+            {(Object.keys(CATEGORY_LABELS) as CategoryFilter[]).map(key => (
+              <option key={key} value={key}>{CATEGORY_LABELS[key]}</option>
+            ))}
+          </select>
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value as SortFilter)}
-            className="ml-auto bg-zinc-900 border border-zinc-800 rounded-full text-xs text-white px-3 py-1.5 focus:outline-none focus:border-yellow-500"
+            className="bg-zinc-900 border border-zinc-800 rounded-lg text-xs text-white px-3 py-2 focus:outline-none focus:border-yellow-500"
             data-testid="select-sort"
           >
             {(Object.keys(SORT_LABELS) as SortFilter[]).map(key => (
@@ -178,18 +171,18 @@ export default function MarketsPage() {
         </div>
 
         <div className="flex flex-wrap gap-1">
-          {(Object.keys(CATEGORY_LABELS) as CategoryFilter[]).map(key => (
+          {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(key => (
             <button
               key={key}
-              onClick={() => setCategory(key)}
-              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
-                category === key
-                  ? "bg-red-500 text-white"
+              onClick={() => setStatus(key)}
+              className={`px-3 py-1.5 rounded-full text-xs font-bold transition-colors ${
+                status === key
+                  ? "bg-yellow-500 text-black"
                   : "bg-zinc-900 text-gray-400 hover:bg-zinc-800 hover:text-white border border-zinc-800"
               }`}
-              data-testid={`filter-category-${key}`}
+              data-testid={`filter-status-${key}`}
             >
-              {CATEGORY_LABELS[key]}
+              {STATUS_LABELS[key]}
             </button>
           ))}
         </div>
