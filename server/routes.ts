@@ -15,7 +15,7 @@ import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPo
 import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
-import { getUmbraStatus, scanUmbraUtxos } from "./umbra";
+import { getUmbraStatus, scanUmbraUtxos, getUmbraQuote, getUmbraPools, createPayoutUtxo, type UmbraStatus } from "./umbra";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 import * as bondingCurve from "./bonding-curve-client";
 import { detectMarketCriteria } from "./services/token-health";
@@ -4548,7 +4548,7 @@ export async function registerRoutes(
           return 0;
         }
       })(),
-      getUmbraStatus().catch(() => ({ status: "integration-ready" })),
+      getUmbraStatus().catch((): Pick<UmbraStatus, "status"> => ({ status: "integration-ready" })),
     ]);
 
     const magicblockStatus = magicblockDetail.live?.reachable ? "live" : "integration-ready";
@@ -4558,7 +4558,7 @@ export async function registerRoutes(
     return res.json({
       tracks: [
         { id: "dune", name: "Dune", prize: "$6,000", status: "live", routes: ["/wallet/:address"], summary: "Dune Sim API powers every wallet profile (balances + tx history)." },
-        { id: "umbra", name: "Umbra", prize: "$10,000", status: (umbraDetail as any).status ?? "live", routes: ["/market/:id"], detail: umbraDetail },
+        { id: "umbra", name: "Umbra", prize: "$10,000", status: umbraDetail.status ?? "live", routes: ["/market/:id"], detail: umbraDetail },
         { id: "sns", name: "SNS (.sol)", prize: "$5,000", status: "live", routes: ["/leaderboard", "/wallet/:address", "/token/:mint", "/markets", "/tokens"], summary: "WalletName resolves .sol names everywhere wallets appear." },
         { id: "jupiter", name: "Jupiter", prize: "$3,000", status: "live", routes: ["/tokens", "/wallet/:address"], detail: getJupiterStatus() },
         { id: "magicblock", name: "MagicBlock", prize: "$5,000", status: magicblockStatus, routes: ["/token/:mint", "/market/:id"], detail: magicblockDetail },
@@ -5126,18 +5126,43 @@ export async function registerRoutes(
     }
   });
 
+  /** GET /api/umbra/pools — supported shielded mints. */
+  app.get("/api/umbra/pools", (_req, res) => {
+    return res.json({ pools: getUmbraPools() });
+  });
+
+  /**
+   * POST /api/umbra/quote — preview a private payout (lamports, mint, flow).
+   * Pure read-only helper; no funds move.
+   */
+  app.post("/api/umbra/quote", async (req, res) => {
+    const { recipientWallet, amountSol } = req.body ?? {};
+    if (typeof recipientWallet !== "string" || !(await isValidSolanaAddress(recipientWallet))) {
+      return res.status(400).json({ error: "valid recipientWallet required" });
+    }
+    const sol = Number(amountSol);
+    if (!Number.isFinite(sol) || sol <= 0) {
+      return res.status(400).json({ error: "amountSol must be a positive number" });
+    }
+    return res.json({ quote: getUmbraQuote({ recipientWallet, amountSol: sol }) });
+  });
+
   /**
    * POST /api/umbra/create-payout-utxo
-   * Auth-gated: caller must own the recipientWallet AND hold a winning position
-   * in the referenced market.
    *
-   * Creates a private payout by depositing the winner's SOL amount as shielded
-   * wSOL into their Umbra encrypted balance via
-   * getPublicBalanceToEncryptedBalanceDirectDepositorFunction.
+   * Auth-gated: the caller must own the recipientWallet AND hold a winning
+   * position in the referenced market.
    *
-   * The regular SOL payout is the authoritative transfer; this is additive
-   * privacy on top.  Idempotent: repeated calls for the same positionId return
-   * the existing umbraRef rather than submitting a second deposit.
+   * Creates a ReceiverClaimableUTXO via the Umbra SDK. Returns the
+   * `{ utxoRef, scanHint, viewingKey }` triple so the receiver can:
+   *   - share `viewingKey` with auditors for selective disclosure
+   *   - locate the UTXO via `scanHint` (or scan their wallet directly)
+   *   - claim it into their encrypted balance using the browser ZK prover
+   *     (getReceiverClaimableUtxoToEncryptedBalanceClaimerFunction)
+   *
+   * Idempotent: a second call for the same positionId returns the stored
+   * `utxoRef` instead of creating a second UTXO. The regular SOL payout
+   * remains the authoritative transfer; this is additive privacy on top.
    */
   app.post(
     "/api/umbra/create-payout-utxo",
@@ -5173,7 +5198,6 @@ export async function registerRoutes(
           .select({
             umbraRef: mpTable.umbraRef,
             umbraQueueSig: mpTable.umbraQueueSig,
-            status: mpTable.status,
           })
           .from(mpTable)
           .where(eq(mpTable.positionId, winningPosition.id))
@@ -5183,40 +5207,42 @@ export async function registerRoutes(
           return res.json({
             success: true,
             alreadyShielded: true,
-            umbraRef: existing[0].umbraRef,
-            queueSignature: existing[0].umbraQueueSig,
+            utxoRef: existing[0].umbraRef,
+            createUtxoSignature: existing[0].umbraQueueSig,
+            note: "UTXO already created for this position; viewing key was returned at creation time only",
           });
         }
 
         const payoutSol = Number(winningPosition.shares ?? 0);
-        const lamports = BigInt(Math.floor(payoutSol * 1_000_000_000));
+        const result = await createPayoutUtxo(recipientWallet, payoutSol);
 
-        const { sendUmbraPrivatePayout } = await import("./services/umbra-payouts");
-        const result = await sendUmbraPrivatePayout(recipientWallet, lamports);
-
-        if (result.ok && result.umbraRef) {
+        if (result.ok && result.utxoRef) {
           await db
             .update(mpTable)
             .set({
-              umbraRef: result.umbraRef,
-              umbraQueueSig: result.queueSignature ?? null,
+              umbraRef: result.utxoRef,
+              umbraQueueSig: result.createUtxoSignature ?? null,
             })
             .where(eq(mpTable.positionId, winningPosition.id));
         }
 
         return res.json({
           success: result.ok,
-          umbraRef: result.umbraRef ?? null,
-          queueSignature: result.queueSignature ?? null,
-          error: result.error ?? result.skipped ?? null,
+          utxoRef: result.utxoRef ?? null,
+          scanHint: result.scanHint ?? null,
+          viewingKey: result.viewingKey ?? null,
+          createUtxoSignature: result.createUtxoSignature ?? null,
+          createProofAccountSignature: result.createProofAccountSignature ?? null,
           amountSol: payoutSol,
           recipient: recipientWallet,
+          mint: result.mint ?? null,
           marketId,
+          error: result.error ?? result.skipped ?? null,
         });
-      } catch (err: any) {
-        const msg = err.message || String(err);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
         console.error("[Umbra] create-payout-utxo failed:", msg);
-        return res.status(500).json({ error: `Umbra private payout failed: ${msg}` });
+        return res.status(500).json({ error: `Umbra UTXO creation failed: ${msg}` });
       }
     },
   );

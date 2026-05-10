@@ -148,6 +148,7 @@ interface BetPosition {
   payout: number | null;
   won: boolean | null;
   isExpired: boolean;
+  umbraRef?: string | null;
 }
 
 interface BetsResponse {
@@ -1179,8 +1180,8 @@ export default function Profile() {
                                     <>
                                       <span className="text-[10px] px-2 py-0.5 rounded font-black bg-green-100 text-green-700">WON</span>
                                       <div className="text-xs font-mono font-bold text-green-600">+{(p.payout || 0).toFixed(3)} SOL</div>
-                                      {(p as any).umbraRef && (
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-black bg-purple-500/15 text-purple-400 border border-purple-500/30 flex items-center gap-0.5" title={`Umbra shielded: ${(p as any).umbraRef}`} data-testid={`badge-umbra-${p.id}`}>
+                                      {p.umbraRef && (
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded font-black bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-0.5" title={`Umbra shielded: ${p.umbraRef}`} data-testid={`badge-umbra-${p.id}`}>
                                           <Shield className="w-2.5 h-2.5" /> Umbra
                                         </span>
                                       )}

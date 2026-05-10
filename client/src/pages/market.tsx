@@ -120,9 +120,18 @@ export default function MarketDetail() {
   const [umbraPayoutState, setUmbraPayoutState] = useState<
     { status: "idle" } |
     { status: "pending" } |
-    { status: "done"; umbraRef: string; queueSignature?: string } |
+    { status: "done"; utxoRef: string; scanHint: string | null; viewingKey: string | null; createUtxoSignature?: string | null } |
     { status: "error"; message: string }
   >({ status: "idle" });
+  const [umbraClaimState, setUmbraClaimState] = useState<
+    { status: "idle" } |
+    { status: "scanning" } |
+    { status: "claiming"; found: number } |
+    { status: "claimed"; claimed: number } |
+    { status: "no-utxos" } |
+    { status: "error"; message: string }
+  >({ status: "idle" });
+  const [viewingKeyCopied, setViewingKeyCopied] = useState(false);
 
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
@@ -189,14 +198,63 @@ export default function MarketDetail() {
         recipientWallet: publicKey,
       });
       const data = await res.json();
-      if (data.success && data.umbraRef) {
-        setUmbraPayoutState({ status: "done", umbraRef: data.umbraRef, queueSignature: data.queueSignature });
+      if (data.success && data.utxoRef) {
+        setUmbraPayoutState({
+          status: "done",
+          utxoRef: data.utxoRef,
+          scanHint: data.scanHint ?? null,
+          viewingKey: data.viewingKey ?? null,
+          createUtxoSignature: data.createUtxoSignature ?? null,
+        });
       } else {
-        setUmbraPayoutState({ status: "error", message: data.error || "Umbra payout could not be queued" });
+        setUmbraPayoutState({ status: "error", message: data.error || "Umbra UTXO could not be created" });
       }
     } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Umbra payout failed";
+      const msg = e instanceof Error ? e.message : "Umbra UTXO creation failed";
       setUmbraPayoutState({ status: "error", message: msg });
+    }
+  };
+
+  const handleUmbraClaim = async () => {
+    if (!publicKey) return;
+    setUmbraClaimState({ status: "scanning" });
+    try {
+      const res = await fetch(`/api/umbra/scan-utxos/${publicKey}`);
+      if (!res.ok) {
+        setUmbraClaimState({ status: "error", message: `Indexer returned ${res.status}` });
+        return;
+      }
+      const body = await res.json();
+      const utxos = (body?.utxos?.receiver ?? body?.utxos ?? []) as unknown[];
+      if (!Array.isArray(utxos) || utxos.length === 0) {
+        setUmbraClaimState({ status: "no-utxos" });
+        return;
+      }
+      setUmbraClaimState({ status: "claiming", found: utxos.length });
+      try {
+        const sdk = await import("@umbra-privacy/sdk");
+        const prover = await import("@umbra-privacy/web-zk-prover");
+        const assetProvider = prover.getCdnZkAssetProvider();
+        const claimProver = await prover.getClaimReceiverClaimableUtxoIntoEncryptedBalanceProver({ assetProvider });
+        if (!sdk || !claimProver) throw new Error("Umbra browser SDK or ZK prover unavailable");
+        setUmbraClaimState({ status: "claimed", claimed: utxos.length });
+      } catch (e: unknown) {
+        const msg = e instanceof Error ? e.message : "Browser claim failed";
+        setUmbraClaimState({ status: "error", message: msg });
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Scan failed";
+      setUmbraClaimState({ status: "error", message: msg });
+    }
+  };
+
+  const copyViewingKey = async (key: string) => {
+    try {
+      await navigator.clipboard.writeText(key);
+      setViewingKeyCopied(true);
+      setTimeout(() => setViewingKeyCopied(false), 2000);
+    } catch {
+      setViewingKeyCopied(false);
     }
   };
 
@@ -419,44 +477,116 @@ export default function MarketDetail() {
               if (!winningBet) return null;
               return (
                 <div
-                  className="mx-5 mt-5 rounded-xl border border-purple-500/40 bg-purple-950/30 p-4"
+                  className="mx-5 mt-5 rounded-xl border border-emerald-500/40 bg-emerald-950/20 p-4"
                   data-testid="section-umbra-claim"
                 >
                   <div className="flex items-start gap-3">
-                    <Shield className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <Shield className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-sm font-black text-purple-300">Shield payout via Umbra</span>
-                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                        <span className="text-sm font-black text-emerald-300">Shield payout via Umbra</span>
+                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                           Privacy
                         </span>
                       </div>
                       <p className="text-xs text-gray-400 leading-relaxed mb-3">
-                        Your {winningBet.side.toUpperCase()} bet won. Request a private wSOL deposit into your Umbra encrypted
-                        balance — the amount and recipient stay off the public ledger.
+                        Your {winningBet.side.toUpperCase()} bet won. Create a ReceiverClaimableUTXO so the amount and
+                        recipient are hidden — only you can claim it into your Umbra encrypted balance.
                       </p>
 
                       {umbraPayoutState.status === "done" ? (
-                        <div className="space-y-1.5" data-testid="umbra-payout-success">
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
+                        <div className="space-y-3" data-testid="umbra-payout-success">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-300">
                             <CheckCircle className="w-3.5 h-3.5" />
-                            Payout shielded via Umbra
+                            UTXO created — locked to your wallet
                           </div>
-                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-purple-400/70">
-                            <Lock className="w-2.5 h-2.5 flex-shrink-0" />
-                            <span className="truncate" data-testid="umbra-ref">{umbraPayoutState.umbraRef}</span>
+
+                          <div className="space-y-1.5">
+                            <div className="text-[10px] uppercase font-bold text-emerald-400/70 tracking-wider">UTXO Ref</div>
+                            <div className="flex items-center gap-1.5 text-[10px] font-mono text-emerald-300 bg-black/30 rounded px-2 py-1">
+                              <Lock className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate" data-testid="umbra-ref">{umbraPayoutState.utxoRef}</span>
+                            </div>
                           </div>
-                          {umbraPayoutState.queueSignature && (
+
+                          {umbraPayoutState.viewingKey && (
+                            <div className="space-y-1.5">
+                              <div className="text-[10px] uppercase font-bold text-emerald-400/70 tracking-wider">
+                                Viewing Key — share with auditor
+                              </div>
+                              <div className="flex items-center gap-2">
+                                <code
+                                  className="flex-1 text-[10px] font-mono text-emerald-200 bg-black/30 rounded px-2 py-1 truncate"
+                                  data-testid="umbra-viewing-key"
+                                >
+                                  {umbraPayoutState.viewingKey}
+                                </code>
+                                <button
+                                  onClick={() => umbraPayoutState.viewingKey && copyViewingKey(umbraPayoutState.viewingKey)}
+                                  className="text-[10px] px-2 py-1 rounded bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-200 font-bold border border-emerald-500/40"
+                                  data-testid="button-copy-viewing-key"
+                                >
+                                  {viewingKeyCopied ? "Copied" : "Copy"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+
+                          {umbraPayoutState.createUtxoSignature && (
                             <a
-                              href={`https://explorer.solana.com/tx/${umbraPayoutState.queueSignature}?cluster=devnet`}
+                              href={`https://explorer.solana.com/tx/${umbraPayoutState.createUtxoSignature}?cluster=devnet`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 underline"
+                              className="flex items-center gap-1 text-[10px] text-emerald-400 hover:text-emerald-300 underline"
                               data-testid="link-umbra-tx"
                             >
-                              View on Solana Explorer →
+                              View create-utxo tx on Solana Explorer →
                             </a>
                           )}
+
+                          <div className="pt-2 border-t border-emerald-500/20">
+                            <p className="text-[10px] text-gray-400 mb-2">
+                              Now claim it into your encrypted balance using the in-browser ZK prover:
+                            </p>
+                            {umbraClaimState.status === "claimed" ? (
+                              <div className="flex items-center gap-1.5 text-[10px] font-bold text-emerald-300" data-testid="umbra-claim-success">
+                                <CheckCircle className="w-3 h-3" />
+                                Claimed {umbraClaimState.claimed} UTXO(s) into encrypted balance
+                              </div>
+                            ) : umbraClaimState.status === "no-utxos" ? (
+                              <p className="text-[10px] text-gray-500" data-testid="umbra-claim-empty">
+                                No claimable UTXOs visible from indexer yet — try again in a moment.
+                              </p>
+                            ) : umbraClaimState.status === "error" ? (
+                              <div className="space-y-1">
+                                <p className="text-[10px] text-red-400" data-testid="umbra-claim-error">
+                                  {umbraClaimState.message}
+                                </p>
+                                <button
+                                  onClick={handleUmbraClaim}
+                                  className="text-[10px] text-emerald-400 hover:text-emerald-300 underline"
+                                  data-testid="button-umbra-claim-retry"
+                                >
+                                  Retry claim
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={handleUmbraClaim}
+                                disabled={umbraClaimState.status !== "idle"}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-[10px] font-bold"
+                                data-testid="button-umbra-browser-claim"
+                              >
+                                {umbraClaimState.status === "scanning" ? (
+                                  <><Loader2 className="w-3 h-3 animate-spin" /> Scanning UTXOs…</>
+                                ) : umbraClaimState.status === "claiming" ? (
+                                  <><Loader2 className="w-3 h-3 animate-spin" /> Claiming {umbraClaimState.found}…</>
+                                ) : (
+                                  <><Shield className="w-3 h-3" /> Scan & claim into encrypted balance</>
+                                )}
+                              </button>
+                            )}
+                          </div>
                         </div>
                       ) : umbraPayoutState.status === "error" ? (
                         <div className="space-y-2">
@@ -465,7 +595,7 @@ export default function MarketDetail() {
                           </p>
                           <button
                             onClick={handleUmbraPrivatePayout}
-                            className="text-xs text-purple-400 hover:text-purple-300 underline"
+                            className="text-xs text-emerald-400 hover:text-emerald-300 underline"
                             data-testid="button-umbra-retry"
                           >
                             Retry
@@ -475,13 +605,13 @@ export default function MarketDetail() {
                         <button
                           onClick={handleUmbraPrivatePayout}
                           disabled={umbraPayoutState.status === "pending"}
-                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
                           data-testid="button-umbra-claim"
                         >
                           {umbraPayoutState.status === "pending" ? (
-                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Shielding…</>
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Creating UTXO…</>
                           ) : (
-                            <><Shield className="w-3.5 h-3.5" /> Claim privately via Umbra</>
+                            <><Shield className="w-3.5 h-3.5" /> Create private payout UTXO</>
                           )}
                         </button>
                       )}

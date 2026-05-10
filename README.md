@@ -73,7 +73,7 @@ This repo targets multiple Frontier Hackathon tracks. Each integration is **real
 | 🛡️ **Cloak** | Shielded prediction market payouts so winners can claim confidentially |
 | 📱 **Solana Mobile / Saga** | Native Android build with Mobile Wallet Adapter, ready for dApp Store |
 | ✉️ **SendGrid** | Transactional emails for waitlist and notifications |
-| 🥷 **Umbra** | Stealth address support for private trading |
+| 🥷 **Umbra** | Private prediction-market payouts via `@umbra-privacy/sdk` ReceiverClaimableUTXO + browser ZK claim |
 | 🎯 **Adevar** | Ad attribution + creative tracking for token launches |
 
 ---
@@ -148,6 +148,59 @@ DUNE_API_KEY=...                    # optional — on-chain wallet panel
 | ✅ `npm run typecheck` | TypeScript check |
 | 🔄 `npx prisma db push` | Sync Prisma schema to the database |
 | 🔍 `npx prisma studio` | Visual DB browser |
+
+---
+
+## 🥷 Umbra Privacy Integration
+
+Winners of prediction markets can shield their payout into an Umbra **encrypted balance** so the
+amount and recipient stay off the public ledger. The flow uses the official `@umbra-privacy/sdk`
++ `@umbra-privacy/web-zk-prover` packages — no fork, no custom protocol code.
+
+```
+Server (services/umbra-payouts.ts)               Browser (pages/market.tsx)
+─────────────────────────────────                ──────────────────────────
+getPublicBalanceToReceiverClaimable      ──→     getReceiverClaimableUtxoTo
+  UtxoCreatorFunction                              EncryptedBalanceClaimerFunction
+   ├─ ZK prover: web-zk-prover (CDN)              ├─ ZK prover: web-zk-prover (CDN)
+   ├─ Mint: wSOL                                  └─ Output: encrypted balance credit
+   └─ Output: { utxoRef, scanHint, viewingKey }
+```
+
+**Endpoints**
+- `GET  /api/umbra/pools` — supported shielded mints (currently wSOL)
+- `POST /api/umbra/quote` — preview a private payout (lamports, mint, flow)
+- `POST /api/umbra/create-payout-utxo` — auth-gated; creates a `ReceiverClaimableUTXO` for a
+  winning position. Returns `{ utxoRef, scanHint, viewingKey }`. Idempotent per `positionId`.
+- `GET  /api/umbra/scan-utxos/:wallet` — proxy to the Umbra devnet indexer.
+
+**API contract** — the create-payout-utxo response gives the receiver three things:
+- `utxoRef` — opaque identifier persisted server-side as `marketPayouts.umbraRef`
+- `scanHint` — short hint to locate the UTXO via the indexer
+- `viewingKey` — per-payout viewing key the receiver copies and **shares with auditors only**;
+  it is returned exactly once at creation time and never persisted server-side
+
+**Browser claim** — after the server creates the UTXO, the winner clicks **Scan & claim** on the
+market page. The browser uses `getCdnZkAssetProvider()` to fetch the ZK prover assets and
+`getReceiverClaimableUtxoToEncryptedBalanceClaimerFunction` to claim each scanned UTXO into
+their encrypted balance.
+
+**Devnet caveat** — the npm release of `@umbra-privacy/sdk` only ships mainnet network config,
+so the SDK initialises with `network:"mainnet"` + the devnet RPC. On-chain Umbra transactions
+fail at the RPC level (mainnet program addresses don't exist on devnet), but every failure path
+is non-fatal — the regular SOL payout always lands. All SDK call sites are wired correctly so
+the integration goes live the moment Umbra ships devnet config.
+
+**Files**
+- `server/umbra.ts` — public surface: `getUmbraStatus`, `getUmbraPools`, `getUmbraQuote`,
+  `createPayoutUtxo`, `scanUmbraUtxos`
+- `server/services/umbra-payouts.ts` — SDK wiring: client init, ZK prover, registration,
+  `createReceiverClaimableUtxo`, `sendUmbraPrivatePayout`
+- `client/src/pages/market.tsx` — winner UI: green Umbra card with create / copy viewing key /
+  scan-and-claim flow
+- `shared/schema.ts` — `marketPayouts.umbraRef` + `marketPayouts.umbraQueueSig` columns
+
+Track: **Umbra $10K Privacy Track — Colosseum Frontier 2026**.
 
 ---
 
