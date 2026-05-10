@@ -2598,17 +2598,17 @@ export async function registerRoutes(
         });
       }
 
-      const enriched = await Promise.all(filtered.map(async m => {
-        const positions = await storage.getPositionsByMarket(m.id).catch(() => []);
-        return {
-          ...m,
-          yesPool: Number(m.yesPool),
-          noPool: Number(m.noPool),
-          totalVolume: Number(m.totalVolume),
-          yesOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "yes"),
-          noOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "no"),
-          totalPositions: positions.length,
-        };
+      const counts = await storage
+        .getPositionCountsByMarketIds(filtered.map(m => m.id))
+        .catch(() => ({} as Record<string, number>));
+      const enriched = filtered.map(m => ({
+        ...m,
+        yesPool: Number(m.yesPool),
+        noPool: Number(m.noPool),
+        totalVolume: Number(m.totalVolume),
+        yesOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "yes"),
+        noOdds: calculateOdds(Number(m.yesPool), Number(m.noPool), "no"),
+        totalPositions: counts[m.id] ?? 0,
       }));
 
       if (sort === "volume") {

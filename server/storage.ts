@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type WalletAnalysis, type InsertWalletAnalysis, type Waitlist, type InsertWaitlist, type Token, type InsertToken, type Market, type InsertMarket, type Position, type InsertPosition, type Activity, type InsertActivity, users, tokens, walletAnalysis, waitlist, predictionMarkets, positions, activityFeed, usedSignatures } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, sql, lt, and, or, ne, isNull } from "drizzle-orm";
+import { eq, desc, sql, lt, and, or, ne, isNull, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -40,6 +40,7 @@ export interface IStorage {
   createPosition(position: InsertPosition): Promise<Position>;
   getPositionsByMarket(marketId: string): Promise<Position[]>;
   getPositionsByWallet(walletAddress: string): Promise<Position[]>;
+  getPositionCountsByMarketIds(marketIds: string[]): Promise<Record<string, number>>;
   
   // Activity feed methods
   addActivity(activity: InsertActivity): Promise<Activity>;
@@ -288,6 +289,18 @@ export class DatabaseStorage implements IStorage {
 
   async getPositionsByWallet(walletAddress: string): Promise<Position[]> {
     return db.select().from(positions).where(eq(positions.walletAddress, walletAddress));
+  }
+
+  async getPositionCountsByMarketIds(marketIds: string[]): Promise<Record<string, number>> {
+    if (marketIds.length === 0) return {};
+    const rows = await db
+      .select({ marketId: positions.marketId, count: sql<number>`count(*)::int` })
+      .from(positions)
+      .where(inArray(positions.marketId, marketIds))
+      .groupBy(positions.marketId);
+    const out: Record<string, number> = {};
+    for (const r of rows) out[r.marketId] = Number(r.count);
+    return out;
   }
 
   async addActivity(insertActivity: InsertActivity): Promise<Activity> {
