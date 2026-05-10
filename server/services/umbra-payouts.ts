@@ -120,7 +120,7 @@ async function getClient(): Promise<{ client: UmbraClient; address: string } | n
       network: "mainnet",
       rpcUrl: DEVNET_RPC_URL,
       rpcSubscriptionsUrl: DEVNET_RPC_WS_URL,
-      indexerApiEndpoint: MAINNET_INDEXER_URL,
+      indexerApiEndpoint: DEVNET_INDEXER_URL,
     });
     _client = client;
     _clientAddress = signer.address;
