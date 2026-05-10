@@ -254,25 +254,49 @@ export async function createReceiverClaimableUtxo(
     };
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : String(e);
-    // Devnet incompatibility: the npm release of @umbra-privacy/sdk only ships
-    // mainnet config, so on-chain UTXO creation fails at the RPC level.  We
-    // surface a simulated UTXO reference so the demo flow remains operable —
-    // the receiver still gets a viewingKey + scanHint they can copy and the
-    // UI can show the full success path.  `simulated: true` makes the
-    // degradation explicit on the wire and in logs.
-    console.warn(`[Umbra] UTXO creation degraded to simulated (devnet): ${msg}`);
+    // Tightly-scoped devnet fallback: only degrade to simulated success when
+    // the SDK error matches a known devnet-incompatibility pattern (mainnet
+    // program addresses don't exist on devnet, so account/MXE lookups fail
+    // before any signing). Any other error (auth, validation, malformed
+    // input, network outage) propagates as a real failure so callers and
+    // monitors don't see a fake green light.
+    const lower = msg.toLowerCase();
+    const isDevnetUnsupported =
+      lower.includes("mxe account not found") ||
+      lower.includes("account not found") ||
+      lower.includes("accountnotfound") ||
+      lower.includes("could not find account") ||
+      lower.includes("program account not found") ||
+      lower.includes("invalid account owner") ||
+      lower.includes("could not find address lookup table");
+
+    if (isDevnetUnsupported) {
+      console.warn(`[Umbra] UTXO creation degraded to simulated (devnet-unsupported): ${msg}`);
+      return {
+        ok: true,
+        simulated: true,
+        utxoRef: `umbra:simulated:${generationIndexHex.slice(0, 24)}`,
+        scanHint,
+        viewingKey,
+        createUtxoSignature: `simulated:${generationIndexHex.slice(0, 16)}`,
+        amountLamports: amountLamports.toString(),
+        recipient: recipientAddress,
+        mint: WSOL_MINT,
+        note: "Devnet mainnet-config fallback — real UTXO will be created when Umbra ships devnet network config",
+        error: msg,
+      };
+    }
+
+    console.error(`[Umbra] UTXO creation failed (real error): ${msg}`);
     return {
-      ok: true,
-      simulated: true,
-      utxoRef: `umbra:simulated:${generationIndexHex.slice(0, 24)}`,
+      ok: false,
+      error: msg,
+      utxoRef: `umbra:pending:${generationIndexHex.slice(0, 16)}`,
       scanHint,
       viewingKey,
-      createUtxoSignature: `simulated:${generationIndexHex.slice(0, 16)}`,
       amountLamports: amountLamports.toString(),
       recipient: recipientAddress,
       mint: WSOL_MINT,
-      note: "Devnet mainnet-config fallback — real UTXO will be created when Umbra ships devnet network config",
-      error: msg,
     };
   }
 }

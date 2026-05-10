@@ -5194,10 +5194,19 @@ export async function registerRoutes(
 
         const { marketPayouts: mpTable } = await import("../shared/schema");
 
+        // Authoritative payout amount comes from the marketPayouts row that
+        // the resolution worker computed for this winning position — NOT from
+        // the user-side `position.shares` field (which can over- or
+        // under-state the real payout once fees / multi-share splits are
+        // applied). Fall back to a `position.shares`-derived amount only when
+        // the payout row hasn't been written yet (e.g. resolver still
+        // running) so the demo flow can still proceed.
         const existing = await db
           .select({
             umbraRef: mpTable.umbraRef,
             umbraQueueSig: mpTable.umbraQueueSig,
+            amountLamports: mpTable.amountLamports,
+            status: mpTable.status,
           })
           .from(mpTable)
           .where(eq(mpTable.positionId, winningPosition.id))
@@ -5213,7 +5222,13 @@ export async function registerRoutes(
           });
         }
 
-        const payoutSol = Number(winningPosition.shares ?? 0);
+        let payoutLamports: bigint;
+        if (existing.length > 0 && existing[0].amountLamports) {
+          payoutLamports = BigInt(existing[0].amountLamports);
+        } else {
+          payoutLamports = BigInt(Math.floor(Number(winningPosition.shares ?? 0) * 1e9));
+        }
+        const payoutSol = Number(payoutLamports) / 1e9;
         const result = await createPayoutUtxo(recipientWallet, payoutSol);
 
         if (result.ok && result.utxoRef) {

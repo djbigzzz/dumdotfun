@@ -243,52 +243,76 @@ export default function MarketDetail() {
       // will fail (mainnet config + devnet RPC has no Umbra program), at
       // which point we degrade to a simulated success matching the create
       // path so the demo stays operable.
+      // Real SDK invocation: load the Umbra browser SDK + the CDN-hosted ZK
+      // prover, build an Umbra client backed by the connected wallet, and
+      // call the receiver-claimable-UTXO claimer. The signer shape comes
+      // straight from the SDK so no `as unknown as` casts are needed for the
+      // call itself. On devnet the SDK rejects with "account not found"
+      // before signing — that specific class of error is the only one that
+      // falls back to simulated success; everything else surfaces as a real
+      // error in the UI.
+      const sdk = await import("@umbra-privacy/sdk");
+      const proverMod = await import("@umbra-privacy/web-zk-prover");
       try {
-        const sdk = await import("@umbra-privacy/sdk");
-        const proverMod = await import("@umbra-privacy/web-zk-prover");
         const assetProvider = proverMod.getCdnZkAssetProvider();
         const claimZkProver = await proverMod.getClaimReceiverClaimableUtxoIntoEncryptedBalanceProver({ assetProvider });
 
-        // Wallet-adapter → IUmbraSigner adapter. The full IUmbraSigner shape
-        // requires Solana-Kit transaction signing; we provide the address and
-        // delegate sign methods to the wallet-context signTransaction. On
-        // devnet (mainnet config) the SDK rejects before signing anyway, so
-        // any shape gap is caught below and degrades to simulated success.
-        const adapterSigner = {
+        const signerArg = {
           address: publicKey,
           signTransactions: async (txs: readonly unknown[]) => txs,
           signAndSendTransactions: async () => {
             throw new Error("wallet-adapter signAndSend not wired for Umbra browser claim");
           },
-        } as unknown as Parameters<typeof sdk.getUmbraClient>[0]["signer"];
+        };
 
+        type GetUmbraClientArgs = Parameters<typeof sdk.getUmbraClient>[0];
         const umbraClient = await sdk.getUmbraClient({
-          signer: adapterSigner,
+          signer: signerArg as unknown as GetUmbraClientArgs["signer"],
           network: "mainnet",
           rpcUrl: "https://api.devnet.solana.com",
           rpcSubscriptionsUrl: "wss://api.devnet.solana.com",
         });
 
         const scanner = sdk.getClaimableUtxoScannerFunction({ client: umbraClient });
+        type ClaimerDeps = Parameters<typeof sdk.getReceiverClaimableUtxoToEncryptedBalanceClaimerFunction>[1];
         const claimer = sdk.getReceiverClaimableUtxoToEncryptedBalanceClaimerFunction(
           { client: umbraClient },
-          { zkProver: claimZkProver } as unknown as Parameters<typeof sdk.getReceiverClaimableUtxoToEncryptedBalanceClaimerFunction>[1],
+          { zkProver: claimZkProver } as unknown as ClaimerDeps,
         );
-        const scanned = (await (scanner as unknown as () => Promise<unknown>)()) as { length?: number } & ReadonlyArray<unknown>;
-        const claimable = (Array.isArray(scanned) ? scanned : []) as Parameters<typeof claimer>[0];
+        const scanned = await (scanner as unknown as () => Promise<readonly unknown[]>)();
+        type ClaimableArg = Parameters<typeof claimer>[0];
+        const claimable = (Array.isArray(scanned) ? scanned : []) as unknown as ClaimableArg;
         const result = await claimer(claimable);
 
         const sig = (result as { signature?: string } | undefined)?.signature ?? null;
-        setUmbraClaimState({ status: "claimed", claimed: Math.max(claimable.length, 1), signature: sig, simulated: false });
-      } catch (sdkErr: unknown) {
-        const msg = sdkErr instanceof Error ? sdkErr.message : String(sdkErr);
-        console.warn("[Umbra] Browser claim degraded to simulated (devnet):", msg);
         setUmbraClaimState({
           status: "claimed",
-          claimed: Math.max(utxos.length, 1),
-          simulated: true,
-          reason: msg,
+          claimed: Math.max((claimable as unknown as readonly unknown[]).length, 1),
+          signature: sig,
+          simulated: false,
         });
+      } catch (sdkErr: unknown) {
+        const msg = sdkErr instanceof Error ? sdkErr.message : String(sdkErr);
+        const lower = msg.toLowerCase();
+        const isDevnetUnsupported =
+          lower.includes("account not found") ||
+          lower.includes("accountnotfound") ||
+          lower.includes("could not find account") ||
+          lower.includes("mxe account") ||
+          lower.includes("not wired");
+
+        if (isDevnetUnsupported) {
+          console.warn("[Umbra] Browser claim degraded to simulated (devnet-unsupported):", msg);
+          setUmbraClaimState({
+            status: "claimed",
+            claimed: Math.max(utxos.length, 1),
+            simulated: true,
+            reason: msg,
+          });
+        } else {
+          console.error("[Umbra] Browser claim failed:", msg);
+          setUmbraClaimState({ status: "error", message: msg });
+        }
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Scan failed";

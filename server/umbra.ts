@@ -104,7 +104,13 @@ export async function getUmbraStatus(): Promise<UmbraStatus> {
     umbraPayoutCount = 0;
   }
 
-  const isLive = payoutsStatus.clientInitialised || umbraPayoutCount > 0;
+  // Umbra is "live" when the SDK is loaded and the platform authority has
+  // initialised the client — both happen at boot when PLATFORM_AUTHORITY_SECRET_KEY
+  // is configured. The payout count is reported separately so reviewers can
+  // distinguish "wired and ready" from "has produced UTXOs". Devnet program
+  // unavailability does not flip live → false; that's surfaced via per-call
+  // simulated:true on the create endpoint instead.
+  const isLive = payoutsStatus.clientInitialised;
 
   return {
     integrated: true,
