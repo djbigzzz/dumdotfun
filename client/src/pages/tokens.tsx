@@ -249,14 +249,20 @@ export default function TokensPage() {
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
   const trendingRef = useRef<HTMLDivElement>(null);
 
-  const { data: tokens, isLoading, error } = useQuery<Token[]>({
-    queryKey: ["tokens", "all"],
+  const [includeDupes, setIncludeDupes] = useState(false);
+
+  const { data: tokensResp, isLoading, error } = useQuery<{ tokens: Token[]; dupesHidden: number }>({
+    queryKey: ["tokens", "all", includeDupes],
     queryFn: async () => {
-      const res = await fetch("/api/tokens?limit=500");
+      const res = await fetch(`/api/tokens?limit=500${includeDupes ? "&includeDupes=true" : ""}`);
       if (!res.ok) throw new Error("Failed to fetch tokens");
-      return res.json();
+      const dupesHidden = parseInt(res.headers.get("X-Dupes-Hidden") || "0", 10);
+      const tokens = await res.json();
+      return { tokens, dupesHidden };
     },
   });
+  const tokens = tokensResp?.tokens;
+  const dupesHidden = tokensResp?.dupesHidden ?? 0;
 
   const PAGE_SIZE = 24;
   const [currentPage, setCurrentPage] = useState(1);
@@ -719,6 +725,20 @@ export default function TokensPage() {
                 <ChevronRight className="w-3.5 h-3.5" />
               </button>
             </div>
+          </div>
+        )}
+
+        {!isLoading && !error && (dupesHidden > 0 || includeDupes) && (
+          <div className="flex items-center justify-center pt-2">
+            <button
+              onClick={() => setIncludeDupes(v => !v)}
+              className="text-xs font-bold text-gray-500 hover:text-black underline underline-offset-2"
+              data-testid="button-toggle-dupes"
+            >
+              {includeDupes
+                ? "Hide duplicate launches"
+                : `+ Show ${dupesHidden} duplicate launch${dupesHidden === 1 ? "" : "es"} from retried mints`}
+            </button>
           </div>
         )}
       </div>

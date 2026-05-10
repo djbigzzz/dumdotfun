@@ -369,6 +369,7 @@ export async function registerRoutes(
     try {
       const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? "100"), 10) || 100, 1), 500);
       const offset = Math.max(parseInt(String(req.query.offset ?? "0"), 10) || 0, 0);
+      const includeDupes = String(req.query.includeDupes ?? "").toLowerCase() === "true";
       // Hide placeholder rows that older orphan-recovery code wrote when
       // on-chain metadata was unreadable (e.g. mint exists but Metaplex
       // metadata account never landed). They have no real name, symbol or
@@ -413,13 +414,18 @@ export async function registerRoutes(
       // without touching on-chain state. dbTokens is already ordered by
       // createdAt DESC so the first occurrence is the newest.
       const seenCreatorSymbol = new Set<string>();
-      const dedupedTokens = dbTokens.filter((t) => {
-        const key = `${(t.creatorAddress || "").toLowerCase()}::${(t.symbol || "").trim().toUpperCase()}`;
-        if (!t.creatorAddress || !t.symbol) return true;
-        if (seenCreatorSymbol.has(key)) return false;
-        seenCreatorSymbol.add(key);
-        return true;
-      });
+      let dedupeHidden = 0;
+      const dedupedTokens = includeDupes
+        ? dbTokens
+        : dbTokens.filter((t) => {
+            const key = `${(t.creatorAddress || "").toLowerCase()}::${(t.symbol || "").trim().toUpperCase()}`;
+            if (!t.creatorAddress || !t.symbol) return true;
+            if (seenCreatorSymbol.has(key)) { dedupeHidden++; return false; }
+            seenCreatorSymbol.add(key);
+            return true;
+          });
+      res.setHeader("X-Dupes-Hidden", String(dedupeHidden));
+      res.setHeader("Access-Control-Expose-Headers", "X-Dupes-Hidden");
 
       const tokensWithPredictions = await Promise.all(
         dedupedTokens.map(async (token: typeof tokensTable.$inferSelect) => {
