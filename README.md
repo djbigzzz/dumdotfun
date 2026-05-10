@@ -65,13 +65,14 @@ Dum.fun lets anyone launch a meme token on Solana in **seconds**, trade it on a 
 
 This repo targets multiple Frontier Hackathon tracks. Each integration is **real**, on-chain (where applicable), and reachable from the live app — no mocks, no stubs.
 
-| Track | Prize | What we built |
-|---|---|---|
-| 🥷 **Umbra Privacy Track** | $10,000 | Private prediction-market payouts via `@umbra-privacy/sdk` — winners shield winnings into an encrypted balance with a one-click claim card on the market page |
-| 🛡️ **Cloak Privacy Track** | $5,000 | UTXO-based shielded payouts via `@cloak.dev/sdk-devnet` — real Groth16 ZK proofs against the Cloak devnet program |
-| 📊 **Dune SIM API Track** | $6K SIM Enterprise | Live on-chain wallet activity panel + token analytics on every profile and token page |
-| 🌐 **SNS Identity Track** | $1,800 | Forward + reverse `.sol` resolution against the SNS mainnet program — every wallet on the platform shows its `.sol` name |
-| 🎓 **100xDevs Side Track** | $2,500 | Full-stack Solana product built end-to-end during the cohort |
+| Track | What we built |
+|---|---|
+| 🥷 **Umbra Privacy Track** | Private prediction-market payouts via `@umbra-privacy/sdk` — winners shield winnings into an encrypted balance with a one-click claim card on the market page |
+| 🛡️ **Cloak Privacy Track** | UTXO-based shielded payouts via `@cloak.dev/sdk-devnet` — real Groth16 ZK proofs against the Cloak devnet program |
+| 📊 **Dune SIM API Track** | Live on-chain wallet activity panel + token analytics on every profile and token page |
+| 🌐 **SNS Identity Track** | Forward + reverse `.sol` resolution against the SNS mainnet program — every wallet on the platform shows its `.sol` name |
+| 🛡️ **Adevar Audit Credits** | Bonding-curve, prediction-market, and confidential-bet programs queued for Adevar pre-mainnet security review |
+| 🎓 **100xDevs Side Track** | Full-stack Solana product built end-to-end during the cohort |
 
 **Other sponsor infrastructure we rely on:** Helius RPC (all on-chain reads/writes + webhooks), Raydium SDK v2 (automated CPMM graduation), Solana Mobile Stack (native Android + Mobile Wallet Adapter), SendGrid (transactional email).
 
