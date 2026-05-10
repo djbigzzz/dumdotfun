@@ -1,0 +1,80 @@
+About Umbra
+Umbra is the privacy infrastructure layer for Solana. We make it possible for anyone, anywhere, to move money onchain without broadcasting their financial life to the world. Confidential transfers, private balances, viewing keys for compliance, shield any asset on solana, private swaps, etc.
+
+We built the Umbra SDK, a developer toolkit that lets anyone integrate transactional privacy into their Solana applications. The SDK handles the heavy lifting so developers can focus on building products.
+
+Your Mission
+Build a product or prototype using the Umbra SDK that brings real financial privacy to Solana. We're looking for applications that use Umbra's privacy primitives (confidential transfers, encrypted balances, viewing keys, private swaps and more) to solve actual problems people have today. Umbra has a private wallet so we want you to think out of the box.
+
+Hackathon Track Scope
+We want to see builders take Umbra's privacy infrastructure and turn it into real, usable financial products. Here are some ideas and examples to get you started, but feel free to think beyond these:
+
+Private Payments:
+Private Solana Pay. A privacy-first version of Solana Pay where merchants get paid and customers stay private. Transaction amounts and sender addresses stay confidential onchain.
+
+X402 Private Payments. Private machine-to-machine payment flows using the X402 protocol with Umbra's confidential transfer layer underneath.
+
+Payment Links. Shareable payment links where the recipient receives funds without revealing their wallet address to the sender or anyone watching onchain.
+
+Private Gift Cards. User A sends a gift card to User B via a link. User B claims it into their wallet without revealing their final address.
+
+Private Financial Infrastructure:
+Private Payroll. Salary payments where amounts and recipient addresses are confidential. Employers pay onchain without broadcasting what they pay each employee to the world.
+
+Private Neobank. A banking interface where the user's main balance is private by default. Your account balance isn't visible to anyone but you. Allow for shielded ownership of various assets. Start with available pools and stablecoins.
+
+Private Billing Software. Invoices, memos, line items, all with confidential amounts and parties. Real business billing on private rails.
+
+Compliance and Tax Tooling:
+Compliance Platform. A tool where someone inputs a transaction signature and the viewing key for that transaction, and gets the full decrypted details. Report generation, audit trails, selective disclosure for regulators or accountants.
+
+Private Taxation Platform. Tax reporting built on viewing key decryption. Users generate tax reports from their private transactions without making their full history public. Decrypts what's needed, nothing more.
+
+Bring Your Own Idea:
+The above is a starting point. If you have a product idea that uses Umbra SDK to solve a financial privacy problem we haven't listed, go for it. We care about real utility and good execution.
+
+Submission Requirements
+A link to your public GitHub repository containing your project's code.
+
+A clear and concise README.md in your repository explaining:
+
+The problem your project solves, target users, and use cases.
+
+How your project uses the Umbra SDK.
+
+Instructions on how to build, test, and use your application.
+
+Any deployed program IDs or frontend links if applicable.
+
+A short video (under 5 minutes) demonstrating your project's functionality and explaining your design choices.
+
+Judging Criteria
+Core Integration of Umbra SDK: How fundamentally does the project rely on the Umbra SDK? Is it essential to the product's core functionality, or used only superficially?
+
+Innovation: How novel and differentiated is the use of Umbra SDK compared to existing solutions?
+
+Technical Execution: Quality, correctness, and robustness of the implementation. How well is the system designed and engineered?
+
+Product and Commercial Potential: Is this a compelling product? Does it solve a real problem with clear user demand and potential for adoption or monetization?
+
+Impact: What meaningful problem does the project solve, and how significant is its potential contribution to users and the Solana ecosystem?
+
+Usability and Experience: How intuitive, polished, and user-friendly is the application?
+
+Completeness and Clarity: How fully realized is the project within the hackathon timeframe, and how clearly is the vision communicated (demo, pitch, docs)?
+
+Reward Structure
+1st Place: $5,000 USDC
+
+2nd Place: $3,000 USDC
+
+3rd Place: $2,000 USDC
+
+Documentation
+Umbra SDK Documentation
+
+Umbra Developer Docs
+
+Umbra Website
+
+If you have any questions or need help with your integration, reach out to the Umbra team on X or TG. We're here to help you build.

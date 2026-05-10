@@ -1,0 +1,72 @@
+Tether is putting up an additional 10,000 USDt for Colosseum Frontier builders who integrate QVAC into their project.
+
+This is a side track running alongside the main hackathon — meaning if your project qualifies, you compete for both the main Frontier prizes and this $10k on top.
+
+What is QVAC?
+
+QVAC is Tether's decentralized, local-first AI platform — a complete SDK for running AI models directly on any device, without routing data through a centralized cloud. Think of it as the infrastructure layer for sovereign intelligence: your AI runs privately, locally, and without permission, on Linux, macOS, Windows, Android, and iOS, all from the same API.
+
+Where most AI tools require cloud infrastructure, API keys, and subscriptions, QVAC eliminates central points of failure entirely. It uses a hardware-agnostic engine built on Vulkan API, meaning it runs on any GPU. Models load locally, inference is instant, and your users' data never leaves their device.
+
+The SDK ships with a full suite of AI capabilities out of the box:
+
+LLM inference — text generation and chat, including multimodal (text + image) via @qvac/llm-llamacpp
+
+Text embeddings & RAG — semantic search, clustering, and retrieval-augmented generation via @qvac/embed-llamacpp
+
+Translation — offline neural machine translation across languages via @qvac/translation-nmtcpp
+
+Speech-to-text — automatic speech recognition via @qvac/transcription-whispercpp and @qvac/transcription-parakeet (with speaker diarization)
+
+Text-to-speech — speech synthesis via @qvac/tts-onnx
+
+OCR — optical character recognition from images via @qvac/ocr-onnx
+
+Tether has also introduced WDK (wdk.tether.io), an open-source toolkit designed to streamline and enhance the development and deployment of non-custodial wallets, helping builders work more efficiently and securely
+
+Get started in minutes:
+
+npm install @qvac/sdk
+Full docs at docs.qvac.tether.io
+
+Requirements
+
+To be eligible for the Tether side track prize, your submission must:
+
+Be a valid submission to the Colosseum Frontier hackathon (submitted before the May 11 deadline)
+
+Meaningfully integrate QVAC SDK into the core functionality of your project — not as a wrapper or demo, but as a functional component of what you're building
+
+Include a public GitHub repo with a working demo or video walkthrough
+
+Submit through this Superteam Earn listing by the same May 11 deadline
+
+What counts as a meaningful integration? Your project should use at least one QVAC capability — whether that's local LLM inference, embeddings, speech-to-text, translation, or OCR — in a way that directly serves your product's users. The integration must work offline or on-device, which is the point of QVAC.
+
+How Winners Are Chosen
+
+Submissions will be evaluated by Tether and Superteam Georgia across four criteria:
+
+Technical depth of QVAC integration (40%) — Does the project make real use of QVAC's local AI capabilities? Is the integration meaningful, or surface-level?
+
+Product value (30%) — Does the project solve a real problem? Would someone actually use this?
+
+Innovation (20%) — Is this a novel use of local/decentralized AI? Does it explore territory that cloud-based AI couldn't serve as well?
+
+Demo quality (10%) — Is the submission clearly presented, reproducible, and well-documented?
+
+Winners will be announced by May 13, 2026.
+
+Resources
+
+QVAC homepage: https://qvac.tether.io
+
+Documentation: https://docs.qvac.tether.io
+
+GitHub: https://github.com/tetherto/qvac
+
+Discord: https://discord.com/invite/tetherdev
+
+Quickstart: https://docs.qvac.tether.io/sdk/getting-started/quickstart/
+
+Questions? Reach out on Telegram: @mariamgoya

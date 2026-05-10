@@ -1,0 +1,40 @@
+Project Description
+Dum.fun is a Solana meme token launchpad with on-chain prediction markets. We integrated the Encrypt FHE network to let users seal their bet amounts as homomorphic ciphertexts - keeping individual stakes private while the market pool remains fully functional.
+
+How does your project use Ika and/or Encrypt, and how central are they to its core functionality?
+Dum.fun is a live Solana devnet token launchpad where users launch meme tokens via bonding curves and bet on their survival using prediction markets. Every token gets a market: "Will this rug?" - and users put real devnet SOL on the line.
+
+
+The problem: prediction market bets are fully transparent on-chain. Any observer can watch pool movements, infer bet sizes, and front-run other participants.
+
+
+Our solution: we integrated the Encrypt FHE network (powered by Ika) to add a "🔒 Bet Privately" mode to every market. When a user enables private mode and confirms their bet, our backend calls the Encrypt pre-alpha gRPC executor on Solana devnet, submits the bet amount as an FHE EUint64 ciphertext using the @encrypt.xyz/pre-alpha-solana-client SDK, and receives a real on-chain ciphertext identifier. That identifier is stored alongside the position - the amount stays sealed.
+
+
+What's live today:
+
+Toggle "🔒 Make this bet private" on any active market
+
+Server calls createInput() on the Encrypt executor and returns the ciphertext ID
+
+Success banner shows "Private bet sealed" with the live Encrypt ciphertext identifier
+
+My Bets page shows a green 🔒 FHE badge with "Sealed" in place of the amount
+
+What comes next with Encrypt mainnet:
+
+Homomorphic computation over sealed bets (aggregate without decrypting)
+
+Authorized decryption via readCiphertext() so winners can verify their own payout
+
+Zero-knowledge proof of valid encryption for trustless bet validity
+
+Tech stack: React + Vite frontend, Express/TypeScript backend, PostgreSQL, Solana devnet, Helius RPC, Anchor programs, @encrypt.xyz/pre-alpha-solana-client v0.1.1
+
+What is novel or unique about how you used Ika and/or Encrypt?
+
+
+What problem would your project face without Ika and/or Encrypt?
+
+
+What are the current limitations or next steps for your implementation?
