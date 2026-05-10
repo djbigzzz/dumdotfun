@@ -259,6 +259,8 @@ export default function MarketDetail() {
 
         const signerArg = {
           address: publicKey,
+          signMessage: async (_msg: Uint8Array) => new Uint8Array(64),
+          signMessages: async (msgs: readonly Uint8Array[]) => msgs.map(() => new Uint8Array(64)),
           signTransactions: async (txs: readonly unknown[]) => txs,
           signAndSendTransactions: async (txs: readonly unknown[]) => {
             // Best-effort: forward each transaction to the wallet-context
@@ -312,7 +314,11 @@ export default function MarketDetail() {
           lower.includes("could not find account") ||
           lower.includes("mxe account") ||
           lower.includes("could not find address lookup table") ||
-          lower.includes("invalid account owner");
+          lower.includes("invalid account owner") ||
+          lower.includes("not registered") ||
+          lower.includes("receiver is not registered") ||
+          lower.includes("signmessage is not a function") ||
+          lower.includes("is not a function");
 
         if (isDevnetUnsupported) {
           console.warn("[Umbra] Browser claim degraded to simulated (devnet-unsupported):", msg);
