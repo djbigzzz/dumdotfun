@@ -303,7 +303,7 @@ export default function TokenPage() {
       return res.json();
     },
     enabled: !!connectedWallet,
-    refetchInterval: 15000,
+    refetchInterval: 30000,
   });
   const solBalance = solBalanceData?.balance ?? null;
 

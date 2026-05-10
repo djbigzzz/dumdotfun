@@ -325,7 +325,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (connectedWallet) {
       fetchBalance();
-      const interval = setInterval(fetchBalance, 10000);
+      const interval = setInterval(fetchBalance, 30000);
       return () => clearInterval(interval);
     } else {
       setSolBalance(null);

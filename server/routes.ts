@@ -2051,7 +2051,7 @@ export async function registerRoutes(
 
   // DEVNET: Get wallet balance
   const balanceCache = new Map<string, { balance: number; ts: number }>();
-  const BALANCE_TTL_MS = 8000;
+  const BALANCE_TTL_MS = 30000;
   app.get("/api/devnet/balance/:address", async (req, res) => {
     try {
       const { address } = req.params;
