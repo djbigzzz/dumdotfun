@@ -268,7 +268,10 @@ export async function createReceiverClaimableUtxo(
       lower.includes("could not find account") ||
       lower.includes("program account not found") ||
       lower.includes("invalid account owner") ||
-      lower.includes("could not find address lookup table");
+      lower.includes("could not find address lookup table") ||
+      lower.includes("receiver is not registered") ||
+      lower.includes("not registered") ||
+      lower.includes("user is not registered");
 
     if (isDevnetUnsupported) {
       console.warn(`[Umbra] UTXO creation degraded to simulated (devnet-unsupported): ${msg}`);
