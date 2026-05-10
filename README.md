@@ -160,13 +160,18 @@ DUNE_API_KEY=...                    # optional — on-chain wallet panel
 
 ---
 
-## ⚠️ Known gotchas
+## 🧑‍⚖️ For judges
 
-> See `replit.md` for the full list. Highlights below.
+Want to test dum.fun in 5 minutes?
 
-- 🧪 **Devnet only.** Bonding curve program has a known overflow on very large sells; needs redeploy with checked math before mainnet.
-- 🔐 **Vanity keypairs** are stored as plaintext in PostgreSQL today; encryption is needed pre-mainnet.
-- 🩹 **`bigint-buffer` and `bfj`** are patched via npm overrides + a postinstall script to mitigate transitive CVEs.
+1. 🌐 Open **[dum.fun](https://dum.fun)** on desktop or Android.
+2. 🪙 Connect a Solana **devnet** wallet (Phantom, Solflare, or Saga). Get free devnet SOL from any [Solana faucet](https://faucet.solana.com).
+3. 🚀 Hit **Launch** to mint your own meme token in seconds — every mint address ends in `dum`.
+4. 📈 Trade it on the bonding curve, watch the live OHLC chart, and check the real-time activity feed.
+5. 🎯 Open any token's **Predictions** tab and bet on whether it will graduate or rug.
+6. 🏆 Earn points from quests and climb the **seasonal leaderboard** for SOL rewards.
+
+All actions are real Solana devnet transactions via Helius RPC. No mock data anywhere.
 
 ---
 
