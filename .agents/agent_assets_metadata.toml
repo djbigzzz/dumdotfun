@@ -47,3 +47,9 @@ id = "EnBDDYp-h0S51jlWiwak0"
 uri = "file://attached_assets/generated_images/og_v7.png"
 type = "image"
 title = "OG Banner v7 — with live token preview"
+
+[[outputs]]
+id = "yNCetTG-7JOkz_aiNlzkC"
+uri = "file://video-scripts/all-tracks.md"
+type = "text"
+title = "Frontier Hackathon — All 8 Video Scripts"
