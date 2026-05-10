@@ -5229,6 +5229,42 @@ export async function registerRoutes(
           payoutLamports = BigInt(Math.floor(Number(winningPosition.shares ?? 0) * 1e9));
         }
         const payoutSol = Number(payoutLamports) / 1e9;
+
+        // Idempotency lock: insert a placeholder marketPayouts row keyed by
+        // the UNIQUE positionId BEFORE invoking the SDK. The unique
+        // constraint guarantees that two concurrent callers can't both
+        // proceed past this point. After a row exists, the umbraRef pre-
+        // check above turns subsequent calls into a no-op return.
+        if (existing.length === 0) {
+          await db
+            .insert(mpTable)
+            .values({
+              positionId: winningPosition.id,
+              marketId,
+              walletAddress: recipientWallet,
+              amountLamports: payoutLamports.toString(),
+              status: "pending",
+            })
+            .onConflictDoNothing({ target: mpTable.positionId });
+
+          // Re-check: if another request beat us to it and already set
+          // umbraRef, return the stored record instead of double-creating.
+          const recheck = await db
+            .select({ umbraRef: mpTable.umbraRef, umbraQueueSig: mpTable.umbraQueueSig })
+            .from(mpTable)
+            .where(eq(mpTable.positionId, winningPosition.id))
+            .limit(1);
+          if (recheck[0]?.umbraRef) {
+            return res.json({
+              success: true,
+              alreadyShielded: true,
+              utxoRef: recheck[0].umbraRef,
+              createUtxoSignature: recheck[0].umbraQueueSig,
+              note: "UTXO already created for this position; viewing key was returned at creation time only",
+            });
+          }
+        }
+
         const result = await createPayoutUtxo(recipientWallet, payoutSol);
 
         if (result.ok && result.utxoRef) {
@@ -5238,7 +5274,10 @@ export async function registerRoutes(
               umbraRef: result.utxoRef,
               umbraQueueSig: result.createUtxoSignature ?? null,
             })
-            .where(eq(mpTable.positionId, winningPosition.id));
+            .where(and(
+              eq(mpTable.positionId, winningPosition.id),
+              isNull(mpTable.umbraRef),
+            ));
         }
 
         return res.json({

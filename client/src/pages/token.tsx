@@ -9,7 +9,6 @@ import { ArrowLeft, ExternalLink, Twitter, MessageCircle, Globe, Loader2, Target
 import { shareContent, hapticFeedback, buildTwitterIntent } from "@/lib/mobile-utils";
 import { TokenHoldersCard } from "@/components/token-holders-card";
 import { WalletName } from "@/components/wallet-name";
-import { UmbraShield } from "@/components/umbra-shield";
 import { useState, useMemo, useCallback } from "react";
 import { toast } from "sonner";
 import { txToast, pointsAwarded, betPlaced, friendlyError } from "@/lib/notify";
@@ -1480,13 +1479,9 @@ export default function TokenPage() {
             {/* Token Holders */}
             <TokenHoldersCard tokenMint={token.mint} compact />
 
-            {/* Umbra Privacy Shield */}
-            <UmbraShield
-              tokenMint={token.mint}
-              tokenSymbol={token.symbol}
-              senderWallet={connectedWallet}
-              privateMode={privateMode}
-            />
+            {/* Umbra Privacy Shield was the legacy token-page flow; private
+                payouts are now handled per-winner on the market page via the
+                ReceiverClaimableUTXO + browser-claim flow. */}
           </div>
         </div>
       </div>
