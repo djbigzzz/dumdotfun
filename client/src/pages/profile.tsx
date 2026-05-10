@@ -8,7 +8,7 @@ import { usePageTitle } from "@/hooks/use-page-title";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
-import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, ArrowUpRight, X, Pencil, ChevronRight, Sparkles, LogOut, Twitter, History as HistoryIcon, ArrowUpDown } from "lucide-react";
+import { ExternalLink, Copy, Check, Wallet, Gift, Share2, Trophy, Star, Flame, Shield, Diamond, Target, TrendingUp, Coins, Loader2, RefreshCw, ArrowDownLeft, ArrowUpRight, X, Pencil, ChevronRight, Sparkles, LogOut, Twitter, History as HistoryIcon, ArrowUpDown, Lock } from "lucide-react";
 import { Connection, Transaction } from "@solana/web3.js";
 import { Buffer } from "buffer";
 import { toast } from "sonner";
@@ -1127,10 +1127,25 @@ export default function Profile() {
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0">
-                                  <span className={`text-[10px] px-2 py-0.5 rounded font-black ${p.side === "yes" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
-                                    {p.side.toUpperCase()}
-                                  </span>
-                                  <div className="text-xs font-mono font-bold mt-1">{p.amount.toFixed(3)} SOL</div>
+                                  <div className="flex items-center justify-end gap-1">
+                                    {p.isConfidential && (
+                                      <span className="text-[10px] px-1.5 py-0.5 rounded font-black bg-[#4ADE80]/15 text-[#4ADE80] border border-[#4ADE80]/30 flex items-center gap-0.5">
+                                        <Lock className="w-2.5 h-2.5" /> FHE
+                                      </span>
+                                    )}
+                                    <span className={`text-[10px] px-2 py-0.5 rounded font-black ${p.side === "yes" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                                      {p.side.toUpperCase()}
+                                    </span>
+                                  </div>
+                                  <div className="text-xs font-mono font-bold mt-1">
+                                    {p.isConfidential ? (
+                                      <span className="text-[#4ADE80]/70 flex items-center gap-0.5 justify-end">
+                                        <Lock className="w-2.5 h-2.5" /> Sealed
+                                      </span>
+                                    ) : (
+                                      `${p.amount.toFixed(3)} SOL`
+                                    )}
+                                  </div>
                                 </div>
                               </Link>
                             ))}

@@ -3402,7 +3402,30 @@ export async function registerRoutes(
 
       // Generate unique bet ID
       const betId = `bet_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      
+
+      // For confidential bets, submit the bet amount as an FHE EUint64 ciphertext
+      // to the Encrypt pre-alpha gRPC executor and store the ciphertext identifier.
+      let resolvedEncryptedAmount = encryptedAmount;
+      let ciphertextId: string | undefined;
+      if (isConfidential) {
+        try {
+          const { encryptBetAmount, deriveLocalCiphertextRef } = await import("./services/encrypt-client");
+          const amountLamports = BigInt(Math.round(amountNum * 1e9));
+          const encResult = await encryptBetAmount(amountLamports);
+          if (encResult) {
+            ciphertextId = encResult.ciphertextId;
+            resolvedEncryptedAmount = ciphertextId;
+            console.log(`[Encrypt] ciphertext created: ${ciphertextId.slice(0, 16)}…`);
+          } else {
+            ciphertextId = deriveLocalCiphertextRef(betId, amountLamports);
+            resolvedEncryptedAmount = ciphertextId;
+            console.log(`[Encrypt] gRPC unavailable, using local ref: ${ciphertextId.slice(0, 16)}…`);
+          }
+        } catch (encErr) {
+          console.error("[Encrypt] failed to encrypt bet amount:", encErr);
+        }
+      }
+
       // Store pending bet
       pendingBets.set(betId, {
         marketId: id,
@@ -3414,14 +3437,14 @@ export async function registerRoutes(
         shares,
         newYes,
         newNo,
-        encryptedAmount,
+        encryptedAmount: resolvedEncryptedAmount,
         commitment,
         nonce,
         isConfidential: !!isConfidential,
         createdAt: Date.now(),
       });
 
-      console.log(`Prepared bet ${betId}: ${amountNum} SOL on ${side} for market ${id}`);
+      console.log(`Prepared bet ${betId}: ${amountNum} SOL on ${side} for market ${id}${isConfidential ? " [confidential]" : ""}`);
 
       return res.json({
         success: true,
@@ -3431,6 +3454,7 @@ export async function registerRoutes(
         feePercent: PLATFORM_FEES.BETTING_FEE_PERCENT,
         netBetAmount: netAmount,
         expectedShares: shares,
+        ...(isConfidential && ciphertextId ? { ciphertextId } : {}),
       });
     } catch (error: any) {
       console.error("Error preparing bet:", error);

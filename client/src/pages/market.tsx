@@ -116,6 +116,7 @@ export default function MarketDetail() {
 
   const [success, setSuccess] = useState<boolean>(false);
   const [showDetails, setShowDetails] = useState<boolean>(false);
+  const [ciphertextId, setCiphertextId] = useState<string | null>(null);
 
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
@@ -169,7 +170,8 @@ export default function MarketDetail() {
         amount,
         isConfidential: !!confidential,
       });
-      const { transaction: txBase64, betId } = await prepareRes.json();
+      const { transaction: txBase64, betId, ciphertextId } = await prepareRes.json();
+      if (ciphertextId) setCiphertextId(ciphertextId);
 
       // Step 2: Sign transaction with Phantom
       const txBytes = Buffer.from(txBase64, "base64");
@@ -227,7 +229,7 @@ export default function MarketDetail() {
       setSelectedSide(null);
       setError(null);
       setSuccess(true);
-      setTimeout(() => setSuccess(false), 5000);
+      setTimeout(() => { setSuccess(false); setCiphertextId(null); }, 8000);
     },
     onError: (error: Error) => {
       setError(error.message);
@@ -465,24 +467,34 @@ export default function MarketDetail() {
                     <motion.div
                       initial={{ opacity: 0, y: -6 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className={`mb-3 px-3 py-2 rounded text-sm font-bold flex items-center gap-2 ${
+                      className={`mb-3 px-3 py-2 rounded text-sm font-bold flex flex-col gap-1.5 ${
                         useConfidentialBet
                           ? "bg-[#4ADE80]/15 text-[#4ADE80] border border-[#4ADE80]/40"
                           : "bg-green-500/15 text-green-400 border border-green-500/40"
                       }`}
                     >
-                      <CheckCircle className="w-4 h-4 flex-shrink-0" />
-                      <span className="flex-1">Bet placed!</span>
-                      <button
-                        onClick={() => openTwitterIntent(
-                          `Just bet ${selectedSide === "yes" ? "YES" : "NO"} on "${market.question}" - join me on Dum.fun`,
-                          getShareUrl(`/market/${market.id}`)
-                        )}
-                        className="flex items-center gap-1 px-2 py-1 rounded bg-black/30 hover:bg-black/50 text-xs font-bold transition-colors"
-                        data-testid="button-share-bet"
-                      >
-                        <Twitter className="w-3 h-3" /> Brag
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 flex-shrink-0" />
+                        <span className="flex-1">
+                          {useConfidentialBet ? "Private bet sealed!" : "Bet placed!"}
+                        </span>
+                        <button
+                          onClick={() => openTwitterIntent(
+                            `Just bet ${selectedSide === "yes" ? "YES" : "NO"} on "${market.question}" - join me on Dum.fun`,
+                            getShareUrl(`/market/${market.id}`)
+                          )}
+                          className="flex items-center gap-1 px-2 py-1 rounded bg-black/30 hover:bg-black/50 text-xs font-bold transition-colors"
+                          data-testid="button-share-bet"
+                        >
+                          <Twitter className="w-3 h-3" /> Brag
+                        </button>
+                      </div>
+                      {useConfidentialBet && ciphertextId && (
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono opacity-70 pl-6">
+                          <Lock className="w-2.5 h-2.5 flex-shrink-0" />
+                          <span className="truncate">Encrypt ciphertext: {ciphertextId.slice(0, 24)}…</span>
+                        </div>
+                      )}
                     </motion.div>
                   )}
                   {error && (

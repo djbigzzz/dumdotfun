@@ -1,0 +1,61 @@
+About Adevar Labs
+Adevar Labs is a web3 security firm specializing in protocol audits with a focus on the Solana ecosystem. We work with teams that prioritize security as a core part of their development process, helping them assess the resilience of their systems. Our clients know that security is not a one-time event but an ongoing commitment. A good audit doesn’t just identify vulnerabilities, but challenges the way teams think about security. We exist to bring truth and clarity to an industry where security is often misunderstood or deprioritized.
+
+Mission
+Our mission is to foster a safer blockchain ecosystem by providing top-tier security expertise and tooling. We believe that robust security is the foundation for innovation, and we're committed to helping the next generation of crypto projects ship safely .
+
+Hackathon Track Scope
+Adevar Labs is offering a bounty of $50,000 in security audit credits to participants of the Solana Colosseum “Frontier” Hackathon. This track is designed to reward promising projects with the professional security support they need to succeed. We are particularly focused on projects within the DeFi, RWAs, Consumer Apps, and Stablecoins categories.
+
+Eligibility
+This bounty is exclusively for teams that have submitted a project to the official Solana Frontier Hackathon.
+
+Priority will be given to the teams that will participate in a Superteam Demo Day (Demo Day Germany, Balkans, etc.) and/or a regional Superteam Demo Day (e.g., the EU Demo Day).
+
+Submission Requirements
+To be considered for the bounty, your team must submit an application that includes:
+
+Project Link: A link to your project's official submission on the Colosseum platform.
+
+Code Repository: A public link to your project's GitHub repository.
+
+Documentation: Complete and up-to-date technical documentation of the audited codebase.
+
+Project Description: A brief, clear description of your project, including its purpose, functionality, and the category it falls under.
+
+Security Statement: A short explanation of your project's security architecture and why a professional security audit is critical for its future.
+
+Funding & Pitch Deck: A link to your investor pitch deck and/ or a brief summary of your project's funding stage and future fundraising plans. This information helps us understand your project's long-term vision and business viability.
+
+Judging Criteria
+Adevar Labs will evaluate submissions based on the following criteria:
+
+Innovation & Potential Impact: The uniqueness of the project and its potential to make a significant impact within its category.
+
+Technical Complexity: The technical sophistication of the smart contracts and overall architecture.
+
+Security Awareness: The team's demonstrated understanding of potential security risks and their proactive approach to addressing them.
+
+Documentation: Quality and clarity of documentation (completeness, accuracy, maintainability).
+
+Team Experience: We will assess the team's collective experience and expertise, including any previous entrepreneurial ventures, relevant industry experience, and complementary skill sets. We are looking for a team with the right mix of technical and business acumen that can execute on their vision and adapt to challenges.
+
+Applications are reviewed on a rolling basis. 
+
+Shortlisted teams will be invited for a brief interview before any credits are awarded.
+
+Resources
+To help you build a more secure project, we encourage you to explore these resources:
+
+adevarlabs.com/blogs
+
+The DeFi Pre-Launch Security Checklist
+
+Reward Structure
+Adevar Labs will select one or more winning teams to receive a share of the $50,000 in security audit credits. The credits, equivalent to two weeks of our security researcher's time, will be allocated based on our evaluation of each project's needs. 
+
+Note: These credits can be applied toward any service for up to 50% of the total audit cost, making it a great opportunity to significantly offset your security budget
+
+The final decision on the allocation of credits rests solely with Adevar Labs.
+
+Note: Winners of this bounty will be announced after the official Solana Colosseum Hackathon winners are revealed.

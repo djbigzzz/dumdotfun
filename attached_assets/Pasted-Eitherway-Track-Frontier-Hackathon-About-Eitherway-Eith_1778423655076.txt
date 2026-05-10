@@ -1,0 +1,324 @@
+Eitherway Track — Frontier Hackathon
+About Eitherway
+Eitherway turns ideas into live Solana dApps in minutes — not prototypes, but production-ready applications used by real users.
+
+Go from idea to live application with native integrations across Solflare, DFlow, Quicknode, Birdeye and Kamino.
+
+How it works: Include the partner name in your prompt when building. For example:
+
+“Create a Solflare wallet interface”
+
+“Set up Kamino vault tracking”
+
+Eitherway handles the integration automatically.
+
+This isn't a sandbox. You're launching real products that handle real users and real onchain activity.
+
+Getting Started
+Sign up and start building on Eitherway here
+
+Write your prompt including the partner name you’d like to integrate (DFlow, Quicknode, Solflare, Birdeye, Kamino)
+
+Generate and deploy your app
+
+Refine and optimise for real users
+
+Submit on Superteam Earn
+
+What We're Looking For
+dApps that survive the hackathon.
+
+We want products with staying power — applications that continue operating after judging ends, attract organic users, and generate measurable onchain activity.
+
+You can build anything—but strong submissions typically fall into:
+
+Trading interfaces (spot, derivatives, aggregators, limit orders)
+
+DeFi applications (lending, yield optimization, portfolio management)
+
+Dashboards & analytics (wallet tracking, protocol metrics, portfolio analysis)
+
+Automation tools (strategy execution, notifications, condition-based actions)
+
+New primitives (prediction markets, onchain reputation, social features)
+
+The common thread: solve a real problem with production-quality execution.
+
+Products that demonstrate real user interaction, live usage, and active users.
+
+Integration Requirements
+You must integrate deeply with at least one partner.
+
+Using Eitherway to integrate:
+
+When building in Eitherway, simply include the partner name in your prompt (e.g. “Build a dashboard showing Kamino vault positions” or “Create a trading interface using DFlow”). The platform handles the technical integration automatically.
+
+You’ll also select your primary partner on the dropdown menu when submitting your entry with Superteam Earn, but your dApp must clearly use the partner tech in the product.
+
+“Deeply” means building your product around the partner’s core capabilities—not just plugging in a basic integration.
+
+The examples below show what deep integrations look like for each partner - but they’re starting points, not requirements.
+
+Integration Tracks
+Solflare
+Track focus:
+Build dApps where the wallet experience is central to the product - not just a connect button. Treat the wallet as a core interface layer.
+
+Examples of deep integration:
+
+Custom transaction builders or signing flows
+
+Portfolio analytics using wallet data
+
+Multi-sig coordination tools
+
+Transaction history visualization or analysis
+
+Wallet-first onboarding experiences
+
+Bonus points for:
+
+In-app browser compatibility
+
+Deep linking
+
+Transaction simulation
+
+What strong submissions look like:
+
+Wallet is core to the UX, not secondary
+
+Improves how users interact with transactions
+
+Feels like a better wallet experience than existing apps
+
+DFlow
+Focus: Trading infrastructure and execution quality across spot crypto and prediction markets
+
+Build products that give traders a real edge - better prices, smarter routing, and MEV-resistant execution.
+
+Examples:
+
+Smart swap interfaces that optimise execution using DFlow routing (spot + prediction markets)
+
+MEV-protected trading experiences
+
+Custom trading terminals powered by DFlow liquidity across spot and prediction markets
+
+Advanced execution systems (TWAP, iceberg, conditional orders)
+
+Lending and yield products for prediction market outcome tokens
+
+Prediction market trading bots leveraging real-world data to make informed decisions
+
+What strong submissions look like:
+
+Demonstrates measurable improvement in execution (price, slippage, speed)
+
+Improves real trader outcomes (PnL, UX, reliability)
+
+Uses DFlow as a core part of the product - not just integrated on the surface
+
+Quicknode
+Focus: Data infrastructure and performance
+
+Build products that rely on fast, real-time data to deliver better user experiences
+
+Examples:
+
+Real-time dashboards with live onchain data
+
+High-performance trading or DeFi interfaces
+
+Notification or automation systems powered by webhooks
+
+Data-heavy apps requiring fast RPC and indexing
+
+What strong submissions look like:
+
+Fast, responsive UX powered by real-time data
+
+Clear use of Quicknode for performance-critical features
+
+Handles scale, latency, or data complexity effectively
+
+Birdeye
+Focus: Data intelligence and real-time market insights
+
+Build dApps where real-time and historical on-chain data form the core intelligence layer of the product. Go beyond simple price displays—use Birdeye’s API to power deep market analysis, user insights, discovery, and automated execution.
+
+Examples:
+
+Advanced portfolio analytics with accurate PnL tracking
+
+Automated trading strategies powered by real-time price feeds
+
+Whale tracking dashboards and smart money movement monitoring
+
+Market intelligence tools mapping liquidity, volume, and anomalies
+
+Custom token screeners and real-time trading alert systems
+
+What strong submissions look like:
+
+Uses data as a core product engine, not just a display layer
+
+Surfaces insights users can act on (not just raw data)
+
+Demonstrates clear improvements in decision-making, speed, or outcomes
+
+Kamino
+Focus: Advanced DeFi strategy and position management
+
+Examples:
+
+Automated vault strategies or rebalancing
+
+Position management interfaces
+
+Yield optimization dashboards
+
+Custom strategy builders
+
+What strong submissions look like:
+
+Clear improvements in how users manage capital or yield
+
+Makes complex DeFi strategies simple and usable
+
+Uses Kamino as a core engine of the product
+
+Track Selection
+Choose your primary partner track at submission.
+
+You can integrate with multiple partners, but:
+
+Your project will compete within your selected track
+
+You remain eligible for the Grand Prize across all integrations
+
+Submission Requirements
+Via Superteam Earn
+
+Your submission must include:
+
+Live dApp URL created from Eitherway — production-ready and publicly accessible
+
+Demo video (2–3 minutes) showcasing core functionality and partner integration
+
+GitHub repository (optional but recommended)
+
+Integration documentation explaining how you use partner infrastructure
+
+Eligibility
+Open to all team sizes
+
+Must be deployed on Solana mainnet for final submission
+
+Must be submitted to Superteam Frontier
+
+Judging Criteria
+1. Real-world utility (30%)
+Does this solve a real problem users actively face?
+
+Is there clear value for the target user?
+
+Would you use this yourself?
+
+2. Product quality (30%)
+Clean, intuitive UX
+
+Fast, reliable performance
+
+Production-ready polish (error handling, edge cases, loading states)
+
+3. Integration depth (25%)
+Meaningful use of partner infrastructure
+
+Technical sophistication beyond basic implementations
+
+Demonstrates strong understanding of partner capabilities
+
+4. Adoption potential (15%)
+Can this realistically attract users?
+
+Is there a clear path to distribution?
+
+Does the onchain activity model make sense?
+
+Prizes
+Grand Prize: $5,000 USDC
+
+Awarded to the most viable, production-ready dApp.
+
+Judges will evaluate based on:
+
+Must include at least one partner integration (Solflare, DFlow, Quicknode, Birdeye or Kamino) in build
+
+Production readiness and technical execution
+
+Strongest combination of utility, quality, and integration depth
+
+Most credible path to real-world adoption
+
+Evidence of viability (dApp remains live post-submission)
+
+Partner Track Winners: $3,000 USDC each
+
+Best dApp in each track:
+
+Solflare
+
+DFlow
+
+Quicknode
+
+Birdeye
+
+Kamino
+
+Awarded based on the judging criteria noted above at submission deadline.
+
+Total Prize Pool: $20,000 USDC
+
+All prize payments will be made by Eitherway
+
+Winner announcement - May 27, 2026
+
+Support & Resources
+Builder Support
+Build on Eitherway here: https://eitherway.ai/chat
+
+Partner Resources
+Solflare docs: https://docs.solflare.com/solflare
+
+Kamino docs: https://kamino.com/docs/build/developers/overview
+
+DFlow docs: https://pond.dflow.net/build/introduction
+
+Birdeye docs: https://docs.birdeye.so/
+
+Quicknode docs: https://www.quicknode.com/chains/sol
+
+FAQ
+Can I integrate with multiple partners?
+Yes. Choose your primary track at submission, but you're eligible for the Grand Prize across all integrations.
+
+Can I use Eitherway with custom code?
+Yes. Eitherway is the deployment platform, but you can extend functionality with custom integrations.
+
+How do I choose the specific parnter I want to integrate?
+
+Simply type the partners name to include in your prompt. When submitting to Superteam Earn you will also be asked to input the partner name in your submission.
+
+Do I need to be on Solana mainnet?
+Yes for final submission. You can build on devnet during development.
+
+What if I started building this before the hackathon?
+That’s fine. We’ll evaluate the scope of work completed during the hackathon period.
+
+Final Note
+Build something that still exists 30 days after submission.
+
+Good luck. 🚀
+

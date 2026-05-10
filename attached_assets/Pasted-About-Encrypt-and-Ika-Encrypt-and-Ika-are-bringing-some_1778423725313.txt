@@ -1,0 +1,86 @@
+About Encrypt and Ika
+Encrypt and Ika are bringing some powerful new tools to Solana. We're building infrastructure that makes it easier to create secure and private financial applications on-chain. Think of it as bringing two big advancements to the Frontier hackathon: bridgeless capital markets and encrypted capital markets.
+
+Ika focuses on custody and interoperability, providing MPC infrastructure. We use the 2PC-MPC protocol to enable dWallets. These are programmable, transferable signing mechanisms controlled by both a user and the Ika Network. This means Solana programs can enforce logic across any asset on any chain.
+
+Encrypt, on the other hand, deals with privacy. We're building FHE infrastructure to enable confidential Solana programs using the REFHE protocol. This lets you perform computations on encrypted data directly, without needing to decrypt it first. This all means you can build applications where sensitive financial information stays private during execution.
+
+Both Ika and Encrypt share a common goal: we want to make Solana the go-to place for institutional-grade on-chain markets by removing the current complexities. Ika gets rid of liquidity fragmentation across chains and enables zero-trust custody, while Encrypt removes the public exposure of sensitive financial data. These tools are already available on devnet, and we're aiming for mainnet launch soon.
+
+Mission
+Build an innovative application or protocol using Encrypt and/or Ika's infrastructure on Solana, focusing on creating bridgeless capital markets and encrypted capital markets.
+
+Hackathon Track Scope
+We're looking for projects that leverage the unique capabilities of Encrypt (for privacy) and/or Ika (for custody and interoperability) to unlock new financial primitives or improve existing ones on Solana. Here are some ideas and examples to get you started, but feel free to think beyond these:
+
+Bridgeless Capital Markets (using Ika):
+
+Develop a decentralized version of an institutional custodian (like Fireblocks), enforced by Solana.
+
+Create a fast bridgeless trading experience for native assets (similar to Near Intents) from any chain directly on Solana.
+
+Design multi-chain agentic wallets with scalable decentralized guardrails for AI agents.
+
+Implement multi-chain lending, allowing assets like Bitcoin or RWAs from any chain as collateral for loans on Solana.
+
+Reimagine multisig and wallet products to use Solana as a control layer for holding assets across chains with web2 UX, features like recovery, passkeys, spending limits, and shared access, all without centralized intermediaries.
+
+Encrypted Capital Markets (using Encrypt):
+
+Build fully confidential DeFi applications for private trading and lending at scale.
+
+Explore encrypted strategy vaults, private prediction markets, or sealed-bid auctions.
+
+Hybrid Solutions (using both Ika and Encrypt):
+
+Combine both technologies to create incredibly powerful and novel applications.
+
+Submission Requirements
+A link to your public GitHub repository containing all your project's code.
+
+A clear and concise README.md file in your repository explaining:
+
+The problem your project solves, target users and use cases.
+
+How your project utilizes Encrypt and/or Ika.
+
+Instructions on how to build, test, and use your application.
+
+Any deployed program IDs or frontend links if applicable.
+
+A short video (under 5 minutes) demonstrating your project's functionality and explaining your design choices.
+
+Judging Criteria
+Core Integration of Ika/Encrypt: How fundamentally does the project rely on Ika and/or Encrypt? Are they essential to the product’s core functionality, or used only superficially?
+
+Innovation: How novel and differentiated is the use of Ika and/or Encrypt compared to existing solutions?
+
+Technical Execution: Quality, correctness, and robustness of the implementation. How well is the system designed and engineered?
+
+Product & Commercial Potential: Is this a compelling product? Does it solve a real problem with clear user demand and potential for adoption or monetization?
+
+Impact: What meaningful problem does the project solve, and how significant is its potential contribution to users, the Solana ecosystem and the Ika / Encrypt networks?
+
+Usability & Experience: How intuitive, polished, and user-friendly is the application?
+
+Completeness & Clarity: How fully realized is the project within the hackathon timeframe, and how clearly is the vision communicated (demo, pitch, docs)?
+
+Reward Structure
+1st Place: 10,000 USDC
+
+2nd Place: 3,000 USDC
+
+3rd Place: 1,000 USDC
+
+4th Place: 500 USDC
+
+5th Place: 500 USDC
+
+Documentation
+Encrypt Solana Devnet Pre-Alpha Docs
+
+Ika Solana Devnet Pre-Alpha Docs
+
+If you have any questions reach out to @iamknownasfesal on X / TG
+
+A limited number of Claude Max 20x subscriptions will be given away for the duration of Colosseum Frontier to promising teams with promising ideas, comment here to be considered.
