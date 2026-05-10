@@ -1,0 +1,60 @@
+Jito is the backbone of Solana's MEV and block-building ecosystem. From Bundles and ShredStream to JitoSOL and the Block Assembly Marketplace (BAM), Jito provides the infrastructure that powers fast, efficient, and fair transaction execution on Solana.
+
+Jito's stack is built for builders. The Block Engine runs off-chain auctions for atomic transaction bundles. ShredStream delivers ultra-low-latency block data to any RPC or validator on the network. And BAM brings verifiability, privacy, and programmability directly into Solana's transaction pipeline, opening the door to entirely new classes of on-chain applications.
+
+For this track, we're looking for builders who go beyond surface-level integrations. We want products, protocols, and tools that genuinely leverage Jito's infrastructure in meaningful ways — whether that's improving execution quality, unlocking new DeFi primitives, or pushing Solana's performance envelope further.
+
+
+Ressources :
+
+Jito Docs Hub — docs.jito.wtf (Block Engine, Bundles, ShredStream)
+
+Jito Foundation Docs — jito.network/docs (JitoSOL, Restaking, StakeNet, BAM)
+
+BAM (Block Assembly Marketplace) — bam.dev (architecture, plugins, TEEs)
+
+SDKs & APIs
+
+TypeScript SDK — github.com/jito-labs/jito-ts (Block Engine, Bundles)
+
+Rust SDK — docs.rs/jito-sdk-rust
+
+Python SDK — Jito Py JSON-RPC (docs.jito.wtf)
+
+Go SDK — Jito Go JSON-RPC (docs.jito.wtf)
+
+Restaking SDK (TS) — @jito-foundation/restaking-sdk + @jito-foundation/vault-sdk
+
+Stake Pool API — kobe.mainnet.jito.network (TVL, APY, MEV rewards, JitoSOL/SOL ratio)
+
+MEV & Claims API — jito.network/docs/jitosol/for-developers
+
+GitHub
+
+jito-labs — github.com/jito-labs (39 repos : Block Engine, ShredStream, protos…)
+
+jito-foundation/restaking — github.com/jito-foundation/restaking
+
+More
+
+Helius deep-dive sur BAM — helius.dev/blog/block-assembly-marketplace-bam
+
+BAM intro officielle — bam.dev/blog/introducing-bam
+
+
+
+Judging criteria:
+
+Depth of Jito integration — How central and meaningful is the use of Jito's stack?
+
+Technical execution — Code quality, architecture decisions, and robustness of the implementation
+
+Originality — Does the project explore a new use case or solve a real unsolved problem?
+
+Impact potential — Could this scale and create lasting value for the Solana ecosystem?
+
+Demo quality — Is the project live, testable, and clearly presented?
+
+
+
+Prize: $2,000 USDC — 1 winner
