@@ -811,14 +811,14 @@ export default function TokenPage() {
                           rel="noopener noreferrer"
                           onClick={() => hapticFeedback("light")}
                           data-testid={`button-share-x-${p.id}`}
-                          className={`group flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border-2 font-bold text-xs whitespace-nowrap transition-all
+                          className={`group flex items-center gap-1 px-2 py-1 rounded border-2 font-bold text-[11px] whitespace-nowrap transition-all
                             ${privateMode
                               ? "bg-black border-[#4ADE80]/40 text-[#4ADE80] hover:border-[#4ADE80] hover:bg-[#4ADE80]/10"
-                              : "bg-black border-black text-white hover:bg-gray-800 shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:translate-x-[1px] hover:translate-y-[1px] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]"}`}
+                              : "bg-black border-black text-white hover:bg-gray-800"}`}
                         >
-                          <span className="text-sm">{p.emoji}</span>
+                          <span>{p.emoji}</span>
                           <span>{p.label}</span>
-                          <svg className="w-3 h-3 opacity-80" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <svg className="w-2.5 h-2.5 opacity-80 flex-shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                             <path d="M18.244 2H21.5l-7.5 8.57L23 22h-6.844l-5.36-7.01L4.6 22H1.34l8.02-9.17L1 2h7.02l4.84 6.4L18.244 2zm-1.2 18h1.86L7.06 4H5.1l11.944 16z" />
                           </svg>
                         </a>
@@ -843,7 +843,7 @@ export default function TokenPage() {
             <div className="grid grid-cols-4 gap-2">
               {[
                 { label: "Price", value: formatPrice(token.priceInSol * (solPrice?.price || (window as any).lastSolPrice || 200)) },
-                { label: "Market Cap", value: formatMarketCap(token.marketCapSol, solPrice?.price || null) },
+                { label: "MCap", value: formatMarketCap(token.marketCapSol, solPrice?.price || null) },
                 { label: "Holders", value: "-" },
                 { label: "Txns", value: tokenActivity?.length || 0 },
               ].map(({ label, value }) => (
