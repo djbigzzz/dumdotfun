@@ -49,6 +49,9 @@ export interface UmbraStatus {
   integrated: true;
   sdkVersion: string;
   network: "devnet";
+  sdkNetworkConfig: "mainnet";
+  configMismatch: true;
+  configMismatchReason: string;
   programId: string;
   indexer: string;
   platformAddress: string | null;
@@ -116,6 +119,13 @@ export async function getUmbraStatus(): Promise<UmbraStatus> {
     integrated: true,
     sdkVersion: payoutsStatus.sdkPackage,
     network: "devnet",
+    sdkNetworkConfig: "mainnet",
+    configMismatch: true,
+    configMismatchReason:
+      "@umbra-privacy/sdk npm release ships only mainnet network config; " +
+      "platform runs on devnet RPC. On-chain UTXO calls degrade to simulated " +
+      "success on devnet-program-not-found errors. Will switch to network: 'devnet' " +
+      "once the SDK ships devnet config.",
     programId: payoutsStatus.programId,
     indexer: payoutsStatus.indexer,
     platformAddress: payoutsStatus.platformAddress,

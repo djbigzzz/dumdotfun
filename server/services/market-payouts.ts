@@ -334,15 +334,15 @@ export async function processPendingPayouts(maxBatch = 50): Promise<{
       // keeps the SOL transfer the single authoritative path and honours the
       // task scope (no automatic Umbra routing). Set UMBRA_AUTO_DEPOSIT=1 to
       // re-enable the additive private deposit at payout time.
-      let umbraRef: string | null = null;
-      let umbraQueueSig: string | null = null;
+      let producedUmbraRef: string | null = null;
+      let producedUmbraQueueSig: string | null = null;
       if (process.env.UMBRA_AUTO_DEPOSIT === "1") {
         try {
           const { sendUmbraPrivatePayout } = await import("./umbra-payouts");
           const umbraResult = await sendUmbraPrivatePayout(row.walletAddress, amt);
           if (umbraResult.ok) {
-            umbraRef = umbraResult.umbraRef ?? null;
-            umbraQueueSig = umbraResult.queueSignature ?? null;
+            producedUmbraRef = umbraResult.umbraRef ?? null;
+            producedUmbraQueueSig = umbraResult.queueSignature ?? null;
           }
         } catch (umbraErr: unknown) {
           const m = umbraErr instanceof Error ? umbraErr.message : String(umbraErr);
@@ -350,12 +350,25 @@ export async function processPendingPayouts(maxBatch = 50): Promise<{
         }
       }
 
+      // CRITICAL: never null-clobber umbraRef/umbraQueueSig. A winner may
+      // have already produced one via POST /api/umbra/create-payout-utxo
+      // before the resolver finished sending the SOL leg; only write the
+      // Umbra fields when this worker actually produced new ones.
+      const updateSet: Record<string, unknown> = {
+        status: "sent",
+        signature: result.signature,
+        error: null,
+        updatedAt: new Date(),
+      };
+      if (producedUmbraRef) updateSet.umbraRef = producedUmbraRef;
+      if (producedUmbraQueueSig) updateSet.umbraQueueSig = producedUmbraQueueSig;
+
       await db.update(marketPayouts)
-        .set({ status: "sent", signature: result.signature, error: null, umbraRef, umbraQueueSig, updatedAt: new Date() })
+        .set(updateSet)
         .where(eq(marketPayouts.id, row.id));
       sent++;
-      details.push({ id: row.id, ok: true, signature: result.signature, umbraRef: umbraRef ?? undefined });
-      console.log(`[Payouts] sent ${(Number(amt) / LAMPORTS_PER_SOL).toFixed(6)} SOL to ${row.walletAddress} sig=${result.signature}${umbraRef ? ` umbra=${umbraRef}` : ""}`);
+      details.push({ id: row.id, ok: true, signature: result.signature, umbraRef: producedUmbraRef ?? undefined });
+      console.log(`[Payouts] sent ${(Number(amt) / LAMPORTS_PER_SOL).toFixed(6)} SOL to ${row.walletAddress} sig=${result.signature}${producedUmbraRef ? ` umbra=${producedUmbraRef}` : ""}`);
     } else {
       // row.attempts is post-increment from claimPendingPayouts. After
       // MAX_ATTEMPTS tries we mark terminal failed; otherwise revert to
