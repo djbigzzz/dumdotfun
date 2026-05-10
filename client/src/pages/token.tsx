@@ -858,118 +858,207 @@ export default function TokenPage() {
             <div className={`${cardStyle} p-4`}>
               <div className={`font-bold mb-3 ${privateMode ? "text-[#4ADE80]" : "text-gray-900"}`}>Recent Trades</div>
               {tokenActivity && tokenActivity.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className={`text-xs border-b-2 ${privateMode ? "text-[#4ADE80]/70 border-[#4ADE80]/30" : "text-gray-500 border-gray-200"}`}>
-                        <th className="text-left py-2">Account</th>
-                        <th className="text-left py-2">Type</th>
-                        <th className="text-right py-2">Amount</th>
-                        <th className="text-right py-2 hidden sm:table-cell">Time</th>
-                        <th className="text-right py-2 hidden sm:table-cell">Txn</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {tokenActivity.slice(0, 8).map((activity) => {
-                        const isBuy = activity.side === "buy" || activity.activityType === "buy";
-                        const amount = activity.amount ? parseFloat(activity.amount) : 0;
-                        
-                        // Parse metadata for real blockchain data
-                        let blockTime: number | null = null;
-                        let signature: string | null = null;
-                        try {
-                          if (activity.metadata) {
-                            const meta = JSON.parse(activity.metadata);
-                            if (meta.blockTime) blockTime = meta.blockTime;
-                            if (meta.signature) signature = meta.signature;
-                          }
-                        } catch (err) {
-                          console.debug("[Token] Failed to parse activity metadata:", err);
+                <>
+                  {/* Mobile card list — shown only below sm */}
+                  <div className="flex flex-col gap-2 sm:hidden">
+                    {tokenActivity.slice(0, 8).map((activity) => {
+                      const isBuy = activity.side === "buy" || activity.activityType === "buy";
+                      const amount = activity.amount ? parseFloat(activity.amount) : 0;
+
+                      let blockTime: number | null = null;
+                      let signature: string | null = null;
+                      try {
+                        if (activity.metadata) {
+                          const meta = JSON.parse(activity.metadata);
+                          if (meta.blockTime) blockTime = meta.blockTime;
+                          if (meta.signature) signature = meta.signature;
                         }
-                        
-                        // Use blockchain timestamp if available, otherwise use createdAt
-                        const displayTime = blockTime 
-                          ? getTimeAgo(new Date(blockTime * 1000))
-                          : getTimeAgo(new Date(activity.createdAt));
-                        
-                        return (
-                          <tr key={activity.id} className={`border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-100"}`}>
-                            <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
-                              <div className="flex items-center gap-2">
-                                <a
-                                  href={`https://solscan.io/account/${activity.walletAddress}?cluster=devnet`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  data-testid={`link-trader-solscan-${activity.id}`}
-                                >
-                                  <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
-                                    <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
-                                    <span className="hover:underline"><WalletName address={activity.walletAddress} truncate={6} showBadge={false} monoFallback={false} testId={`text-trader-${activity.id}`} /></span>
-                                  </div>
-                                </a>
-                                {activity.walletAddress ? (
-                                  <Link href={`/wallet/${activity.walletAddress}`}>
-                                    <button
-                                      title="View on-chain activity (mainnet, powered by Dune Sim)"
-                                      className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider transition-colors ${
-                                        privateMode
-                                          ? "border-[#4ADE80]/40 text-[#4ADE80] hover:bg-[#4ADE80]/10"
-                                          : "border-gray-300 text-gray-500 hover:bg-black hover:text-white hover:border-black"
-                                      }`}
-                                      data-testid={`button-onchain-${activity.id}`}
-                                    >
-                                      On-chain
-                                    </button>
-                                  </Link>
-                                ) : null}
-                              </div>
-                            </td>
-                            <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
-                            <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>
-                              {isBuy ? (
-                                <span>
-                                  <span className="font-semibold">{amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
-                                  <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>SOL</span>
-                                  {solPrice?.price ? (
-                                    <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
-                                      (${(amount * solPrice.price).toLocaleString(undefined, { maximumFractionDigits: 2 })})
-                                    </span>
+                      } catch (err) {
+                        console.debug("[Token] Failed to parse activity metadata:", err);
+                      }
+
+                      const displayTime = blockTime
+                        ? getTimeAgo(new Date(blockTime * 1000))
+                        : getTimeAgo(new Date(activity.createdAt));
+
+                      const amountLabel = isBuy ? (
+                        <>
+                          <span className="font-semibold">{amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                          <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>SOL</span>
+                        </>
+                      ) : (
+                        <>
+                          <span className="font-semibold">
+                            {amount >= 1_000_000
+                              ? `${(amount / 1_000_000).toFixed(2)}M`
+                              : amount >= 1_000
+                                ? `${(amount / 1_000).toFixed(2)}K`
+                                : amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                          </span>
+                          <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>{token.symbol}</span>
+                        </>
+                      );
+
+                      const cardContent = (
+                        <div
+                          className={`flex items-center gap-3 px-3 py-3 rounded border ${
+                            privateMode
+                              ? "border-[#4ADE80]/20 bg-black/30 active:bg-[#4ADE80]/10"
+                              : "border-gray-200 bg-gray-50 active:bg-gray-100"
+                          } ${signature ? "cursor-pointer" : ""}`}
+                          data-testid={`card-trade-${activity.id}`}
+                        >
+                          <img
+                            src={defaultAvatar}
+                            alt={`Trader ${activity.walletAddress?.slice(0, 6)}`}
+                            className="w-9 h-9 rounded-full border border-gray-300 flex-shrink-0"
+                            loading="lazy"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-mono truncate ${privateMode ? "text-white" : "text-gray-700"}`}>
+                                <WalletName address={activity.walletAddress} truncate={6} showBadge={false} monoFallback={false} testId={`text-trader-mobile-${activity.id}`} />
+                              </span>
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded flex-shrink-0 ${isBuy ? "bg-green-100 text-green-600" : "bg-red-100 text-red-500"}`} data-testid={`badge-type-${activity.id}`}>
+                                {isBuy ? "BUY" : "SELL"}
+                              </span>
+                            </div>
+                            <div className={`text-sm mt-0.5 ${privateMode ? "text-white" : "text-gray-900"}`}>{amountLabel}</div>
+                          </div>
+                          <div className={`text-xs flex-shrink-0 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`} data-testid={`text-time-mobile-${activity.id}`}>
+                            {displayTime}
+                          </div>
+                        </div>
+                      );
+
+                      return signature ? (
+                        <a
+                          key={activity.id}
+                          href={`https://solscan.io/tx/${signature}?cluster=devnet`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid={`link-trade-solscan-mobile-${activity.id}`}
+                        >
+                          {cardContent}
+                        </a>
+                      ) : (
+                        <div key={activity.id}>{cardContent}</div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Desktop table — hidden below sm */}
+                  <div className="hidden sm:block overflow-x-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className={`text-xs border-b-2 ${privateMode ? "text-[#4ADE80]/70 border-[#4ADE80]/30" : "text-gray-500 border-gray-200"}`}>
+                          <th className="text-left py-2">Account</th>
+                          <th className="text-left py-2">Type</th>
+                          <th className="text-right py-2">Amount</th>
+                          <th className="text-right py-2">Time</th>
+                          <th className="text-right py-2">Txn</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {tokenActivity.slice(0, 8).map((activity) => {
+                          const isBuy = activity.side === "buy" || activity.activityType === "buy";
+                          const amount = activity.amount ? parseFloat(activity.amount) : 0;
+
+                          let blockTime: number | null = null;
+                          let signature: string | null = null;
+                          try {
+                            if (activity.metadata) {
+                              const meta = JSON.parse(activity.metadata);
+                              if (meta.blockTime) blockTime = meta.blockTime;
+                              if (meta.signature) signature = meta.signature;
+                            }
+                          } catch (err) {
+                            console.debug("[Token] Failed to parse activity metadata:", err);
+                          }
+
+                          const displayTime = blockTime
+                            ? getTimeAgo(new Date(blockTime * 1000))
+                            : getTimeAgo(new Date(activity.createdAt));
+
+                          return (
+                            <tr key={activity.id} className={`border-b ${privateMode ? "border-[#4ADE80]/20" : "border-gray-100"}`}>
+                              <td className={`py-2 ${privateMode ? "text-white" : "text-gray-600"}`}>
+                                <div className="flex items-center gap-2">
+                                  <a
+                                    href={`https://solscan.io/account/${activity.walletAddress}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    data-testid={`link-trader-solscan-${activity.id}`}
+                                  >
+                                    <div className="flex items-center gap-2 cursor-pointer hover:opacity-80">
+                                      <img src={defaultAvatar} alt={`Trader ${activity.walletAddress?.slice(0, 6)}`} className="w-6 h-6 rounded-full border border-gray-300" loading="lazy" />
+                                      <span className="hover:underline"><WalletName address={activity.walletAddress} truncate={6} showBadge={false} monoFallback={false} testId={`text-trader-${activity.id}`} /></span>
+                                    </div>
+                                  </a>
+                                  {activity.walletAddress ? (
+                                    <Link href={`/wallet/${activity.walletAddress}`}>
+                                      <button
+                                        title="View on-chain activity (mainnet, powered by Dune Sim)"
+                                        className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                                          privateMode
+                                            ? "border-[#4ADE80]/40 text-[#4ADE80] hover:bg-[#4ADE80]/10"
+                                            : "border-gray-300 text-gray-500 hover:bg-black hover:text-white hover:border-black"
+                                        }`}
+                                        data-testid={`button-onchain-${activity.id}`}
+                                      >
+                                        On-chain
+                                      </button>
+                                    </Link>
                                   ) : null}
-                                </span>
-                              ) : (
-                                <span>
-                                  <span className="font-semibold">
-                                    {amount >= 1_000_000
-                                      ? `${(amount / 1_000_000).toFixed(2)}M`
-                                      : amount >= 1_000
-                                        ? `${(amount / 1_000).toFixed(2)}K`
-                                        : amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                </div>
+                              </td>
+                              <td className={`py-2 font-bold ${isBuy ? "text-green-500" : "text-red-500"}`}>{isBuy ? "Buy" : "Sell"}</td>
+                              <td className={`py-2 text-right ${privateMode ? "text-white" : "text-gray-900"}`}>
+                                {isBuy ? (
+                                  <span>
+                                    <span className="font-semibold">{amount.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                                    <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>SOL</span>
+                                    {solPrice?.price ? (
+                                      <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/40" : "text-gray-400"}`}>
+                                        (${(amount * solPrice.price).toLocaleString(undefined, { maximumFractionDigits: 2 })})
+                                      </span>
+                                    ) : null}
                                   </span>
-                                  <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>{token.symbol}</span>
-                                </span>
-                              )}
-                            </td>
-                            <td className={`py-2 text-right hidden sm:table-cell ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
-                            <td className="py-2 text-right hidden sm:table-cell">
-                              {signature ? (
-                                <a 
-                                  href={`https://solscan.io/tx/${signature}?cluster=devnet`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className={`text-xs ${privateMode ? "text-[#4ADE80] hover:underline" : "text-blue-500 hover:underline"}`}
-                                >
-                                  {signature.slice(0, 6)}...
-                                </a>
-                              ) : (
-                                <span className={`text-xs ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>-</span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                                ) : (
+                                  <span>
+                                    <span className="font-semibold">
+                                      {amount >= 1_000_000
+                                        ? `${(amount / 1_000_000).toFixed(2)}M`
+                                        : amount >= 1_000
+                                          ? `${(amount / 1_000).toFixed(2)}K`
+                                          : amount.toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                    </span>
+                                    <span className={`ml-1 text-xs ${privateMode ? "text-[#4ADE80]/60" : "text-gray-500"}`}>{token.symbol}</span>
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`py-2 text-right ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
+                              <td className="py-2 text-right">
+                                {signature ? (
+                                  <a
+                                    href={`https://solscan.io/tx/${signature}?cluster=devnet`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className={`text-xs ${privateMode ? "text-[#4ADE80] hover:underline" : "text-blue-500 hover:underline"}`}
+                                  >
+                                    {signature.slice(0, 6)}...
+                                  </a>
+                                ) : (
+                                  <span className={`text-xs ${privateMode ? "text-[#4ADE80]/30" : "text-gray-300"}`}>-</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               ) : (
                 <div className={`text-center py-6 ${privateMode ? "text-[#4ADE80]/50" : "text-gray-400"}`}>No trades yet</div>
               )}
