@@ -798,9 +798,9 @@ export default function TokenPage() {
                   },
                 ];
                 return (
-                  <div className="mt-3 -mx-1 overflow-x-auto">
-                    <div className="flex items-stretch gap-1.5 px-1 min-w-max">
-                      <div className={`flex items-center px-1.5 text-[10px] font-black uppercase tracking-wide ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
+                  <div className="mt-3">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <div className={`flex items-center px-1 text-[10px] font-black uppercase tracking-wide ${privateMode ? "text-[#4ADE80]/70" : "text-gray-500"}`}>
                         Share on X
                       </div>
                       {presets.map(p => (
@@ -865,8 +865,8 @@ export default function TokenPage() {
                         <th className="text-left py-2">Account</th>
                         <th className="text-left py-2">Type</th>
                         <th className="text-right py-2">Amount</th>
-                        <th className="text-right py-2">Time</th>
-                        <th className="text-right py-2">Txn</th>
+                        <th className="text-right py-2 hidden sm:table-cell">Time</th>
+                        <th className="text-right py-2 hidden sm:table-cell">Txn</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -911,7 +911,7 @@ export default function TokenPage() {
                                   <Link href={`/wallet/${activity.walletAddress}`}>
                                     <button
                                       title="View on-chain activity (mainnet, powered by Dune Sim)"
-                                      className={`inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider transition-colors ${
+                                      className={`hidden sm:inline-flex items-center px-1.5 py-0.5 rounded border text-[9px] font-bold uppercase tracking-wider transition-colors ${
                                         privateMode
                                           ? "border-[#4ADE80]/40 text-[#4ADE80] hover:bg-[#4ADE80]/10"
                                           : "border-gray-300 text-gray-500 hover:bg-black hover:text-white hover:border-black"
@@ -949,8 +949,8 @@ export default function TokenPage() {
                                 </span>
                               )}
                             </td>
-                            <td className={`py-2 text-right ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
-                            <td className="py-2 text-right">
+                            <td className={`py-2 text-right hidden sm:table-cell ${privateMode ? "text-[#4ADE80]/50" : "text-gray-500"}`}>{displayTime}</td>
+                            <td className="py-2 text-right hidden sm:table-cell">
                               {signature ? (
                                 <a 
                                   href={`https://solscan.io/tx/${signature}?cluster=devnet`}
