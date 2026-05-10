@@ -1,0 +1,108 @@
+We just shipped the Jupiter Developer Platform. One platform, one API key, everything you need to build on Jupiter, docs, API keys, analytics, all in one place so you're not jumping between domains to find what you need.
+
+This bounty is not "best app built with Jupiter wins." We've seen enough of those.
+
+We want you to build something that makes us go "oh." Combine APIs in ways we didn't design for, if we have to sit with your submission for a minute before we realize it's genius, that's what we're looking for.
+
+Or, if you're already building something on Solana, integrate Jupiter's APIs into your product and tell us exactly what sucked about the process. Swaps, lending, limit orders, DCA, perps, prediction markets, we cover a lot of ground. Whatever you're building, we probably fit in somewhere.
+
+Either way: you build, you use our new tools, and you tell us honestly how it went.
+
+What you're building with
+developers.jup.ag - one key gets you everything:
+
+APIs:
+
+Swap V2 - /order + /execute for managed landing and best price across all routers, or /build for raw instructions and full control. Gasless swaps built in. This is the new unified swap API, we want you on it. The previous version of this processed billions in volume, this will too.
+
+Tokens - search, metadata, verification status, organic scores, trading metrics for any Solana token.
+
+Price - USD pricing of all tokens on Solana.
+
+Lend - yield on deposits, borrowing, flashloans.
+
+Trigger - limit orders - single, OCO (TP/SL), OTOCO. (NEW)
+
+Recurring - time-based DCA.
+
+Prediction Markets - binary markets on real-world events.
+
+Perps - leveraged perpetuals on Solana.
+
+Jupiter AI Stack - we want you using these during your build process:
+
+Agent Skills - context files that give your coding agent structured guidance for integrating Jupiter APIs. Feed these to Claude Code, Cursor, Codex, whatever you use.
+
+Jupiter CLI - JSON-native, non-interactive. Works from terminal, Telegram, or through AI agents. If your agent needs to execute, this is how.
+
+Docs MCP - query Jupiter docs via MCP. For when your agent can't access the filesystem.
+
+llms.txt - LLM-optimized docs index.
+
+What you submit
+Two things. Both required.
+
+1. Your project
+A working thing that uses one or more Jupiter APIs through the Developer Platform. Weird is encouraged, ambition more so. "I combined three APIs in a way that shouldn't work but does" is great.
+
+Some ideas to get you started:
+
+Use the Price API to detect volatility and auto-set limit orders through Trigger
+
+Build an AI agent that reads prediction market odds and places trades through the CLI
+
+Chain Lend flashloans with Swap V2 for an arbitrage bot
+
+Build a DCA strategy that adjusts based on token metadata signals from the Tokens API
+
+These are just starting points. We want to see what you come up with. Just max experiment and hit the limits so that you can gather as many points for feedback as possible.
+
+If you're integrating into an existing product, show us the before and after.
+
+2. Your Developer Experience Report
+This matters as much as your project.
+
+How was onboarding? How long from landing on developers.jup.ag to your first successful API call? What confused you? What took longer than it should have?
+
+What's broken or missing in the docs? Be specific. Link to the page. "The docs were fine" tells us nothing.
+
+Where did the APIs bite you? Edge cases, confusing error messages, unexpected behavior, latency, we want the details.
+
+Did you use the AI stack? Skills, CLI, Docs MCP, what actually helped, what didn't, what's missing? What would you want to see be improved?
+
+How would you rebuild developers.jup.ag? Not surface-level UI bugs, we'll find those ourselves. If you were the engineer behind the Developer Platform, how would you build the experience so that devs are interfacing with the APIs the moment they land? What would you change about the platform so people ship faster? Give us the things we won't catch from the inside. You're our customer, tell us what we're not seeing.
+
+What do you wish existed? Endpoints, SDK support, features, tooling, anything.
+
+Don't submit AI slop. We will actually read every report lol. We'd hate to see your prompting and tokens go to waste because you won't win.
+
+Prizes
+1,000 $jupUSD - 1st place. Best combination of project creativity and DX report quality.
+
+750 $jupUSD - 2nd place.
+
+500 $jupUSD - 3rd place.
+
+250 $jupUSD × 3 - Best DX Reports. These go to builders outside the top 3. Your project doesn't need to be the flashiest. If you found real bugs, documented real friction, and gave us feedback we can act on Monday morning, these are for you.
+
+How we judge
+DX report quality (35%) - specific, actionable, honest. No fluff. This is the most important part of your submission.
+
+AI stack feedback (25%) - did you use Skills, CLI, or Docs MCP? What worked, what didn't, what's missing? We're investing heavily here and need real signal.
+
+Technical execution (25%) - does it work? How deep is the integration?
+
+Creativity & ambition (15%) - did you take our APIs somewhere unexpected?
+
+How to submit
+Get your API key at developers.jup.ag
+
+Build your project
+
+Submit on Superteam Earn with:
+
+Link to your project (repo, deployed app, or demo video)
+
+Your DX Report (DX-REPORT.md in your repo, Google Doc, Notion - whatever, just make it readable and publicly accessible so our reviewing team can read it)
+
+The email tied to your Developer Platform account (so we can cross-reference your usage data)
