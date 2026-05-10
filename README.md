@@ -71,6 +71,7 @@ This repo targets multiple Frontier Hackathon tracks. Each integration is **real
 | 🛡️ **Cloak Privacy Track** | UTXO-based shielded payouts via `@cloak.dev/sdk-devnet` — real Groth16 ZK proofs against the Cloak devnet program |
 | 📊 **Dune SIM API Track** | Live on-chain wallet activity panel + token analytics on every profile and token page |
 | 🌐 **SNS Identity Track** | Forward + reverse `.sol` resolution against the SNS mainnet program — every wallet on the platform shows its `.sol` name |
+| 🔐 **Encrypt + Ika Track** | Ika dWallet integration for cross-chain prediction-market collateral and MPC-secured prize pools — bridgeless capital markets via 2PC-MPC |
 | 🛡️ **Adevar Audit Credits** | Bonding-curve, prediction-market, and confidential-bet programs queued for Adevar pre-mainnet security review |
 | 🎓 **100xDevs Side Track** | Full-stack Solana product built end-to-end during the cohort |
 
