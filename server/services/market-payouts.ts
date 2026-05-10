@@ -328,12 +328,27 @@ export async function processPendingPayouts(maxBatch = 50): Promise<{
     }
     const result = await sendOnePayout(conn, authority, row.id, row.walletAddress, amt, row.signature, row.attempts);
     if (result.ok) {
+      // After SOL payout lands, attempt an additional Umbra private payout.
+      // This is additive privacy layering — failure does not affect the winner.
+      let umbraRef: string | null = null;
+      let umbraQueueSig: string | null = null;
+      try {
+        const { sendUmbraPrivatePayout } = await import("./umbra-payouts");
+        const umbraResult = await sendUmbraPrivatePayout(row.walletAddress, amt);
+        if (umbraResult.ok) {
+          umbraRef = umbraResult.umbraRef ?? null;
+          umbraQueueSig = umbraResult.queueSignature ?? null;
+        }
+      } catch (umbraErr: any) {
+        console.warn(`[Payouts] Umbra private payout error (non-fatal): ${umbraErr?.message ?? umbraErr}`);
+      }
+
       await db.update(marketPayouts)
-        .set({ status: "sent", signature: result.signature, error: null, updatedAt: new Date() })
+        .set({ status: "sent", signature: result.signature, error: null, umbraRef, umbraQueueSig, updatedAt: new Date() })
         .where(eq(marketPayouts.id, row.id));
       sent++;
-      details.push({ id: row.id, ok: true, signature: result.signature });
-      console.log(`[Payouts] sent ${(Number(amt) / LAMPORTS_PER_SOL).toFixed(6)} SOL to ${row.walletAddress} sig=${result.signature}`);
+      details.push({ id: row.id, ok: true, signature: result.signature, umbraRef: umbraRef ?? undefined });
+      console.log(`[Payouts] sent ${(Number(amt) / LAMPORTS_PER_SOL).toFixed(6)} SOL to ${row.walletAddress} sig=${result.signature}${umbraRef ? ` umbra=${umbraRef}` : ""}`);
     } else {
       // row.attempts is post-increment from claimPendingPayouts. After
       // MAX_ATTEMPTS tries we mark terminal failed; otherwise revert to

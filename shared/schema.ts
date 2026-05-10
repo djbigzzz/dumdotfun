@@ -374,6 +374,7 @@ export const usedSignatures = pgTable("used_signatures", {
 // guarantee: even if backfill runs twice, the auto-resolver retries, and a
 // manual /resolve call lands at the same time, no winner can be paid twice.
 // status flow: pending -> sent (signature populated) | failed (error populated)
+// umbraRef/umbraQueueSig: non-null when an Umbra private payout also landed.
 export const marketPayouts = pgTable("market_payouts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   positionId: varchar("position_id").notNull().unique(),
@@ -384,6 +385,9 @@ export const marketPayouts = pgTable("market_payouts", {
   status: text("status").notNull().default("pending"),
   error: text("error"),
   attempts: integer("attempts").notNull().default(0),
+  // Umbra private payout metadata (populated when shielded delivery succeeded)
+  umbraRef: text("umbra_ref"),
+  umbraQueueSig: text("umbra_queue_sig"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

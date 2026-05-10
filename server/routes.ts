@@ -4532,7 +4532,7 @@ export async function registerRoutes(
       import("./umbra"),
     ]);
 
-    const [magicblockDetail, confidentialBetCount] = await Promise.all([
+    const [magicblockDetail, confidentialBetCount, umbraDetail] = await Promise.all([
       getMagicBlockStatus(),
       (async () => {
         try {
@@ -4548,6 +4548,7 @@ export async function registerRoutes(
           return 0;
         }
       })(),
+      getUmbraStatus().catch(() => ({ status: "integration-ready" })),
     ]);
 
     const magicblockStatus = magicblockDetail.live?.reachable ? "live" : "integration-ready";
@@ -4557,7 +4558,7 @@ export async function registerRoutes(
     return res.json({
       tracks: [
         { id: "dune", name: "Dune", prize: "$6,000", status: "live", routes: ["/wallet/:address"], summary: "Dune Sim API powers every wallet profile (balances + tx history)." },
-        { id: "umbra", name: "Umbra", prize: "$10,000", status: "live", routes: ["/token/:mint"], detail: getUmbraStatus() },
+        { id: "umbra", name: "Umbra", prize: "$10,000", status: (umbraDetail as any).status ?? "live", routes: ["/market/:id"], detail: umbraDetail },
         { id: "sns", name: "SNS (.sol)", prize: "$5,000", status: "live", routes: ["/leaderboard", "/wallet/:address", "/token/:mint", "/markets", "/tokens"], summary: "WalletName resolves .sol names everywhere wallets appear." },
         { id: "jupiter", name: "Jupiter", prize: "$3,000", status: "live", routes: ["/tokens", "/wallet/:address"], detail: getJupiterStatus() },
         { id: "magicblock", name: "MagicBlock", prize: "$5,000", status: magicblockStatus, routes: ["/token/:mint", "/market/:id"], detail: magicblockDetail },
@@ -5098,7 +5099,7 @@ export async function registerRoutes(
 
   app.get("/api/umbra/status", async (_req, res) => {
     try {
-      return res.json(getUmbraStatus());
+      return res.json(await getUmbraStatus());
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Failed to get Umbra status" });
     }

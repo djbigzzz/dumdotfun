@@ -204,6 +204,17 @@ app.use((req, res, next) => {
   }, 60 * 1000);
   log(`[Payouts] Stuck-processing reaper scheduled every 60s`, "startup");
 
+  // Register the platform authority on Umbra (idempotent — no-op if already done).
+  // Non-blocking: failure here does not affect normal SOL payouts.
+  setTimeout(async () => {
+    try {
+      const { ensurePlatformRegistered } = await import("./services/umbra-payouts");
+      await ensurePlatformRegistered();
+    } catch (e) {
+      console.warn("[Umbra] Startup registration skipped:", e);
+    }
+  }, 8000);
+
   // Periodic pending drainer: ensures payouts reaped from 'processing' (or
   // ones whose markets resolved without immediately calling payoutMarket)
   // get sent automatically without waiting for the next market resolution.

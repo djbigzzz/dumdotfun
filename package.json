@@ -71,6 +71,8 @@
     "@types/bs58": "^4.0.4",
     "@types/form-data": "^2.2.1",
     "@types/sharp": "^0.31.1",
+    "@umbra-privacy/sdk": "^2.0.3",
+    "@umbra-privacy/web-zk-prover": "^2.0.1",
     "@xmldom/xmldom": "^0.8.13",
     "axios": "^1.16.0",
     "bn.js": "^5.2.2",

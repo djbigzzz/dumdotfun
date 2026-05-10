@@ -705,6 +705,13 @@ export default function MarketDetail() {
                           <Lock className="w-3 h-3" /> Encrypt FHE
                         </a>
                         <a
+                          href="https://umbraprivacy.com" target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1 px-2 py-1 rounded bg-purple-500/10 border border-purple-500/30 text-purple-400 text-[10px] font-bold"
+                          data-testid="badge-umbra-privacy"
+                        >
+                          <Shield className="w-3 h-3" /> Umbra Payouts
+                        </a>
+                        <a
                           href="https://ika.xyz" target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1 px-2 py-1 rounded bg-blue-500/10 border border-blue-500/30 text-blue-400 text-[10px] font-bold"
                           data-testid="badge-ika-dwallet"
