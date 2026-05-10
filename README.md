@@ -61,20 +61,19 @@ Dum.fun lets anyone launch a meme token on Solana in **seconds**, trade it on a 
 
 ---
 
-## 🏆 Hackathon track integrations
+## 🏆 Hackathon track integrations — Colosseum Frontier 2026
 
-This repo targets multiple Frontier Hackathon tracks. Each integration is **real**, on-chain (where applicable), and reachable from the live app.
+This repo targets multiple Frontier Hackathon tracks. Each integration is **real**, on-chain (where applicable), and reachable from the live app — no mocks, no stubs.
 
-| Sponsor | What we built |
-|---|---|
-| 🌅 **Helius** | Primary RPC for all Solana devnet reads/writes + webhook listener for trade indexing |
-| 🌊 **Raydium** | Automated CPMM pool creation when tokens graduate (85 SOL bonding cap) |
-| 📊 **Dune Sim API** | On-chain wallet activity panel showing real mainnet history per trader |
-| 🛡️ **Cloak** | Shielded prediction market payouts so winners can claim confidentially |
-| 📱 **Solana Mobile / Saga** | Native Android build with Mobile Wallet Adapter, ready for dApp Store |
-| ✉️ **SendGrid** | Transactional emails for waitlist and notifications |
-| 🥷 **Umbra** | Private prediction-market payouts via `@umbra-privacy/sdk` ReceiverClaimableUTXO + browser ZK claim |
-| 🎯 **Adevar** | Ad attribution + creative tracking for token launches |
+| Track | Prize | What we built |
+|---|---|---|
+| 🥷 **Umbra Privacy Track** | $10,000 | Private prediction-market payouts via `@umbra-privacy/sdk` — winners shield winnings into an encrypted balance with a one-click claim card on the market page |
+| 🛡️ **Cloak Privacy Track** | $5,000 | UTXO-based shielded payouts via `@cloak.dev/sdk-devnet` — real Groth16 ZK proofs against the Cloak devnet program |
+| 📊 **Dune SIM API Track** | $6K SIM Enterprise | Live on-chain wallet activity panel + token analytics on every profile and token page |
+| 🌐 **SNS Identity Track** | $1,800 | Forward + reverse `.sol` resolution against the SNS mainnet program — every wallet on the platform shows its `.sol` name |
+| 🎓 **100xDevs Side Track** | $2,500 | Full-stack Solana product built end-to-end during the cohort |
+
+**Other sponsor infrastructure we rely on:** Helius RPC (all on-chain reads/writes + webhooks), Raydium SDK v2 (automated CPMM graduation), Solana Mobile Stack (native Android + Mobile Wallet Adapter), SendGrid (transactional email).
 
 ---
 
@@ -201,6 +200,84 @@ the integration goes live the moment Umbra ships devnet config.
 - `shared/schema.ts` — `marketPayouts.umbraRef` + `marketPayouts.umbraQueueSig` columns
 
 Track: **Umbra $10K Privacy Track — Colosseum Frontier 2026**.
+
+---
+
+## 🛡️ Cloak Privacy Integration
+
+A second, complementary privacy rail for prediction-market winners. Where Umbra hides amounts in
+an encrypted balance, **Cloak shields the recipient** by redirecting the payout into a brand-new
+UTXO that is unlinkable from the market wallet on-chain. The integration uses the official
+`@cloak.dev/sdk-devnet` package — no fork, no custom protocol code.
+
+**Endpoints**
+- `GET  /api/cloak/status` — reports devnet program ID, relay URL, and SDK availability
+- `POST /api/cloak/quote` — preview the shielded payout (lamports, fee, recipient note)
+- `POST /api/cloak/shield-payout` — auth-gated; turns a winning position into a Cloak UTXO,
+  capped at the `marketPayouts.amountLamports` already credited to the winner. Idempotent per
+  `positionId` via a `UNIQUE` constraint on `cloakPayouts.positionId`.
+
+**On-chain target**
+- Program: `Zc1kHfp4rajSMeASFDwFFgkHRjv7dFQuLheJoQus27h` (Cloak devnet)
+- Relay: `api.devnet.cloak.ag`
+- Real Groth16 proofs generated client-side, submitted via the relay — typical proof time
+  30–90 seconds for larger positions
+
+**Files**
+- `server/cloak.ts` — SDK init, quote builder, shielded payout transaction
+- `client/src/components/cloak-shield-button.tsx` — winner UI on the market page
+
+Track: **Cloak $5K Privacy Track — Colosseum Frontier 2026**.
+
+---
+
+## 📊 Dune SIM API Integration
+
+Every trader and every token gets a live on-chain analytics panel powered by Dune's SIM API.
+Wallets show their full mainnet activity history; tokens show holders, volume, and transfers.
+
+**Endpoints**
+- `GET /api/dune/wallet/:address` — balances and tokens for a wallet
+- `GET /api/dune/wallet/:address/activity` — chronological on-chain activity feed
+- `GET /api/dune/token/:mint` — holders, volume, transfer stats for a token mint
+
+**Where it shows up**
+- Profile pages — "On-chain activity" panel with real mainnet history
+- Token detail pages — holder count, volume, and transfer activity
+- All data is fetched server-side and cached briefly to stay within rate limits
+
+**Files**
+- `server/dune.ts` — SIM API client, response shaping, caching
+- `client/src/pages/profile.tsx` and `client/src/pages/token.tsx` — consumers
+
+Track: **Dune SIM API $6K Enterprise Plan Track — Colosseum Frontier 2026**.
+
+---
+
+## 🌐 SNS Identity Integration
+
+`.sol` is the universal identity layer across the whole app. Anywhere a wallet appears — token
+creators, market bettors, leaderboard ranks, profiles — a live SNS reverse lookup against
+mainnet replaces the 44-character base58 with a human-readable `.sol` name. The search bar
+also accepts `.sol` domains directly: type `toly.sol` and it resolves on-chain, then surfaces
+every token that wallet has launched.
+
+**Endpoints**
+- `GET /api/sns/lookup/:domain` — forward resolution (`bonfida.sol → wallet`)
+- `GET /api/sns/resolve/:address` — reverse resolution (`wallet → bonfida.sol`)
+
+**Implementation notes**
+- Hand-rolled PDA derivation using `sha256("SPL Name Service" + name)` per the SNS spec
+- Mainnet Helius RPC for resolution (SNS lives on mainnet, not devnet)
+- 5-minute in-memory cache to stay efficient under load
+
+**Files**
+- `server/sns.ts` — forward + reverse resolver, hash + PDA derivation, cache
+- `client/src/hooks/use-sns.ts` — React hook used by every wallet display
+- `client/src/components/wallet-name.tsx` — the actual UI swap
+- `client/src/pages/search.tsx` — search bar that accepts `.sol` domains
+
+Track: **SNS Identity $1.8K Track — Colosseum Frontier 2026**.
 
 ---
 
