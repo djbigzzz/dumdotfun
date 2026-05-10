@@ -117,6 +117,12 @@ export default function MarketDetail() {
   const [success, setSuccess] = useState<boolean>(false);
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [ciphertextId, setCiphertextId] = useState<string | null>(null);
+  const [umbraPayoutState, setUmbraPayoutState] = useState<
+    { status: "idle" } |
+    { status: "pending" } |
+    { status: "done"; umbraRef: string; queueSignature?: string } |
+    { status: "error"; message: string }
+  >({ status: "idle" });
 
   const { data: market, isLoading, error: fetchError } = useQuery<Market>({
     queryKey: ["market", id],
@@ -154,6 +160,45 @@ export default function MarketDetail() {
   });
 
   const countdown = useCountdown(market?.resolutionDate || new Date().toISOString());
+
+  const { data: myPositions } = useQuery<Array<{ side: string; amount: number; shares: number }>>({
+    queryKey: ["my-positions", id, publicKey],
+    queryFn: async () => {
+      if (!publicKey || !id) return [];
+      const res = await fetch(`/api/positions/wallet/${publicKey}`);
+      if (!res.ok) return [];
+      const all: Array<{ marketId: string; side: string; amount: number; shares: number }> = await res.json();
+      return all.filter((p) => p.marketId === id);
+    },
+    enabled: !!publicKey && !!id,
+    staleTime: 30000,
+  });
+
+  const handleUmbraPrivatePayout = async () => {
+    if (!publicKey || !id) return;
+    try {
+      await ensureSession();
+    } catch {
+      setUmbraPayoutState({ status: "error", message: "Wallet sign-in required" });
+      return;
+    }
+    setUmbraPayoutState({ status: "pending" });
+    try {
+      const res = await apiRequest("POST", "/api/umbra/create-payout-utxo", {
+        marketId: id,
+        recipientWallet: publicKey,
+      });
+      const data = await res.json();
+      if (data.success && data.umbraRef) {
+        setUmbraPayoutState({ status: "done", umbraRef: data.umbraRef, queueSignature: data.queueSignature });
+      } else {
+        setUmbraPayoutState({ status: "error", message: data.error || "Umbra payout could not be queued" });
+      }
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Umbra payout failed";
+      setUmbraPayoutState({ status: "error", message: msg });
+    }
+  };
 
   const placeBetMutation = useMutation({
     mutationFn: async ({ side, amount, confidential }: { side: "yes" | "no"; amount: number; confidential?: boolean }) => {
@@ -366,6 +411,85 @@ export default function MarketDetail() {
                 )}
               </div>
             </div>
+
+            {/* Umbra Private Payout Card — shown to winners of resolved markets */}
+            {isResolved && connected && (() => {
+              const outcome = market.outcome;
+              const winningBet = (myPositions ?? []).find((p) => p.side === outcome);
+              if (!winningBet) return null;
+              return (
+                <div
+                  className="mx-5 mt-5 rounded-xl border border-purple-500/40 bg-purple-950/30 p-4"
+                  data-testid="section-umbra-claim"
+                >
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-purple-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-sm font-black text-purple-300">Shield payout via Umbra</span>
+                        <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                          Privacy
+                        </span>
+                      </div>
+                      <p className="text-xs text-gray-400 leading-relaxed mb-3">
+                        Your {winningBet.side.toUpperCase()} bet won. Request a private wSOL deposit into your Umbra encrypted
+                        balance — the amount and recipient stay off the public ledger.
+                      </p>
+
+                      {umbraPayoutState.status === "done" ? (
+                        <div className="space-y-1.5" data-testid="umbra-payout-success">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-purple-300">
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            Payout shielded via Umbra
+                          </div>
+                          <div className="flex items-center gap-1.5 text-[10px] font-mono text-purple-400/70">
+                            <Lock className="w-2.5 h-2.5 flex-shrink-0" />
+                            <span className="truncate" data-testid="umbra-ref">{umbraPayoutState.umbraRef}</span>
+                          </div>
+                          {umbraPayoutState.queueSignature && (
+                            <a
+                              href={`https://explorer.solana.com/tx/${umbraPayoutState.queueSignature}?cluster=devnet`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-[10px] text-purple-400 hover:text-purple-300 underline"
+                              data-testid="link-umbra-tx"
+                            >
+                              View on Solana Explorer →
+                            </a>
+                          )}
+                        </div>
+                      ) : umbraPayoutState.status === "error" ? (
+                        <div className="space-y-2">
+                          <p className="text-xs text-red-400" data-testid="umbra-payout-error">
+                            {umbraPayoutState.message}
+                          </p>
+                          <button
+                            onClick={handleUmbraPrivatePayout}
+                            className="text-xs text-purple-400 hover:text-purple-300 underline"
+                            data-testid="button-umbra-retry"
+                          >
+                            Retry
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={handleUmbraPrivatePayout}
+                          disabled={umbraPayoutState.status === "pending"}
+                          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold transition-colors"
+                          data-testid="button-umbra-claim"
+                        >
+                          {umbraPayoutState.status === "pending" ? (
+                            <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Shielding…</>
+                          ) : (
+                            <><Shield className="w-3.5 h-3.5" /> Claim privately via Umbra</>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
 
             {/* Hero: "If resolved right now" */}
             {!isResolved && resolutionData?.evaluation && (

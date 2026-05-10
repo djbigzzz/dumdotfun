@@ -42,6 +42,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets, of
 *   **UI Components:** `client/src/components/`
 *   **Theme/Styling:** `client/tailwind.config.ts` (Tailwind CSS v4)
 *   **Prediction Market Payouts Logic:** `server/services/market-payouts.ts`
+*   **Umbra Privacy Integration:** `server/umbra.ts`, `server/services/umbra-payouts.ts`; winner Umbra claim card in `client/src/pages/market.tsx`
 *   **Cloak Privacy Integration:** `server/cloak.ts`, `client/src/components/cloak-shield-button.tsx`
 *   **Platform Fees Configuration:** `server/fees.ts`
 
@@ -55,6 +56,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets, of
 *   **Automated DEX Migration:** Successful bonding curve tokens automatically graduate to Raydium CPMM pools to ensure continued liquidity.
 *   **Crash-Safe Prediction Market Payouts:** Robust system for automated payouts with idempotency, crash recovery, and double-pay prevention.
 *   **Confidential Market Payouts:** Integration with Cloak for UTXO-based shielded payouts on prediction markets, enhancing user privacy.
+*   **Umbra Private Payouts:** `@umbra-privacy/sdk` integration deposits prediction-market winnings as shielded wSOL into winners' Umbra encrypted balances via `getPublicBalanceToEncryptedBalanceDirectDepositorFunction`; no ZK prover needed server-side. Payout records store `umbraRef`/`umbraQueueSig` for idempotency. SDK initialised with mainnet config + devnet RPC (devnet config not bundled in npm release); on-chain steps fail gracefully, regular SOL payout always lands. Hackathon track: Umbra $10K Privacy Track — Colosseum Frontier 2026.
 
 ## Product
 
@@ -66,6 +68,7 @@ Dum.fun is a Solana-based token launchpad with integrated prediction markets, of
 *   SEO optimized for discoverability.
 *   Native Android app via Capacitor.
 *   Confidential payouts for prediction market winners via Cloak.
+*   Private prediction-market payouts via Umbra Protocol (`@umbra-privacy/sdk`) — winners can shield their winnings into an encrypted balance directly from the market page.
 *   Mobile Support: Native Android app via Capacitor, with Solana dApp Store and Saga wallet integration.
 
 ## User preferences

@@ -15,7 +15,7 @@ import { isDuneConfigured, getTokenActivity as getDuneTokenActivity, getWalletPo
 import { resolveAddress as snsResolveAddress, lookupDomain as snsLookupDomain } from "./sns";
 
 import { getConnection as getHeliusConnection, createNewConnection } from "./helius-rpc";
-import { getUmbraQuote, getUmbraPools, getUmbraStatus } from "./umbra";
+import { getUmbraStatus, scanUmbraUtxos } from "./umbra";
 import { buildDevnetTokenTransaction, getDevnetBalance, requestDevnetAirdrop } from "./devnet-tokens";
 import * as bondingCurve from "./bonding-curve-client";
 import { detectMarketCriteria } from "./services/token-health";
@@ -5105,40 +5105,121 @@ export async function registerRoutes(
     }
   });
 
-  app.get("/api/umbra/pools", async (req, res) => {
+  /**
+   * GET /api/umbra/scan-utxos/:wallet
+   * Proxy to the Umbra indexer to list all claimable UTXOs for a given wallet.
+   * Winners can call this to discover UTXOs and build claim transactions
+   * client-side using the Umbra SDK + web-zk-prover.
+   */
+  app.get("/api/umbra/scan-utxos/:wallet", async (req, res) => {
+    const { wallet } = req.params;
+    if (!wallet || !(await isValidSolanaAddress(wallet))) {
+      return res.status(400).json({ error: "valid wallet address required" });
+    }
     try {
-      const tokenMint = req.query.tokenMint as string | undefined;
-      const pools = await getUmbraPools(tokenMint);
-      return res.json({ pools });
+      const utxos = await scanUmbraUtxos(wallet);
+      return res.json({ wallet, utxos });
     } catch (err: any) {
-      return res.status(500).json({ error: err.message || "Failed to fetch Umbra pools" });
+      const msg = err.message || "Failed to scan Umbra UTXOs";
+      console.warn(`[Umbra] scan-utxos failed for ${wallet}: ${msg}`);
+      return res.status(502).json({ error: msg });
     }
   });
 
-  app.post("/api/umbra/shield", sensitiveLimiter, async (req, res) => {
-    try {
-      const { senderWallet, recipientWallet, tokenMint, amount } = req.body;
-      if (!senderWallet || !recipientWallet || !tokenMint || !amount) {
-        return res.status(400).json({ error: "Missing required fields: senderWallet, recipientWallet, tokenMint, amount" });
+  /**
+   * POST /api/umbra/create-payout-utxo
+   * Auth-gated: caller must own the recipientWallet AND hold a winning position
+   * in the referenced market.
+   *
+   * Creates a private payout by depositing the winner's SOL amount as shielded
+   * wSOL into their Umbra encrypted balance via
+   * getPublicBalanceToEncryptedBalanceDirectDepositorFunction.
+   *
+   * The regular SOL payout is the authoritative transfer; this is additive
+   * privacy on top.  Idempotent: repeated calls for the same positionId return
+   * the existing umbraRef rather than submitting a second deposit.
+   */
+  app.post(
+    "/api/umbra/create-payout-utxo",
+    sensitiveLimiter,
+    requireAuthWithMatchingWallet("recipientWallet"),
+    async (req, res) => {
+      try {
+        const { marketId, recipientWallet } = req.body ?? {};
+        if (typeof marketId !== "string" || marketId.length === 0) {
+          return res.status(400).json({ error: "marketId required" });
+        }
+        if (typeof recipientWallet !== "string" || !(await isValidSolanaAddress(recipientWallet))) {
+          return res.status(400).json({ error: "valid recipientWallet required" });
+        }
+
+        const market = await storage.getMarket(marketId);
+        if (!market) return res.status(404).json({ error: "market not found" });
+        if (market.status !== "resolved" || !market.outcome) {
+          return res.status(400).json({ error: "market not resolved yet" });
+        }
+
+        const userPositions = await storage.getPositionsByWallet(recipientWallet);
+        const winningPosition = userPositions.find(
+          (p) => p.marketId === marketId && p.side === market.outcome,
+        );
+        if (!winningPosition) {
+          return res.status(403).json({ error: "no winning position in this market" });
+        }
+
+        const { marketPayouts: mpTable } = await import("../shared/schema");
+
+        const existing = await db
+          .select({
+            umbraRef: mpTable.umbraRef,
+            umbraQueueSig: mpTable.umbraQueueSig,
+            status: mpTable.status,
+          })
+          .from(mpTable)
+          .where(eq(mpTable.positionId, winningPosition.id))
+          .limit(1);
+
+        if (existing.length > 0 && existing[0].umbraRef) {
+          return res.json({
+            success: true,
+            alreadyShielded: true,
+            umbraRef: existing[0].umbraRef,
+            queueSignature: existing[0].umbraQueueSig,
+          });
+        }
+
+        const payoutSol = Number(winningPosition.shares ?? 0);
+        const lamports = BigInt(Math.floor(payoutSol * 1_000_000_000));
+
+        const { sendUmbraPrivatePayout } = await import("./services/umbra-payouts");
+        const result = await sendUmbraPrivatePayout(recipientWallet, lamports);
+
+        if (result.ok && result.umbraRef) {
+          await db
+            .update(mpTable)
+            .set({
+              umbraRef: result.umbraRef,
+              umbraQueueSig: result.queueSignature ?? null,
+            })
+            .where(eq(mpTable.positionId, winningPosition.id));
+        }
+
+        return res.json({
+          success: result.ok,
+          umbraRef: result.umbraRef ?? null,
+          queueSignature: result.queueSignature ?? null,
+          error: result.error ?? result.skipped ?? null,
+          amountSol: payoutSol,
+          recipient: recipientWallet,
+          marketId,
+        });
+      } catch (err: any) {
+        const msg = err.message || String(err);
+        console.error("[Umbra] create-payout-utxo failed:", msg);
+        return res.status(500).json({ error: `Umbra private payout failed: ${msg}` });
       }
-      if (!(await isValidSolanaAddress(senderWallet)) || !(await isValidSolanaAddress(recipientWallet)) || !(await isValidSolanaAddress(tokenMint))) {
-        return res.status(400).json({ error: "Invalid Solana wallet or token address" });
-      }
-      const amountNum = parseFloat(amount);
-      if (isNaN(amountNum) || amountNum <= 0) {
-        return res.status(400).json({ error: "Amount must be a positive number" });
-      }
-      const quote = await getUmbraQuote({ senderWallet, recipientWallet, tokenMint, amount });
-      return res.json({
-        success: true,
-        quote,
-        message: "Private transfer quote generated. Sign and submit the stealth transaction to complete the shield.",
-      });
-    } catch (err: any) {
-      console.error("Umbra shield error:", err);
-      return res.status(500).json({ error: err.message || "Failed to generate Umbra shield quote" });
-    }
-  });
+    },
+  );
 
   // ─────────────────────────────────────────────────────────────────────────────
 
