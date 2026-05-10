@@ -2044,10 +2044,17 @@ export async function registerRoutes(
   });
 
   // DEVNET: Get wallet balance
+  const balanceCache = new Map<string, { balance: number; ts: number }>();
+  const BALANCE_TTL_MS = 8000;
   app.get("/api/devnet/balance/:address", async (req, res) => {
     try {
       const { address } = req.params;
+      const cached = balanceCache.get(address);
+      if (cached && Date.now() - cached.ts < BALANCE_TTL_MS) {
+        return res.json({ address, balance: cached.balance, network: "devnet" });
+      }
       const balance = await getDevnetBalance(address);
+      balanceCache.set(address, { balance, ts: Date.now() });
       return res.json({ address, balance, network: "devnet" });
     } catch (error: any) {
       return res.status(500).json({ error: "Internal server error" });

@@ -10,8 +10,8 @@ const MARK_BROKEN_AFTER_MS = 30 * 60 * 1000;
 // How many active tokens to refresh price/mcap/progress for per cycle, and
 // how many concurrent RPC calls to make. Helius gets aggressive about 429s
 // past ~5 in-flight, so keep this small.
-const ACTIVE_REFRESH_LIMIT = 20;
-const REFRESH_CONCURRENCY = 3;
+const ACTIVE_REFRESH_LIMIT = 12;
+const REFRESH_CONCURRENCY = 2;
 
 export interface ReconcileResult {
   scanned: number;

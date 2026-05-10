@@ -17,13 +17,21 @@ function getHeliusApiKey(): string | undefined {
   return process.env.HELIUS_API_KEY;
 }
 
+let _loggedProvider = false;
+
 export function getHeliusRpcUrl(): string {
   const apiKey = getHeliusApiKey();
   if (apiKey && apiKey.length > 0) {
-    console.log(`[Helius] Using Helius RPC`);
+    if (!_loggedProvider) {
+      console.log(`[Helius] Using Helius RPC`);
+      _loggedProvider = true;
+    }
     return `https://${NETWORK}.helius-rpc.com/?api-key=${apiKey}`;
   }
-  console.log("[Helius] No API key found, using public RPC");
+  if (!_loggedProvider) {
+    console.log("[Helius] No API key found, using public RPC");
+    _loggedProvider = true;
+  }
   return `https://api.${NETWORK}.solana.com`;
 }
 
@@ -35,8 +43,14 @@ export function isHeliusConfigured(): boolean {
   return !!getHeliusApiKey();
 }
 
+let _connection: Connection | null = null;
+let _publicConnection: Connection | null = null;
+
 export function getConnection(): Connection {
-  return new Connection(getHeliusRpcUrl(), "confirmed");
+  if (!_connection) {
+    _connection = new Connection(getHeliusRpcUrl(), "confirmed");
+  }
+  return _connection;
 }
 
 export function createNewConnection(): Connection {
@@ -44,5 +58,8 @@ export function createNewConnection(): Connection {
 }
 
 export function getPublicConnection(): Connection {
-  return new Connection(`https://api.${NETWORK}.solana.com`, "confirmed");
+  if (!_publicConnection) {
+    _publicConnection = new Connection(`https://api.${NETWORK}.solana.com`, "confirmed");
+  }
+  return _publicConnection;
 }

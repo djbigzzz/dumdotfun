@@ -265,7 +265,7 @@ app.use((req, res, next) => {
   // Marks them deployed if the mint exists, broken if 30+ min elapsed without
   // a mint account. Backfills the rare cases where the create tx never landed
   // (user rejected wallet, tx dropped, etc.) and prevents zombie listings.
-  const RECONCILE_INTERVAL = 60 * 1000;
+  const RECONCILE_INTERVAL = 120 * 1000;
   // Re-entrancy guard: if a previous cycle is still running (a 50-token
   // refresh batch hitting Helius can occasionally exceed 60s), skip this
   // tick instead of stacking RPC pressure on top of itself.
