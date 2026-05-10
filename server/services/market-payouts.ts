@@ -328,19 +328,26 @@ export async function processPendingPayouts(maxBatch = 50): Promise<{
     }
     const result = await sendOnePayout(conn, authority, row.id, row.walletAddress, amt, row.signature, row.attempts);
     if (result.ok) {
-      // After SOL payout lands, attempt an additional Umbra private payout.
-      // This is additive privacy layering — failure does not affect the winner.
+      // Umbra private payouts are OPT-IN per winner via the market-page
+      // "Create private payout UTXO" button (POST /api/umbra/create-payout-utxo).
+      // The payout worker no longer routes every payout through Umbra; this
+      // keeps the SOL transfer the single authoritative path and honours the
+      // task scope (no automatic Umbra routing). Set UMBRA_AUTO_DEPOSIT=1 to
+      // re-enable the additive private deposit at payout time.
       let umbraRef: string | null = null;
       let umbraQueueSig: string | null = null;
-      try {
-        const { sendUmbraPrivatePayout } = await import("./umbra-payouts");
-        const umbraResult = await sendUmbraPrivatePayout(row.walletAddress, amt);
-        if (umbraResult.ok) {
-          umbraRef = umbraResult.umbraRef ?? null;
-          umbraQueueSig = umbraResult.queueSignature ?? null;
+      if (process.env.UMBRA_AUTO_DEPOSIT === "1") {
+        try {
+          const { sendUmbraPrivatePayout } = await import("./umbra-payouts");
+          const umbraResult = await sendUmbraPrivatePayout(row.walletAddress, amt);
+          if (umbraResult.ok) {
+            umbraRef = umbraResult.umbraRef ?? null;
+            umbraQueueSig = umbraResult.queueSignature ?? null;
+          }
+        } catch (umbraErr: unknown) {
+          const m = umbraErr instanceof Error ? umbraErr.message : String(umbraErr);
+          console.warn(`[Payouts] Umbra auto-deposit error (non-fatal): ${m}`);
         }
-      } catch (umbraErr: any) {
-        console.warn(`[Payouts] Umbra private payout error (non-fatal): ${umbraErr?.message ?? umbraErr}`);
       }
 
       await db.update(marketPayouts)

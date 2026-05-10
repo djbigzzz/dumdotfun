@@ -5228,6 +5228,7 @@ export async function registerRoutes(
 
         return res.json({
           success: result.ok,
+          simulated: result.simulated ?? false,
           utxoRef: result.utxoRef ?? null,
           scanHint: result.scanHint ?? null,
           viewingKey: result.viewingKey ?? null,
@@ -5237,6 +5238,7 @@ export async function registerRoutes(
           recipient: recipientWallet,
           mint: result.mint ?? null,
           marketId,
+          note: result.note ?? null,
           error: result.error ?? result.skipped ?? null,
         });
       } catch (err: unknown) {
