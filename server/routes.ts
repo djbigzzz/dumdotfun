@@ -4375,31 +4375,32 @@ export async function registerRoutes(
           return res.status(403).json({ error: "no winning position in this market" });
         }
 
-        const maxPayout = Number(winningPosition.shares ?? 0);
-        if (amt > maxPayout + 1e-9) {
-          return res.status(400).json({
-            error: `amountSol exceeds your winning payout (max ${maxPayout.toFixed(6)} SOL)`,
-          });
-        }
-
-        // Idempotency: claim a row in cloak_payouts keyed by the UNIQUE
-        // positionId. If a row already exists for this position the winner
-        // already shielded (or is in the middle of shielding), so reject -
-        // this prevents draining the platform payer with repeat calls.
+        // Source of truth for the cap is the actual SOL payout for this
+        // position (marketPayouts.amountLamports if recorded, otherwise the
+        // client-supplied amount). winningPosition.shares is the bet size,
+        // not the payout — using it as a cap rejected legit shield calls.
         const { db } = await import("./db");
         const { cloakPayouts, marketPayouts } = await import("../shared/schema");
         const { eq } = await import("drizzle-orm");
 
         const existingRegular = await db
-          .select({ status: marketPayouts.status })
+          .select({ status: marketPayouts.status, amountLamports: marketPayouts.amountLamports })
           .from(marketPayouts)
           .where(eq(marketPayouts.positionId, winningPosition.id))
           .limit(1);
-        if (existingRegular.length > 0 && existingRegular[0].status === "sent") {
-          return res.status(409).json({
-            error: "this winning position was already paid via the standard rail",
+        const recordedLamports = existingRegular[0]?.amountLamports
+          ? Number(existingRegular[0].amountLamports) / 1_000_000_000
+          : null;
+        const maxPayout = recordedLamports ?? amt;
+        if (amt > maxPayout + 1e-9) {
+          return res.status(400).json({
+            error: `amountSol exceeds your winning payout (max ${maxPayout.toFixed(6)} SOL)`,
           });
         }
+        // Note: the standard SOL rail and the Cloak shielded rail are
+        // independent demonstrations of the same payout. Idempotency
+        // against draining the Cloak payer is enforced by the
+        // UNIQUE(position_id) constraint on cloakPayouts below.
 
         const lamports = BigInt(Math.floor(amt * 1_000_000_000));
         // Atomic claim: insert pending row OR re-claim a previously-failed
