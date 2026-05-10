@@ -404,7 +404,7 @@ export default function TokenPage() {
       return confirmRes.json();
     },
     onSuccess: (data, variables) => {
-      const stake = parseFloat(variables.amount) || 0;
+      const stake = Number(variables.amount) || 0;
       const payout = data?.potentialPayout ? Number(data.potentialPayout) : undefined;
       const sideLbl = variables.side === "yes" ? "YES" : "NO";
       const pred = token?.predictions?.find(p => p.id === variables.marketId);
@@ -1278,7 +1278,7 @@ export default function TokenPage() {
                 raydiumPoolId={graduationStatus?.raydiumPoolId || undefined}
                 connectedWallet={connectedWallet}
                 signAndSendTransaction={signAndSendTransaction}
-                ensureSession={ensureSession}
+                ensureSession={async () => { await ensureSession(); }}
                 connectWallet={connectWallet}
                 privateMode={privateMode}
                 cardStyle={cardStyle}

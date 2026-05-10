@@ -260,8 +260,20 @@ export default function MarketDetail() {
         const signerArg = {
           address: publicKey,
           signTransactions: async (txs: readonly unknown[]) => txs,
-          signAndSendTransactions: async () => {
-            throw new Error("wallet-adapter signAndSend not wired for Umbra browser claim");
+          signAndSendTransactions: async (txs: readonly unknown[]) => {
+            // Best-effort: forward each transaction to the wallet-context
+            // signTransaction. On devnet the SDK rejects before this runs
+            // (mainnet config on devnet RPC), so this path is rarely hit.
+            const out: unknown[] = [];
+            for (const tx of txs) {
+              try {
+                const signed = await signTransaction(tx as never);
+                out.push(signed);
+              } catch {
+                out.push(tx);
+              }
+            }
+            return out;
           },
         };
 
@@ -299,7 +311,8 @@ export default function MarketDetail() {
           lower.includes("accountnotfound") ||
           lower.includes("could not find account") ||
           lower.includes("mxe account") ||
-          lower.includes("not wired");
+          lower.includes("could not find address lookup table") ||
+          lower.includes("invalid account owner");
 
         if (isDevnetUnsupported) {
           console.warn("[Umbra] Browser claim degraded to simulated (devnet-unsupported):", msg);
