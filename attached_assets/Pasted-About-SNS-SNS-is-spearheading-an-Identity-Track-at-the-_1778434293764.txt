@@ -1,0 +1,65 @@
+About SNS
+SNS is spearheading an Identity Track at the Solana Network State Spring ‘26 event. We help builders create cutting-edge identity protocols on Solana's high-speed network. This initiative is part of the larger Frontier hackathon, a five-week program hosted in collaboration with Superteam MY, Network School.
+
+Mission
+Build an identity-focused project on Solana, leveraging social and agent identity concepts.
+
+Hackathon Track Scope
+Build a decentralized application (dApp) that explores identity, social identity, or agent identity on Solana.
+This track focuses on how identity can serve as a core primitive for trust, interaction in onchain ecosystem. 
+We will structure this track into two focuses themes:
+
+Agent Identity: Build the onchain identity layer and source of trust using .sol for autonomous agent on Solana
+
+Social Identity: Reimagine .sol as the universal identity and login layer for Solana applications. Focus on improving user onboarding, portability of identity, and composability across apps.
+
+Projects could include:
+
+On-chain reputation systems.
+
+Social graph protocols that leverage Solana wallets for identity.
+
+AI agents with distinct on-chain identities.
+
+Tools that visualize or manage aspects of decentralized identity.
+
+Solutions for sybil resistance in DAOs or airdrop campaigns using identity.
+
+Submission Requirements
+Register for the hackathon on the Colosseum platform and select "Global".
+
+Submit your project to the Frontier hackathon on the Colosseum platform and select "Global"
+
+Submit your project on both the Colosseum portal and Superteam Earn.
+
+The project must meet the official rules of the global hackathon.
+
+The overall submission quality (pitch deck, videos, and documentation) should clearly communicate the problem, product, architecture, and its significance.
+
+A clear explanation of how your project addresses identity, social identity, or agent identity on Solana.
+
+Submission must include a link to a public GitHub repository with your project's code. If the team’s Github repo is closed source, please grant access to contact@sns.id for our evaluation.
+
+Must be in English.
+
+Judging Criteria
+Our team and local judging will be aligned with Colosseum’s founder-first philosophy. We will evaluate projects based on:
+
+Innovation: How new and creative is the approach to identity on Solana?
+
+Technical Merit: Quality of the code, smart contract design, and overall technical implementation.
+
+Practicality/Use Case: How useful is the project, and what real-world problem does it solve?
+
+Completeness: How well-developed is the project within the hackathon timeframe?
+
+User Experience: How intuitive and easy to use is the dApp?
+
+Founder Potential: Does the team look like it can keep shipping after the hackathon? Is there evidence of speed, clarity, and conviction?
+
+Demo and Submission Quality: How clearly does the team communicate the problem, product, architecture, and why it matters?
+
+Reward Structure
+2 Track Winners, $1,800/each = Total $3,600
+
+2 Track Runner-up, $700/each = Total $1,400

@@ -4,8 +4,13 @@ import { createHash } from "crypto";
 const SNS_PROGRAM_ID = new PublicKey("namesLPneVptA9Z5rqUDD9tMTWEJwofgaYwp8cawRkX");
 const ROOT_TLD = new PublicKey("58PwtjSDuFHuUkYjH9BYnnQKHfwo9reZhC2zMJv9JPkx");
 const REVERSE_LOOKUP_CLASS = new PublicKey("33m47vH6Eav6jr5Ry86XjhRft2jRBLDnDgPSHoquXi2Z");
+const HASH_PREFIX = "SPL Name Service";
 
-const SNS_RPC = process.env.HELIUS_RPC_URL || "https://api.mainnet-beta.solana.com";
+const SNS_RPC =
+  process.env.SNS_RPC_URL ||
+  (process.env.HELIUS_API_KEY
+    ? `https://mainnet.helius-rpc.com/?api-key=${process.env.HELIUS_API_KEY}`
+    : "https://api.mainnet-beta.solana.com");
 const connection = new Connection(SNS_RPC, "confirmed");
 
 interface CacheEntry {
@@ -32,9 +37,7 @@ function setCache(cache: Map<string, CacheEntry>, key: string, value: string | n
 }
 
 function hashName(input: string): Buffer {
-  return createHash("sha256")
-    .update(createHash("sha256").update(input).digest())
-    .digest();
+  return createHash("sha256").update(HASH_PREFIX + input).digest();
 }
 
 async function getNameAccountKey(
@@ -52,16 +55,14 @@ async function getNameAccountKey(
 }
 
 async function getDomainKey(name: string): Promise<PublicKey> {
-  const hashed = hashName(name);
-  return getNameAccountKey(hashed, null, ROOT_TLD);
+  return getNameAccountKey(hashName(name), null, ROOT_TLD);
 }
 
 async function getReverseLookupKey(pubkey: PublicKey): Promise<PublicKey> {
-  const hashed = hashName(pubkey.toBase58());
-  return getNameAccountKey(hashed, REVERSE_LOOKUP_CLASS, null);
+  return getNameAccountKey(hashName(pubkey.toBase58()), REVERSE_LOOKUP_CLASS, null);
 }
 
-async function parseNameAccountData(data: Buffer): Promise<{ parentName: PublicKey; owner: PublicKey; data: Buffer }> {
+function parseNameAccountData(data: Buffer): { parentName: PublicKey; owner: PublicKey; data: Buffer } {
   if (data.length < 96) throw new Error("Invalid name account data");
   return {
     parentName: new PublicKey(data.slice(0, 32)),
@@ -78,21 +79,18 @@ export async function resolveAddress(address: string): Promise<string | null> {
     const publicKey = new PublicKey(address);
     const reverseLookupKey = await getReverseLookupKey(publicKey);
     const accountInfo = await connection.getAccountInfo(reverseLookupKey);
-
     if (!accountInfo) {
       setCache(resolveCache, address, null);
       return null;
     }
-
-    const parsed = await parseNameAccountData(accountInfo.data);
-    const nameData = parsed.data;
-
-    const len = nameData.readUInt32LE(0);
-    const domainName = nameData.slice(4, 4 + len).toString("utf8");
+    const parsed = parseNameAccountData(accountInfo.data);
+    const len = parsed.data.readUInt32LE(0);
+    const domainName = parsed.data.slice(4, 4 + len).toString("utf8");
     const result = `${domainName}.sol`;
     setCache(resolveCache, address, result);
     return result;
-  } catch {
+  } catch (err) {
+    console.warn("[SNS] resolveAddress failed:", (err as Error).message);
     setCache(resolveCache, address, null);
     return null;
   }
@@ -108,17 +106,16 @@ export async function lookupDomain(domain: string): Promise<string | null> {
   try {
     const domainKey = await getDomainKey(normalized);
     const accountInfo = await connection.getAccountInfo(domainKey);
-
     if (!accountInfo) {
       setCache(lookupCache, cacheKey, null);
       return null;
     }
-
-    const parsed = await parseNameAccountData(accountInfo.data);
+    const parsed = parseNameAccountData(accountInfo.data);
     const result = parsed.owner.toBase58();
     setCache(lookupCache, cacheKey, result);
     return result;
-  } catch {
+  } catch (err) {
+    console.warn("[SNS] lookupDomain failed:", (err as Error).message);
     setCache(lookupCache, cacheKey, null);
     return null;
   }
