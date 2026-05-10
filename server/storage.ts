@@ -217,7 +217,7 @@ export class DatabaseStorage implements IStorage {
     return market || undefined;
   }
 
-  async getMarkets(limit: number = 24): Promise<Market[]> {
+  async getMarkets(limit: number = 1000): Promise<Market[]> {
     return db.select().from(predictionMarkets).orderBy(desc(predictionMarkets.createdAt)).limit(limit);
   }
 

@@ -1,9 +1,9 @@
 import { Layout } from "@/components/layout";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Target, Clock, TrendingUp, Loader2 } from "lucide-react";
+import { Target, Clock, TrendingUp, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 interface MarketListItem {
@@ -60,25 +60,31 @@ export default function MarketsPage() {
 
   const [status, setStatus] = useState<StatusFilter>("open");
   const [sort, setSort] = useState<SortFilter>("volume");
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 24;
 
-  const { data, isLoading } = useQuery<MarketListItem[]>({
-    queryKey: ["markets", status, sort],
+  useEffect(() => { setPage(0); }, [status, sort]);
+
+  const { data, isLoading } = useQuery<{ markets: MarketListItem[]; total: number }>({
+    queryKey: ["markets", status, sort, page],
     queryFn: async () => {
-      const res = await fetch(`/api/markets?status=${status}&sort=${sort}&limit=100`);
+      const offset = page * PAGE_SIZE;
+      const res = await fetch(`/api/markets?status=${status}&sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`);
       if (!res.ok) throw new Error("Failed to fetch markets");
-      return res.json();
+      const total = parseInt(res.headers.get("X-Total-Count") || "0", 10);
+      const markets = await res.json();
+      return { markets, total };
     },
     staleTime: 30000,
   });
 
-  const markets = data || [];
+  const markets = data?.markets || [];
+  const total = data?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   const stats = useMemo(() => {
-    const totalVolume = markets.reduce((s, m) => s + (m.totalVolume || 0), 0);
-    return {
-      count: markets.length,
-      volume: totalVolume,
-    };
+    const pageVolume = markets.reduce((s, m) => s + (m.totalVolume || 0), 0);
+    return { pageVolume };
   }, [markets]);
 
   return (
@@ -91,7 +97,7 @@ export default function MarketsPage() {
               Markets
             </h1>
             <p className="text-xs text-gray-500 mt-1">
-              {stats.count} {stats.count === 1 ? "market" : "markets"} · {stats.volume.toFixed(2)} SOL total volume · auto-resolved on-chain
+              {total} {total === 1 ? "market" : "markets"} · showing {markets.length} · {stats.pageVolume.toFixed(2)} SOL on this page · auto-resolved on-chain
             </p>
           </div>
         </div>
@@ -211,6 +217,30 @@ export default function MarketsPage() {
                 </motion.div>
               );
             })}
+          </div>
+        )}
+
+        {!isLoading && total > PAGE_SIZE && (
+          <div className="flex items-center justify-between gap-4 pt-4">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-zinc-900 text-gray-300 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              data-testid="button-prev-page"
+            >
+              <ChevronLeft className="w-3 h-3" /> Prev
+            </button>
+            <div className="text-xs text-gray-500" data-testid="text-page-info">
+              Page {page + 1} of {totalPages}
+            </div>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-bold bg-zinc-900 text-gray-300 border border-zinc-800 hover:bg-zinc-800 disabled:opacity-40 disabled:cursor-not-allowed"
+              data-testid="button-next-page"
+            >
+              Next <ChevronRight className="w-3 h-3" />
+            </button>
           </div>
         )}
       </div>

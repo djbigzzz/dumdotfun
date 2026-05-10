@@ -2579,10 +2579,11 @@ export async function registerRoutes(
   app.get("/api/markets", async (req, res) => {
     try {
       const limit = Math.min(Math.max(parseInt(String(req.query.limit || "100"), 10) || 100, 1), 200);
+      const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
       const status = String(req.query.status || "all"); // open | resolved | ending_soon | all
       const sort = String(req.query.sort || "newest");  // newest | volume | ending_soon
 
-      const all = await storage.getMarkets(200);
+      const all = await storage.getMarkets(1000);
       const now = Date.now();
 
       let filtered = all;
@@ -2617,7 +2618,9 @@ export async function registerRoutes(
         enriched.sort((a, b) => new Date(a.resolutionDate).getTime() - new Date(b.resolutionDate).getTime());
       } // newest is default order from storage
 
-      return res.json(enriched.slice(0, limit));
+      res.setHeader("X-Total-Count", String(enriched.length));
+      res.setHeader("Access-Control-Expose-Headers", "X-Total-Count");
+      return res.json(enriched.slice(offset, offset + limit));
     } catch (error: any) {
       console.error("Error fetching markets:", error);
       return res.status(500).json({ error: "Failed to fetch markets" });
