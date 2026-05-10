@@ -2582,6 +2582,8 @@ export async function registerRoutes(
       const offset = Math.max(parseInt(String(req.query.offset || "0"), 10) || 0, 0);
       const status = String(req.query.status || "all"); // open | resolved | ending_soon | all
       const sort = String(req.query.sort || "newest");  // newest | volume | ending_soon
+      const category = String(req.query.category || "all"); // all | dev_sells | dev_holds | graduated | recent_activity | has_liquidity | custom
+      const q = String(req.query.q || "").trim().toLowerCase();
 
       const all = await storage.getMarkets(1000);
       const now = Date.now();
@@ -2597,6 +2599,22 @@ export async function registerRoutes(
           const t = new Date(m.resolutionDate).getTime();
           return m.status === "open" && t > now && t - now <= dayMs;
         });
+      }
+
+      if (category !== "all") {
+        if (category === "custom") {
+          filtered = filtered.filter(m => m.predictionType === "custom");
+        } else {
+          filtered = filtered.filter(m => m.survivalCriteria === category);
+        }
+      }
+
+      if (q) {
+        filtered = filtered.filter(m =>
+          (m.question || "").toLowerCase().includes(q) ||
+          (m.description || "").toLowerCase().includes(q) ||
+          (m.tokenMint || "").toLowerCase().includes(q)
+        );
       }
 
       const counts = await storage

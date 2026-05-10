@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Target, Clock, TrendingUp, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Target, Clock, TrendingUp, Loader2, ChevronLeft, ChevronRight, Search, X } from "lucide-react";
 import { usePageTitle } from "@/hooks/use-page-title";
 
 interface MarketListItem {
@@ -28,6 +28,7 @@ interface MarketListItem {
 
 type StatusFilter = "open" | "ending_soon" | "resolved" | "all";
 type SortFilter = "newest" | "volume" | "ending_soon";
+type CategoryFilter = "all" | "dev_sells" | "dev_holds" | "graduated" | "recent_activity" | "has_liquidity" | "custom";
 
 const STATUS_LABELS: Record<StatusFilter, string> = {
   open: "Live",
@@ -40,6 +41,16 @@ const SORT_LABELS: Record<SortFilter, string> = {
   newest: "Newest",
   volume: "Most volume",
   ending_soon: "Ending soonest",
+};
+
+const CATEGORY_LABELS: Record<CategoryFilter, string> = {
+  all: "All types",
+  dev_sells: "Rugs",
+  dev_holds: "Dev holds",
+  graduated: "Graduations",
+  recent_activity: "Activity",
+  has_liquidity: "Liquidity",
+  custom: "Custom",
 };
 
 function timeLeftLabel(resolutionDate: string): { text: string; urgent: boolean; ended: boolean } {
@@ -60,16 +71,30 @@ export default function MarketsPage() {
 
   const [status, setStatus] = useState<StatusFilter>("open");
   const [sort, setSort] = useState<SortFilter>("volume");
+  const [category, setCategory] = useState<CategoryFilter>("all");
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 24;
 
-  useEffect(() => { setPage(0); }, [status, sort]);
+  useEffect(() => { setPage(0); }, [status, sort, category, search]);
+
+  useEffect(() => {
+    const t = setTimeout(() => setSearch(searchInput.trim()), 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   const { data, isLoading } = useQuery<{ markets: MarketListItem[]; total: number }>({
-    queryKey: ["markets", status, sort, page],
+    queryKey: ["markets", status, sort, category, search, page],
     queryFn: async () => {
       const offset = page * PAGE_SIZE;
-      const res = await fetch(`/api/markets?status=${status}&sort=${sort}&limit=${PAGE_SIZE}&offset=${offset}`);
+      const params = new URLSearchParams({
+        status, sort, category,
+        limit: String(PAGE_SIZE),
+        offset: String(offset),
+      });
+      if (search) params.set("q", search);
+      const res = await fetch(`/api/markets?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to fetch markets");
       const total = parseInt(res.headers.get("X-Total-Count") || "0", 10);
       const markets = await res.json();
@@ -102,6 +127,27 @@ export default function MarketsPage() {
           </div>
         </div>
 
+        <div className="relative">
+          <Search className="w-4 h-4 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Search by token, question, or mint…"
+            className="w-full bg-zinc-900 border border-zinc-800 rounded-lg text-sm text-white pl-9 pr-9 py-2 focus:outline-none focus:border-yellow-500"
+            data-testid="input-market-search"
+          />
+          {searchInput && (
+            <button
+              onClick={() => setSearchInput("")}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-white"
+              data-testid="button-clear-search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-wrap items-center gap-2">
           <div className="flex flex-wrap gap-1">
             {(Object.keys(STATUS_LABELS) as StatusFilter[]).map(key => (
@@ -131,6 +177,23 @@ export default function MarketsPage() {
           </select>
         </div>
 
+        <div className="flex flex-wrap gap-1">
+          {(Object.keys(CATEGORY_LABELS) as CategoryFilter[]).map(key => (
+            <button
+              key={key}
+              onClick={() => setCategory(key)}
+              className={`px-2.5 py-1 rounded-full text-[11px] font-bold transition-colors ${
+                category === key
+                  ? "bg-red-500 text-white"
+                  : "bg-zinc-900 text-gray-400 hover:bg-zinc-800 hover:text-white border border-zinc-800"
+              }`}
+              data-testid={`filter-category-${key}`}
+            >
+              {CATEGORY_LABELS[key]}
+            </button>
+          ))}
+        </div>
+
         {isLoading ? (
           <div className="flex justify-center py-20">
             <Loader2 className="w-8 h-8 text-yellow-500 animate-spin" />
@@ -138,12 +201,18 @@ export default function MarketsPage() {
         ) : markets.length === 0 ? (
           <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-12 text-center">
             <Target className="w-12 h-12 text-gray-600 mx-auto mb-3" />
-            <p className="text-gray-400">No markets match these filters yet.</p>
-            <Link href="/tokens">
-              <button className="mt-4 bg-yellow-500 hover:bg-yellow-600 text-black font-bold px-4 py-2 rounded-lg text-sm">
-                Browse tokens to create one
+            <p className="text-gray-400">
+              {search ? `No markets match "${search}".` : "No markets match these filters yet."}
+            </p>
+            {(search || category !== "all" || status !== "all") && (
+              <button
+                onClick={() => { setSearchInput(""); setCategory("all"); setStatus("all"); }}
+                className="mt-4 bg-zinc-800 hover:bg-zinc-700 text-white font-bold px-4 py-2 rounded-lg text-sm"
+                data-testid="button-clear-filters"
+              >
+                Clear filters
               </button>
-            </Link>
+            )}
           </div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
