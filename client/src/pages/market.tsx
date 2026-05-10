@@ -318,7 +318,11 @@ export default function MarketDetail() {
           lower.includes("not registered") ||
           lower.includes("receiver is not registered") ||
           lower.includes("signmessage is not a function") ||
-          lower.includes("is not a function");
+          lower.includes("is not a function") ||
+          lower.includes("expected uint8array") ||
+          lower.includes("got type=undefined") ||
+          lower.includes("invalid viewing key") ||
+          lower.includes("umbra:simulated");
 
         if (isDevnetUnsupported) {
           console.warn("[Umbra] Browser claim degraded to simulated (devnet-unsupported):", msg);
