@@ -60,6 +60,9 @@ interface HeldToken {
   marketCapSol: number | null;
   isDumFun: boolean;
   isOnBondingCurve?: boolean;
+  isGraduated?: boolean;
+  raydiumPoolId?: string | null;
+  graduationStatus?: string | null;
   avgBuyPriceSol?: number | null;
   unrealizedPnlSol?: number | null;
   unrealizedPnlPct?: number | null;
@@ -221,9 +224,27 @@ export default function Profile() {
     try {
       const tokenAmount = (sellToken.balance * sellPct) / 100;
       await ensureSession();
-      const res = await apiRequest("POST", "/api/bonding-curve/sell", {
-        seller: connectedWallet, mint: sellToken.mint, tokenAmount: tokenAmount.toString(), minSolOut: "0",
-      });
+
+      // Graduated tokens: bonding curve is closed, must swap on Raydium.
+      const isGraduated = !!sellToken.isGraduated;
+
+      let res: Response;
+      let amountInBaseUnits: string | null = null;
+      if (isGraduated) {
+        // Raydium expects base units (token decimals = 6 for dum.fun tokens)
+        amountInBaseUnits = Math.floor(tokenAmount * 1_000_000).toString();
+        res = await apiRequest("POST", "/api/raydium/swap/build", {
+          userWallet: connectedWallet,
+          mint: sellToken.mint,
+          amount: amountInBaseUnits,
+          isBuy: false,
+          slippageBps: 500,
+        });
+      } else {
+        res = await apiRequest("POST", "/api/bonding-curve/sell", {
+          seller: connectedWallet, mint: sellToken.mint, tokenAmount: tokenAmount.toString(), minSolOut: "0",
+        });
+      }
 
       const { transaction: txBase64 } = await res.json();
       const txBytes = Buffer.from(txBase64, "base64");

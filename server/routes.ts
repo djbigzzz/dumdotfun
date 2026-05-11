@@ -929,7 +929,10 @@ export async function registerRoutes(
             valueInSol: priceInSol !== null ? balance * priceInSol : null,
             marketCapSol,
             isDumFun: true,
-            isOnBondingCurve: true,
+            isOnBondingCurve: !t.isGraduated,
+            isGraduated: !!t.isGraduated,
+            raydiumPoolId: t.raydiumPoolId ?? null,
+            graduationStatus: t.graduationStatus ?? null,
           };
         })
       );
