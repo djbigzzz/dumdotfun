@@ -407,7 +407,7 @@ export default function TokensPage() {
                     data-testid={`trending-card-${token.mint}`}
                   >
                     <div className="flex gap-3">
-                      <div className={`w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-black/20"}`}>
+                      <div className={`w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-black/20"}`}>
                         {token.imageUri ? (
                           <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token`} loading="lazy" className="w-full h-full object-cover" />
                         ) : (
@@ -602,7 +602,7 @@ export default function TokensPage() {
                         </div>
                         <div className="py-3 px-4 flex-1">
                           <div className="flex items-center gap-3">
-                            <div className={`w-10 h-10 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
+                            <div className={`w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 border ${privateMode ? "border-[#4ADE80]/30" : "border-gray-200"}`}>
                               {token.imageUri ? (
                                 <img src={token.imageUri} alt={`${token.name} (${token.symbol}) token`} loading="lazy" className="w-full h-full object-cover" />
                               ) : (
