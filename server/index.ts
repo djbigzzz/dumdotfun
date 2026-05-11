@@ -35,14 +35,24 @@ function isNeonConnectionError(err: any): boolean {
   return false;
 }
 
+// Throttle Neon hibernation noise: log once per minute instead of every retry.
+let _lastNeonLog = 0;
+let _suppressedNeonCount = 0;
+function logNeonThrottled(kind: string, err: any) {
+  _suppressedNeonCount++;
+  const now = Date.now();
+  if (now - _lastNeonLog < 60_000) return;
+  console.warn(
+    `[server] Neon/pg connection blip (${kind}) — auto-recovered. Suppressed ${_suppressedNeonCount} similar in last 60s.`,
+    err?.code ?? err?.name ?? "",
+  );
+  _lastNeonLog = now;
+  _suppressedNeonCount = 0;
+}
+
 process.on("uncaughtException", (err: any) => {
   if (isNeonConnectionError(err)) {
-    console.warn(
-      "[server] Caught Neon/pg connection error (uncaughtException) - continuing:",
-      err?.name,
-      err?.message,
-      err?.code ?? "",
-    );
+    logNeonThrottled("uncaughtException", err);
     return;
   }
   console.error("[server] Uncaught exception - exiting:", err);
@@ -51,12 +61,7 @@ process.on("uncaughtException", (err: any) => {
 
 process.on("unhandledRejection", (reason: any) => {
   if (isNeonConnectionError(reason)) {
-    console.warn(
-      "[server] Caught Neon/pg connection error (unhandledRejection) - continuing:",
-      reason?.name,
-      reason?.message,
-      reason?.code ?? "",
-    );
+    logNeonThrottled("unhandledRejection", reason);
     return;
   }
   console.error("[server] Unhandled rejection - exiting:", reason);
