@@ -880,27 +880,43 @@ export async function registerRoutes(
             };
           }
 
-          // dum.fun token — get live on-chain price from bonding curve only.
-          // Never fall back to the stale DB price: if the curve fetch fails,
-          // we show "no price" rather than a wildly wrong value.
+          // dum.fun token — get live on-chain price.
+          // For graduated tokens the bonding curve has been drained and its
+          // virtual reserves give a stale (frozen-at-graduation) price that
+          // can be wildly inflated vs the real Raydium pool. Use the Raydium
+          // pool price first; only fall back to bonding curve for non-graduated.
+          // If both fail, show "no price" rather than a wrong value.
           let priceInSol: number | null = null;
           let marketCapSol: number | null = null;
-          try {
-            const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
-            if (curveData) {
-              priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
-              const bnToNum = (val: any) => {
-                if (val == null) return 0;
-                return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
-              };
-              const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
-              const totalSupply = totalSupplyRaw / 1_000_000;
-              // Fully-diluted market cap (price × total supply), matching the
-              // pump.fun / Raydium / DEX Screener convention used elsewhere.
-              marketCapSol = priceInSol !== null && !isNaN(totalSupply) ? priceInSol * totalSupply : null;
+          if (t.isGraduated && t.raydiumPoolId && t.graduationStatus === "completed") {
+            try {
+              const { getPoolStats } = await import("./services/raydium-swap");
+              const pool = await getPoolStats(mint);
+              if (pool && pool.priceTokenInSol > 0) {
+                priceInSol = pool.priceTokenInSol;
+                marketCapSol = priceInSol * 1_000_000_000;
+              }
+            } catch {
+              // Raydium fetch failed — leave priceInSol null
             }
-          } catch {
-            // curve fetch failed — priceInSol stays null, shown as "no price"
+          } else {
+            try {
+              const curveData = await bondingCurve.fetchBondingCurveData(new PublicKey(mint));
+              if (curveData) {
+                priceInSol = bondingCurve.calculatePrice(curveData.virtualSolReserves, curveData.virtualTokenReserves);
+                const bnToNum = (val: any) => {
+                  if (val == null) return 0;
+                  return typeof val === 'object' && val.toNumber ? val.toNumber() : Number(val);
+                };
+                const totalSupplyRaw = curveData.tokenTotalSupply != null ? bnToNum(curveData.tokenTotalSupply) : 1_000_000_000_000_000;
+                const totalSupply = totalSupplyRaw / 1_000_000;
+                // Fully-diluted market cap (price × total supply), matching the
+                // pump.fun / Raydium / DEX Screener convention used elsewhere.
+                marketCapSol = priceInSol !== null && !isNaN(totalSupply) ? priceInSol * totalSupply : null;
+              }
+            } catch {
+              // curve fetch failed — priceInSol stays null, shown as "no price"
+            }
           }
 
           return {
