@@ -291,8 +291,11 @@ export default function TokenPage() {
       if (!res.ok) return { balance: 0 };
       return res.json();
     },
-    enabled: !!connectedWallet && !!mint && tradeType === "sell",
-    refetchInterval: 10000,
+    // Always fetch when connected — the Raydium swap panel for graduated
+    // tokens shows the balance regardless of the (bonding-curve) tradeType
+    // toggle, and the 25%/50%/75%/Max sell shortcuts need it on first render.
+    enabled: !!connectedWallet && !!mint,
+    refetchInterval: 30000,
   });
 
   const { data: solBalanceData } = useQuery<{ balance: number }>({
