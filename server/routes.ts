@@ -387,7 +387,13 @@ export async function registerRoutes(
           .from(tokensTable)
           .where(
             and(
-              eq(tokensTable.deploymentStatus, "deployed"),
+              // Graduated tokens are always real on-chain (they migrated to
+              // Raydium), so include them even if their DB deployment_status
+              // never got flipped to "deployed" due to a confirm hiccup.
+              or(
+                eq(tokensTable.deploymentStatus, "deployed"),
+                eq(tokensTable.isGraduated, true),
+              ),
               or(
                 isNull(tokensTable.graduationStatus),
                 ne(tokensTable.graduationStatus, "broken"),
@@ -520,7 +526,10 @@ export async function registerRoutes(
       // Only expose tokens that have been verified on-chain. Pending tokens
       // may have been created by /api/tokens/create before a signature was
       // ever submitted, and should not be publicly visible.
-      if (token.deploymentStatus !== "deployed") {
+      // Exception: graduated tokens are unambiguously real on-chain (they
+      // migrated to Raydium), so always show them regardless of any stale
+      // deployment_status flag.
+      if (token.deploymentStatus !== "deployed" && !token.isGraduated) {
         return res.status(404).json({ error: "Token not found on dum.fun" });
       }
 
