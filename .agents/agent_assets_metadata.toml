@@ -53,3 +53,9 @@ id = "yNCetTG-7JOkz_aiNlzkC"
 uri = "file://video-scripts/all-tracks.md"
 type = "text"
 title = "Frontier Hackathon — All 8 Video Scripts"
+
+[[outputs]]
+id = "dkB0dAxp_x9wCaOdOunNs"
+uri = "file://.local/dwnr-og.png"
+type = "image"
+title = "Live $DWNR OG image from prod"

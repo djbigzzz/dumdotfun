@@ -891,7 +891,7 @@ export default function CreateToken() {
                 <p className="text-xs opacity-50 font-mono mt-1">Initial bonding curve market cap (30 SOL)</p>
               </div>
               <motion.a
-                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just launched $${createdToken.symbol} (${createdToken.name}) on @dumdotfun - bet whether I'll rug it. Devnet only.`)}&url=${encodeURIComponent(`${typeof window !== "undefined" && window.location.origin?.startsWith("http") ? window.location.origin : "https://dum.fun"}/token/${createdToken.mint}`)}`}
+                href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Just launched $${createdToken.symbol} (${createdToken.name}) on @dumdotfun - bet whether I'll rug it. Devnet only.`)}&url=${encodeURIComponent(`${typeof window !== "undefined" && window.location.origin?.startsWith("http") ? window.location.origin : "https://dum.fun"}/token/${createdToken.mint}?s=x&t=${Date.now()}`)}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 whileHover={{ y: -2, x: -2 }}
