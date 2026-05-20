@@ -99,7 +99,7 @@ async function awardPointsInternal(walletAddress: string, action: string, basePo
   // (referrer A → referrer B → referrer C ...).
   if (action !== "referral_bonus") {
     try {
-      await awardReferralBonus(walletAddress, finalPoints);
+      await awardReferralBonus(walletAddress, finalPoints, action);
     } catch (err) {
       console.error("[points] referral bonus cascade failed for", walletAddress, err);
     }
@@ -126,10 +126,60 @@ export async function awardQuest(walletAddress: string, action: string): Promise
   if (existing) return { awarded: false, points: 0 };
 
   const result = await awardPointsInternal(walletAddress, quest.id, quest.points);
+
+  // If this is the qualifying action, settle any deferred referrer signup
+  // bonus now that we know the referee is a real user.
+  if (quest.action === "first_trade" || quest.action === "first_bet") {
+    try { await settlePendingReferral(walletAddress); } catch (e) {
+      console.error("[points] settlePendingReferral failed for", walletAddress, e);
+    }
+  }
+
   return { awarded: true, points: result.finalPoints };
 }
 
-async function awardReferralBonus(walletAddress: string, pointsEarned: number) {
+// Sybil guard: a referee only "unlocks" referral earnings (cascade + deferred
+// signup bonus) once they prove they're a real user by completing an action
+// with on-chain cost — a first trade or first bet. Onboarding clicks alone
+// (connect_wallet, mint_og_nft) are free to script and were the main farming
+// vector. We cache the result on the user_points row implicitly: presence of
+// a first_trade or first_bet history row is the source of truth.
+async function isRefereeQualified(walletAddress: string): Promise<boolean> {
+  const rows = await db.select({ action: pointsHistory.action })
+    .from(pointsHistory)
+    .where(and(
+      eq(pointsHistory.walletAddress, walletAddress),
+      sql`${pointsHistory.action} IN ('first_trade','first_bet')`,
+    ))
+    .limit(1);
+  return rows.length > 0;
+}
+
+const REFERRAL_SIGNUP_DAILY_CAP = 10;
+const REFERRAL_SIGNUP_MINUTE_CAP = 3;
+
+async function referrerWithinCaps(referrerWallet: string): Promise<boolean> {
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const minuteAgo = new Date(Date.now() - 60 * 1000);
+  const [dayCount] = await db.select({ n: sql<number>`COUNT(*)` })
+    .from(pointsHistory)
+    .where(and(
+      eq(pointsHistory.walletAddress, referrerWallet),
+      eq(pointsHistory.action, "referral_signup"),
+      sql`${pointsHistory.createdAt} >= ${dayAgo}`,
+    ));
+  if (Number(dayCount?.n || 0) >= REFERRAL_SIGNUP_DAILY_CAP) return false;
+  const [minCount] = await db.select({ n: sql<number>`COUNT(*)` })
+    .from(pointsHistory)
+    .where(and(
+      eq(pointsHistory.walletAddress, referrerWallet),
+      eq(pointsHistory.action, "referral_signup"),
+      sql`${pointsHistory.createdAt} >= ${minuteAgo}`,
+    ));
+  return Number(minCount?.n || 0) < REFERRAL_SIGNUP_MINUTE_CAP;
+}
+
+async function awardReferralBonus(walletAddress: string, pointsEarned: number, sourceAction: string) {
   const [user] = await db.select().from(users).where(eq(users.walletAddress, walletAddress));
   if (!user?.referredBy) return;
 
@@ -138,6 +188,16 @@ async function awardReferralBonus(walletAddress: string, pointsEarned: number) {
   // but any legacy row where referredBy === walletAddress (e.g. seeded data)
   // would otherwise let a user farm bonuses against themselves on every action.
   if (referrerWallet === walletAddress) return;
+
+  // Anti-sybil: don't cascade bonuses from a referee until they've proven
+  // real activity (first_trade or first_bet). Without this a farmer scripts
+  // 100 puppet wallets through the onboarding flow and pockets a bonus on
+  // every click. We allow the first_trade/first_bet action itself through
+  // because that's the moment the referee qualifies.
+  if (sourceAction !== "first_trade" && sourceAction !== "first_bet") {
+    const qualified = await isRefereeQualified(walletAddress);
+    if (!qualified) return;
+  }
 
   await getOrCreateUserPoints(referrerWallet);
   const bonusPoints = Math.floor(pointsEarned * 0.1);
@@ -237,15 +297,53 @@ export async function awardSignupReferralBonus(newUserWallet: string, referrerWa
   if (referrerWallet === newUserWallet) return; // self-referral guard
   await getOrCreateUserPoints(referrerWallet);
 
-  // Idempotent: only ever pay once per (referrer, new user) pair.
+  // Idempotent: only ever record once per (referrer, new user) pair, whether
+  // pending or settled.
   const [existing] = await db.select().from(pointsHistory)
+    .where(and(
+      eq(pointsHistory.walletAddress, referrerWallet),
+      sql`${pointsHistory.action} IN ('referral_signup','referral_signup_pending')`,
+      eq(pointsHistory.referralSource, newUserWallet),
+    ))
+    .limit(1);
+  if (existing) return;
+
+  // Defer the bonus until the referee proves they're real (first trade/bet).
+  // We still write a 0-point pending row so we have something to settle later
+  // and so the referrer can see "pending" referrals in their history.
+  const qualified = await isRefereeQualified(newUserWallet);
+  if (!qualified) {
+    await db.insert(pointsHistory).values({
+      walletAddress: referrerWallet,
+      action: "referral_signup_pending",
+      points: 0,
+      basePoints: 0,
+      referralSource: newUserWallet,
+    });
+    return;
+  }
+
+  await creditSignupReferralBonus(referrerWallet, newUserWallet);
+}
+
+// Settles the deferred signup bonus once the referee qualifies. Also enforces
+// the per-referrer rate caps. Idempotent: skipped if already credited.
+async function creditSignupReferralBonus(referrerWallet: string, newUserWallet: string): Promise<void> {
+  const [alreadyPaid] = await db.select().from(pointsHistory)
     .where(and(
       eq(pointsHistory.walletAddress, referrerWallet),
       eq(pointsHistory.action, "referral_signup"),
       eq(pointsHistory.referralSource, newUserWallet),
     ))
     .limit(1);
-  if (existing) return;
+  if (alreadyPaid) return;
+
+  if (!(await referrerWithinCaps(referrerWallet))) {
+    // Leave the pending row in place so we don't lose the referee link, but
+    // do not credit. Caller can retry next day; the daily cap will let it
+    // through once the burst clears.
+    return;
+  }
 
   await db.insert(pointsHistory).values({
     walletAddress: referrerWallet,
@@ -269,6 +367,16 @@ export async function awardSignupReferralBonus(newUserWallet: string, referrerWa
       await db.update(userPoints).set({ tier: newTier }).where(eq(userPoints.walletAddress, referrerWallet));
     }
   }
+}
+
+// Called from awardQuest when a user completes first_trade or first_bet —
+// the moment they "qualify" as real. Settles any deferred signup bonus for
+// the wallet that referred them.
+async function settlePendingReferral(refereeWallet: string): Promise<void> {
+  const [user] = await db.select().from(users).where(eq(users.walletAddress, refereeWallet));
+  if (!user?.referredBy) return;
+  if (user.referredBy === refereeWallet) return;
+  await creditSignupReferralBonus(user.referredBy, refereeWallet);
 }
 
 function canAutoComplete(action: string, _walletAddress: string, up: any): boolean {
